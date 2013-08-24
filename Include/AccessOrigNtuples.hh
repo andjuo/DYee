@@ -9,6 +9,7 @@
 #include <iostream>
 #include <ostream>
 #include <string>
+#include <math.h>
 
 #include "../Include/DYTools.hh"
 

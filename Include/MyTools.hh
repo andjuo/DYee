@@ -13,6 +13,7 @@
 //#include <TKey.h>
 #include <iostream>
 #include <math.h>
+#include <stdlib.h> // atoi, atof
 #include "../Include/CPlot.hh"
 #include "../Include/DYTools.hh"
 
