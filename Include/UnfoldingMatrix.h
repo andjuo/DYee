@@ -8,6 +8,7 @@
 #include "../Include/MyTools.hh"
 #include "../Include/MitStyleRemix.hh"
 #include "../Include/CPlot.hh"
+#include "../Include/FlatIndex.h"
 
 //for getting matrix condition number
 #include <TDecompLU.h>
@@ -24,6 +25,13 @@ void computeNormalizedBinContent(double subset, double subsetErr,
 void calculateInvertedMatrixErrors(const TMatrixD &T, 
           const TMatrixD &TErrPos, const TMatrixD &TErrNeg,
 				   TMatrixD &TinvErr);
+*/
+
+/*
+inline 
+int validFlatIndices(const FlatIndex_t &fi_a, const FlatIndex_t &fi_b) {
+  return (DYTools::validFlatIndex(fi_a.idx()) && DYTools::validFlatIndex(fi_b.idx()));
+}
 */
 
 //=== FUNCTION DEFINITIONS ======================================================================================
@@ -269,6 +277,11 @@ public:
     (*DetMigration)(idx1,idx2) += weight;
     (*DetMigrationErr)(idx1,idx2) += weight * weight;
   }
+
+  void fillIni(const FlatIndex_t &fi, double weight) { return fillIni(fi.iM(),fi.iY(),weight); }
+  void fillFin(const FlatIndex_t &fi, double weight) { return fillFin(fi.iM(),fi.iY(),weight); }
+  void fillMigration(const FlatIndex_t &fi_ini, const FlatIndex_t &fi_fin, double weight) { fillMigration(fi_ini.idx(),fi_fin.idx(),weight); }
+
 
   void finalizeDetMigrationErr() {
     for(int i=0; i < (*DetMigration).GetNrows(); i++)
