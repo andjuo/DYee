@@ -157,7 +157,8 @@ int plotDYEfficiency(const TString conf,
     // all subsequent ones are normalized to xsection and luminosity
       ULong_t maxEvents = accessInfo.getEntries();
       // to match old version package (DYee 7TeV paper), 
-      if ((inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT")==1) && (isample==0) && (ifile==0)) {
+      if ((inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT")==1) && 
+	  (isample==0) && (ifile==0)) {
 	extraWeightFactor=maxEvents / (inpMgr.totalLumi() * inpMgr.mcSampleInfo(0)->getXsec(ifile));
       }
       //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
@@ -203,6 +204,12 @@ int plotDYEfficiency(const TString conf,
 
 	// Load event info
 	accessInfo.GetInfoEntry(ientry);
+	
+	// In Unfolding and plotDYAcceptance we have FSR reweight
+	// FSR study correction for weight
+	//if (systMode==DYTools::FSR_STUDY) {
+	//  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,FSRreweight);
+	//}
 
 	// Adjust event weight
 	// .. here "false" = "not data"
