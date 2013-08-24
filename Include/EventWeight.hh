@@ -9,6 +9,11 @@
 #include "../Include/AccessOrigNtuples.hh"
 
 
+// The class EventWeigh_t has four fields:
+//  baseW -- determined from input of the file
+//  puW, fewzW -- correction factors are set automatically
+//  specW -- user can control this factor (e.g. FSR reweight)
+
 // ----------------------------------------------------
 // ----------------------------------------------------
 
