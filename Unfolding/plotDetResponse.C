@@ -11,7 +11,8 @@
 
 int plotDetResponse(const TString conf,
 		    DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) {
+		    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+		    double FSRreweight=1.0, double FSRmassDiff=1.) {
 //systematicsMode 0 (NORMAL) - no systematic calc
 //1 (RESOLUTION_STUDY) - systematic due to smearing, 2 (FSR_STUDY) - systematics due to FSR, reweighting
 //check mass spectra with reweightFsr = 0.95; 1.00; 1.05  
@@ -43,8 +44,10 @@ int plotDetResponse(const TString conf,
 
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
+
+  // plotDetResponse uses escale!
   // no energy correction for this evaluation
-  inpMgr.clearEnergyScaleTag();
+  //inpMgr.clearEnergyScaleTag();
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
@@ -58,7 +61,6 @@ int plotDetResponse(const TString conf,
   // Prepare output directory
   inpMgr.constDir(systMode,1);
 
- 
 
   const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
   const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
@@ -283,26 +285,23 @@ int plotDetResponse(const TString conf,
       return retCodeError;
     }
 
-  } // unfinished!!
-  } // runMode
-
-    /*
     for (unsigned int ifile=0; ifile<mcSample->size(); ++ifile) {
       // Read input file
       TFile infile(mcSample->getFName(ifile),"read");
       assert(infile.IsOpen());
-
+      
       // Get the TTrees
       if (!accessInfo.setTree(infile,"Events",true)) {
 	return retCodeError;
       }
 
-    // Find weight for events for this file
-    // The first file in the list comes with weight 1*extraWeightFactor,
-    // all subsequent ones are normalized to xsection and luminosity
+      // Find weight for events for this file
+      // The first file in the list comes with weight 1*extraWeightFactor,
+      // all subsequent ones are normalized to xsection and luminosity
       ULong_t maxEvents = accessInfo.getEntries();
       // to match old version package (DYee 7TeV paper), 
-      if ((isample==0) && (ifile==0)) {
+      if (inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT") && 
+	  (isample==0) && (ifile==0)) {
 	extraWeightFactor=maxEvents / (inpMgr.totalLumi() * inpMgr.mcSampleInfo(0)->getXsec(ifile));
       }
       //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
@@ -314,340 +313,275 @@ int plotDetResponse(const TString conf,
       }
       std::cout << "mcSample xsec=" << mcSample->getXsec(ifile) << ", nEntries=" << maxEvents << "\n";
       
-
-    eventCounter_t ec;
-
-    // Read input file
-    cout << "Processing " << fnamev[ifile] << "..." << endl;
-    infile = new TFile(fnamev[ifile]); 
-    assert(infile);
-
-    // Get the TTrees
-    eventTree = (TTree*)infile->Get("Events"); assert(eventTree);
-
-    // Find weight for events for this file
-    // The first file in the list comes with weight 1,
-    // all subsequent ones are normalized to xsection and luminosity
-    double xsec=xsecv[ifile];
-    AdjustXSectionForSkim(infile,xsec,eventTree->GetEntries(),1);
-    lumiv[ifile] = eventTree->GetEntries()/xsec;
-    double extraScale=1.; // 4839*1666/27166257.; // MC Zee scale in selectEvents
-    double scale = extraScale*lumiv[0]/lumiv[ifile];
-    cout << "       -> sample weight is " << scale << endl;
-
-    // Set branch address to structures that will store the info  
-    eventTree->SetBranchAddress("Info",&info);                TBranch *infoBr       = eventTree->GetBranch("Info");
-    eventTree->SetBranchAddress("Gen",&gen);                  TBranch *genBr = eventTree->GetBranch("Gen");
-    eventTree->SetBranchAddress("Dielectron",&dielectronArr); TBranch *dielectronBr = eventTree->GetBranch("Dielectron");
-  
-    // loop over events    
-    for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-      if (debugMode && (ientry>1000000)) break;
-      if (ientry%1000000==0) { printProgress("ientry=",ientry,eventTree->GetEntriesFast()); }
-      else if (ientry%100000==0) { printProgress("ientry=",ientry,eventTree->GetEntriesFast()); }
-      ec.numEvents++;
-
-      genBr->GetEntry(ientry);
-      infoBr->GetEntry(ientry);
-
-      double wPU=1.0;
-      if (performPUReweight) {
-	wPU = puWeight.getWeightHildreth(info->nPU);
-      }
-
-      double reweight=1.;
-      if (systematicsMode!=DYTools::FSR_STUDY) reweight=1.0;
-      else if (((gen->mass)-(gen->vmass))>massLimit) reweight=1.0;
-      //else reweight=reweightFsr; // should be taken care by extraWeight
-
-      double fewz_weight = 1.0;
-      if (useFewzWeights) fewz_weight=fewz.getWeight(gen->vmass,gen->vpt,gen->vy);
- 
-      if (ientry<20) {
-	printf("reweight=%4.2lf, fewz_weight=%4.2lf,dE_fsr=%+6.4lf\n",reweight,fewz_weight,(gen->mass-gen->vmass));
-      }
-
-      int iMassBinGenPreFsr = DYTools::findMassBin(gen->vmass);
-      int iYBinGenPreFsr = DYTools::findAbsYBin(iMassBinGenPreFsr, gen->vy);
-      int iMassBinGenPostFsr = DYTools::findMassBin(gen->mass);
-      int iYBinGenPostFsr = DYTools::findAbsYBin(iMassBinGenPostFsr, gen->y);
-      int idxGenPreFsr = DYTools::findIndexFlat(iMassBinGenPreFsr, iYBinGenPreFsr);
-      int idxGenPostFsr = DYTools::findIndexFlat(iMassBinGenPostFsr, iYBinGenPostFsr);
-
-      // full fullGenWeight is not affected by reweighting
-      double fullGenWeight_tmp = reweight * scale * gen->weight * fewz_weight;
-      double fullGenWeightPU = fullGenWeight_tmp * wPU;
-      if (ientry<20) std::cout << "fullGenWeightPU= (rew=" << reweight << ")*(scale=" << scale << ")*(gen.w=" << gen->weight << ")*(fewz=" << fewz_weight << ")*(wPU=" << wPU << ") = " << fullGenWeightPU << "\n";
-
-      { // a block for debug purposes
-	double fullGenWeight=fullGenWeightPU;
-
-      fsrGood.fillIni(iMassBinGenPreFsr,iYBinGenPreFsr, fullGenWeight);
-      fsrGood.fillFin(iMassBinGenPostFsr,iYBinGenPostFsr, fullGenWeight);
-      if (validFlatIndices(idxGenPreFsr, idxGenPostFsr)) {
-	fsrGood.fillMigration(idxGenPreFsr,idxGenPostFsr, fullGenWeight);
-	fsrExact.fillIni(iMassBinGenPreFsr,iYBinGenPreFsr, fullGenWeight);
-	fsrExact.fillFin(iMassBinGenPostFsr,iYBinGenPostFsr, fullGenWeight);
-	fsrExact.fillMigration(idxGenPreFsr,idxGenPostFsr, fullGenWeight);
-      }
- 
-      int preFsrOk=0, postFsrOk=0;
-      if( DYTools::goodEtEtaPair(gen->vpt_1, gen->veta_1,
-				 gen->vpt_2, gen->veta_2) ) {
-	if (validFlatIndex(idxGenPreFsr)) {
-	  preFsrOk=1;
-	  fsrDET    .fillIni(iMassBinGenPreFsr,iYBinGenPreFsr,fullGenWeight);
-	  fsrDET_Mdf.fillIni(iMassBinGenPreFsr,iYBinGenPreFsr,fullGenWeight);
-	  fsrDET_good.fillIni(iMassBinGenPreFsr,iYBinGenPreFsr,fullGenWeight);
-	}
-      }
+      std::cout << "       -> sample base weight is " << evWeight.baseWeight() << "\n";
+    
+      // loop through events
+      EventCounterExt_t ec(Form("%s_file%d",mcSample->name.Data(),ifile));
+      ec.setIgnoreScale(0); // 1 - count events, 0 - take weight in account
+      // adjust the scale in the counter
+      // if FEWZ weight should be considered, use evWeight.totalWeight() after
+      // the FEWZ weight has been identified (see a line below)
+      ec.setScale(evWeight.baseWeight());
       
-      if( DYTools::goodEtEtaPair(gen->pt_1, gen->eta_1,
-				 gen->pt_2, gen->eta_2 ) ) {
-	if (validFlatIndex(idxGenPostFsr)) {
+      std::cout << "numEntries = " << accessInfo.getEntriesFast() 
+		<< ", " << maxEvents << " events will be used" << std::endl;
+
+      for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
+	ec.numEvents_inc();
+	if (DYTools::isDebugMode(runMode) && (ientry>1000000)) break; // debug option
+	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
+	printProgress(100000," ientry=",ientry,maxEvents);
+	
+	// Load generator level info
+	accessInfo.GetGen(ientry);
+	// If the Z->ll leptons are not electrons, discard this event.
+	// This is needed for signal MC samples such as Madgraph Z->ll
+	// where all 3 lepton flavors are possible
+	if (!accessInfo.genLeptonsAreElectrons()) continue;
+
+	// Load event info
+	accessInfo.GetInfoEntry(ientry);
+
+	// FSR study correction for weight
+	if (systMode==DYTools::FSR_STUDY) {
+	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,FSRreweight);
+	}
+
+	// Adjust event weight
+	// .. here "false" = "not data"
+	evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
+
+	if (ientry<20) {
+	  evWeight.Print();
+	  //printf("reweight=%4.2lf, fewz_weight=%4.2lf,dE_fsr=%+6.4lf\n",reweight,fewz_weight,(gen->mass-gen->vmass));
+	}
+
+	// adjust the scale in the counter to include FEWZ 
+	// (and possibly PU) weight
+	//ec.setScale(evWeight.totalWeight());
+
+	FlatIndex_t fiGenPreFsr, fiGenPostFsr;
+	fiGenPreFsr.setGenPreFsrIdx(accessInfo);
+	fiGenPostFsr.setGenPostFsrIdx(accessInfo);
+
+	// begin FSR unfolding block
+	fsrGood.fillIni(fiGenPreFsr , evWeight.totalWeight());
+	fsrGood.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	if (fiGenPreFsr.isValid() && fiGenPostFsr.isValid()) {
+	  fsrGood.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
+	  fsrExact.fillIni(fiGenPreFsr , evWeight.totalWeight());
+	  fsrExact.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	  fsrExact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
+	}
+ 
+	int preFsrOk=0, postFsrOk=0;
+	if (evtSelector.inAcceptancePreFsr(accessInfo) && 
+	    fiGenPreFsr.isValid()) {
+	  preFsrOk=1;
+	  fsrDET     .fillIni(fiGenPreFsr, evWeight.totalWeight());
+	  fsrDET_good.fillIni(fiGenPreFsr, evWeight.totalWeight());
+	}
+      
+	if (evtSelector.inAcceptance(accessInfo) &&
+	    fiGenPostFsr.isValid()) {
 	  postFsrOk=1;
-	  fsrDET    .fillFin(iMassBinGenPostFsr,iYBinGenPostFsr,fullGenWeight);
-	  fsrDET_Mdf.fillFin(iMassBinGenPostFsr,iYBinGenPostFsr,fullGenWeight);
-	  fsrDET_good.fillFin(iMassBinGenPostFsr,iYBinGenPostFsr,fullGenWeight);
+	  fsrDET     .fillFin(fiGenPostFsr, evWeight.totalWeight());
+	  fsrDET_good.fillFin(fiGenPostFsr, evWeight.totalWeight());
 	}
-      }
 
-      if (preFsrOk && postFsrOk) {
-	fsrDET.fillMigration(idxGenPreFsr,idxGenPostFsr, fullGenWeight);
-	fsrDET_Mdf.fillMigration(idxGenPreFsr,idxGenPostFsr, fullGenWeight);
-	fsrDET_good.fillMigration(idxGenPreFsr,idxGenPostFsr, fullGenWeight);
-      	fsrDETexact.fillIni(iMassBinGenPreFsr,iYBinGenPreFsr,fullGenWeight);
-	fsrDETexact.fillFin(iMassBinGenPostFsr,iYBinGenPostFsr,fullGenWeight);
-	fsrDETexact.fillMigration(idxGenPreFsr,idxGenPostFsr, fullGenWeight);
-      }
-      } // a block for debug purposes
-
-	
-      if( !(requiredTriggers.matchEventTriggerBit(info->triggerBits, 
-						  info->runNum))) 
-	continue;
-      ec.numEventsPassedEvtTrigger++;
-
-      // possible optimization
-      // do not consider the event, if reweighting factor is 0.
-      //if (wPU==double(0.0)) continue;
-
-     // loop through dielectrons
-      dielectronArr->Clear();
-      dielectronBr->GetEntry(ientry);    
-      for(Int_t i=0; i<dielectronArr->GetEntriesFast(); i++) {
-	ec.numDielectronsUnweighted++;
-	ec.numDielectrons_inc();
-
-        const mithep::TDielectron *dielectron = (mithep::TDielectron*)((*dielectronArr)[i]);
-	
-	// Apply selection
-	// Eta cuts
-	// Asymmetric SC Et cuts
-	if (! DYTools::goodEtEtaPair(dielectron->scEt_1, dielectron->scEta_1,
-				     dielectron->scEt_2, dielectron->scEta_2) ) {
-	  continue;
+	if (preFsrOk && postFsrOk) {
+	  fsrDET.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
+	  fsrDET_good.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
+	  fsrDETexact.fillIni(fiGenPreFsr , evWeight.totalWeight());
+	  fsrDETexact.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	  fsrDETexact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
 	}
-	ec.numDielectronsGoodEta_inc();
-	ec.numDielectronsGoodEt_inc();
-   	
-	// Both electrons must match trigger objects. At least one ordering
-	// must match
-	if( ! requiredTriggers.matchTwoTriggerObjectsAnyOrder( dielectron->hltMatchBits_1,
-							       dielectron->hltMatchBits_2,
-							       info->runNum) ) continue;
-	ec.numDielectronsHLTmatched_inc();
+	// end of FSR unfolding block
 	
-	// *** Smurf ID is superseeded by new selection ***
-// 	// The Smurf electron ID package is the same as used in HWW analysis
-// 	// and contains cuts like VBTF WP80 for pt>20, VBTF WP70 for pt<10
-// 	// with some customization, plus impact parameter cuts dz and dxy
-// 	if(!passSmurf(dielectron)) continue;  
 
-	// The selection below is for the EGM working points from spring 2012
-	// recommended for both 2011 and 2012 data
-	if(!passEGM2011(dielectron, WP_MEDIUM, info->rhoLowEta)) continue;  
-	ec.numDielectronsIDpassed_inc();
+	// check event trigger
+	if (!evtSelector.eventTriggerOk(accessInfo)) {
+	  continue; // no trigger accept? Skip to next event...	
+	}
+	ec.numEventsPassedEvtTrigger_inc();
 
-        // We have a Z candidate! HURRAY! 
+	// load dielectron array
+	accessInfo.GetDielectrons(ientry);
 
-// 	// Apply extra smearing to MC reconstructed dielectron mass
-// 	// to better resemble the data
-// 	// In systematics mode, use randomized MC smear factors
-	double smearingCorrection = (systematicsMode == DYTools::RESOLUTION_STUDY) ?
-          escale.generateMCSmearRandomized(dielectron->scEta_1,dielectron->scEta_2) :
-          escale.generateMCSmear(dielectron->scEta_1,dielectron->scEta_2);
-	double massResmeared = dielectron->mass + smearingCorrection;
+	// loop through dielectrons
+	//int pass=0;
+	mithep::TDielectron uncorrDielectron;
+	for(Int_t i=0; i<accessInfo.dielectronCount(); i++) {
+	  mithep::TDielectron *dielectron = accessInfo.editDielectronPtr(i);
+	  ec.numDielectrons_inc();
 
-	hZMassv[ifile]->Fill(massResmeared,scale * gen->weight * wPU);
+	  // keep unmodified dielectron
+	  if (escaleV.size()) uncorrDielectron.restoreEScaleModifiedValues(*dielectron);
+	  
+	  // escale may modify dielectron! But it should not here
+	  if (!evtSelector.testDielectron(dielectron,accessInfo.evtInfoPtr(),&ec)) continue;
+	  //pass=1;
 
-	//
-	// Fill structures for response matrix and bin by bin corrections
-	// Note: there is no handling of overflow, underflow at present,
-	// those entries are just dropped. This can be improved.
-	// The only possible cases are: underflow in mass and overflow in Y.
+          /******** We have a Z candidate! HURRAY! ********/
+	  
+	  ec.numDielectronsPass_inc();
+	  if (ec.numDielectronsOkSameSign_inc(dielectron->q_1,dielectron->q_2)) {
+	    // same sign event
+	  }
 
+	  //
+	  // Fill structures for response matrix 
 
-	// Fill the matrix of the reconstruction level mass and rapidity
-	int iMassReco = DYTools::findMassBin(massResmeared);
-	int iYReco = DYTools::findAbsYBin(iMassReco, dielectron->y);
+	  FlatIndex_t fiReco;
+	  fiReco.setRecoIdx(dielectron);
 
-	double shape_weight = 1.0;
-	if( shapeWeights && iMassReco != -1 && iYReco != -1) {
+	  // Fill the matrix of the reconstruction level mass and rapidity
+	  /*
+	    double shape_weight = 1.0;
+	    if( shapeWeights && iMassReco != -1 && iYReco != -1) {
 	    shape_weight = (*shapeWeights)[iMassReco][iYReco];
 	    //std::cout << "massResmeared=" << massResmeared << ", iMassReco=" << iMassReco << ", shapeWeight=" << shape_weight << "\n";
-	}
-	double fullWeightPU = fullGenWeightPU * shape_weight;
+	    }
+	    double fullWeightPU = fullGenWeightPU * shape_weight;
+	  */
 
-	// Fill the matrix of post-FSR generator level invariant mass and rapidity
-	detResponse.fillIni( iMassBinGenPostFsr, iYBinGenPostFsr, fullWeightPU );
-	detResponse.fillFin( iMassReco, iYReco, fullWeightPU );
+	  // Fill the matrix of post-FSR generator level invariant mass and rapidity
+	  double diWeight=evWeight.totalWeight();
+	  detResponse.fillIni(fiGenPostFsr, diWeight);
+	  detResponse.fillFin(fiReco      , diWeight);
 
-	
-        // Unlike the mass vs Y reference yields matrices, to prepare the
-	// migration matrix we flatten (mass,Y) into a 1D array, and then
-	// store (mass,Y in 1D)_gen vs (mass,Y in 1D)_rec
-	int iIndexFlatGen  = DYTools::findIndexFlat(iMassBinGenPostFsr, iYBinGenPostFsr);
- 	int iIndexFlatReco = DYTools::findIndexFlat(iMassReco, iYReco);
-	if ( validFlatIndices(iIndexFlatGen, iIndexFlatReco) ) {
-	  ec.numDielectronsGoodMass_inc();
-	  //std::cout << "adding DetMig(" << iIndexFlatGen << "," << iIndexFlatReco << ") = " << reweight << "*" << scale << "*" << gen->weight << "*" << shape_weight << " = "  << (reweight * scale * gen->weight * shape_weight) << "\n";
-	  detResponse.fillMigration(iIndexFlatGen, iIndexFlatReco, fullWeightPU );
-	  detResponseExact.fillIni( iMassBinGenPostFsr, iYBinGenPostFsr, fullGenWeightPU );
-	  detResponseExact.fillFin( iMassReco, iYReco, fullGenWeightPU );
-	  detResponseExact.fillMigration(iIndexFlatGen, iIndexFlatReco, fullWeightPU );
-	}
+	  if (fiGenPostFsr.isValid() && fiReco.isValid()) {
+	    ec.numDielectronsGoodMass_inc();
+	    detResponse.fillMigration(fiGenPostFsr, fiReco, diWeight);
 
-	for (unsigned int iESc=0; iESc<escaleV.size(); ++iESc) {
-	  double massCorr= (systematicsMode == DYTools::RESOLUTION_STUDY) ?
-	    escaleV[iESc]->generateMCSmearRandomized(dielectron->scEta_1,dielectron->scEta_2) :
-	    escaleV[iESc]->generateMCSmear(dielectron->scEta_1,dielectron->scEta_2);
-	  double mRes= dielectron->mass + massCorr;
-	  int iM = DYTools::findMassBin(mRes);
-	  int iY = DYTools::findAbsYBin(iM, dielectron->y);
-	  detRespV[iESc]->fillIni( iMassBinGenPostFsr, iYBinGenPostFsr, fullWeightPU * specWeightsV[iESc] );
-	  detRespV[iESc]->fillFin( iM, iY, fullWeightPU * specWeightsV[iESc] );
-	  int idxFReco= DYTools::findIndexFlat(iM, iY);
-	  if ( validFlatIndices(iIndexFlatGen, idxFReco) ) {
-	    detRespV[iESc]->fillMigration(iIndexFlatGen, idxFReco, fullWeightPU * specWeightsV[iESc] );
+	    detResponseExact.fillIni(fiGenPostFsr, diWeight);
+	    detResponseExact.fillFin(fiReco      , diWeight);
+	    detResponseExact.fillMigration(fiGenPostFsr, fiReco, diWeight);
 	  }
-	}
 
-        Bool_t isB1 = DYTools::isBarrel(dielectron->scEta_1);
-        Bool_t isB2 = DYTools::isBarrel(dielectron->scEta_2);
+	  if (escaleV.size()) {
+	    dielectron->restoreEScaleModifiedValues(uncorrDielectron);
+	  /*
+	  for (unsigned int iESc=0; iESc<escaleV.size(); ++iESc) {
+	    double massCorr= (systematicsMode == DYTools::RESOLUTION_STUDY) ?
+	      escaleV[iESc]->generateMCSmearRandomized(dielectron->scEta_1,dielectron->scEta_2) :
+	      escaleV[iESc]->generateMCSmear(dielectron->scEta_1,dielectron->scEta_2);
+	    double mRes= dielectron->mass + massCorr;
+	    int iM = DYTools::findMassBin(mRes);
+	    int iY = DYTools::findAbsYBin(iM, dielectron->y);
+	    detRespV[iESc]->fillIni( iMassBinGenPostFsr, iYBinGenPostFsr, fullWeightPU * specWeightsV[iESc] );
+	    detRespV[iESc]->fillFin( iM, iY, fullWeightPU * specWeightsV[iESc] );
+	    int idxFReco= DYTools::findIndexFlat(iM, iY);
+	    if ( validFlatIndices(iIndexFlatGen, idxFReco) ) {
+	      detRespV[iESc]->fillMigration(iIndexFlatGen, idxFReco, fullWeightPU * specWeightsV[iESc] );
+	    }
+	  }
+	  */
+	  }
 
-	hMassDiff->Fill(massResmeared - gen->mass);
-	if( isB1 && isB2 )
-	  hMassDiffBB->Fill(massResmeared - gen->mass);
-	if( (isB1 && !isB2) || (!isB1 && isB2) )
-	  hMassDiffEB->Fill(massResmeared - gen->mass);
-	if( !isB1 && !isB2 )
-	  hMassDiffEE->Fill(massResmeared - gen->mass);
+	  /*
+	  Bool_t isB1 = DYTools::isBarrel(dielectron->scEta_1);
+	  Bool_t isB2 = DYTools::isBarrel(dielectron->scEta_2);
+	  
+	  hMassDiff->Fill(massResmeared - gen->mass);
+	  if( isB1 && isB2 )
+	    hMassDiffBB->Fill(massResmeared - gen->mass);
+	  if( (isB1 && !isB2) || (!isB1 && isB2) )
+	    hMassDiffEB->Fill(massResmeared - gen->mass);
+	  if( !isB1 && !isB2 )
+	    hMassDiffEE->Fill(massResmeared - gen->mass);
 	
-	hMassDiffV->Fill(iIndexFlatGen, massResmeared - gen->mass);
-	hYDiffV   ->Fill(iIndexFlatGen, dielectron->y - gen->y);
-// 	if(iIndexFlatGen != -1){
-// 	  hMassDiffV[iIndexFlatGen]->Fill(massResmeared - gen->mass);
-// 	}
+	  hMassDiffV->Fill(iIndexFlatGen, massResmeared - gen->mass);
+	  hYDiffV   ->Fill(iIndexFlatGen, dielectron->y - gen->y);
+	  // 	if(iIndexFlatGen != -1){
+	  // 	  hMassDiffV[iIndexFlatGen]->Fill(massResmeared - gen->mass);
+	  // 	}
+	  */
 
-      } // end loop over dielectrons
+	} // end loop over dielectrons
+	
+      } // end loop over events 
+      //delete infile;
+      //infile=0, eventTree=0;
+      std::cout << ec << "\n";
+      ecTotal.add(ec);
+    } // end loop over files
+    std::cout << "total counts : " << ecTotal << "\n";
 
-    } // end loop over events 
-    delete infile;
-    infile=0, eventTree=0;
-    std::cout << ec << "\n";
-    totEC.add(ec);
-  } // end loop over files
-  std::cout << "total counts : " << totEC << "\n";
-  } 
-  delete gen;
+  } // loop over iSample
+  } // runMode
 
-  //return;
-
-  if (debugMode==1) return;
 
   UnfoldingMatrix_t fsrDETcorrections(UnfoldingMatrix_t::_cFSR_DETcorrFactors,"fsrCorrFactors");
 
-  if (debugMode!=-1) {
-  // Compute the errors on the elements of migration matrix
-  detResponse.finalizeDetMigrationErr();
-  detResponseExact.finalizeDetMigrationErr();
-  fsrGood.finalizeDetMigrationErr();
-  fsrExact.finalizeDetMigrationErr();
-  fsrDET.finalizeDetMigrationErr();
-  fsrDETexact.finalizeDetMigrationErr();
-  fsrDET_Mdf.finalizeDetMigrationErr();
-  fsrDET_good.finalizeDetMigrationErr();
-  for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->finalizeDetMigrationErr();
+  if (DYTools::processData(runMode)) {
+    // Compute the errors on the elements of migration matrix
+    detResponse.finalizeDetMigrationErr();
+    detResponseExact.finalizeDetMigrationErr();
+    fsrGood.finalizeDetMigrationErr();
+    fsrExact.finalizeDetMigrationErr();
+    fsrDET.finalizeDetMigrationErr();
+    fsrDETexact.finalizeDetMigrationErr();
+    fsrDET_good.finalizeDetMigrationErr();
+    for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->finalizeDetMigrationErr();
 
   // Find response matrix, which is simply the normalized migration matrix
-  std::cout << "find response matrix" << std::endl;
-  detResponse.computeResponseMatrix();
-  detResponseExact.computeResponseMatrix();
-  fsrGood.computeResponseMatrix();
-  fsrExact.computeResponseMatrix();
-  fsrDET.computeResponseMatrix();
-  fsrDETexact.computeResponseMatrix();
-  //fsrDET_Mdf.computeResponseMatrix_MdfBeforeNormalization(fsrDETexact);
-  fsrDET_Mdf.computeResponseMatrix_Mdf(fsrDETexact);
-  fsrDET_good.computeResponseMatrix();
-  for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->computeResponseMatrix();
+    std::cout << "find response matrix" << std::endl;
+    detResponse.computeResponseMatrix();
+    detResponseExact.computeResponseMatrix();
+    fsrGood.computeResponseMatrix();
+    fsrExact.computeResponseMatrix();
+    fsrDET.computeResponseMatrix();
+    fsrDETexact.computeResponseMatrix();
+    fsrDET_good.computeResponseMatrix();
+    for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->computeResponseMatrix();
 
-  std::cout << "find inverted response matrix" << std::endl;
-  detResponse.invertResponseMatrix();
-  detResponseExact.invertResponseMatrix();
-  fsrGood.invertResponseMatrix();
-  fsrExact.invertResponseMatrix();
-  fsrDET.invertResponseMatrix();
-  fsrDETexact.invertResponseMatrix();
-  fsrDET_Mdf.invertResponseMatrix();
-  fsrDET_good.invertResponseMatrix();
-  for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->invertResponseMatrix();
+    std::cout << "find inverted response matrix" << std::endl;
+    detResponse.invertResponseMatrix();
+    detResponseExact.invertResponseMatrix();
+    fsrGood.invertResponseMatrix();
+    fsrExact.invertResponseMatrix();
+    fsrDET.invertResponseMatrix();
+    fsrDETexact.invertResponseMatrix();
+    fsrDET_good.invertResponseMatrix();
+    for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->invertResponseMatrix();
 
-  fsrDETcorrections.prepareFsrDETcorrFactors(fsrDET,fsrDETexact);
-  //fsrDETcorrections.printYields();
+    fsrDETcorrections.prepareFsrDETcorrFactors(fsrDET,fsrDETexact);
+    //fsrDETcorrections.printYields();
 
-  std::cout << "finalize fsrDET_good" << std::endl;
-  fsrGood.modifyDETResponseMatrices(fsrExact);
-  fsrDET_good.modifyDETResponseMatrices(fsrDETexact);
+    std::cout << "finalize fsrDET_good" << std::endl;
+    fsrGood.modifyDETResponseMatrices(fsrExact);
+    fsrDET_good.modifyDETResponseMatrices(fsrDETexact);
 
-  std::cout << "prepare flat-index arrays" << std::endl;
-  detResponse.prepareFIArrays();
-  detResponseExact.prepareFIArrays();
-  fsrGood.prepareFIArrays();
-  fsrExact.prepareFIArrays();
-  fsrDET.prepareFIArrays();
-  fsrDETexact.prepareFIArrays();
-  fsrDET_Mdf.prepareFIArrays();
-  fsrDET_good.prepareFIArrays();
-  fsrDETcorrections.prepareFIArrays();
-  for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->prepareFIArrays();  
+    std::cout << "prepare flat-index arrays" << std::endl;
+    detResponse.prepareFIArrays();
+    detResponseExact.prepareFIArrays();
+    fsrGood.prepareFIArrays();
+    fsrExact.prepareFIArrays();
+    fsrDET.prepareFIArrays();
+    fsrDETexact.prepareFIArrays();
+    fsrDET_good.prepareFIArrays();
+    fsrDETcorrections.prepareFIArrays();
+    for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->prepareFIArrays();  
   }
 
   //
   // Store constants and reference arrays in files
   //
-  if (debugMode!=-1) std::cout << "store constants in a file" << std::endl;
+  if (DYTools::processData(runMode))  std::cout << "store constants in a file" << std::endl;
 
-  TString outputDir(TString("../root_files/constants_tmp/")+dirTag);
-  if((systematicsMode==DYTools::NORMAL_RND) || 
-     (systematicsMode==DYTools::RESOLUTION_STUDY) || 
-     (systematicsMode==DYTools::FSR_STUDY) ||
-     (systematicsMode==DYTools::ESCALE_STUDY))
-    outputDir = TString("../root_files/systematics_tmp/")+dirTag;
-  gSystem->mkdir(outputDir,kTRUE);
-  outputDir.Append("/");
+  //TString outFile=inpMgr.correctionFullFileName("unfolding",systMode,0);
+  TString outputDir=inpMgr.constDir(systMode,0);
 
   //int saveIdxMin=-1;
-
   TString fnameTag="";
   {
     TString u="_";
-    switch(systematicsMode) {
-    case DYTools::NORMAL: 
+    switch(systMode) {
+    case DYTools::NO_SYST: 
       fnameTag=DYTools::analysisTag; 
       break;
-    case DYTools::NORMAL_RND: 
+    case DYTools::SYST_RND: 
       fnameTag=TString("_replica_") + DYTools::analysisTag; 
       //saveIdxMin=0;
      //fnameTag+=seed;
@@ -671,47 +605,41 @@ int plotDetResponse(const TString conf,
       assert(0);
     }
   }
-  //if (!useFewzWeights) { fnameTag=TString("_noFEWZ") + fnameTag; }
-  if (useFewzWeights) { 
-    TString extra=(regularizeFEWZ) ? "_withMdfFEWZ" : "_withFEWZ";
-    fnameTag=extra + fnameTag; 
-  }
   std::cout << "fnameTag=<" << fnameTag << ">\n";
   CPlot::sOutDir=TString("plots") + fnameTag;
 
-  if (debugMode!=-1) {
-    if (//(systematicsMode!=DYTools::NORMAL_RND) && 
-	(systematicsMode!=DYTools::RESOLUTION_STUDY) && 
-	(systematicsMode!=DYTools::FSR_STUDY) && 
-	(systematicsMode!=DYTools::ESCALE_STUDY)) {
+
+  if (DYTools::processData(runMode)) {
+    if (//(systMode!=DYTools::NORMAL_RND) && 
+	(systMode!=DYTools::RESOLUTION_STUDY) && 
+	(systMode!=DYTools::FSR_STUDY) && 
+	(systMode!=DYTools::ESCALE_STUDY)) {
       detResponse.autoSaveToFile(outputDir,fnameTag);  // detResponse, reference mc arrays
       detResponseExact.autoSaveToFile(outputDir,fnameTag);
       fsrGood.autoSaveToFile(outputDir,fnameTag);
       fsrExact.autoSaveToFile(outputDir,fnameTag);
       fsrDET.autoSaveToFile(outputDir,fnameTag);
       fsrDETexact.autoSaveToFile(outputDir,fnameTag);
-      fsrDET_Mdf.autoSaveToFile(outputDir,fnameTag);
       fsrDET_good.autoSaveToFile(outputDir,fnameTag);
       fsrDETcorrections.autoSaveToFile(outputDir,fnameTag);
     }
     for (unsigned int i=0; i<detRespV.size(); i++) detRespV[i]->autoSaveToFile(outputDir,fnameTag);
   }
   else {
-    if (//(systematicsMode!=DYTools::NORMAL_RND) && 
-	(systematicsMode!=DYTools::RESOLUTION_STUDY) && 
-	(systematicsMode!=DYTools::FSR_STUDY) &&
-	(systematicsMode!=DYTools::ESCALE_STUDY)) {
+    if (//(systMode!=DYTools::NORMAL_RND) && 
+	(systMode!=DYTools::RESOLUTION_STUDY) && 
+	(systMode!=DYTools::FSR_STUDY) &&
+	(systMode!=DYTools::ESCALE_STUDY)) {
       if (!detResponse.autoLoadFromFile(outputDir,fnameTag) ||
 	  !detResponseExact.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrGood.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrExact.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrDET.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrDETexact.autoLoadFromFile(outputDir,fnameTag) ||
-	  !fsrDET_Mdf.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrDET_good.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrDETcorrections.autoLoadFromFile(outputDir,fnameTag)) {
 	std::cout << "loading failed\n";
-	return;
+	return retCodeError;
       }
     }
     for (unsigned int i=0; i<detRespV.size(); i++) detRespV[i]->autoLoadFromFile(outputDir,fnameTag);
@@ -739,6 +667,7 @@ int plotDetResponse(const TString conf,
   // Make plots 
   //==============================================================================================================  
 
+  /*
   std::cout << "making plots" << std::endl;
 
   TString unfoldingConstFileName, yieldsFileName;
