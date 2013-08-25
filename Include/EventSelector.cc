@@ -22,9 +22,14 @@ EventSelector_t::EventSelector_t(InputFileMgr_t &mgr,
 
   DYTools::TRunMode_t runModeLocal=runMode;
   if (runMode==DYTools::DEBUG_LOAD) runModeLocal=DYTools::DEBUG_RUN;
-  else if (runMode==DYTools::DEBUG_RUN) runModeLocal=DYTools::NORMAL_RUN;
+  else if (runMode==DYTools::LOAD_DATA) runModeLocal=DYTools::NORMAL_RUN;
   
-  if (res) mgr.setNtupleNameExtraTag(this->generateFullTag(runModeLocal,systMode,extraTag));
+  if (res) {
+    TString auto_tag=this->generateFullTag(runModeLocal,systMode,extraTag);
+    if (auto_tag.Length()) auto_tag.Prepend("_");
+    mgr.setNtupleNameExtraTag(auto_tag);
+    mgr.setDirNameExtraTag(auto_tag);
+  }
   if (!res) this->reportError("EventSelector_t::EventSelector_t(mgr)");
 }
 

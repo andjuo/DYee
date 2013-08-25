@@ -112,6 +112,7 @@ public:
   TString generateFullTag(DYTools::TRunMode_t runMode,
 			  DYTools::TSystematicsStudy_t systMode,
 			  const TString &externalExtraTag="") const {
+    //std::cout << "runMode=<" << RunModeName(runMode) << ">\n";
     TString tag= (runMode!=DYTools::LOAD_DATA) ? generateRunTag(runMode) : "";
     TString tag2= generateSystTag(systMode);
     if (tag2.Length()) tag.Append(TString("_") + tag2);
@@ -124,6 +125,7 @@ public:
     }
 
     if (externalExtraTag.Length()) tag.Append(TString("_") + externalExtraTag);
+    //std::cout << "generateFullTag=<" << tag << ">\n";
     return tag; 
   }
 
