@@ -152,6 +152,7 @@ protected:
 
   TString FNtupleDef, FSkimDef;
   TString FNtupleNameExtraTag; // automatic tag
+  TString FDirNameExtraTag; // automatic tag
 public:
   InputFileMgr_t() : 
     BaseClass_t("InputFileMgr"),
@@ -168,7 +169,8 @@ public:
     FMCSampleNames(), FMCSignal(),
     FUserKeys(), FUserValues(),
     FNtupleDef(), FSkimDef(),
-    FNtupleNameExtraTag()
+    FNtupleNameExtraTag(),
+    FDirNameExtraTag()
   {}
 
   void Clear();
@@ -191,6 +193,7 @@ public:
   const TString& ntupleDef() const { return FNtupleDef; }
   const TString& skimDef() const { return FSkimDef; }
   const TString& ntupleNameExtraTag() const { return FNtupleNameExtraTag; }
+  const TString& dirNameExtraTag() const { return FDirNameExtraTag; }
 
   const std::vector<TString>& sampleNames() const { return FSampleNames; }
   const std::vector<CSample_t*>& sampleInfos() const { return FSampleInfos; }
@@ -238,7 +241,10 @@ public:
 #endif
     dir.Append(collection);
     dir.Append("/");
-    dir.Append(this->dyTag() + FSpecTagDirUser + generateSystTag(systMode));
+    dir.Append(this->dyTag() + 
+	       FDirNameExtraTag + 
+	       FSpecTagDirUser + 
+	       generateSystTag(systMode));
     dir.Append("/");
     return dir;
   }
@@ -251,6 +257,8 @@ public:
 
   // NtupleNameExtraTag will contain info about E.Scale
   void setNtupleNameExtraTag(const TString &extra) { FNtupleNameExtraTag=extra; }
+  void setDirNameExtraTag(const TString &extra) { FDirNameExtraTag=extra; }
+
 
   TString resultBaseFileName(const TString &collection, int isNtuple) const {
     TString fname= collection;
@@ -357,6 +365,8 @@ public:
     out << "energyScaleTag=<" << m.FEnergyScaleTag << ">, ";
     out << "specTagDirUser=<" << m.FSpecTagDirUser << ">, ";
     out << "specTagFileUser=<" << m.FSpecTagFileUser << ">, ";
+    out << "NtupleNameExtraTag=<" << m.FNtupleNameExtraTag << ">, ";
+    out << "dirNameExtraTag=<" << m.FDirNameExtraTag << ">, ";
     out << "savePlotFormat=<" << m.FSavePlotFormat << ">, ";
     out << "totalLumi=" << m.FTotLumi 
 	<< ", weightEvents=" << m.FSelEventsFlag << ", ";

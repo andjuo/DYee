@@ -137,16 +137,21 @@ void InputFileMgr_t::Clear() {
   FLoadedFileName.Clear(); 
   FSelectionTag.Clear(); FConstTag.Clear(); FXSecTag.Clear();
   FEnergyScaleTag.Clear();
-  FSpecTagFileUser.Clear(); FSpecTagDirUser.Clear();
+  FSpecTagDirUser.Clear(); FSpecTagFileUser.Clear();
   FSavePlotFormat.Clear();
   FTriggerTag.Clear();
   FTotLumi=0.;
   FSelEventsFlag=1;
+  FFewzCorrFlag=1;
+  FPUReweightFlag=1;
   FSampleNames.clear();
   ClearVec(FSampleInfos);
   FMCSampleNames.clear();
   ClearVec(FMCSignal);
   FUserKeys.clear(); FUserValues.clear();
+  FNtupleDef.Clear(); FSkimDef.Clear();
+  FNtupleNameExtraTag.Clear();
+  FDirNameExtraTag.Clear();
 }
 
 // -----------------------------------------------------------
