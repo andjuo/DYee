@@ -65,6 +65,7 @@ void computeNormalizedBinContent(double subset, double subsetErr,
   return;
 }
 
+// -----------------------------------------------
 
 inline
 void calculateInvertedMatrixErrors(const TMatrixD &T, 
@@ -125,20 +126,171 @@ void calculateInvertedMatrixErrors(const TMatrixD &T,
   return;
 }
 
+// -----------------------------------------------
+
+// ------------------------------------------------------------
+
+inline
+double maxElement(const TMatrixD &M, int *storeRow=NULL, int *storeCol=NULL) {
+  double max=0., absMax=-1.;
+  int sr=-1, sc=-1;
+  for (int ir=0; ir<M.GetNrows(); ++ir) {
+    for (int ic=0; ic<M.GetNcols(); ++ic) {
+      const double x=M(ir,ic);
+      if (fabs(x)>absMax) {
+	max=x;
+	absMax=fabs(x);
+	sr=ir; sc=ic;
+      }
+    }
+  }
+  if (storeRow) *storeRow=sr;
+  if (storeCol) *storeCol=sc;
+  return max;
+}
+
+// ------------------------------------------------------------
+
+inline
+double maxElement(const TVectorD &V, int *storeRow=NULL, int *storeCol=NULL) {
+  double max=0., absMax=-1.;
+  int sr=-1;
+  for (int ir=0; ir<V.GetNoElements(); ++ir) {
+      const double x=V[ir];
+      if (fabs(x)>absMax) {
+	max=x;
+	absMax=fabs(x);
+	sr=ir;
+      }
+  }
+  if (storeRow) *storeRow=sr;
+  if (storeCol) *storeCol=-1;
+  return max;
+}
+
+// ------------------------------------------------------------
+
+template<class Container_t>
+double maxDiff(const Container_t &A, const Container_t &B, int *storeRow=NULL, int *storeCol=NULL) {
+  Container_t diff=A; diff-=B;
+  double max= maxElement(diff,storeRow,storeCol);
+  return max;
+}
+  
+// ------------------------------------------------------------
+
+inline
+void testMaxDiff(const TString &msg, const TVectorD &a, const TVectorD &b) {
+  int i=-1;
+  std::cout << msg << ". MaxDiff=" << maxDiff(a,b,&i) << "\n";
+  std::cout << " values there (at " << i << "): " << a[i] << " and " << b[i] << "\n";
+  return;
+}
+
+// ------------------------------------------------------------
+
+inline
+void testMaxDiff(const TString &msg, const TMatrixD &a, const TMatrixD &b) {
+  int ir=-1, ic=-1;
+  std::cout << msg << ". MaxDiff=" << maxDiff(a,b,&ir,&ic) << "\n";
+  std::cout << " values there, at (" << ir << "," << ic << "): " 
+	    << a(ir,ic) << " and " << b(ir,ic) << "\n";
+  return;
+}
+
+// ------------------------------------------------------------
+
+inline
+void testMaxRelDiff(const TString &msg, const TVectorD &a, const TVectorD &b) {
+  int i=-1;
+  TVectorD diff=a-b;
+  TVectorD avg=a+b;  avg*=0.5;
+  for (int ii=0; ii<diff.GetNoElements(); ++ii) diff(ii) /= avg[ii];
+  double max= maxElement(diff,&i);
+  std::cout << msg << ". MaxRelDiff=" << max << "\n";
+  std::cout << " values there (at " << i << "): " << a[i] << " and " << b[i] << "\n";
+  return;
+}
+
+// ------------------------------------------------------------
+
+inline
+void testMaxRelDiff(const TString &msg, const TMatrixD &a, const TMatrixD &b) {
+  int ir=-1, ic=-1;
+  TMatrixD diff=a-b;
+  TMatrixD avg=a+b;  avg*=0.5;
+  for (int i=0; i<diff.GetNrows(); ++i) {
+    for (int j=0; j<diff.GetNcols(); ++j) {
+      diff(i,j) /= avg(i,j);
+    }
+  }
+  double max= maxElement(diff,&ir,&ic);
+  std::cout << msg << ". MaxRelDiff=" << max << "\n";
+  std::cout << " values there, at (" << ir << "," << ic << "): " 
+	    << a(ir,ic) << " and " << b(ir,ic) << "\n";
+  return;
+}
+
+// ------------------------------------------------------------
+
 
 // ---------------------------------------------------------------------
+
+//=== Typedef =================================================================================================
+
+namespace UnfoldingMatrix {
+  typedef enum { _cDET_Response, _cFSR, _cFSR_DET, _cFSR_DETcorrFactors } TUnfoldingMatrixType_t;
+
+  inline
+  TString kindName(TUnfoldingMatrixType_t aKind) {
+    TString s="unknown";
+    switch(aKind) {
+    case _cDET_Response: s="DetResponse"; break;
+    case _cFSR: s="FSR"; break;
+    case _cFSR_DET: s="FSR_DET"; break;
+    case _cFSR_DETcorrFactors: s="FSR_DETcorrFactors"; break;
+    }
+    return s;
+  }
+
+
+  inline
+  void getYieldNames(TUnfoldingMatrixType_t theKind, TString &iniName, TString &finName) {
+    switch(theKind) {
+    case _cDET_Response: 
+      iniName="yieldsMcPostFsrGen";
+      finName="yieldsMcPostFsrRec";
+      break;
+    case _cFSR:
+      iniName="yieldsMcPreFsrGen";
+      finName="yieldsMcPostFsrGen";
+      break;
+    case _cFSR_DET:
+      iniName="yieldsMcPreFsrGenDET";
+      finName="yieldsMcPostFsrGenDET";
+      break;
+    case _cFSR_DETcorrFactors:
+      iniName="fsrDETcorrFactorsGen";
+      finName="fsrDETcorrFactorsReco";
+      break;
+    default:
+      std::cout << "getYieldNames cannot handle this 'kind'=" << theKind << "\n";
+      assert(0);
+    }
+  }
+
+};
 
 //=== Class DECLARATIONS =================================================================================================
 
 class UnfoldingMatrix_t {
 public:
-  typedef enum { _cDET_Response, _cFSR, _cFSR_DET, _cFSR_DETcorrFactors } TUnfoldingMatrixType_t;
   // DET_Response: ini --> PostFsrGen, fin --> PostFsrReco
   // FSR, FSR_DET: ini --> PreFsrGen,  fin -->PostFsrGen
   // FSR_DETcorrFactors: factors, correcting preFSR and postFSR acceptance
   // yieldsIni: gen, yieldsFin: reco
 public:
-  TUnfoldingMatrixType_t kind;
+  UnfoldingMatrix::TUnfoldingMatrixType_t kind;
   TString name, iniYieldsName, finYieldsName;
   TMatrixD *yieldsIni; //(DYTools::nMassBins,DYTools::nYBinsMax);
   TMatrixD *yieldsFin; //(DYTools::nMassBins,DYTools::nYBinsMax);
@@ -159,21 +311,10 @@ public:
   TVectorD *yieldsFinArr; //(nUnfoldingBins);
 
 public:
-  static TString kindName(TUnfoldingMatrixType_t aKind) {
-    TString s="unknown";
-    switch(aKind) {
-    case _cDET_Response: s="DetResponse"; break;
-    case _cFSR: s="FSR"; break;
-    case _cFSR_DET: s="FSR_DET"; break;
-    case _cFSR_DETcorrFactors: s="FSR_DETcorrFactors"; break;
-    }
-    return s;
-  }
-
-  TString ourKindName() const { return UnfoldingMatrix_t::kindName(this->kind); }
+  TString ourKindName() const { return UnfoldingMatrix::kindName(this->kind); }
 
 public:
-  UnfoldingMatrix_t(TUnfoldingMatrixType_t set_kind, const TString &set_name) : 
+  UnfoldingMatrix_t(UnfoldingMatrix::TUnfoldingMatrixType_t set_kind, const TString &set_name) : 
     kind(set_kind),
     name(set_name), iniYieldsName(), finYieldsName(),
     yieldsIni(0), yieldsFin(0),
@@ -242,6 +383,10 @@ public:
   }
 
   const TString& getName() const { return name; }
+  const TMatrixD* getDetResponse() const { return DetResponse; }
+  const TMatrixD* getDetInvResponse() const { return DetInvertedResponse; }
+  const TVectorD* getIniVec() const { return yieldsIniArr; }
+  const TVectorD* getFinVec() const { return yieldsFinArr; }
 
   void fillIni(int iMassBinGen, int iYBinGen, double fullWeight) {
     using namespace DYTools;
@@ -493,12 +638,15 @@ public:
     }
   }
 
-  void invertResponseMatrix() {
+  void invertResponseMatrix(int info=DYTools::study2D) {
   // Find inverted response matrix
     (*DetInvertedResponse) = (*DetResponse);
     Double_t det;
     (*DetInvertedResponse).Invert(&det);
-    calculateInvertedMatrixErrors(*DetResponse, *DetResponseErrPos, *DetResponseErrNeg, *DetInvertedResponseErr);
+    if (info) std::cout << name << " inverted" << std::endl;
+    //calculateInvertedMatrixErrors(*DetResponse, *DetResponseErrPos, *DetResponseErrNeg, *DetInvertedResponseErr);
+    calculateInvertedMatrixErrors(*DetResponse, *DetResponseErrPos, *DetResponseErrPos, *DetInvertedResponseErr);
+    if (info) std::cout << name << " inverted errs calculated" << std::endl;
   }
 
 
@@ -552,29 +700,7 @@ public:
   }
 
 
-  static void getYieldNames(TUnfoldingMatrixType_t theKind, TString &iniName, TString &finName) {
-    switch(theKind) {
-    case _cDET_Response: 
-      iniName="yieldsMcPostFsrGen";
-      finName="yieldsMcPostFsrRec";
-      break;
-    case _cFSR:
-      iniName="yieldsMcPreFsrGen";
-      finName="yieldsMcPostFsrGen";
-      break;
-    case _cFSR_DET:
-      iniName="yieldsMcPreFsrGenDET";
-      finName="yieldsMcPostFsrGenDET";
-      break;
-    case _cFSR_DETcorrFactors:
-      iniName="fsrDETcorrFactorsGen";
-      finName="fsrDETcorrFactorsReco";
-      break;
-    default:
-      std::cout << "getYieldNames cannot handle this 'kind'=" << theKind << "\n";
-      assert(0);
-    }
-  }
+  static void getYieldNames(UnfoldingMatrix::TUnfoldingMatrixType_t theKind, TString &iniName, TString &finName) { return UnfoldingMatrix::getYieldNames(theKind,iniName,finName); }
 
   void getFileNames(const TString &outputDir,
 		    const TString &fileTag,
@@ -602,7 +728,7 @@ public:
 
   void saveToFile(const TString &fileName, const TString &refFileName) const {
     std::cout << "UnfoldingMatrix_t::saveToFile(\n  <" << fileName << ">\n  <" << refFileName << ">) for name=" << this->name << "\n";
-    if (kind!=_cFSR_DETcorrFactors) {
+    if (kind!=UnfoldingMatrix::_cFSR_DETcorrFactors) {
       TFile fConst(fileName, "recreate" );
       //name.Write("matrixName");
       (*DetMigration)            .Write("DetMigration");
@@ -637,7 +763,7 @@ public:
 
   int loadFromFile(const TString &fileName, const TString &refFileName) {
     std::cout << "UnfoldingMatrix_t::loadFromFile(\n  <" << fileName << ">\n  <" << refFileName << ">) for name=" << this->name << "\n";
-    if (kind!=_cFSR_DETcorrFactors) {
+    if (kind!=UnfoldingMatrix::_cFSR_DETcorrFactors) {
       TFile fConst(fileName);
       if (!fConst.IsOpen()) {
 	std::cout << "failed to open the file <" << fileName << ">\n";
@@ -664,7 +790,7 @@ public:
       fConst.Close();
     }
 
-    if (kind==_cFSR_DETcorrFactors) {
+    if (kind==UnfoldingMatrix::_cFSR_DETcorrFactors) {
       // Retrieve reference MC arrays in a file
       TFile fRef(refFileName);
       if (!fRef.IsOpen()) {
@@ -694,7 +820,7 @@ public:
       for (int ic=0; ic<(*yieldsIni).GetNcols(); ++ic) {
 	printf(" % 9.6lf  % 9.6lf\n",(*yieldsIni)[ir][ic],(*yieldsFin)[ir][ic]);
       }
-      printf("\n");
+      if (DYTools::study2D) printf("\n");
     }
   }
 
@@ -813,5 +939,54 @@ public:
   // ------------------------------------------------------
 
 };
+
+
+// -----------------------------------------------
+//               More functions: unfolding
+// -----------------------------------------------
+
+inline
+int unfold(TVectorD &finVec, const TMatrixD &U, const TVectorD &iniVec) {
+  int res=1;
+  if (finVec.GetNoElements() != iniVec.GetNoElements() ) {
+    std::cout << "Dim error in unfold: finVec[" << finVec.GetNoElements() << "], iniVec[" << iniVec.GetNoElements() << "]\n";
+    res=0;
+  }
+  if ( (finVec.GetNoElements() != U.GetNrows()) ||
+       (finVec.GetNoElements() != U.GetNcols()) ) {
+    std::cout << "Dim error in unfold: finVec[" << finVec.GetNoElements() << "], U[" << U.GetNrows() << ", " << U.GetNcols() << "]\n";
+    res=0;
+  }
+  if (res) {
+    for (int i=0; i<finVec.GetNoElements(); i++) {
+      double sum=0;
+      for (int j=0; j<finVec.GetNoElements(); j++) {
+	sum += U(j,i) * iniVec(j);
+      }
+      finVec(i) = sum;
+    }
+  }
+  return res;
+}
+
+// -----------------------------------------------
+
+inline
+int unfold_true2reco(TVectorD &vecReco, const UnfoldingMatrix_t &U, const TVectorD &vecTrue) {
+  return unfold(vecReco, *U.getDetResponse(), vecTrue);
+}
+// -----------------------------------------------
+
+inline
+int unfold_reco2true(TVectorD &vecTrue, const UnfoldingMatrix_t &U, const TVectorD &vecReco) {
+  return unfold(vecTrue, *U.getDetInvResponse(), vecReco);
+}
+
+// -----------------------------------------------
+
+// -----------------------------------------------
+
+// -----------------------------------------------
+// -----------------------------------------------
 
 #endif
