@@ -95,7 +95,7 @@ public:
     if ((lumi>0) && (xsec!=0.)) {
       if (doWeight) { 
 	baseW = lumi * xsec/double(maxEvents); 
-	std::cout << "setting baseW=" << lumi << " * " << xsec << " / " << maxEvents << " = " << baseW << "\n";
+	std::cout << "setting baseW=" << lumi << " * " << xsec << " / " << maxEvents << " = " << baseW << " (1/baseW=" << 1/baseW << ")\n";
       }
       else { 
 	TLong_t needsEvents=(TLong_t)(lumi*xsec); 
@@ -112,9 +112,10 @@ public:
   }
 
   void Print(int short_output=1) const {
-    if (short_output || 1) {
-      std::cout << "w(" << baseW << "," << fewzW << ")";
+    if (short_output) {
+      std::cout << "w(" << baseW << "b," << fewzW << "fewz)";
     }
+    else std::cout << *this << "\n";
   }
 
   friend
