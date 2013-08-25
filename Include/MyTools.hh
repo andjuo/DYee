@@ -422,7 +422,8 @@ void printYields(const TString &name, const TMatrixD &cs, const TMatrixD &csErr,
   if (printSystError) {
     for (int ir=0; ir<cs.GetNrows(); ++ir) {
       for (int ic=0; ic<cs.GetNcols(); ++ic) {
-	printf(" %6.4lf %8.4e %8.4e\n",cs[ir][ic],csErr[ir][ic],csErrSyst[ir][ic]);
+	//printf(" %6.4lf %8.4e %8.4e\n",cs[ir][ic],csErr[ir][ic],csErrSyst[ir][ic]);
+	printf(" %8.4e %8.4e %8.4e\n",cs[ir][ic],csErr[ir][ic],csErrSyst[ir][ic]);
       }
       printf("\n");
     }
@@ -430,7 +431,8 @@ void printYields(const TString &name, const TMatrixD &cs, const TMatrixD &csErr,
   else {
     for (int ir=0; ir<cs.GetNrows(); ++ir) {
       for (int ic=0; ic<cs.GetNcols(); ++ic) {
-	printf(" %6.4lf %8.4e\n",cs[ir][ic],csErr[ir][ic]);
+	//printf(" %6.4lf %8.4e\n",cs[ir][ic],csErr[ir][ic]);
+	printf(" %8.4e %8.4e\n",cs[ir][ic],csErr[ir][ic]);
       }
       printf("\n");
     }
