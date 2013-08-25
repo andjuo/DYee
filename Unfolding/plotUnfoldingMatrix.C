@@ -9,10 +9,10 @@
 
 //=== MAIN MACRO =================================================================================================
 
-int plotDetResponse(const TString conf,
-		    DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
-		    double FSRreweight=1.0, double FSRmassDiff=1.) {
+int plotUnfoldingMatrix(const TString conf,
+			DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+			double FSRreweight=1.0, double FSRmassDiff=1.) {
 //systematicsMode 0 (NORMAL) - no systematic calc
 //1 (RESOLUTION_STUDY) - systematic due to smearing, 2 (FSR_STUDY) - systematics due to FSR, reweighting
 //check mass spectra with reweightFsr = 0.95; 1.00; 1.05  
@@ -47,7 +47,7 @@ int plotDetResponse(const TString conf,
 
   // plotDetResponse uses escale!
   // no energy correction for this evaluation
-  //inpMgr.clearEnergyScaleTag();
+  inpMgr.clearEnergyScaleTag();
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
@@ -57,18 +57,19 @@ int plotDetResponse(const TString conf,
   // Event weight handler
   EventWeight_t evWeight;
   evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  // no PU evWeight.init(0,inpMgr.fewzFlag());
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
 
 
-  const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
-  const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
-  const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : (seedMax-seedMin+1);
+  //const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
+  //const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
+  //const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : (seedMax-seedMin+1);
 
-  std::cout << "seedMin..seedMax=" << seedMin << ".." << seedMax << "\n";
+  //std::cout << "seedMin..seedMax=" << seedMin << ".." << seedMax << "\n";
 
-  return retCodeOk;
+  //return retCodeOk;
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -199,15 +200,15 @@ int plotDetResponse(const TString conf,
 //     hMassDiffV[i] = new TH1F(hname,"",100,-50,50);
 //   }
 
-  UnfoldingMatrix_t detResponse(UnfoldingMatrix_t::_cDET_Response,"detResponse");
-  UnfoldingMatrix_t detResponseExact(UnfoldingMatrix_t::_cDET_Response,"detResponseExact");
+  UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,"detResponse");
+  UnfoldingMatrix_t detResponseExact(UnfoldingMatrix::_cDET_Response,"detResponseExact");
 
-  UnfoldingMatrix_t fsrGood(UnfoldingMatrix_t::_cFSR, "fsrGood");
-  UnfoldingMatrix_t fsrExact(UnfoldingMatrix_t::_cFSR, "fsrExact");
-  UnfoldingMatrix_t fsrDET(UnfoldingMatrix_t::_cFSR_DET,"fsrDET"); // only relevant indices are checked for ini,fin
-  UnfoldingMatrix_t fsrDETexact(UnfoldingMatrix_t::_cFSR_DET,"fsrDETexact"); // all indices are checked
+  UnfoldingMatrix_t fsrGood(UnfoldingMatrix::_cFSR, "fsrGood");
+  UnfoldingMatrix_t fsrExact(UnfoldingMatrix::_cFSR, "fsrExact");
+  UnfoldingMatrix_t fsrDET(UnfoldingMatrix::_cFSR_DET,"fsrDET"); // only relevant indices are checked for ini,fin
+  UnfoldingMatrix_t fsrDETexact(UnfoldingMatrix::_cFSR_DET,"fsrDETexact"); // all indices are checked
   // a good working version: response matrix and invResponse are modified after the inversion
-  UnfoldingMatrix_t fsrDET_good(UnfoldingMatrix_t::_cFSR_DET,"fsrDET_good"); 
+  UnfoldingMatrix_t fsrDET_good(UnfoldingMatrix::_cFSR_DET,"fsrDET_good"); 
 
   std::vector<UnfoldingMatrix_t*> detRespV;
   
@@ -303,10 +304,13 @@ int plotDetResponse(const TString conf,
       if (inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT") && 
 	  (isample==0) && (ifile==0)) {
 	extraWeightFactor=maxEvents / (inpMgr.totalLumi() * inpMgr.mcSampleInfo(0)->getXsec(ifile));
+	//extraWeightFactor=maxEvents / inpMgr.mcSampleInfo(0)->getXsec(ifile);
       }
       //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
       //const double extraWeightFactor=1.0;
-      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), mcSample->getXsec(ifile), 
+      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, 
+						   inpMgr.totalLumi(), 
+						   mcSample->getXsec(ifile), 
 						   extraWeightFactor, inpMgr.selectEventsFlag())) {
 	std::cout << "adjustMaxEvents failed\n";
 	return retCodeError;
@@ -328,7 +332,7 @@ int plotDetResponse(const TString conf,
 
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
 	ec.numEvents_inc();
-	if (DYTools::isDebugMode(runMode) && (ientry>1000000)) break; // debug option
+	if (DYTools::isDebugMode(runMode) && (ientry>1000000+DYTools::study2D*2000000)) break; // debug option
 	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
 	printProgress(100000," ientry=",ientry,maxEvents);
 	
@@ -512,7 +516,7 @@ int plotDetResponse(const TString conf,
   } // runMode
 
 
-  UnfoldingMatrix_t fsrDETcorrections(UnfoldingMatrix_t::_cFSR_DETcorrFactors,"fsrCorrFactors");
+  UnfoldingMatrix_t fsrDETcorrections(UnfoldingMatrix::_cFSR_DETcorrFactors,"fsrCorrFactors");
 
   if (DYTools::processData(runMode)) {
     // Compute the errors on the elements of migration matrix
@@ -822,6 +826,8 @@ int plotDetResponse(const TString conf,
   PlotMatrixVariousBinning(*unfFsrDETRecoEffect, "reconstruction_effect_fsrDET", "LEGO2", NULL);
   delete unfFsrDETRecoEffect;
 
+  */
+
   // Plot response and inverted response matrices
   //std::vector<TH2F*> hResponseV, hInvResponseV;
   //std::vector<TCanvas*> canvV;
@@ -837,6 +843,7 @@ int plotDetResponse(const TString conf,
   fsrDETexact.prepareHResponse();
   fsrDET_good.prepareHResponse();
    
+  /*
   // Create a plot of detector resolution without mass binning
   TCanvas *g = MakeCanvas("canvMassDiff","canvMassDiff",600,600);
   CPlot plotMassDiff("massDiff","","reco mass - gen post-FSR mass [GeV/c^{2}]","a.u.");
