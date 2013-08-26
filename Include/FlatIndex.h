@@ -22,22 +22,23 @@ public:
 
   // --------------
 
-  // --------------
-
-  int setGenPreFsrIdx(const mithep::TGenInfo *gen) {
-    FIdxMass=DYTools::findMassBin(gen->vmass);
-    FIdxY   =DYTools::findAbsYBin(FIdxMass,gen->vy);
+  int setIdx(double mass, double y) {
+    FIdxMass=DYTools::findMassBin(mass);
+    FIdxY   =DYTools::findAbsYBin(FIdxMass,y);
     FFIdx   =DYTools::findIndexFlat(FIdxMass,FIdxY);
     return FFIdx;
   }
 
   // --------------
 
+  int setGenPreFsrIdx(const mithep::TGenInfo *gen) {
+    return this->setIdx(gen->vmass, gen->vy);
+  }
+
+  // --------------
+
   int setGenPostFsrIdx(const mithep::TGenInfo *gen) {
-    FIdxMass=DYTools::findMassBin(gen->mass);
-    FIdxY   =DYTools::findAbsYBin(FIdxMass,gen->y);
-    FFIdx   =DYTools::findIndexFlat(FIdxMass,FIdxY);
-    return FFIdx;
+    return this->setIdx(gen->mass, gen->y);
   }
 
   // --------------
@@ -48,10 +49,7 @@ public:
   // --------------
 
   int setRecoIdx(const mithep::TDielectron *dielectron) {
-    FIdxMass=DYTools::findMassBin(dielectron->mass);
-    FIdxY   =DYTools::findAbsYBin(FIdxMass, dielectron->y);
-    FFIdx   =DYTools::findIndexFlat(FIdxMass,FIdxY);
-    return FFIdx;
+    return this->setIdx(dielectron->mass, dielectron->y);
   }
 
   // --------------
