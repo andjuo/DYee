@@ -10,9 +10,15 @@
 # endif
 #endif
 
+
+#define useDefaultBinSet
+
 // to ignore the rapidity range in 1D for indexing
 // define preprocessor variable unlimited_Y_in_1D
-#define unlimited_Y_in_1D
+// Note: this variable is not compatible with _MassBins_withFullOverflows
+#ifdef useDefaultBinSet
+//#  define unlimited_Y_in_1D
+#endif
 
 #include <iostream>
 #include <math.h>
@@ -35,9 +41,17 @@ namespace DYTools {
   //             nMassBins, massBinLimits, nYBins
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 
-  const int study2D=0;
+  const int study2D=1;
   const int extendYRangeFor1D=1; // whether |ymax|=14 for 1D study
-  const TString analysisTag_USER=""; //(!study2D && extendYRangeFor1D) ? "ymax9" : "";  // extra name to differentiate the analysis files
+#ifdef useDefaultBinSet
+#  ifdef unlimited_Y_in_1D
+    const TString analysisTag_USER=(!study2D) ? "-unlimY" : "";
+#  else
+    const TString analysisTag_USER=""; // extra name to differentiate the analysis files
+#  endif
+#else
+  const TString analysisTag_USER="-withFullOverflow";
+#endif
 
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
@@ -89,7 +103,8 @@ namespace DYTools {
   // Note: this implementation neglects underflow and overflow
   // in rapidity.
   const double yRangeMin =  0.0;
-  const double yRangeMax_base =  electronEtaMax + ((!study2D && extendYRangeFor1D) ? ((energy8TeV==1) ? 11.6:11.5) : 0);
+  const double _yRangeMax_base =  electronEtaMax + ((!study2D && extendYRangeFor1D) ? ((energy8TeV==1) ? 11.6:11.5) : 0);
+  const double _yRangeEdge_base = _yRangeMax_base;
   const int _nBinsYLowMass  = (energy8TeV == 1) ? 24 : 25;
   const int _nBinsYHighMass = (energy8TeV == 1) ? 12 : 10;
   const int _nYBins2D[_nMassBins2D] = 
@@ -121,26 +136,26 @@ namespace DYTools {
 
 
   // Constants that define binning in mass and rapidity
-  const int _nMassBins2D_withOverflow = 8;
-  const double _massBinLimits2D_withOverflow[_nMassBins2D_withOverflow+1] = 
+  const int _nMassBins2D_withFullOverflow = 8;
+  const double _massBinLimits2D_withFullOverflow[_nMassBins2D_withFullOverflow+1] = 
     {
       0, // underflow
       20, 30, 45, 60, 120, 200, 1500,
       3000 // overflow
     }; 
   // Rapidity binning is different for different mass bins
-  // Note: this implementation neglects underflow and overflow
-  // in rapidity.
-  const double yRangeMax_withOverflow= (energy8TeV == 1) ? 2.6 : 2.6;
-  const int _nBinsYLowMass_withOverflow  = (energy8TeV == 1) ? 26 : 26;
-  const int _nBinsYHighMass_withOverflow = (energy8TeV == 1) ? 13 : 13;
-  const int _nYBins2D_withOverflow[_nMassBins2D_withOverflow] = 
+  // yRangeMax has no meaning. There is no limit in findYAbsIndex
+  const double _yRangeEdge_withFullOverflow= _yRangeEdge_base;
+  const double _yRangeMax_withFullOverflow = _yRangeEdge_withFullOverflow + 0.1;
+  const int _nBinsYLowMass_withFullOverflow  = _nBinsYLowMass + 1;
+  const int _nBinsYHighMass_withFullOverflow = _nBinsYHighMass + 1;
+  const int _nYBins2D_withFullOverflow[_nMassBins2D_withFullOverflow] = 
     { 
-      _nBinsYLowMass_withOverflow, _nBinsYLowMass_withOverflow,
-      _nBinsYLowMass_withOverflow, _nBinsYLowMass_withOverflow, 
-      _nBinsYLowMass_withOverflow, _nBinsYLowMass_withOverflow,
-      _nBinsYHighMass_withOverflow,
-      _nBinsYHighMass_withOverflow
+      _nBinsYLowMass_withFullOverflow, _nBinsYLowMass_withFullOverflow,
+      _nBinsYLowMass_withFullOverflow, _nBinsYLowMass_withFullOverflow, 
+      _nBinsYLowMass_withFullOverflow, _nBinsYLowMass_withFullOverflow,
+      _nBinsYHighMass_withFullOverflow,
+      _nBinsYHighMass_withFullOverflow
     }; // overflow is neglected
 
   
@@ -240,7 +255,7 @@ namespace DYTools {
 // Declare mass binnings
   typedef enum { _MassBins_Undefined, _MassBins_2011, _MassBins_2011_2D, 
 		 _MassBins_test4, _MassBins_Zpeak,
-		 _MassBins_noUnderflow, _MassBins_withOverflow 
+		 _MassBins_noUnderflow, _MassBins_withFullOverflow 
   }     TMassBinning_t;
 
 
@@ -249,7 +264,9 @@ namespace DYTools {
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
   
   // default set
-  const double yRangeMax=yRangeMax_base; // alternative: yRangeMax_withOverflow
+#ifdef useDefaultBinSet
+  const double yRangeEdge=_yRangeEdge_base;
+  const double yRangeMax=_yRangeMax_base; // alternative: yRangeMax_withFullOverflow
   const DYTools::TMassBinning_t massBinningSet=(study2D) ? _MassBins_2011_2D : _MassBins_2011;
   const int nMassBins=(study2D) ? _nMassBins2D : _nMassBins2011;
   const double *massBinLimits=(study2D) ? _massBinLimits2D : _massBinLimits2011;
@@ -257,16 +274,21 @@ namespace DYTools {
   const int _nYBinsMax2D=_nBinsYLowMass; // the largest division into Y bins
   const int nYBinsMax=(study2D) ? _nYBinsMax2D : _nYBinsMax2011;
 
-  // set withOverflow
-  /*
-  const double yRangeMax=yRangeMax_withOverflow;
-  const DYTools::TMassBinning_t massBinningSet=(study2D) ? _MassBins_withOverflow : _MassBins_2011;
-  const int nMassBins=(study2D) ? _nMassBins2D_withOverflow : _nMassBins2011;
-  const double *massBinLimits=(study2D) ? _massBinLimits2D_withOverflow : _massBinLimits2011;
-  const int *nYBins=(study2D) ? _nYBins2D_withOverflow : _nYBins2011;
-  const int _nYBinsMax2D=_nBinsYLowMass_withOverflow; // the largest division into Y bins
+#undef useDefaultBinSet
+#else
+
+  // set withFullOverflow
+  const double yRangeEdge=_yRangeEdge_withFullOverflow;
+  const double yRangeMax=_yRangeMax_withFullOverflow;
+  const DYTools::TMassBinning_t massBinningSet=(study2D) ? _MassBins_withFullOverflow : _MassBins_2011;
+  const int nMassBins=(study2D) ? _nMassBins2D_withFullOverflow : _nMassBins2011;
+  const double *massBinLimits=(study2D) ? _massBinLimits2D_withFullOverflow : _massBinLimits2011;
+  const int *nYBins=(study2D) ? _nYBins2D_withFullOverflow : _nYBins2011;
+  const int _nYBinsMax2D=_nBinsYLowMass_withFullOverflow; // the largest division into Y bins
   const int nYBinsMax=(study2D) ? _nYBinsMax2D : _nYBinsMax2011;
-  */
+
+#endif
+
 
   /*
   const DYTools::TMassBinning_t massBinningSet= _MassBins_test4;
@@ -313,14 +335,21 @@ namespace DYTools {
     int result = -1;
     if( massBin < 0 || massBin > nMassBins) return result;
 #ifdef unlimited_Y_in_1D
+    if (massBinningSet == _MassBins_withFullOverflow) {
+      std::cout << "findYBin: massBinningSet=_MassBins_withFullOverflows. unlimited_Y_in_1D cannot be set\n";
+      return -1;
+    }
     if (study2D==0) return 0; // for 1D case, include everything
 #endif
-    if ( y < yRangeMin  ||  y > yRangeMax ) return result;
-
     int nYBinsThisMassRange = nYBins[massBin];
+    if (massBinningSet == _MassBins_withFullOverflow) {
+      if (y > yRangeEdge) return (nYBinsThisMassRange-1);
+      nYBinsThisMassRange--;
+    }
+    if ( y < yRangeMin  ||  y > yRangeEdge ) return result;
 
-    result = int( ( y - yRangeMin )* 1.000001*nYBinsThisMassRange/( yRangeMax - yRangeMin ) );
-    double dy=((yRangeMax-yRangeMin)/double(nYBinsThisMassRange));
+    result = int( ( y - yRangeMin )* 1.000001*nYBinsThisMassRange/( yRangeEdge - yRangeMin ) );
+    double dy=((yRangeEdge-yRangeMin)/double(nYBinsThisMassRange));
     //std::cout << "y=" << y << ", dy=" << dy  << ", binIdx=" << result << ", yRange=" << (result*dy) << ".." << (result*dy+dy) << "\n";
     if (result < 0 || result >= nYBinsThisMassRange) {
       std::cout << "y=" << y << ", dy=" << dy  << ", binIdx=" << result << ", yRange=" << (result*dy) << ".." << (result*dy+dy) << "\n";
@@ -436,10 +465,16 @@ namespace DYTools {
     }
     int nYBinsThisSlice = nYBins[massBin];
     result = new double[nYBinsThisSlice+1];
+
     double delta = (yRangeMax - yRangeMin)/double(nYBinsThisSlice);
+    if (massBinningSet== _MassBins_withFullOverflow) {
+      // yRangeEdge <> yRangeMax in this case
+      delta = (yRangeEdge - yRangeMin)/double (nYBinsThisSlice-1);
+    }
     for(int i=0; i<nYBinsThisSlice; i++){
       result[i] = yRangeMin + i * delta;
     }
+
     result[nYBinsThisSlice] = yRangeMax;
     return result;
   }
@@ -454,9 +489,14 @@ namespace DYTools {
     (*yBins).Zero();
     for (int im=0; im<nMassBins; ++im) {
       double delta = (yRangeMax - yRangeMin)/double(nYBins[im]);
-      for (int iy=0; iy<nYBins[im]+1; ++iy) {
+      if (massBinningSet== _MassBins_withFullOverflow) {
+	// yRangeEdge <> yRangeMax in this case
+	delta = (yRangeEdge - yRangeMin)/double (nYBins[im]-1);
+      }
+      for (int iy=0; iy<nYBins[im]; ++iy) {
 	(*yBins)(im,iy) = yRangeMin + iy * delta;
       }
+      (*yBins)(im,nYBins[im]) = yRangeMax;
     }
     return yBins;
   }
