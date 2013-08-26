@@ -21,7 +21,7 @@ TString MassBinningName(DYTools::TMassBinning_t set) {
   case _MassBins_test4: name="MassBinsTest4"; break;
   case _MassBins_Zpeak: name="MassBinsZpeak"; break;
   case _MassBins_noUnderflow: name="MassBins_noUnderflow"; break;
-  case _MassBins_withOverflow: name="MassBins_withOverflow"; break;
+  case _MassBins_withFullOverflow: name="MassBins_withFullOverflow"; break;
   default: name="UNKNOWN_MASS_BINNING";
   }
   return name;
