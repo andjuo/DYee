@@ -373,6 +373,15 @@ namespace mithep
 
   public:
 
+    void restoreEScaleModifiedValues(const mithep::TDielectron &di) {
+      pt_1 = di.pt_1; eta_1=di.eta_1; phi_1=di.phi_1;
+      pt_2 = di.pt_2; eta_2=di.eta_2; phi_2=di.phi_2;
+      mass = di.mass;
+      pt= di.pt;
+      y = di.y;
+      phi=di.phi;
+    }
+
     void extractElectron(int index, mithep::TElectron &ele) {
       mithep::TDielectron *dielectron = this;
     
