@@ -10,6 +10,9 @@
 # endif
 #endif
 
+// to ignore the rapidity range in 1D for indexing
+// define preprocessor variable unlimited_Y_in_1D
+#define unlimited_Y_in_1D
 
 #include <iostream>
 #include <math.h>
@@ -309,6 +312,9 @@ namespace DYTools {
   
     int result = -1;
     if( massBin < 0 || massBin > nMassBins) return result;
+#ifdef unlimited_Y_in_1D
+    if (study2D==0) return 0; // for 1D case, include everything
+#endif
     if ( y < yRangeMin  ||  y > yRangeMax ) return result;
 
     int nYBinsThisMassRange = nYBins[massBin];
