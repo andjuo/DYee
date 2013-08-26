@@ -133,7 +133,7 @@ namespace DYTools {
   const int _nBinsYHighMass_withOverflow = (energy8TeV == 1) ? 13 : 13;
   const int _nYBins2D_withOverflow[_nMassBins2D_withOverflow] = 
     { 
-      _nBinsYLowMass_withOverflow, 
+      _nBinsYLowMass_withOverflow, _nBinsYLowMass_withOverflow,
       _nBinsYLowMass_withOverflow, _nBinsYLowMass_withOverflow, 
       _nBinsYLowMass_withOverflow, _nBinsYLowMass_withOverflow,
       _nBinsYHighMass_withOverflow,
@@ -245,6 +245,7 @@ namespace DYTools {
   // Declare mass binning for the analysis (1D and 2D case)
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
   
+  // default set
   const double yRangeMax=yRangeMax_base; // alternative: yRangeMax_withOverflow
   const DYTools::TMassBinning_t massBinningSet=(study2D) ? _MassBins_2011_2D : _MassBins_2011;
   const int nMassBins=(study2D) ? _nMassBins2D : _nMassBins2011;
@@ -252,6 +253,17 @@ namespace DYTools {
   const int *nYBins=(study2D) ? _nYBins2D : _nYBins2011;
   const int _nYBinsMax2D=_nBinsYLowMass; // the largest division into Y bins
   const int nYBinsMax=(study2D) ? _nYBinsMax2D : _nYBinsMax2011;
+
+  // set withOverflow
+  /*
+  const double yRangeMax=yRangeMax_withOverflow;
+  const DYTools::TMassBinning_t massBinningSet=(study2D) ? _MassBins_withOverflow : _MassBins_2011;
+  const int nMassBins=(study2D) ? _nMassBins2D_withOverflow : _nMassBins2011;
+  const double *massBinLimits=(study2D) ? _massBinLimits2D_withOverflow : _massBinLimits2011;
+  const int *nYBins=(study2D) ? _nYBins2D_withOverflow : _nYBins2011;
+  const int _nYBinsMax2D=_nBinsYLowMass_withOverflow; // the largest division into Y bins
+  const int nYBinsMax=(study2D) ? _nYBinsMax2D : _nYBinsMax2011;
+  */
 
   /*
   const DYTools::TMassBinning_t massBinningSet= _MassBins_test4;
@@ -266,8 +278,8 @@ namespace DYTools {
   const TString analysisTag=study2Dstr + analysisTag_USER;
   const int nUnfoldingBinsMax= nMassBins * nYBinsMax;
   const int nUnfoldingBins= (study2D) ? 
-    ((_nMassBins2D-2) * _nYBinsMax2D + 
-     _nYBins2D[_nMassBins2D-2] + _nYBins2D[_nMassBins2D-1]) : nMassBins;
+    ((nMassBins-2) * nYBinsMax + 
+     nYBins[nMassBins-2] + nYBins[nMassBins-1]) : nMassBins;
 
   // some analyses use 1D always
   //const int nMassBins1D=nMassBins2011;
