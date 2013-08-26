@@ -385,8 +385,14 @@ public:
   const TString& getName() const { return name; }
   const TMatrixD* getDetResponse() const { return DetResponse; }
   const TMatrixD* getDetInvResponse() const { return DetInvertedResponse; }
+  const TMatrixD* getIniM() const { return yieldsIni; }
+  const TMatrixD* getFinM() const { return yieldsFin; }
+
+  // Note that they are constructed from TMatrixD after the call of
+  // prepareFIArrays
   const TVectorD* getIniVec() const { return yieldsIniArr; }
   const TVectorD* getFinVec() const { return yieldsFinArr; }
+  // Read the note above.
 
   void fillIni(int iMassBinGen, int iYBinGen, double fullWeight) {
     using namespace DYTools;
@@ -980,6 +986,59 @@ int unfold_true2reco(TVectorD &vecReco, const UnfoldingMatrix_t &U, const TVecto
 inline
 int unfold_reco2true(TVectorD &vecTrue, const UnfoldingMatrix_t &U, const TVectorD &vecReco) {
   return unfold(vecTrue, *U.getDetInvResponse(), vecReco);
+}
+
+// -----------------------------------------------
+// -----------------------------------------------
+
+inline
+int unfold(TMatrixD &finM, const TMatrixD &U, const TMatrixD &iniM) {
+  int res=1;
+  if ((finM.GetNrows() != iniM.GetNrows() ) ||
+      (finM.GetNcols() != iniM.GetNcols()) ) {
+    std::cout << "Dim error in unfold(Matrix): finM[" << finM.GetNrows() << ", " << finM.GetNcols() << "], iniM[" << finM.GetNrows() << ", " << finM.GetNcols() << "]\n";
+    res=0;
+  }
+  if (finM.GetNrows()*finM.GetNcols() < DYTools::nUnfoldingBins) {
+    std::cout << "Dim error in unfold(Matrix): finM[" << finM.GetNrows() << ", " << finM.GetNcols() << "], nUnfoldingBins=" << DYTools::nUnfoldingBins << "\n";
+    res=0;
+  }
+  if ( (DYTools::nUnfoldingBins != U.GetNrows()) ||
+       (DYTools::nUnfoldingBins != U.GetNcols()) ) {
+    std::cout << "Dim error in unfold(Matrix): nUnfoldingBins=" << DYTools::nUnfoldingBins << ", U[" << U.GetNrows() << ", " << U.GetNcols() << "]\n";
+    res=0;
+  }
+  if (res) {
+    for (int ir=0, ini=0; ir<finM.GetNrows(); ir++) {
+      for (int ic=0; 
+	   (ic<finM.GetNcols()) && (ini<DYTools::nUnfoldingBins); 
+	   ++ic, ++ini) {
+	double sum=0;
+	for (int jr=0, fin=0; jr<iniM.GetNrows(); jr++) {
+	  for (int jc=0;
+	       (jc<iniM.GetNcols()) && (fin<DYTools::nUnfoldingBins);
+	       ++jc, ++fin) {
+	    sum += U(fin,ini) * iniM(jr,jc);
+	  }
+	}
+	finM(ir,ic) = sum;
+      }
+    }
+  }
+  return res;
+}
+
+// -----------------------------------------------
+
+inline
+int unfold_true2reco(TMatrixD &matReco, const UnfoldingMatrix_t &U, const TMatrixD &matTrue) {
+  return unfold(matReco, *U.getDetResponse(), matTrue);
+}
+// -----------------------------------------------
+
+inline
+int unfold_reco2true(TMatrixD &matTrue, const UnfoldingMatrix_t &U, const TMatrixD &matReco) {
+  return unfold(matTrue, *U.getDetInvResponse(), matReco);
 }
 
 // -----------------------------------------------
