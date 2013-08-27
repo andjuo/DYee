@@ -61,6 +61,18 @@ protected:
     printError(format,tmp1.Data(),tmp2.Data());
   }
 
+  template<class T>
+  void printError(const char *format, const TString &var1, const T &var2) const {
+    TString tmp1=(var1.Length()) ? var1 : " ";
+    printError(format,tmp1.Data(),var2);
+  }
+
+  template<class T>
+  void printError(const char *format, const T &var1, const TString &var2) const {
+    TString tmp2=(var2.Length()) ? var2 : " ";
+    printError(format,var1,tmp2.Data());
+  }
+
   int reportError(const char *msg) const {
     printError(msg);
     return 0;
