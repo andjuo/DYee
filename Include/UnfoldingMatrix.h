@@ -10,6 +10,9 @@
 #include "../Include/CPlot.hh"
 #include "../Include/FlatIndex.h"
 
+// a pair of histograms
+#include "../Include/HistoPair.hh"
+
 //for getting matrix condition number
 #include <TDecompLU.h>
 
@@ -37,14 +40,15 @@ int validFlatIndices(const FlatIndex_t &fi_a, const FlatIndex_t &fi_b) {
 //=== FUNCTION DEFINITIONS ======================================================================================
 
 inline
-void computeNormalizedBinContent(double subset, double subsetErr,
+int computeNormalizedBinContent(double subset, double subsetErr,
 				 double total, double totalErr,
 				 double& ratio, double& ratioErr){
-  
+
+  ratio=0.; ratioErr=0.;
   if(total == 0) {
     printf("makeUnfoldingMatrix::Possible problem\n");
     printf("     empty column in the response matrix\n");
-    return;
+    return 0;
   }
   
   ratio = subset/total;
@@ -62,7 +66,7 @@ void computeNormalizedBinContent(double subset, double subsetErr,
   ratioErr = (1/total)*sqrt( subsetErr*subsetErr*(1-2*ratio)
 			     + totalErr*totalErr*ratio*ratio );
 
-  return;
+  return 1;
 }
 
 // -----------------------------------------------
@@ -88,6 +92,7 @@ void calculateInvertedMatrixErrors(const TMatrixD &T,
 
   // Do many tries, accumulate RMS
   int N = 10000;
+  N=1000; std::cout << "\ncalculateInvertedMatrixErrors: setting Ntries=" << N << "\n\n";
   for(int iTry = 0; iTry<N; iTry++){
     // Find the smeared matrix
     TMatrixD Tsmeared = T;
@@ -171,8 +176,9 @@ double maxElement(const TVectorD &V, int *storeRow=NULL, int *storeCol=NULL) {
 // ------------------------------------------------------------
 
 template<class Container_t>
-double maxDiff(const Container_t &A, const Container_t &B, int *storeRow=NULL, int *storeCol=NULL) {
+double maxDiff(const Container_t &A, const Container_t &B, int *storeRow=NULL, int *storeCol=NULL, int printDiff=0) {
   Container_t diff=A; diff-=B;
+  if (printDiff) { std::cout << "diff="; diff.Print(); }
   double max= maxElement(diff,storeRow,storeCol);
   return max;
 }
@@ -180,9 +186,10 @@ double maxDiff(const Container_t &A, const Container_t &B, int *storeRow=NULL, i
 // ------------------------------------------------------------
 
 inline
-void testMaxDiff(const TString &msg, const TVectorD &a, const TVectorD &b) {
+void testMaxDiff(const TString &msg, const TVectorD &a, const TVectorD &b, int printDiff=0) {
   int i=-1;
-  std::cout << msg << ". MaxDiff=" << maxDiff(a,b,&i) << "\n";
+  double md=maxDiff(a,b,&i,NULL,printDiff);
+  std::cout << msg << ". MaxDiff=" << md << "\n";
   std::cout << " values there (at " << i << "): " << a[i] << " and " << b[i] << "\n";
   return;
 }
@@ -190,9 +197,10 @@ void testMaxDiff(const TString &msg, const TVectorD &a, const TVectorD &b) {
 // ------------------------------------------------------------
 
 inline
-void testMaxDiff(const TString &msg, const TMatrixD &a, const TMatrixD &b) {
+void testMaxDiff(const TString &msg, const TMatrixD &a, const TMatrixD &b, int printDiff=0) {
   int ir=-1, ic=-1;
-  std::cout << msg << ". MaxDiff=" << maxDiff(a,b,&ir,&ic) << "\n";
+  double md=maxDiff(a,b,&ir,&ic,printDiff);
+  std::cout << msg << ". MaxDiff=" << md << "\n";
   std::cout << " values there, at (" << ir << "," << ic << "): " 
 	    << a(ir,ic) << " and " << b(ir,ic) << "\n";
   return;
@@ -489,11 +497,12 @@ public:
       for(int ireco = 0; ireco < (*DetMigration).GetNcols(); ireco++){
 	tCentral = 0;
 	tErr     = 0;
-	computeNormalizedBinContent((*DetMigration)(igen,ireco),
-				    (*DetMigrationErr)(igen,ireco),
-				    nEventsInGenBin,
-				    nEventsInGenBinErr,
-			    tCentral, tErr);
+	int res=computeNormalizedBinContent((*DetMigration)(igen,ireco),
+					    (*DetMigrationErr)(igen,ireco),
+					    nEventsInGenBin,
+					    nEventsInGenBinErr,
+					    tCentral, tErr);
+	if (!res) std::cout << name << ": igen=" << igen << ", ireco=" << ireco << "\n";
 	(*DetResponse)      (igen,ireco) = tCentral;
 	(*DetResponseErrPos)(igen,ireco) = tErr;
 	(*DetResponseErrNeg)(igen,ireco) = tErr;
@@ -818,6 +827,100 @@ public:
 
   // ------------------------------------------
 
+  int loadFromFileAny(const TString &fileName, const TString &refFileName,
+		      TVectorD **massBinning, TVectorD **nRapidityBins) {
+    std::cout << "UnfoldingMatrix_t::loadFromFileAny(\n  <" << fileName << ">\n  <" << refFileName << ">) for name=" << this->name << "\n";
+    if (!massBinning || !nRapidityBins) {
+      std::cout << "loadFromFileAny: the provided massBinning and nRapidityBins pointers are null\n";
+      return 0;
+    }
+    if (kind!=UnfoldingMatrix::_cFSR_DETcorrFactors) {
+      TFile fConst(fileName);
+      if (!fConst.IsOpen()) {
+	std::cout << "failed to open the file <" << fileName << ">\n";
+	return 0;
+      }
+      if (!checkBinningArrays(fConst)) {
+	fConst.Close();
+	return 0;
+      }
+      (*massBinning) = (TVectorD*)fConst.Get("massBinLimits");
+      (*nRapidityBins) = (TVectorD*)fConst.Get("rapidityCounts");
+
+      (*DetMigration)            .Read("DetMigration");
+      (*DetMigrationErr)         .Read("DetMigrationErr");
+      (*DetResponse)             .Read("DetResponse");
+      (*DetResponseErrPos)       .Read("DetResponseErrPos");
+      (*DetResponseErrNeg)       .Read("DetResponseErrNeg");
+      (*DetInvertedResponse)     .Read("DetInvertedResponse");
+      (*DetInvertedResponseErr)  .Read("DetInvertedResponseErr");
+      (*DetResponseArr)          .Read("DetResponseFIArray");
+      (*DetInvertedResponseArr)  .Read("DetInvertedResponseFIArray");
+      (*DetInvertedResponseErrArr).Read("DetInvertedResponseErrFIArray");
+      (*yieldsIni).Read(iniYieldsName);
+      (*yieldsFin).Read(finYieldsName);
+      (*yieldsIniArr).Read(iniYieldsName + TString("FIArray"));
+      (*yieldsFinArr).Read(finYieldsName + TString("FIArray"));
+      fConst.Close();
+    }
+
+    if (kind==UnfoldingMatrix::_cFSR_DETcorrFactors) {
+      // Retrieve reference MC arrays in a file
+      TFile fRef(refFileName);
+      if (!fRef.IsOpen()) {
+	std::cout << "failed to open the file <" << refFileName << ">\n";
+	return 0;
+      }
+      if (!checkBinningArrays(fRef)) {
+	fRef.Close();
+	return 0;
+      }
+      (*massBinning) = (TVectorD*)fRef.Get("massBinLimits");
+      (*nRapidityBins) = (TVectorD*)fRef.Get("rapidityCounts");
+
+      (*yieldsIni).Read(iniYieldsName);
+      (*yieldsFin).Read(finYieldsName);
+      (*yieldsIniArr).Read(iniYieldsName + TString("FIArray"));
+      (*yieldsFinArr).Read(finYieldsName + TString("FIArray"));
+      fRef.Close();
+    }
+    return 1;
+  }
+
+  // ------------------------------------------
+  // ------------------------------------------
+
+  static TMatrixD* loadUnfM(//UnfoldingMatrix::TUnfoldingMatrixType_t set_kind, 
+			    const TString &set_name,
+			    const TString &outputDir,
+			    const TString &fileTag,
+			    int inverse,
+			    int checkBinArrays=1
+			    ) {
+    // construct file name
+    // emulate this->getFileNames()
+    TString matrixFName=
+      outputDir + set_name + TString("_unfolding_constants") +
+      fileTag + TString(".root");
+    TFile fin(matrixFName,"read");
+    if (!fin.IsOpen()) {
+      std::cout << "loadUnfM: failed to open file <" << fin.GetName() << ">\n";
+      return NULL;
+    }
+    if (checkBinArrays && !checkBinningArrays(fin)) {
+      std::cout << "loadUnfM(" << fin.GetName() << ") does not match the binning (checkBinArrays is ON)\n";
+      return NULL;
+    }
+    TString fieldName= (inverse) ? "DetInvertedResponse" : "DetResponse";
+    TMatrixD *unf=(TMatrixD*) fin.Get(fieldName);
+    fin.Close();
+    if (!unf) std::cout << "loadUnfM(" << fin.GetName() << "): failed to load field<" << fieldName << ">\n";
+    return unf;
+  }
+
+  // ------------------------------------------
+  // ------------------------------------------
+
   void printYields() const {
     std::cout << "Yields of matrix=" << name << " (" 
 	      << iniYieldsName << " and " << finYieldsName << ")\n";
@@ -996,7 +1099,7 @@ int unfold(TMatrixD &finM, const TMatrixD &U, const TMatrixD &iniM) {
   int res=1;
   if ((finM.GetNrows() != iniM.GetNrows() ) ||
       (finM.GetNcols() != iniM.GetNcols()) ) {
-    std::cout << "Dim error in unfold(Matrix): finM[" << finM.GetNrows() << ", " << finM.GetNcols() << "], iniM[" << finM.GetNrows() << ", " << finM.GetNcols() << "]\n";
+    std::cout << "Dim error in unfold(Matrix): finM[" << finM.GetNrows() << ", " << finM.GetNcols() << "], iniM[" << iniM.GetNrows() << ", " << iniM.GetNcols() << "]\n";
     res=0;
   }
   if (finM.GetNrows()*finM.GetNcols() < DYTools::nUnfoldingBins) {
@@ -1010,13 +1113,19 @@ int unfold(TMatrixD &finM, const TMatrixD &U, const TMatrixD &iniM) {
   }
   if (res) {
     for (int ir=0, ini=0; ir<finM.GetNrows(); ir++) {
+      if (finM.GetNcols()<DYTools::nYBins[ir]) {
+	std::cout << "Dim problem in unfold(Matrix) at ir=" << ir << ", finM.GetNcols=" << finM.GetNcols() << ", nYBins=" << DYTools::nYBins[ir] << "\n";
+      }
       for (int ic=0; 
-	   (ic<finM.GetNcols()) && (ini<DYTools::nUnfoldingBins); 
+	   //(ic<finM.GetNcols()) && (ini<DYTools::nUnfoldingBins); 
+	   (ic<finM.GetNcols()) &&
+	   (ic<DYTools::nYBins[ir]) && (ini<DYTools::nUnfoldingBins);
 	   ++ic, ++ini) {
 	double sum=0;
 	for (int jr=0, fin=0; jr<iniM.GetNrows(); jr++) {
 	  for (int jc=0;
-	       (jc<iniM.GetNcols()) && (fin<DYTools::nUnfoldingBins);
+	       (jc<iniM.GetNcols()) &&
+	       (jc<DYTools::nYBins[jr]) && (fin<DYTools::nUnfoldingBins);
 	       ++jc, ++fin) {
 	    sum += U(fin,ini) * iniM(jr,jc);
 	  }
@@ -1045,6 +1154,80 @@ int unfold_reco2true(TMatrixD &matTrue, const UnfoldingMatrix_t &U, const TMatri
 
 // -----------------------------------------------
 
+// -----------------------------------------------
+// -----------------------------------------------
+
+#ifdef HistoPair_HH
+inline
+int unfold(HistoPair2D_t &finHP, const TMatrixD &U, const HistoPair2D_t &iniHP) {
+  int res=1;
+  if ((finHP.getNrows() != iniHP.getNrows() ) ||
+      (finHP.getNcols() != iniHP.getNcols()) ) {
+    std::cout << "Dim error in unfold(HistoPair2D): finHP[" << finHP.getNrows() << ", " << finHP.getNcols() << "], iniHP[" << iniHP.getNrows() << ", " << iniHP.getNcols() << "]\n";
+    res=0;
+  }
+  if (finHP.getNrows()*finHP.getNcols() < DYTools::nUnfoldingBins) {
+    std::cout << "Dim error in unfold(HistoPair2D): finHP[" << finHP.getNrows() << ", " << finHP.getNcols() << "], nUnfoldingBins=" << DYTools::nUnfoldingBins << "\n";
+    res=0;
+  }
+  if ( (DYTools::nUnfoldingBins != U.GetNrows()) ||
+       (DYTools::nUnfoldingBins != U.GetNcols()) ) {
+    std::cout << "Dim error in unfold(HistoPair2D): nUnfoldingBins=" << DYTools::nUnfoldingBins << ", U[" << U.GetNrows() << ", " << U.GetNcols() << "]\n";
+    res=0;
+  }
+  if (res) {
+    for (int ir=0, ini=0; ir<finHP.getNrows(); ir++) {
+      if (finHP.getNcols()<DYTools::nYBins[ir]) {
+	std::cout << "Dim problem in unfold(HistoPair2D) at ir=" << ir << ", finM.GetNcols=" << finHP.getNcols() << ", nYBins=" << DYTools::nYBins[ir] << "\n";
+      }
+      for (int ic=0; 
+	   //(ic<finHPM.GetNcols()) && (ini<DYTools::nUnfoldingBins); 
+	   (ic<DYTools::nYBins[ir]) && (ini<DYTools::nUnfoldingBins);
+	   ++ic, ++ini) {
+	double sum=0;
+	double sumErr2=0;
+	double sumSystErr2=0;
+	for (int jr=0, fin=0; jr<iniHP.getNrows(); jr++) {
+	  for (int jc=0;
+	       //(jc<iniM.GetNcols()) && (fin<DYTools::nUnfoldingBins);
+	       (jc<DYTools::nYBins[jr]) && (fin<DYTools::nUnfoldingBins);
+	       ++jc, ++fin) {
+	    sum += U(fin,ini) * iniHP.getBinContent(jr+1,jc+1);
+	    const double tmpErr= U(fin,ini) * iniHP.getBinError(jr+1,jc+1);
+	    sumErr2 += tmpErr*tmpErr;
+	    const double tmpSystErr= U(fin,ini) * iniHP.getBinSystError(jr+1,jc+1);
+	    sumSystErr2 += tmpSystErr*tmpSystErr;
+	  }
+	}
+	finHP.setBinContent(ir+1,ic+1, sum);
+	finHP.setBinError(ir+1, ic+1, sqrt(sumErr2));
+	finHP.setBinSystError(ir+1, ic+1, sqrt(sumSystErr2));
+      }
+    }
+  }
+  return res;
+}
+#endif
+
+// -----------------------------------------------
+
+#ifdef HistoPair_HH
+inline
+int unfold_true2reco(HistoPair2D_t &hpReco, const UnfoldingMatrix_t &U, const HistoPair2D_t &hpTrue) {
+  return unfold(hpReco, *U.getDetResponse(), hpTrue);
+}
+#endif
+
+// -----------------------------------------------
+
+#ifdef HistoPair_HH
+inline
+int unfold_reco2true(HistoPair2D_t &hpTrue, const UnfoldingMatrix_t &U, const HistoPair2D_t &hpReco) {
+  return unfold(hpTrue, *U.getDetInvResponse(), hpReco);
+}
+#endif
+
+// -----------------------------------------------
 // -----------------------------------------------
 // -----------------------------------------------
 
