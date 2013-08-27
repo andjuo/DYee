@@ -47,10 +47,10 @@ namespace DYTools {
 #  ifdef unlimited_Y_in_1D
     const TString analysisTag_USER=(!study2D) ? "-unlimY" : "";
 #  else
-    const TString analysisTag_USER=""; // extra name to differentiate the analysis files
+    const TString analysisTag_USER="-default"; // extra name to differentiate the analysis files
 #  endif
 #else
-  const TString analysisTag_USER="-withFullOverflow";
+  const TString analysisTag_USER="-withFullOverflowNew";
 #endif
 
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
@@ -314,10 +314,22 @@ namespace DYTools {
   // Define functions which should be used in the code
   //
 
-  inline int validMass(double mass) { return ((mass>=massBinLimits[0]) && (mass<=massBinLimits[nMassBins])); }
+  inline int validMass(double mass) { 
+    if (massBinningSet == _MassBins_withFullOverflow) return 1;
+    return ((mass>=massBinLimits[0]) && (mass<=massBinLimits[nMassBins])); 
+  }
 
   // find mass bin idx
-  inline int findMassBin(double mass) { return _findMassBin(mass,nMassBins,massBinLimits); }
+  inline int findMassBin(double mass) { 
+    int result=-1;
+    if (mass >= massBinLimits[nMassBins]) {
+      if (massBinningSet == _MassBins_withFullOverflow) {
+	result=nMassBins-1;
+      }
+    }
+    else result=_findMassBin(mass,nMassBins,massBinLimits); 
+    return result;
+  }
 
 
   template<class Idx_t>
@@ -334,6 +346,7 @@ namespace DYTools {
   
     int result = -1;
     if( massBin < 0 || massBin > nMassBins) return result;
+
 #ifdef unlimited_Y_in_1D
     if (massBinningSet == _MassBins_withFullOverflow) {
       std::cout << "findYBin: massBinningSet=_MassBins_withFullOverflows. unlimited_Y_in_1D cannot be set\n";
@@ -341,9 +354,10 @@ namespace DYTools {
     }
     if (study2D==0) return 0; // for 1D case, include everything
 #endif
+
     int nYBinsThisMassRange = nYBins[massBin];
     if (massBinningSet == _MassBins_withFullOverflow) {
-      if (y > yRangeEdge) return (nYBinsThisMassRange-1);
+      if (y >= yRangeEdge) return (nYBinsThisMassRange-1);
       nYBinsThisMassRange--;
     }
     if ( y < yRangeMin  ||  y > yRangeEdge ) return result;
@@ -375,8 +389,19 @@ namespace DYTools {
       std::cout << "ERROR in findAbsYValue: massBin=" << massBin << ", yBin=" << yBin << ", nYBins[massBin]=" << ybinCount << "\n";
       return 0;
     }
-    double yh=(yRangeMax-yRangeMin)/double(ybinCount);
-    return (yBin+0.5)*yh;
+    double val=-1;
+    if (massBinningSet!=_MassBins_withFullOverflow) {
+      double yh=(yRangeMax-yRangeMin)/double(ybinCount);
+      val= (yBin+0.5)*yh;
+    }
+    else {
+      if (yBin==ybinCount-1) val=0.5*(yRangeMax+yRangeEdge);
+      else {
+	double yh=(yRangeEdge-yRangeMin)/double(ybinCount-1);
+	val= (yBin+0.5)*yh;
+      }
+    }
+    return val;
   }
   
   // return rapidity range of Ybin
@@ -392,9 +417,22 @@ namespace DYTools {
       std::cout << "ERROR in findAbsYValueRange: massBin=" << massBin << ", yBin=" << yBin << ", nYBins[massBin]=" << ybinCount << "\n";
       return;
     }
-    double yh=(yRangeMax-yRangeMin)/double(ybinCount);
-    absYMin=yBin*yh;
-    absYMax=yBin*yh+yh;
+    if (massBinningSet!=_MassBins_withFullOverflow) {
+      double yh=(yRangeMax-yRangeMin)/double(ybinCount);
+      absYMin=yBin*yh;
+      absYMax=yBin*yh+yh;
+    }
+    else {
+      if (yBin==ybinCount-1) {
+	absYMin=yRangeEdge;
+	absYMax=yRangeMax;
+      }
+      else {
+	double yh=(yRangeEdge-yRangeMin)/double(ybinCount-1);
+	absYMin=yBin*yh;
+	absYMax=yBin*yh+yh;
+      }
+    }
     return;
   }
   
