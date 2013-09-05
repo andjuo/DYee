@@ -67,7 +67,7 @@ int plotDYEfficiency(const TString conf,
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
- 
+  
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
   // no energy correction for this evaluation
@@ -148,6 +148,7 @@ int plotDYEfficiency(const TString conf,
       // Read input file
       TFile infile(mcSample->getFName(ifile),"read");
       assert(infile.IsOpen());
+      std::cout << " Reading file <" << mcSample->getFName(ifile) << ">\n";
 
       // Get the TTrees
       if (!accessInfo.setTree(infile,"Events",true)) {
@@ -216,6 +217,7 @@ int plotDYEfficiency(const TString conf,
 	// Adjust event weight
 	// .. here "false" = "not data"
 	evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
+	//std::cout << "ientry=" << ientry << ", totalWeight=" << evWeight.totalWeight() << "\n";
 
 	// adjust the scale in the counter to include FEWZ 
 	// (and possibly PU) weight
@@ -283,6 +285,7 @@ int plotDYEfficiency(const TString conf,
   TH2D *hEff = createBaseH2("hEfficiency","hEff",1);
 
   TString outFileName=inpMgr.correctionFullFileName("efficiency",systMode,0);
+  std::cout << "outFileName=<" << outFileName << ">\n";
   if (DYTools::processData(runMode)) {
     addHistos(hSumPass,hPass);
     addHistos(hSumTotal,hTotal);
