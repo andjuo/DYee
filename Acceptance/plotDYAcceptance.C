@@ -90,9 +90,9 @@ int plotDYAcceptance(const TString conf,
 
   // Event weight handler
   EventWeight_t evWeight;
-  //evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
   // ignore PU-reweight flag
-  evWeight.init(0,inpMgr.fewzFlag());
+  //evWeight.init(0,inpMgr.fewzFlag());
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
@@ -317,7 +317,7 @@ int plotDYAcceptance(const TString conf,
   addHistos(hSumTotal,hvTotal);
   addHistos(hSumFail,hvFail);
 
-  TH2D *hAcc = createBaseH2("hAcc","hAcc",1);
+  TH2D *hAcc = createBaseH2("hAcceptance","hAcc",1);
   // We need the binomial error for the acceptance
   // eff=Pass/Tot, 
   // (dEff)^2= (1-eff)^2/T^2 (dPass)^2 + eff^2/T^2 (dFail)^2
