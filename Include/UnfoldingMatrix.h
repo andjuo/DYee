@@ -890,7 +890,7 @@ public:
   // ------------------------------------------
   // ------------------------------------------
 
-  static TMatrixD* loadUnfM(//UnfoldingMatrix::TUnfoldingMatrixType_t set_kind, 
+  static TMatrixD* LoadUnfM(//UnfoldingMatrix::TUnfoldingMatrixType_t set_kind, 
 			    const TString &set_name,
 			    const TString &outputDir,
 			    const TString &fileTag,
