@@ -88,8 +88,8 @@ int PUReweight_t::initializeHildrethWeights(){
   TString ftargetName = "../root_files7TeV/pileup/dataPileupHildreth_full2011_20121110_repacked.root";
 #ifdef DYee8TeV
   ftargetName = "../root_files/pileup/8TeV/dataPileupHildreth_full2012_20130521_repacked.root";
-  std::cout << "\n\nftagetName=" << ftargetName << "\n";
 #endif
+  std::cout << "PUReweight::initializeHildrethWeights ftargetName=" << ftargetName << "\n";
   TFile f1(ftargetName);
   if( ! f1.IsOpen()){
     printf("Failed to find the target for Hildreth's PU reweighting\n");
@@ -105,10 +105,11 @@ int PUReweight_t::initializeHildrethWeights(){
     assert(0);
   }
 
-  TString fsourceName = "../root_files/pileup/mcPileupHildreth_full2011_20121110_repacked.root";
+  TString fsourceName = "../root_files7TeV/pileup/mcPileupHildreth_full2011_20121110_repacked.root";
 #ifdef DYee8TeV
   fsourceName = "../root_files/pileup/8TeV/mcPileupHildreth_full2012_20130521_repacked.root";  
 #endif
+  std::cout << "PUReweight::initializeHildrethWeights fsourceName=" << fsourceName << "\n";
   TFile f2(fsourceName);
   if( ! f2.IsOpen()){
     printf("Failed to find the source for Hildreth's PU reweighting\n");
@@ -145,6 +146,7 @@ int PUReweight_t::initializeHildrethWeights(){
   hWeightHildreth = (TH1F*)target->Clone("hWeightHildreth");
   hWeightHildreth->SetDirectory(0);
   hWeightHildreth->Divide(source);
+  //printHisto_local(std::cout,hWeightHildreth);
   
   f1.Close();
   f2.Close();
