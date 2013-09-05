@@ -18,7 +18,7 @@
 // ----------------------------------------------------
 
 
-class EventWeight_t {
+class EventWeight_t  {
 protected:
   int fDoPUReweight;
   int fFewzCorr;
@@ -52,6 +52,7 @@ public:
 
   void setPUWeight(int nPV) {
     puW= (fPUReweight) ? fPUReweight->getWeight(nPV) : 1.0;
+    //std::cout << "setPUWeight(nPV=" << nPV << ") = " << puW << "\n";
   }
 
   void setPUWeightValue(double val) { puW=val; }
