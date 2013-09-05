@@ -168,6 +168,7 @@ int selectEvents(const TString conf,
     //
     // Set up output ntuple file for the sample
     //
+    std::cout << "recreating file <" << outName << ">\n";
     TFile outFile(outName,"RECREATE");
     TTree *outTree = new TTree("Events","Events");
     outTree->Branch("Events","ZeeData_t",&data);
