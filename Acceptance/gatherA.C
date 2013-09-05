@@ -17,7 +17,6 @@ void gatherA() {
     TH2D* hTotal=Clone(base,"hSumTotal",1);
     TH2D *hSumPassPreFsr=Clone(base,"hSumPassPreFsr",1);
     TH2D *hSumTotalPreFsr=Clone(base,"hSumTotalPreFsr",1);
-    TH2D *hAccPreFsr=Clone(base,"hAccPreFsr",1);
     int res=
       loadHisto(file,&hAcc,"") &&
       loadHisto(file,&hPass,"") &&
@@ -26,9 +25,14 @@ void gatherA() {
       loadHisto(file,&hSumTotalPreFsr,"");
     if (!res) return;
     file.Close();
+    TH2D *hAccPreFsr=Clone(hSumTotalPreFsr,"hAccPreFsr",1);
+
+    printHisto(hSumPassPreFsr);
+    printHisto(hSumTotalPreFsr);
+    printHisto(hAccPreFsr);
 
     hAccPreFsr->Divide(hSumPassPreFsr,hSumTotalPreFsr,1.,1.,"b");
-    
+
     TString uStr=str;
     TH1D *h1Acc=createProfileX(hAcc,1,"hAcc_" + uStr,1,NULL);
     TH1D *h1Pass=createProfileX(hPass,1,"hPass_" + uStr,1,NULL);
