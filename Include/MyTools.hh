@@ -20,6 +20,7 @@
 //----------------------------------------
 
 const std::string dashline=std::string(65,'-') + std::string("\n");
+const std::string mainpart=std::string("\n") + dashline + std::string("\t\t\t--- Main Part ---\n") + dashline + std::string("\n");
 
 //----------------------------------------
 /*
