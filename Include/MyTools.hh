@@ -514,7 +514,7 @@ int AppendToHistoName(Histo_t* h, const TString &add) {
 template<class histo_t>
 inline
 void removeError1D(histo_t* h) {
-  std::cout << "nulifying error for " << h->GetName() << "\n";
+  //std::cout << "nulifying error for " << h->GetName() << "\n";
   for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
     h->SetBinError(ibin,0);
   }
@@ -525,7 +525,7 @@ void removeError1D(histo_t* h) {
 template<class histo_t>
 inline
 void removeError2D(histo_t* h) {
-  std::cout << "nulifying error for " << h->GetName() << "\n";
+  //std::cout << "nulifying error for " << h->GetName() << "\n";
   for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
     for (int jbin=1; jbin<=h->GetNbinsY(); ++jbin) {
       h->SetBinError(ibin,jbin,0);
@@ -1116,14 +1116,23 @@ int loadHisto(TFile &file, histo_t **h, const TString &subDir="") {
 }
 
 //--------------------------------------------------
+
+TH2D* LoadHisto2D(const TString &fieldName, const TString &fname, const TString &subDir="", int checkBinning=1);
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 inline
-TH2D* Clone(TH2D* histo, const TString &newName, const TString &newTitle) {
+TH2D* Clone(const TH2D* histo, const TString &newName, const TString &newTitle) {
   TH2D *h2=(TH2D*)histo->Clone(newName);
-  h2->SetDirectory(0);
-  //h2->Sumw2();
-  h2->SetTitle(newTitle);
+  if (!h2) {
+    std::cout << "failed to clone a histo" << std::endl;
+  }
+  else {
+    h2->SetDirectory(0);
+    //h2->Sumw2();
+    h2->SetTitle(newTitle);
+  }
   return h2;
 }
 //--------------------------------------------------
@@ -1170,7 +1179,7 @@ inline double AsDouble(const std::string &s) { return atof(s.c_str()); }
 //--------------------------------------------------
 
 TH2D* LoadMatrixFields(TFile &fin, const TString &field, const TString &fieldErr, int loadErr=1, int absoluteRapidity=1);
-
+TH2D* LoadMatrixFields(const TString &fname, int checkBinning, const TString &field, const TString &fieldErr, int loadErr=1, int absoluteRapidity=1);
 
 // LoadThreeMatrices loads (value,valueErr) into h2, and (valueSystErr,value^2) into h2syst
 

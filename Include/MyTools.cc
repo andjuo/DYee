@@ -1,6 +1,32 @@
 #include "../Include/MyTools.hh"
 
 //--------------------------------------------------
+//--------------------------------------------------
+
+TH2D* LoadHisto2D(const TString &histoName, const TString &fname, const TString &subDir, int checkBinning) {
+  TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
+
+  TFile fin(fname,"read");
+  if (!fin.IsOpen()) {
+    std::cout << theCall << ": failed to open the file\n";
+    return NULL;
+  }
+  if (checkBinning && !checkBinningArrays(fin)) {
+    std::cout << theCall << ": binning test failed\n";
+    return NULL;
+  }
+
+  //HERE("LoadHisto2D get histo %s",histoName.Data());
+  
+  TH2D* h2=(TH2D*)fin.Get(histoName);
+  h2->SetDirectory(0);
+  fin.Close();
+  if (!h2) std::cout << theCall << ": failed to load the histo\n";
+  return h2;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
 
 void writeBinningArrays(TFile &fout) {
   fout.cd();
@@ -106,10 +132,13 @@ int checkMatrixSize(const TMatrixD &m, const TString &name) {
 //--------------------------------------------------
 
 TH2D* LoadMatrixFields(TFile &fin, const TString &field, const TString &fieldErr, int loadErr, int absoluteRapidity) {
-  TMatrixD* val=(TMatrixD*)fin.Get(field);
+  TMatrixD* val= NULL;
+  if (field.Length()) val=(TMatrixD*)fin.Get(field);
   TMatrixD* err=(loadErr) ? (TMatrixD*)fin.Get(fieldErr) : NULL;
-  if (!val || ((loadErr) && !err)
-      || (val && !checkMatrixSize(*val,field))
+  if (   (field.Length() && !val) 
+	 || (loadErr && !err)
+	 || (val && !checkMatrixSize(*val,field))
+	 || (err && !checkMatrixSize(*err,fieldErr))
       //|| ((loadErr) && err && !checkMatrixSize(*err,fieldErr))
       ) {
     std::cout << "error in LoadMatrixFields(fname=" << fin.GetName() << ",""" << field << """, """ << fieldErr << """, loadErr=" << loadErr << "):\n";
@@ -118,14 +147,33 @@ TH2D* LoadMatrixFields(TFile &fin, const TString &field, const TString &fieldErr
     return NULL;
   }
   TH2D *h2=createBaseH2(field,field,absoluteRapidity);
-  for (int ibin=1; ibin<h2->GetNbinsX(); ++ibin) {
+  for (int ibin=1; ibin<=h2->GetNbinsX(); ++ibin) {
     for (int jbin=1; jbin<=h2->GetNbinsY(); ++jbin) {
+      double value=(val) ? (*val)(ibin-1,jbin-1) : 0.;
       double e=(loadErr==1) ? (*err)(ibin-1,jbin-1) : 0.;
       if (loadErr==2) e= ( (*err)(ibin-1,jbin-1) * (*err)(ibin-1,jbin-1) );
-      h2->SetBinContent(ibin,jbin, (*val)(ibin-1,jbin-1));
+      if (loadErr==3) { value=0; e=(*err)(ibin-1,jbin-1); }
+      h2->SetBinContent(ibin,jbin, value);
       h2->SetBinError(ibin,jbin, e);
     }
   }
+  return h2;
+}
+
+//--------------------------------------------------
+
+TH2D* LoadMatrixFields(const TString &fname, int checkBinning, const TString &field, const TString &fieldErr, int loadErr, int absoluteRapidity) {
+  TFile fin(fname,"read");
+  if (!fin.IsOpen()) {
+    std::cout << "LoadMatrixField(fname): failed to open file <" << fname << ">\n";
+    return NULL;
+  }
+  int res=1;
+  TH2D *h2=NULL;
+  if (res && checkBinning) res=checkBinningArrays(fin);
+  if (res) h2=LoadMatrixFields(fin,field,fieldErr,loadErr,absoluteRapidity);
+  fin.Close();
+  if (!res || !h2) std::cout << "error in LoadMatrixField(fname)\n";
   return h2;
 }
 
@@ -135,7 +183,7 @@ int LoadThreeMatrices(TFile &fin, TH2D **h2, TH2D **h2syst, const TString &field
   int res=1;
   (*h2)=LoadMatrixFields(fin,field,fieldErr,1,absoluteRapidity);
   if (!(*h2)) res=0;
-  if (res) (*h2syst)=LoadMatrixFields(fin,fieldSystErr,field,2,absoluteRapidity);
+  if (res) (*h2syst)=LoadMatrixFields(fin,"",fieldSystErr,3,absoluteRapidity);
   if (!(*h2syst)) res=0;
   if (!res) {
     std::cout << "error in LoadThreeMatrices(fname=" << fin.GetName() << ", """ << field << """, """ << fieldErr << """, """ << fieldSystErr << """)\n";
