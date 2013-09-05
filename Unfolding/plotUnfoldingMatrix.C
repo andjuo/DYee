@@ -75,6 +75,9 @@ int plotUnfoldingMatrix(const TString conf,
   // Main analysis code 
   //==============================================================================================================
 
+
+  std::cout << mainpart;
+
   TRandom random;
   std::vector<ElectronEnergyScale*> escaleV;
   std::vector<double> specReweightsV;
@@ -331,10 +334,10 @@ int plotUnfoldingMatrix(const TString conf,
 		<< ", " << maxEvents << " events will be used" << std::endl;
 
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
-	ec.numEvents_inc();
 	if (DYTools::isDebugMode(runMode) && (ientry>1000000+DYTools::study2D*2000000)) break; // debug option
 	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
 	printProgress(100000," ientry=",ientry,maxEvents);
+	ec.numEvents_inc();
 	
 	// Load generator level info
 	accessInfo.GetGen(ientry);
