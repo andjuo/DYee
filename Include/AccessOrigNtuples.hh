@@ -149,15 +149,19 @@ public:
   }
 
   template<class UInt_type>
-  void GetDielectrons(UInt_type ientry) { 
+  ULong_t GetDielectrons(UInt_type ientry) { 
     dielectronArr->Clear();
     dielectronBr->GetEntry(ientry); 
+    ULong_t count=dielectronArr->GetEntries();
+    return count;
   }
 
   template<class UInt_type>
-  void GetPVs(UInt_type ientry) { 
+  Int_t GetPVs(UInt_type ientry) { 
     pvArr->Clear();
     pvBr->GetEntry(ientry); 
+    Int_t count=pvArr->GetEntries();
+    return count;
   }
 
   int genLeptonsAreElectrons() const {
