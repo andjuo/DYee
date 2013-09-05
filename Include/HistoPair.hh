@@ -23,6 +23,16 @@ public:
     BaseClass_t("HistoPair2D_t"), fHisto(NULL), fHistoSystErr(NULL) {
     fHisto=createBaseH2(nameBase);
     fHistoSystErr=createBaseH2(nameBase + TString("Syst"));
+    if (!this->isInitialized()) printError("HistoPair2D_t(TString)");
+  }
+
+  // ----------------
+
+  HistoPair2D_t(const TString &nameBase, const HistoPair2D_t &orig, int setTitle=1) :
+    BaseClass_t("HistoPair2D_t"), fHisto(NULL), fHistoSystErr(NULL) {
+    fHisto= Clone(orig.fHisto,nameBase,setTitle);
+    fHistoSystErr= Clone(orig.fHistoSystErr,nameBase + TString("Syst"),setTitle);
+    if (!this->isInitialized()) printError("HistoPair2D_t(HistoPair2D)");
   }
 
   // ----------------
@@ -60,6 +70,18 @@ public:
   // ----------------
 
   int isInitialized() const { return (fHisto && fHistoSystErr) ? 1:0; }
+
+  // ----------------
+
+  int chkSameDim(const TH2D* h) const {
+    if (!isInitialized()) return reportError("chkSameDim: object is not initialized");
+    if (!h) return reportError("chkSameDim: provided histo is NULL");
+    if ((fHisto->GetNbinsX() != h->GetNbinsX()) ||
+	(fHisto->GetNbinsY() != h->GetNbinsY())) {
+      return reportError(Form("chkSameDim: provided histoDims are different: %s[%d,%d], supplied %s[%d,%d]",fHisto->GetName(),fHisto->GetNbinsX(),fHisto->GetNbinsY(),h->GetName(),h->GetNbinsX(),h->GetNbinsY()));
+    }
+    return 1;
+  }
 
   // ---------------
 
@@ -102,6 +124,19 @@ public:
 
   // ----------------
 
+  int assign(const HistoPair2D_t &hp) {
+    if (&hp == this) return 1; // no self-assignment
+    TString hname=fHisto->GetName();
+    TString hnameSystErr=fHistoSystErr->GetName();
+    delete fHisto;
+    delete fHistoSystErr;
+    fHisto=Clone(hp.fHisto, hname);
+    fHistoSystErr=Clone(hp.fHistoSystErr, hnameSystErr);
+    return this->isInitialized();
+  }
+
+  // ----------------
+
   int assign(const TMatrixD &val, const TMatrixD &valErr, const TMatrixD &valSystErr) {
     if (!isInitialized()) { return reportError("assign(TMatrixD): object is not initialized"); }
     if ((val.GetNrows() != fHisto->GetNbinsX()) ||
@@ -121,15 +156,61 @@ public:
 
   // ----------------
 
-  Bool_t add(TH2D* h, double weight=1.) { return fHisto->Add(h,weight); }
-  Bool_t addSystErr(TH2D* h, double weight=1.) { return fHistoSystErr->Add(h,weight); }
+  Bool_t add(const TH2D* h, double weight=1.) { return fHisto->Add(h,weight); }
+  Bool_t addSystErr(const TH2D* h, double weight=1.) { return fHistoSystErr->Add(h,weight); }
+  // ----------------
+
+  Bool_t addSystErrPercent(const TH2D* h, double extra_weight=1.) {
+    if (!chkSameDim(h)) return Bool_t(reportError("in function addSystErrPercent"));
+    for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=h->GetNbinsY(); ++jbin) {
+	double errA= fHistoSystErr->GetBinError(ibin,jbin);
+	double errB= fHisto->GetBinContent(ibin,jbin) * h->GetBinError(ibin,jbin) * extra_weight;
+	double err=sqrt(errA*errA + errB*errB);
+	fHistoSystErr->SetBinError(ibin,jbin, err);
+      }
+    }
+    return true;
+  }
 
   // ----------------
 
-  Bool_t add(HistoPair2D_t &pair, double weight=1.) {
+  Bool_t add(const HistoPair2D_t &pair, double weight=1.) {
     return (fHisto->Add(pair.fHisto, weight) &&
 	    fHistoSystErr->Add(pair.fHistoSystErr, weight));
   }
+
+  // ----------------
+
+  // divide uncorrelated quantities
+  // A = B/C
+  // full error:
+  // (dA)^2 = 1/C^2 (dB)^2 + B^2/C^4 (dC)^2
+  // here we use a decomposition:
+  // (dA_stat)^2 = 1/C^2 (dB_stat)^2
+  // (dA_syst)^2 = 1/C^2 (dB_syst)^2 + B^2/C^4 (dC_tot)^2
+  //             = ( (dB_syst)^2 + A^2 (dC_tot)^2 ) /C^2
+  //
+
+  int divide(const HistoPair2D_t &p, const TH2D *h2) {
+    //if (!h2) std::cout << "h2 is null" << std::endl; else std::cout << "h2 ok" << std::endl;
+    //printHisto(h2);
+    TH2D *h2tmp=Clone(h2,h2->GetName() + TString("tmp"),"");
+    removeError(h2tmp);
+    fHisto->Divide(p.fHisto,h2tmp);
+    // evaluate systErr
+    for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=fHistoSystErr->GetNbinsY(); ++jbin) {
+	const double term1= p.fHistoSystErr->GetBinError(ibin,jbin);
+	const double term2= this->fHisto->GetBinContent(ibin,jbin) * h2->GetBinError(ibin,jbin);
+	const double division=h2->GetBinContent(ibin,jbin);
+	fHistoSystErr->SetBinContent(ibin,jbin, 0.);
+	fHistoSystErr->SetBinError(ibin,jbin, sqrt( term1*term1 + term2*term2 )/division );
+      }
+    }
+    return 1;
+  }
+
 
   // ----------------
 
@@ -205,7 +286,7 @@ public:
 
   HistoPair2D_t& operator+= (HistoPair2D_t &h) { this->add(h); return *this; }
   HistoPair2D_t& operator-= (HistoPair2D_t &h) { this->add(h,-1); return *this; }
-    
+   
   // ----------------
 
   int unfold(const TMatrixD &U, const HistoPair2D_t &iniHP,
