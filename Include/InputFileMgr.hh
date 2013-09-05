@@ -278,7 +278,8 @@ public:
     TString dir=this->nTupleDir(systMode);
     TString ntupleBase=this->sampleName(iSample) + TString("_select");
     TString ntuple= this->resultBaseFileName(ntupleBase,1);
-    ntuple.ReplaceAll(DYTools::analysisTag,"");
+    TString extra=TString("_") + DYTools::analysisTag;
+    ntuple.ReplaceAll(extra,"");
     TString fullName=dir + ntuple;
     return fullName;
   }
@@ -304,6 +305,12 @@ public:
 
   TString constDir(DYTools::TSystematicsStudy_t systMode, int createDir=0) const {
     TString dir=resultBaseDir("constants",systMode);
+    if (createDir) CreateDir(dir,1);
+    return dir;
+  }
+
+  TString crossSectionDir(DYTools::TSystematicsStudy_t systMode, int createDir=0) const {
+    TString dir=resultBaseDir("xsec",systMode);
     if (createDir) CreateDir(dir,1);
     return dir;
   }
