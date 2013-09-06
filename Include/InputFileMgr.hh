@@ -274,27 +274,31 @@ public:
 			    
 
   template<class int_type>
-  TString nTupleFullFileName(int_type iSample, DYTools::TSystematicsStudy_t systMode) const {
+  TString nTupleFullFileName(int_type iSample, DYTools::TSystematicsStudy_t systMode, int unbinned=1) const {
     TString dir=this->nTupleDir(systMode);
     TString ntupleBase=this->sampleName(iSample) + TString("_select");
     TString ntuple= this->resultBaseFileName(ntupleBase,1);
-    TString extra=TString("_") + DYTools::analysisTag;
-    ntuple.ReplaceAll(extra,"");
+    if (unbinned) {
+      TString extra=TString("_") + DYTools::analysisTag;
+      ntuple.ReplaceAll(extra,"");
+    }
     TString fullName=dir + ntuple;
     return fullName;
   }
 
   template<class int_type>
   TString yieldFullFileName(int_type iSample, DYTools::TSystematicsStudy_t systMode, int createDir=0) const {
-    TString fname=this->nTupleFullFileName(iSample,systMode);
+    const int unbinned=0;
+    TString fname=this->nTupleFullFileName(iSample,systMode,unbinned);
     fname.ReplaceAll("select","yield");
     if (createDir) CreateDir(fname,1);
     return fname;
   }
 
   // signalYieldFullName is based on yield dir
-  TString signalYieldFullFileName(DYTools::TSystematicsStudy_t systMode) const {
+  TString signalYieldFullFileName(DYTools::TSystematicsStudy_t systMode, int ignoreDebugRunFlag) const {
     TString fname=yieldFullFileName(-1,systMode,0);
+    if (ignoreDebugRunFlag) fname.ReplaceAll("_DebugRun","");
     const TString target="all_yield";
     Ssiz_t pos=fname.Index(target);
     if (fname.Index(target,pos+1)!=-1) pos=fname.Index(target,pos+1);
