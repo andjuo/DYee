@@ -46,7 +46,7 @@ Bool_t passEleID(const EleObj_t *electron, const mithep::TEventInfo *info=NULL) 
   case _EleID_EGM2011_Medium: 
     assert(info);
     //pass=passEGMID2011(electron,_EleID_EGM2011_Medium,info->rhoLowEta);
-    pass=passEGM2011(electron,WP_MEDIUM,info->rhoLowEta);
+    pass=passEGMID2011(electron,WP_MEDIUM,info->rhoLowEta);
     break;
 #endif
 #ifdef DYee8TeV

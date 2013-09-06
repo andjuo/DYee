@@ -389,10 +389,10 @@ Double_t _etaLimitsForAeff[_nEtaBinsForAeff+1] = {0.0, 1.0, 1.479, 2.0, 2.2, 2.3
 Double_t _AeffDR03[_nEtaBinsForAeff] = {0.10, 0.12, 0.085, 0.11, 0.12, 0.12, 0.13};
 
 
-Bool_t passEGM2011(const mithep::TDielectron *dielectron, WorkingPointType wp, double rho);
-Bool_t passEGM2011(const mithep::TElectron   *electron, WorkingPointType wp, double rho);
+Bool_t passEGMID2011(const mithep::TDielectron *dielectron, WorkingPointType wp, double rho);
+Bool_t passEGMID2011(const mithep::TElectron   *electron, WorkingPointType wp, double rho);
 
-Bool_t passEGM2011(const mithep::TElectron *electron, WorkingPointType wp, double rho)
+Bool_t passEGMID2011(const mithep::TElectron *electron, WorkingPointType wp, double rho)
 {
   if(fabs(electron->d0) > _EGM2011_D0Vtx[wp] ) return kFALSE;
   if(fabs(electron->dz) > _EGM2011_DZVtx[wp] )  return kFALSE;
@@ -467,7 +467,7 @@ Bool_t passEGM2011(const mithep::TElectron *electron, WorkingPointType wp, doubl
 }
 
 
-Bool_t passEGM2011(const mithep::TDielectron *dielectron, WorkingPointType wp, double rho)
+Bool_t passEGMID2011(const mithep::TDielectron *dielectron, WorkingPointType wp, double rho)
 {
   if(fabs(dielectron->d0_1) > _EGM2011_D0Vtx[wp] )  return kFALSE;
   if(fabs(dielectron->dz_1) > _EGM2011_DZVtx[wp] )  return kFALSE;
