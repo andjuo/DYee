@@ -63,7 +63,9 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
   TString fileInfo=TString("on file <") + fname + ">";
   
   bool massOk=true, rapidityOk=true;
+  int first_err=1;
   if (mass.GetNoElements() != DYTools::nMassBins+1) {
+    std::cout << errdash; first_err=0;
     std::cout << "\n" << fncname 
 	      << " number of mass bins " << fileInfo
 	      << " is " << mass.GetNoElements() 
@@ -72,6 +74,7 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
   }
   
   if (rapidityCounts.GetNoElements() != DYTools::nMassBins ) {
+    if (first_err) { first_err=0; std::cout << errdash; }
     std::cout << "\n" << fncname
 	      << "number of mass bins in rapidityCounts " << fileInfo
 		<< " is " << rapidityCounts.GetNoElements() 
@@ -82,6 +85,7 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
   if (massOk) {
     for(int i=0; i<DYTools::nMassBins+1; i++){
       if( DYTools::massBinLimits[i] != mass[i] ) {
+	if (first_err) { first_err=0; std::cout << errdash; }
 	std::cout << fncname
 		  << " mass limit " << fileInfo
 		  << " at i=" << i 
@@ -94,6 +98,7 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
   if (rapidityOk) {
     for (int i=0; i<DYTools::nMassBins; i++) {
       if ( DYTools::nYBins[i] != rapidityCounts[i] ) {
+	if (first_err) { first_err=0; std::cout << errdash; }
 	std::cout << fncname 
 		  << "y bin count " << fileInfo
 		  << " at i=" << i 
@@ -104,6 +109,7 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
     }
   }
   if (!massOk || !rapidityOk) {
+    if (first_err) { first_err=0; std::cout << errdash; }
     std::cout << "file info: mass[" << mass.GetNoElements() << "]: ";
     for (int i=0; i<mass.GetNoElements(); ++i) {
       std::cout << " " << mass[i];
@@ -116,6 +122,7 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
     }
     std::cout << "\n" << std::endl;
   }
+  if (!first_err) std::cout << errdash;
   return (massOk && rapidityOk) ? 1:0;
 }
 
