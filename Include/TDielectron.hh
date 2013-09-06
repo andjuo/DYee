@@ -131,8 +131,8 @@ namespace mithep
       phi=di.phi;
     }
 
-    void extractElectron(int index, mithep::TElectron &ele) {
-      mithep::TDielectron *dielectron = this;
+    void extractElectron(int index, mithep::TElectron &ele) const {
+      const mithep::TDielectron *dielectron = this;
     
       if(index == 1){
 	ele. pt                  = dielectron-> pt_1                 ;
@@ -382,8 +382,8 @@ namespace mithep
       phi=di.phi;
     }
 
-    void extractElectron(int index, mithep::TElectron &ele) {
-      mithep::TDielectron *dielectron = this;
+    void extractElectron(int index, mithep::TElectron &ele) const {
+      const mithep::TDielectron *dielectron = this;
     
       if(index == 1){
 	ele. pt                  = dielectron-> pt_1                 ;
