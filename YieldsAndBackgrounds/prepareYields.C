@@ -92,6 +92,9 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
   if (!inpMgr.Load(conf)) return retCodeError;
   //mgr.Print();
 
+  // no energy correction for this evaluation
+  //inpMgr.clearEnergyScaleTag();
+
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      "", EventSelector::_selectDefault);
@@ -148,8 +151,10 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
   for(UInt_t isam=0; isam<inpMgr.sampleCount(); ++isam) {
 
     TString fname = inpMgr.nTupleFullFileName(isam,systMode);
+    if (inpMgr.userKeyValueAsInt("IGNOREDEBUGRUNFORYIELDS")==1) {
+      fname.ReplaceAll("_DebugRun","");
+    }
     cout << "Processing " << fname << "..." << endl;
-
     bool isData=(inpMgr.sampleName(isam) == "data") ? 1:0;
 
     infile = new TFile(fname);
@@ -162,7 +167,7 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
     std::cout << "here are " << eventTree->GetEntries() << " entries in " << inpMgr.sampleName(isam) << " sample\n";
 
     for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-      if ((runMode==DYTools::DEBUG_RUN) && (ientry>10)) break;
+      if ((runMode==DYTools::DEBUG_RUN) && (ientry>100000)) break;
       printProgress(1000000," ientry=",ientry,eventTree->GetEntriesFast());
 
       eventTree->GetEntry(ientry);
@@ -215,9 +220,10 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
   }
   }
 
+  int createDir=DYTools::processData(runMode);
+  TString yieldFullName= inpMgr.yieldFullFileName(-1,systMode,createDir);
+  
   if (DYTools::processData(runMode)) {
-    int createDir=1;
-    TString yieldFullName= inpMgr.yieldFullFileName(-1,systMode,createDir);
     std::cout << "saving to <" << yieldFullName << ">\n";
     TFile file(yieldFullName,"recreate");
     int res=1;
@@ -236,8 +242,6 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
   }
   else {
     std::cout << "runMode= loadData" << std::endl;
-    int createDir=0;
-    TString yieldFullName= inpMgr.yieldFullFileName(-1,systMode,createDir);
     std::cout << "loading from <" << yieldFullName << ">\n";
     TFile file(yieldFullName,"read");
     int res=1;
@@ -286,7 +290,7 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
 
   if (1) {
     TCanvas *cx=new TCanvas("cx","cx",900,900);
-    /*
+    /
     TH2D *h2Tot_data=dccV[0]->calcH2Tot(1);
     h2Tot_data->Print();
     TH2D *h2SSFrac_data=dccV[0]->calcH2SSFrac(h2Tot_data,1);
