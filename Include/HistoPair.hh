@@ -272,12 +272,15 @@ public:
 
   // ----------------
 
-  int Load(const TString &fname, const TString& subdir="") {
+  int Load(const TString &fname, int checkBinning, const TString& subdir="") {
     if (!isInitialized()) return this->reportError("Load(%s): object is not initialized",fname);
     TFile file(fname,"read");
     if (!file.IsOpen()) return this->reportError("Load(%s): failed to open file");
-    if (subdir.Length()) file.cd(subdir);
-    int res=this->Read();
+    int res=1;
+    if (res && checkBinning) res=checkBinningArrays(file);
+    if (!res) this->printError("Load(%s): binning error");
+    if (res && subdir.Length()) file.cd(subdir);
+    if (res) res=this->Read();
     file.Close();
     return (res) ? 1 : this->reportError("Load(%s): failed to load <%s>",fname,fHisto->GetName());
   }
