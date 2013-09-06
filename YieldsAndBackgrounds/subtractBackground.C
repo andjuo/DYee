@@ -395,7 +395,8 @@ int subtractBackground(const TString conf,
 
   // Save background-subtracted signal yields
   // inputDir+TString("/yields_bg-subtracted.root")
-  TString outFileName= inpMgr.signalYieldFullFileName(systMode);
+  const int ignoreDebugRunFlag=0;
+  TString outFileName= inpMgr.signalYieldFullFileName(systMode,ignoreDebugRunFlag);
   TFile fileOut(outFileName,"recreate");
   // main results 
   signalYieldMCbkg.Write();
