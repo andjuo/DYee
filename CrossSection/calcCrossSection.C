@@ -94,12 +94,16 @@ int calcCrossSection(const TString conf,
   // load yields 
   int res=1;
   if (res) {
-    TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode);
-    if (0) {
-      res=hpSignalYield.Load(fnameBgSubtracted);
+    const int loadNormalSelection=1;
+    TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode,loadNormalSelection);
+    const int load_debug_file=0;
+    if ( ! load_debug_file ) {
+      std::cout << "fnameBgSubtracted=<" << fnameBgSubtracted << ">\n";
+      res=hpSignalYield.Load(fnameBgSubtracted,1);
     }
     else {
       TString tmpFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/yields/DY_7TeV_test/DY_m10+pr+a05+o03+pr_4839pb/yields_bg-subtracted1D.root";
+      std::cout << "debug fnameBgSubtracted=<" << tmpFName << ">\n";
       TString field="YieldsSignal";
       TString fieldErr="YieldsSignalErr";
       TString fieldSystErr="YieldsSignalSystErr";
@@ -136,15 +140,15 @@ int calcCrossSection(const TString conf,
   if (res) res=acceptanceCorrection(inpArgs, hpPostFsrDet, hpPostFsrFullSp);
   if (res) res=saveResult(inpArgs,hpPostFsrFullSp,"postFsrFullSp");
 
-  // pre-FSR in acceptance result
-  HistoPair2D_t hpPreFsrDet("hpPreFsrDet");
-  //if (res) res=fsrCorrection_det(inpArgs, hpPostFsrDet, hpPreFsrDet);
-  //if (res) res=saveResult(inpArgs,hpPreFsrDet,"preFsrDet");
-
   // pre-FSR in full space result
   HistoPair2D_t hpPreFsrFullSp("hpPreFsrFullSp");
   if (res) res=fsrCorrection_fullSpace(inpArgs, hpPostFsrFullSp, hpPreFsrFullSp);
   if (res) res=saveResult(inpArgs,hpPreFsrFullSp,"preFsrFullSp");
+
+  // pre-FSR in acceptance result
+  HistoPair2D_t hpPreFsrDet("hpPreFsrDet");
+  if (res) res=fsrCorrection_det(inpArgs, hpPostFsrDet, hpPreFsrDet);
+  if (res) res=saveResult(inpArgs,hpPreFsrDet,"preFsrDet");
 
 
   gBenchmark->Show("calcCrossSection");
@@ -166,7 +170,8 @@ int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, His
   TString fnameTag= DYTools::analysisTag;
   TMatrixD *UnfM=NULL;
   int inverse=1;
-  if (1) {
+  const int load_debug_file=0;
+  if ( load_debug_file ) {
     constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
     fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
   }
@@ -189,7 +194,8 @@ int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Histo
   TString fnameTag= DYTools::analysisTag;
   TMatrixD *UnfM=NULL;
   int inverse=1;
-  if (1) {
+  const int load_debug_file=0;
+  if ( load_debug_file ) {
     constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
     fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
   }
@@ -212,7 +218,8 @@ int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini,
   TString fnameTag= DYTools::analysisTag;
   TMatrixD *UnfM=NULL;
   int inverse=1;
-  if (1) {
+  const int load_debug_file=0;
+  if (load_debug_file) {
     constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
     fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
   }
@@ -230,7 +237,8 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
   HERE(" -- efficiencyCorrection");
   TString effCorrFName=inpArg.inpMgr->correctionFullFileName("efficiency",inpArg.systMode,0);
   TH2D *hEff=NULL;
-  if (0) {
+  const int load_debug_file=0;
+  if ( ! load_debug_file ) {
     hEff=LoadHisto2D("hEfficiency",effCorrFName,"",1);
   }
   else {
@@ -249,7 +257,8 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   HERE(" -- efficiencyScaleCorrection");
   TString rhoCorrFName=inpArg.inpMgr->correctionFullFileName("scale_factors",inpArg.systMode,0);
   TH2D *hRho=NULL;
-  if (0) {
+  const int load_debug_file=1;
+  if ( ! load_debug_file ) {
     hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
   }
   else {
@@ -269,7 +278,8 @@ int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
   HERE(" -- acceptanceCorrection");
   TString accCorrFName=inpArg.inpMgr->correctionFullFileName("acceptance",inpArg.systMode,0);
   TH2D* hAcc=NULL;
-  if (0) {
+  const int load_debug_file=0;
+  if ( ! load_debug_file ) {
     hAcc=LoadHisto2D("hAcceptance",accCorrFName,"",1);
   }
   else {
