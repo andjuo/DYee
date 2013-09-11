@@ -14,7 +14,7 @@ void test() {
 
     std::cout << "yRangeEdge=" << DYTools::yRangeEdge << ", yRangeMax=" << DYTools::yRangeMax << "\n";
   }
-  else if (1) {
+  else if (0) {
 
     FlatIndex_t fi;
     for (int im=0; im<DYTools::nMassBins; ++im) {
@@ -56,5 +56,38 @@ void test() {
     int res=unfold(fin,U,ini);
     std::cout << "\"unfolded\" fin="; fin.Print();
     std::cout << "res=" << res << "\n";
+  }
+  else if (1) {
+    TMatrixD m1(DYTools::nMassBins,DYTools::nYBinsMax);
+    m1.Zero();
+    TMatrixD m2(m1);
+    TVectorD v(DYTools::nUnfoldingBins), v2(DYTools::nUnfoldingBins);
+    
+    for (int i=0, fi=0; i<DYTools::nMassBins; ++i) {
+      for (int j=0; j<DYTools::nYBins[i]; ++j, ++fi) {
+	double val=(i+1) + 0.01*(j+1);
+	m1(i,j) = val;
+	v2(fi) = val;
+	
+	int flatIdx=DYTools::findIndexFlat(i,j);
+	if (flatIdx!=fi) std::cout << Form("(%d,%d) fi=%d, flatIndex=%d",i,j,fi,flatIdx) << "\n";
+      }
+    }
+    HERE("containers filled");
+    flattenMatrix(m1,v);
+    deflattenMatrix(v,m2);
+
+    TMatrixD m3(m2);
+    m3.Zero();
+    deflattenMatrix(v2,m3);
+
+    std::cout << "\n\n m1\n";
+    m1.Print();
+    std::cout << "\n\n v\n"; v.Print();
+
+    HERE("chk differences\n");
+    testMaxDiff("functions: ",m1,m2,0);
+    testMaxDiff("auto flat idx; ",m1,m3,0);
+    
   }
 }
