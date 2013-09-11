@@ -864,6 +864,7 @@ TString DayAndTimeTag()
 
   // -------------------------------------------
     //  convert m[nMassBins][ybins] -> v[flat_idx]
+inline
   int flattenMatrix(const TMatrixD &m, TVectorD &v) {
     for (int i=0; i<DYTools::nMassBins; ++i) {
       for (int yi=0; yi<DYTools::nYBins[i]; ++yi) {
@@ -877,6 +878,7 @@ TString DayAndTimeTag()
   // -------------------------------------------
 
   //  convert v[flat_idx] -> m[nMassBins][ybins]
+inline
   int deflattenMatrix(const TVectorD &v, TMatrixD &m) {
     for (int i=0; i<DYTools::nMassBins; ++i) {
       for (int yi=0; yi<DYTools::nYBins[i]; ++yi) {
@@ -1042,6 +1044,7 @@ int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase,
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class histo_t>
+inline
 int addHistos(histo_t *sum, const std::vector<histo_t*> &vec) {
   for (unsigned int i=0; i<vec.size(); ++i) sum->Add(vec[i]);
   return 1;
@@ -1192,6 +1195,7 @@ int LoadThreeMatrices(const TString &fileName, TH2D **h2, TH2D **h2syst, const T
 //--------------------------------------------------
 //--------------------------------------------------
 
+inline
 void CreateDir(const TString &fname, int printDir=1) {
   Ssiz_t len=fname.Last('/');
   TString dir=(len==-1) ? fname : fname(0,len);
