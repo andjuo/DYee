@@ -172,13 +172,13 @@ namespace DYTools {
 
   // Tag and probe fitting constants
   typedef enum {COUNTnCOUNT, COUNTnFIT, FITnFIT} TTnPMethod_t;
-  typedef enum {RECO=0, ID=1, HLT=2, HLT_leg1=3, HLT_leg2=4, HLT_rndTag=5} TEfficiencyKind_t;
+  typedef enum {RECO=0, ID=1, HLT=2, HLT_leg1=3, HLT_leg2=4 } TEfficiencyKind_t;
  
   inline 
   bool efficiencyIsHLT(TEfficiencyKind_t eff) {
     bool yes=false;
     switch(eff) {
-    case HLT: case HLT_leg1: case HLT_leg2: case HLT_rndTag: yes=true; break;
+    case HLT: case HLT_leg1: case HLT_leg2: yes=true; break;
     default: yes=false;
     }
     return yes;
