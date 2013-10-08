@@ -16,6 +16,7 @@ public:
   //ULong_t numPassedGoodPV;
   // weighted counts
   double numDielectrons;
+  double numDielectronsGenMatched;
   double numDielectronsGoodEta;
   double numDielectronsGoodEt;
   double numDielectronsGoodEtEta;
@@ -34,6 +35,7 @@ public:
     numDielectronsUnweighted(0),
     //numPassedGoodPV(0),
     numDielectrons(0), 
+    numDielectronsGenMatched(0),
     numDielectronsGoodEta(0), numDielectronsGoodEt(0),
     numDielectronsGoodEtEta(0),
     numDielectronsHLTmatched(0),
@@ -57,6 +59,7 @@ public:
     numEventsPassedEvtTrigger=0;
     numDielectronsUnweighted=0;
     numDielectrons=0;
+    numDielectronsGenMatched=0;
     numDielectronsGoodEta=0; numDielectronsGoodEt=0;
     numDielectronsGoodEtEta=0;
     numDielectronsHLTmatched=0;
@@ -73,6 +76,7 @@ public:
   void numEventsPassedAcceptance_inc() { numEventsInGenAcceptance++; }
   void numEventsPassedEvtTrigger_inc() { numEventsPassedEvtTrigger++; }
   void numDielectrons_inc() { numDielectrons+=scale; numDielectronsUnweighted++; }
+  void numDielectronsGenMatched_inc() { numDielectronsGenMatched+=scale; }
   void numDielectronsGoodEta_inc() { numDielectronsGoodEta+=scale; }
   void numDielectronsGoodEt_inc() { numDielectronsGoodEt+=scale; }
   void numDielectronsGoodEtEta_inc() { numDielectronsGoodEtEta+=scale; }
@@ -96,6 +100,7 @@ public:
     numEventsPassedEvtTrigger=e.numEventsPassedEvtTrigger;
     numDielectronsUnweighted=e.numDielectronsUnweighted;
     numDielectrons=e.numDielectrons;
+    numDielectronsGenMatched=e.numDielectronsGenMatched;
     numDielectronsGoodEta=e.numDielectronsGoodEta;
     numDielectronsGoodEt=e.numDielectronsGoodEt;
     numDielectronsGoodEtEta=e.numDielectronsGoodEtEta;
@@ -113,6 +118,7 @@ public:
     numEventsPassedEvtTrigger+=e.numEventsPassedEvtTrigger;
     numDielectronsUnweighted+=e.numDielectronsUnweighted;
     numDielectrons+=e.numDielectrons;
+    numDielectronsGenMatched+=e.numDielectronsGenMatched;
     numDielectronsGoodEta+=e.numDielectronsGoodEta;
     numDielectronsGoodEt+=e.numDielectronsGoodEt;
     numDielectronsGoodEtEta+=e.numDielectronsGoodEtEta;
@@ -139,6 +145,9 @@ public:
     }
     if (level==0) {
       out << "   numDielectrons           = " << Form(format,this->numDielectrons) << "\n";
+      if (this->numDielectronsGenMatched) {
+	out << "   numDielectronsGenMatched = " << Form(format,this->numDielectronsGenMatched) << "\n";
+      }
       out << "   numDielectronsGoodEta    = " << Form(format,this->numDielectronsGoodEta) << "\n";
       out << "   numDielectronsGoodEt     = " << Form(format,this->numDielectronsGoodEt) << "\n";
       out << "   numDielectronsGoodEtEta  = " << Form(format,this->numDielectronsGoodEtEta) << "\n";
@@ -236,6 +245,9 @@ public:
     if (level==0) {
       out << Form("   numDielectronsUnweighted = %lu\n",this->numDielectronsUnweighted);
       out << "   numDielectrons           = " << Form(format,this->numDielectrons) << "\n";
+      if (this->numDielectronsGenMatched) {
+	out << "   numDielectronsGenMatched = " << Form(format,this->numDielectronsGenMatched) << "\n";
+      }
       out << "   numDielectronsGoodEta    = " << Form(format,this->numDielectronsGoodEta) << "\n";
       out << "   numDielectronsGoodEt     = " << Form(format,this->numDielectronsGoodEt) << "\n";
       out << "   numDielectronsGoodEtEta  = " << Form(format,this->numDielectronsGoodEtEta) << "\n";
