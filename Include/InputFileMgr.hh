@@ -153,6 +153,7 @@ protected:
   TString FNtupleDef, FSkimDef;
   TString FNtupleNameExtraTag; // automatic tag
   TString FDirNameExtraTag; // automatic tag
+  TDescriptiveInfo_t *FInfoSection; // reserved for TnP section
 public:
   InputFileMgr_t() : 
     BaseClass_t("InputFileMgr"),
@@ -170,7 +171,8 @@ public:
     FUserKeys(), FUserValues(),
     FNtupleDef(), FSkimDef(),
     FNtupleNameExtraTag(),
-    FDirNameExtraTag()
+    FDirNameExtraTag(),
+    FInfoSection()
   {}
 
   void Clear();
@@ -257,6 +259,7 @@ public:
 
   // NtupleNameExtraTag will contain info about E.Scale
   void setNtupleNameExtraTag(const TString &extra) { FNtupleNameExtraTag=extra; }
+  void appendNtupleNameExtraTag(const TString &extra) { FNtupleNameExtraTag.Append(extra); }
   void setDirNameExtraTag(const TString &extra) { FDirNameExtraTag=extra; }
 
 
@@ -295,6 +298,14 @@ public:
     return fname;
   }
 
+  template<class int_type>
+  TString yieldFullFileName(int_type iSample, DYTools::TSystematicsStudy_t systMode, const TString &extraTag, int createDir=0) const {
+    TString fname=yieldFullFileName(iSample,systMode,createDir);
+    int idx=fname.Index(".root");
+    fname.Insert(idx,extraTag);
+    return fname;
+  }
+
   // signalYieldFullName is based on yield dir
   TString signalYieldFullFileName(DYTools::TSystematicsStudy_t systMode, int ignoreDebugRunFlag) const {
     TString fname=yieldFullFileName(-1,systMode,0);
@@ -329,6 +340,27 @@ public:
   }
 
 
+  // TnP section
+  const TDescriptiveInfo_t *infoSection() const { return FInfoSection; }
+  TString tnpTag() const { return FSelectionTag; }
+  DYTools::TEtBinSet_t etBinsKind() const { return DYTools::ETBINS6; }
+  DYTools::TEtaBinSet_t etaBinsKind() { return DYTools::ETABINS5; }
+
+  TString tnpSelEventsFullName(DYTools::TSystematicsStudy_t systMode, int createDir=0, int applyNtupleExtraTag=1) const {
+    TString dir=resultBaseDir("tag_and_probe",systMode);
+    if (createDir) CreateDir(dir,1);
+    applyNtupleExtraTag=1;
+    TString fname=this->resultBaseFileName("eventSF_selectedEvents",applyNtupleExtraTag);
+    TString rem=TString("_") + DYTools::analysisTag;
+    if (fname.Index(rem)!=-1) fname.ReplaceAll(rem,"");
+    else fname.ReplaceAll(DYTools::analysisTag,"");
+    TString fullName= dir + fname;
+    return fullName;
+  }
+
+  int tnpEffCalcMethod(DYTools::TDataKind_t, DYTools::TEfficiencyKind_t kind) const; // does not use file info. To be fixed
+
+
   /*
   TString constFullName(TCorrectionType_t corr, DYTools::TSystematicsStudy_t systMode, int createDir=0) const {
     TString fname=this->nTupleFullName(-1,systMode);
@@ -359,6 +391,19 @@ public:
 
   // Load
   int Load(const TString &inputFile, TDescriptiveInfo_t *TnPSection=NULL);
+
+  // -------------
+
+  int LoadTnP(const TString &inputFile) {
+    if (FInfoSection) delete FInfoSection;
+    FInfoSection=new TDescriptiveInfo_t();
+    if (!FInfoSection) return reportError("LoadTnP: failed to create FInfoSection");
+    int res=Load(inputFile,FInfoSection);
+    if (!res) printError("in LoadTnP");
+    return res;
+  }
+
+  // -------------
 
   // keep only 1st and last sample (data and Zee MC)
   int KeepFirstAndLastSample();

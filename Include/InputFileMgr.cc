@@ -566,6 +566,32 @@ void InputFileMgr_t::PrintSampleFileNames(int nameOnly) const {
 
 
 // -----------------------------------------------------------
+
+int InputFileMgr_t::tnpEffCalcMethod(DYTools::TDataKind_t dataKind, DYTools::TEfficiencyKind_t effKind) const {
+  int method=0;
+  switch(dataKind) {
+  case DYTools::DATA: {
+    switch(effKind) {
+    case DYTools::RECO:
+    case DYTools::ID:
+      method=DYTools::FITnFIT;
+      break;
+    default:
+      method=DYTools::COUNTnCOUNT;
+    }
+  }
+    break;
+  case DYTools::MC: {
+    method=DYTools::COUNTnCOUNT;
+  }
+    break;
+  default:
+    reportError("tnpEffCalcMethod: unhandled dataKind=%d",int(dataKind));
+  }
+  return method;
+}
+
+// -----------------------------------------------------------
 // -----------------------------------------------------------
 /*
 int TnPInputFileMgr2011_t::Load(const TString &configFile) {
