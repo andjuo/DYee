@@ -453,7 +453,7 @@ inline void printCSMatrixValues(const TString &name, const TMatrixD &cs, const T
 inline void printProgress(int printIfDivisiveBy, const char *msg, int idx, int idxMax) {
   if (idx%printIfDivisiveBy == 0) {
     double r=trunc(idx/double(idxMax)*1000)*0.1;
-    std::cout << msg << idx << "/" << idxMax << " (" << r << "%)\n";
+    std::cout << msg << idx << "/" << idxMax << " (" << r << "%)" << std::endl;
   }
 }
 
@@ -461,7 +461,7 @@ inline void printProgress(int printIfDivisiveBy, const char *msg, int idx, int i
 /*
 inline void printProgress(const char *msg, int idx, int idxMax) {
   double r=trunc(idx/double(idxMax)*1000)*0.1;
-  std::cout << msg << idx << "/" << idxMax << " (" << r << "%)\n";
+  std::cout << msg << idx << "/" << idxMax << " (" << r << "%)" << std::endl;
 }
 */
 
@@ -1022,7 +1022,9 @@ TH1D* createAnyTH1D(const TString &hname, const TString &htitle, int nBins, doub
 inline
 int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase, 
 		   const std::vector<TString> &sample_labels, 
-		   int nBins, const double xMin, const double xMax, const TString &xAxisLabel="x", const TString &yAxisLabel="counts", int setHistoTitle=1) {
+		   int nBins, const double xMin, const double xMax, 
+		   const TString &xAxisLabel="x", 
+		   const TString &yAxisLabel="counts", int setHistoTitle=1) {
   int res=1;
   if (sample_labels.size()==0) return 0;
   histosV.reserve(sample_labels.size());
@@ -1030,6 +1032,35 @@ int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase,
     TString histoName= histoNameBase + sample_labels[i];
     TString histoTitle=(setHistoTitle) ? histoName : "";
     TH1D *h=new TH1D(histoName,histoTitle,nBins,xMin,xMax);
+    h->SetDirectory(0);
+    h->SetStats(0);
+    h->Sumw2();
+    h->GetXaxis()->SetTitle(xAxisLabel);
+    h->GetYaxis()->SetTitle(yAxisLabel);
+    if (!h) { res=0; break; }
+    histosV.push_back(h);
+  }
+  return res;
+}
+
+// -------------------------------------------
+
+inline
+int createAnyH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase, 
+		   const std::vector<TString> &sample_labels, 
+		   int nxBins, double xMin, double xMax, 
+		   int nyBins, double yMin, double yMax,
+		   const TString &xAxisLabel="x", 
+		   const TString &yAxisLabel="y", int setHistoTitle=1) {
+  int res=1;
+  if (sample_labels.size()==0) return 0;
+  histosV.reserve(sample_labels.size());
+  for (unsigned int i=0; i<sample_labels.size(); ++i) {
+    TString histoName= histoNameBase + sample_labels[i];
+    TString histoTitle=(setHistoTitle) ? histoName : "";
+    TH2D *h=new TH2D(histoName,histoTitle,
+		     nxBins,xMin,xMax,
+		     nyBins,yMin,yMax);
     h->SetDirectory(0);
     h->SetStats(0);
     h->Sumw2();
