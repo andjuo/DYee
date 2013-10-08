@@ -66,13 +66,16 @@ PUReweight=1
 seedMin=1001
 seedMax=1020
 Use7TeVMCWeight=1 # Whether renormalize the 1st sample weight to 1 in MC macros
-
+IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
 
 [TAG_AND_PROBE]
 # Tag and probe options
 
-T&P_TAG=DY_m10+pr+a05+o03+pr_4839pb
+#T&P_TAG=DY_m10+pr+a05+o03+pr_4839pb  // ignored
 MAP = ETBINS6 ETABINS5
+
+TargetDistr=pileup_lumibased_data
+SourceDistr=pileup_simulevel_mc
 
 
 # How to measure efficiencies? COUNTnCOUNT, COUNTnFIT, FITnFIT for pass/fail samples

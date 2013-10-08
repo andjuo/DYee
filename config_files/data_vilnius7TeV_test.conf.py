@@ -66,12 +66,16 @@ PUReweight=1
 seedMin=1001
 seedMax=1020
 Use7TeVMCWeight=1 # Whether renormalize the 1st sample weight to 1 in MC macros
+IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
 
 [TAG_AND_PROBE]
 # Tag and probe options
 
-T&P_TAG=DY_m10+pr+a05+o03+pr_4839pb
+#T&P_TAG=DY_m10+pr+a05+o03+pr_4839pb # ignored
 MAP = ETBINS6 ETABINS5
+
+TargetDistr=pileup_lumibased_data
+SourceDistr=pileup_simulevel_mc
 
 
 # How to measure efficiencies? COUNTnCOUNT, COUNTnFIT, FITnFIT for pass/fail samples
@@ -211,5 +215,6 @@ PATH_1/f11-zeem800-powheg-v9b-pu_ntuple.root 0.0037864  432 @Powheg 800+
 #      powheg_nlo_10-20 * (fewz_nnlo_20-500)/(powheg_nlo_20-500)
 #      3216 * 1666/1614 = 3320
 PATH_1/f11-zeem1020-powheg-v14b-bp_tight-loose_skim.root 3320  800 @Powheg 10-20
+#PATH_1/f11-zeem1020-powheg-v14b-bp_ntuple.root 3320  800 @Powheg 10-20
 
 %
