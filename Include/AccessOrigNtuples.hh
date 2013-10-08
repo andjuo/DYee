@@ -6,6 +6,7 @@
 #include <TTree.h>
 #include <TBranch.h>
 #include <TClonesArray.h>
+#include <TLorentzVector.h>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -85,6 +86,7 @@ public:
   int dielectronCount() const { return dielectronArr->GetEntriesFast(); }
   const mithep::TDielectron* dielectronPtr(int i) const { return (const mithep::TDielectron*)((*dielectronArr)[i]); }
   mithep::TDielectron* editDielectronPtr(int i) { return (mithep::TDielectron*)((*dielectronArr)[i]); }
+  const TClonesArray* getPVArr() const { return pvArr; }
 
   int getNPV(int isData) const {
     int npv=0;
@@ -182,7 +184,42 @@ public:
     if (!hasJson) return 1;
     return json.HasRunLumi(info->runNum,info->lumiSec);
   }
+
+  // ---------------------
   
+  int dielectronMatchedToGenLevel(int idx) const {
+    int res=1;
+    if (!gen) { res=0; std::cout << "dielectronMatchedToGenLevel: gen is NULL\n"; }
+    if (!dielectronArr) { res=0; std::cout << "dielectronMatchedToGenLevel: dielectronArray is null\n"; }
+    if (!res) return 0;
+    
+    const mithep::TDielectron *dielectron=(const mithep::TDielectron*)((*dielectronArr)[idx]);
+
+    // In the generator branch of this ntuple, first particle is always
+    // negative, and second always positive. In the Dielectron block
+    // of the ntuple, the first particle is always the one with larger Pt.
+    double dR1=999, dR2=999;
+    TLorentzVector v1reco, v2reco, v1gen, v2gen;
+    v1reco.SetPtEtaPhiM(dielectron->pt_1, dielectron->eta_1, 
+			dielectron->phi_1, 0.000511);
+    v2reco.SetPtEtaPhiM(dielectron->pt_2, dielectron->eta_2, 
+			dielectron->phi_2, 0.000511);
+    v1gen .SetPtEtaPhiM(gen->pt_1, gen->eta_1, gen->phi_1, 0.000511);
+    v2gen .SetPtEtaPhiM(gen->pt_2, gen->eta_2, gen->phi_2, 0.000511);
+    if( dielectron->q_1 < 0 ){
+      dR1 = v1reco.DeltaR(v1gen);
+      dR2 = v2reco.DeltaR(v2gen);
+    }else{
+      dR1 = v1reco.DeltaR(v2gen);
+      dR2 = v2reco.DeltaR(v1gen);
+    }
+    // Require that both are within loose dR of 0.4, otherwise bail out
+    res=1;
+    if( fabs(dR1) > 0.4 || fabs(dR2) > 0.4 ) res=0; 
+  
+    return res;
+  }
+
   //int eventTriggerOk(const TriggerSelection_t &trigger) const {
   //  return (trigger.matchEventTriggerBit(info->triggerBits,info->runNum)) ? 1:0;
   //}
