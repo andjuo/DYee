@@ -28,13 +28,14 @@
 // -------------------------------------------------
 
 namespace EventSelector {
-  typedef enum { _selectNone, _selectDefault, _selectZeeSignalGen, _selectZeeSignalReco } TSelectionType_t;
+  typedef enum { _selectNone, _selectDefault, _selectHLTOrdered, _selectZeeSignalGen, _selectZeeSignalReco } TSelectionType_t;
   typedef enum { _escaleNone, _escaleUncorrected, _escaleData, _escaleDataRnd, _escaleMC } TEScaleCorrection_t;
 
   std::string selectionName(TSelectionType_t selection) {
     std::string name;
     switch(selection) {
     case _selectNone: name="None"; break;
+    case _selectHLTOrdered: name="ordered"; break;
     case _selectZeeSignalGen: name="zeeSignalGen"; break;
     case _selectZeeSignalReco: name="zeeSignalReco"; break;
     case _selectDefault: name="default"; break;
@@ -61,6 +62,7 @@ public:
 		  DYTools::TRunMode_t runMode,
 		  DYTools::TSystematicsStudy_t systMode,
 		  const TString& extraTag="",
+		  const TString& plotsExtraTag="",
 		  EventSelector::TSelectionType_t set_selection= EventSelector::_selectDefault); // most complete constructor
 
   EventSelector_t(EventSelector::TSelectionType_t set_selection, 
@@ -125,7 +127,6 @@ public:
     }
 
     if (externalExtraTag.Length()) tag.Append(TString("_") + externalExtraTag);
-    //std::cout << "generateFullTag=<" << tag << ">\n";
     return tag; 
   }
 
@@ -138,6 +139,9 @@ public:
     TString tag= this->generateFullTag(runMode,systMode,externalExtraTag);
     CPlot::sOutDir= TString("plots");
     if (tag.Length()) CPlot::sOutDir.Append(TString("_") + tag);
+    if (CPlot::sOutDir.Index(DYTools::analysisTag)==-1) {
+      CPlot::sOutDir.Append(DYTools::analysisTag);
+    }
     if (printOutDirName) std::cout << "CPlot::sOutDir=<" << CPlot::sOutDir << ">\n";
     gSystem->mkdir(CPlot::sOutDir,true);
   }
@@ -146,9 +150,15 @@ public:
 
   // dielectron may be modified by escale corrections
   bool testDielectron_default(mithep::TDielectron *dielectron, 
-			      //ULong_t leadingTriggerObjectBit, ULong_t trailingTriggerObjectBit, 
 			      const mithep::TEventInfo *evtInfo,
 			      EventCounter_t *ec=NULL); // evtInfo is for eleID
+
+  // HLTordered= default, but:
+  //   - the trigger matching is strict (lead,trail)
+  //   - mass cut is not applied
+  bool testDielectron_HLT_ordered(mithep::TDielectron *dielectron, 
+				  const mithep::TEventInfo *evtInfo,
+				  EventCounter_t *ec=NULL); // evtInfo is for eleID
 
   // dielectron may be modified by escale corrections
   //bool testDielectron_zeeSignalGen(mithep::TDielectron *dielectron, 
@@ -164,6 +174,7 @@ public:
     switch(fSelection) {
     case EventSelector::_selectNone: break;
     case EventSelector::_selectDefault: ok=testDielectron_default(dielectron,evtInfo,ec); break;
+    case EventSelector::_selectHLTOrdered: ok=testDielectron_HLT_ordered(dielectron,evtInfo,ec); break;
     //case EventSelector::_selectZeeSignalGen: ok=testDielectron_zeeSignalGen(dielectron,evtInfo,ec); break;
     default:
       ok=kFALSE;
@@ -217,8 +228,11 @@ public:
 // -------------------------------------------------
 // -------------------------------------------------
 
-/*
+
+// for compatibility with previous code
+
 //pvArr: TClonesArray("mithep::TVertex");
+inline
 UInt_t countGoodVertices(const TClonesArray *pvArr) {
   UInt_t nGoodPV=0;
   for(Int_t ipv=0; ipv<pvArr->GetEntriesFast(); ipv++) {
@@ -231,7 +245,6 @@ UInt_t countGoodVertices(const TClonesArray *pvArr) {
   }
   return nGoodPV;
 }
-*/
 
 // -------------------------------------------------
 // -------------------------------------------------
