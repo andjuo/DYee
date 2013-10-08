@@ -569,6 +569,14 @@ class TriggerSelection_t{
     return kTRUE;    
   }
 
+  Bool_t matchTriggerObjectBitOrdered(int leadingIs1st, ULong_t bit1, ULong_t bit2, UInt_t run) const {
+    ULong_t lead=this->getLeadingTriggerObjectBit(run);
+    ULong_t trail=this->getTrailingTriggerObjectBit(run);
+    Bool_t result = ( (  leadingIs1st  &&  lead & bit1   &&  trail & bit2 ) ||
+		      ( !leadingIs1st  &&  lead & bit2   &&  trail & bit1 ) ) ? true : false;
+    return result;
+  }
+
   Bool_t matchTriggerObjectBitAnyOrder(ULong_t bit1, ULong_t bit2, UInt_t run) const {
     ULong_t lead=this->getLeadingTriggerObjectBit(run);
     ULong_t trail=this->getTrailingTriggerObjectBit(run);
