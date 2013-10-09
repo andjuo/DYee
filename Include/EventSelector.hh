@@ -58,6 +58,8 @@ protected:
   EventCounter_t fEC;
   int fEScaleOwner;
 public:
+  EventSelector_t(); // use together with init(....)
+
   EventSelector_t(InputFileMgr_t &mgr,
 		  DYTools::TRunMode_t runMode,
 		  DYTools::TSystematicsStudy_t systMode,
@@ -76,6 +78,13 @@ public:
   EventSelector_t(const EventSelector_t &es, ElectronEnergyScale *set_escale=NULL);
 
   ~EventSelector_t();
+
+  // initialization to be used with an empty constructor
+  int init(InputFileMgr_t &mgr, 
+	   DYTools::TRunMode_t runMode, DYTools::TSystematicsStudy_t systMode, 
+	   const TString &extraTag="", 
+	   const TString &plotsExtraTag="",
+	   EventSelector::TSelectionType_t set_selection= EventSelector::_selectDefault);
 
   int initEScale(const TString &escaleTag, int printEScale);
 

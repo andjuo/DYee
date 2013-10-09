@@ -3,6 +3,19 @@
 
 // ---------------------------------------------------------------
 
+// use in connection with init(....)
+EventSelector_t::EventSelector_t() :
+  BaseClass_t("EventSelector_t"),
+  fSelection(EventSelector::_selectNone),
+  fEScaleCorrType(EventSelector::_escaleNone),
+  fEScale(NULL),
+  fTrigger(TriggerSetName(TriggerConstantSet(1)),true),
+  fEC("eventSelector"),
+  fEScaleOwner(0) {
+}
+
+// ---------------------------------------------------------------
+
 EventSelector_t::EventSelector_t(InputFileMgr_t &mgr,
 				 DYTools::TRunMode_t runMode,
 				 DYTools::TSystematicsStudy_t systMode,
@@ -17,6 +30,7 @@ EventSelector_t::EventSelector_t(InputFileMgr_t &mgr,
   fEC("eventSelector"),
   fEScaleOwner(0) 
 {
+  /*
   const int printEScale=1;
   int res= this->initEScale(mgr.energyScaleTag(),printEScale);
   if (res) this->SetPlotOutDir(runMode,systMode,plotsExtraTag);
@@ -32,6 +46,9 @@ EventSelector_t::EventSelector_t(InputFileMgr_t &mgr,
     mgr.setDirNameExtraTag(auto_tag);
   }
   if (!res) this->reportError("EventSelector_t::EventSelector_t(mgr)");
+  */
+  if  (!init(mgr,runMode,systMode,extraTag,plotsExtraTag,set_selection))
+    this->reportError("EventSelector_t::EventSelector_t(mgr)");
 }
 
 // ---------------------------------------------------------------
@@ -82,6 +99,35 @@ EventSelector_t::EventSelector_t(const EventSelector_t &es,
 
 EventSelector_t::~EventSelector_t() {
   if (fEScaleOwner && fEScale) delete fEScale;
+}
+
+// ---------------------------------------------------------------
+  // initialization to be used with an empty constructor
+int EventSelector_t::init(InputFileMgr_t &mgr, 
+	   DYTools::TRunMode_t runMode, DYTools::TSystematicsStudy_t systMode, 
+	   const TString &extraTag, 
+	   const TString &plotsExtraTag,
+	   EventSelector::TSelectionType_t set_selection) 
+{
+  fSelection=set_selection;
+  if (!fTrigger.triggerSet(mgr.triggerTag())) return this->reportError("init");
+
+  const int printEScale=1;
+  int res= this->initEScale(mgr.energyScaleTag(),printEScale);
+  if (res) this->SetPlotOutDir(runMode,systMode,plotsExtraTag);
+
+  DYTools::TRunMode_t runModeLocal=runMode;
+  if (runMode==DYTools::DEBUG_LOAD) runModeLocal=DYTools::DEBUG_RUN;
+  else if (runMode==DYTools::LOAD_DATA) runModeLocal=DYTools::NORMAL_RUN;
+  
+  if (res) {
+    TString auto_tag=this->generateFullTag(runModeLocal,systMode,extraTag);
+    if (auto_tag.Length()) auto_tag.Prepend("_");
+    mgr.setNtupleNameExtraTag(auto_tag);
+    mgr.setDirNameExtraTag(auto_tag);
+  }
+  if (!res) this->reportError("EventSelector_t::EventSelector_t(mgr)");
+  return 1;
 }
 
 // ---------------------------------------------------------------
