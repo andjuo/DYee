@@ -193,6 +193,11 @@ class TriggerSelection_t{
   // Access
   TriggerConstantSet triggerSet() const { return _constants; }
   void triggerSet(TriggerConstantSet ts) { _constants=ts; }
+  bool triggerSet(const TString &trigSetString) {
+    _constants=DetermineTriggerSet(trigSetString);
+    return this->isDefined();
+  }
+
   bool actOnData() const { return _isData; }
   void actOnData(bool act_on_data) { _isData = act_on_data; }
   HLTEfficiencyCalcDef hltEffCalcMethod() const { return _hltEffCalcAlgo; }
