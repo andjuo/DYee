@@ -256,12 +256,12 @@ double *etaBinLimits=NULL;
 // ---------- Setup main variables ---------------
 
 int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
-		 InputFileMgr_t &inpMgr, EventSelector_t **evtSelector,
+		 InputFileMgr_t &inpMgr, EventSelector_t &evtSelector,
 		 TString &puStr, int createDestinationDir) {
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
 
   //InputFileMgr_t inpMgr;
-  if (!inpMgr.LoadTnP(confFileName)) return retCodeError;
+  if (!inpMgr.LoadTnP(confFileName)) return 0;
   // no energy correction for this evaluation
   inpMgr.clearEnergyScaleTag();
 
@@ -278,13 +278,12 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
   // Construct eventSelector, update mgr and plot directory
   TString plotsExtraTag=puStr;
   //EventSelector_t 
-  *evtSelector = new EventSelector_t(inpMgr,runMode,systMode,
-			  "",plotsExtraTag, EventSelector::_selectOrdered);
-  if (!(*evtSelector)) {
+  if (!evtSelector.init(inpMgr,runMode,systMode,
+			"",plotsExtraTag, EventSelector::_selectHLTOrdered)) {
     std::cout << "failed to create EventSelector_t\n";
-    return retCodeError;
+    return 0;
   }
-  (*evtSelector)->setTriggerActsOnData(false);
+  evtSelector.setTriggerActsOnData(false);
 
   // Prepare output directory
   inpMgr.constDir(systMode,createDestinationDir);
@@ -319,7 +318,7 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
     assert(0);
   }
 
-  return retCodeOk;
+  return 1;
 }
 
 
@@ -356,58 +355,78 @@ int calcEventEff(const TString confFileName,
   //==============================================================================================================
   
   InputFileMgr_t inpMgr;
-  if (!inpMgr.LoadTnP(confFileName)) return retCodeError;
-  // no energy correction for this evaluation
-  inpMgr.clearEnergyScaleTag();
+  EventSelector_t evtSelector;
+  TString puStr;
 
-  const int puReweight=inpMgr.puReweightFlag();
-  const int useFewzWeights=inpMgr.fewzFlag();
-  TString puStr = (puReweight) ? "PU" : "";
-  if (!useFewzWeights) puStr.Append("_noFEWZ");
-  if (nonUniversalHLT) puStr.Append("_HLTlegs");
-  //CPlot::sOutDir = TString("plots") + DYTools::analysisTag + puStr;
-  //std::cout << "changed CPlot::sOutDir=<" << CPlot::sOutDir << ">\n";
-  //gSystem->mkdir(CPlot::sOutDir,true);
+  const int newCode=1;
+  if (!newCode) {
+    if (!inpMgr.LoadTnP(confFileName)) return retCodeError;
+    // no energy correction for this evaluation
+    inpMgr.clearEnergyScaleTag();
 
-  // Construct eventSelector, update mgr and plot directory
-  TString plotsExtraTag=puStr;
-  EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "",plotsExtraTag, EventSelector::_selectOrdered);
-  evtSelector.setTriggerActsOnData(false);
-
-  // Prepare output directory
-  inpMgr.constDir(systMode,1);
-
-//  ---------------------------------
-//         Normal execution
-//  ---------------------------------
-
-  ro_Data= new EffArray_t[nexp];
-  ro_MC  = new EffArray_t[nexp];
-  assert(ro_Data && ro_MC);
-
-
-  //dirTag=inpMgr.tnpTag();
-
-  etBinning=inpMgr.etBinsKind();
-  etBinCount=DYTools::getNEtBins(etBinning);
-  etBinLimits=DYTools::getEtBinLimits(etBinning);
-  
-  etaBinning=inpMgr.etaBinsKind();
-  etaBinCount=DYTools::getNEtaBins(etaBinning);
-  etaBinLimits=DYTools::getEtaBinLimits(etaBinning);
-
-  if (etBinCount>DYTools::nEtBinsMax) {
-    printf("ERROR in the code: etBinCount=%d, hard-coded DYTools::nEtBinsMax=%d\n",etBinCount,DYTools::nEtBinsMax);
-    std::cout << std::endl;
-    assert(0);
+    const int puReweight=inpMgr.puReweightFlag();
+    const int useFewzWeights=inpMgr.fewzFlag();
+    puStr = (puReweight) ? "PU" : "";
+    if (!useFewzWeights) puStr.Append("_noFEWZ");
+    if (nonUniversalHLT) puStr.Append("_HLTlegs");
+    //CPlot::sOutDir = TString("plots") + DYTools::analysisTag + puStr;
+    //std::cout << "changed CPlot::sOutDir=<" << CPlot::sOutDir << ">\n";
+    //gSystem->mkdir(CPlot::sOutDir,true);
+    
+    // Construct eventSelector, update mgr and plot directory
+    TString plotsExtraTag=puStr;
+    if (!evtSelector.init(inpMgr,runMode,systMode,
+			  "",plotsExtraTag, EventSelector::_selectHLTOrdered)) {
+      std::cout << "failed to create eventSelector\n";
+      return retCodeError;
+    }
+    evtSelector.setTriggerActsOnData(false);
+    
+    // Prepare output directory
+    inpMgr.constDir(systMode,1);
+    
+    //  ---------------------------------
+    //         Normal execution
+    //  ---------------------------------
+    
+    ro_Data= new EffArray_t[nexp];
+    ro_MC  = new EffArray_t[nexp];
+    assert(ro_Data && ro_MC);
+    
+    
+    //dirTag=inpMgr.tnpTag();
+    
+    etBinning=inpMgr.etBinsKind();
+    etBinCount=DYTools::getNEtBins(etBinning);
+    etBinLimits=DYTools::getEtBinLimits(etBinning);
+    
+    etaBinning=inpMgr.etaBinsKind();
+    etaBinCount=DYTools::getNEtaBins(etaBinning);
+    etaBinLimits=DYTools::getEtaBinLimits(etaBinning);
+    
+    if (etBinCount>DYTools::nEtBinsMax) {
+      printf("ERROR in the code: etBinCount=%d, hard-coded DYTools::nEtBinsMax=%d\n",etBinCount,DYTools::nEtBinsMax);
+      std::cout << std::endl;
+      assert(0);
+    }
+    if (etaBinCount>DYTools::nEtaBinsMax) {
+      printf("ERROR in the code: etaBinCount=%d, hard-coded DYTools::nEtaBinsMax=%d\n",etaBinCount,DYTools::nEtaBinsMax);
+      std::cout << std::endl;
+      assert(0);
+    }
   }
-  if (etaBinCount>DYTools::nEtaBinsMax) {
-    printf("ERROR in the code: etaBinCount=%d, hard-coded DYTools::nEtaBinsMax=%d\n",etaBinCount,DYTools::nEtaBinsMax);
-    std::cout << std::endl;
-    assert(0);
+  else {
+    // new code
+    //HERE("\n\tCalling initManagers\n");
+    if (!initManagers(confFileName,runMode,inpMgr,evtSelector,puStr,1)) {
+      std::cout << "failed to initialize managers\n";
+      return retCodeError;
+    }
   }
-
+	// resulting relocation due to a new code
+  //const int puReweight=inpMgr.puReweightFlag();
+  //const int useFewzWeights=inpMgr.fewzFlag();
+	// end of relocation
 
   TString selectEventsFName=inpMgr.tnpSelEventsFullName(systMode,0);
   
