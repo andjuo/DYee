@@ -113,9 +113,9 @@ public:
 		       const TString &sourceFile, 
 		       const TString &sourceHistoName);
   
-  int setDefaultFile(const TString &dirTag, const TString &analysisTag, 
+  int setDefaultFile(const TString &use_dirTag, const TString &analysisTag, 
 		     int create=0) {
-    TString fname=TString("../root_files/selected_events/") + dirTag + 
+    TString fname=TString("../root_files/selected_events/") + use_dirTag + 
       TString("/npv") + analysisTag + TString(".root");
     int res=setFile(fname,create);
     if (!res) std::cout << "Error in PUReweight::setDefaultFile\n";
