@@ -85,7 +85,7 @@ int plotDYAcceptance(const TString conf,
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag, EventSelector::_selectDefault);
+			      extraTag,extraTag,EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
   // Event weight handler

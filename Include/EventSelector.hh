@@ -60,12 +60,13 @@ protected:
 public:
   EventSelector_t(); // use together with init(....)
 
+  // most complete constructor
   EventSelector_t(InputFileMgr_t &mgr,
 		  DYTools::TRunMode_t runMode,
 		  DYTools::TSystematicsStudy_t systMode,
-		  const TString& extraTag="",
-		  const TString& plotsExtraTag="",
-		  EventSelector::TSelectionType_t set_selection= EventSelector::_selectDefault); // most complete constructor
+		  const TString& extraTag,
+		  const TString& plotsExtraTag,
+		  EventSelector::TSelectionType_t set_selection); // e.g. EventSelector::_selectDefault 
 
   EventSelector_t(EventSelector::TSelectionType_t set_selection, 
 		  const TriggerSelection_t &set_trigger,

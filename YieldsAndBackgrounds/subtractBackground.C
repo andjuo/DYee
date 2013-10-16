@@ -69,7 +69,7 @@ int subtractBackground(const TString conf,
 
   // Construct eventSelector, update inpMgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", EventSelector::_selectDefault);
+			      "", "", EventSelector::_selectDefault);
 
   //std::cout <<" " << inpMgr.yieldFullName(-1,systMode,0) << "\n";
   //std::cout <<" " << inpMgr.signalYieldFullName(systMode) << "\n";

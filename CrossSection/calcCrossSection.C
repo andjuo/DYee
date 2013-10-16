@@ -74,7 +74,7 @@ int calcCrossSection(const TString conf,
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag, EventSelector::_selectDefault);
+			      extraTag,extraTag,EventSelector::_selectDefault);
 
   // Prepare output directory
   inpMgr.crossSectionDir(systMode,1);
@@ -341,7 +341,7 @@ int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, Hist
 // ----------------------------------------------
 
 int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &extraTag) {
-  std::cout << "would save result\n";
+  std::cout << "would save result with extraTag=<" << extraTag << ">\n";
   hp.print();
   return 1;
 }

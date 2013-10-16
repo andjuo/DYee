@@ -107,7 +107,7 @@ int selectEvents(const TString conf,
 
   // Construct eventSelector, update inpMgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", EventSelector::_selectDefault);
+			      "","", EventSelector::_selectDefault);
 
   // Event weight handler
   EventWeight_t evWeight;

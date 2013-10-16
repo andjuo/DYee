@@ -51,7 +51,7 @@ int plotUnfoldingMatrix(const TString conf,
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", EventSelector::_selectDefault);
+			      "", "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
   // Event weight handler
@@ -613,7 +613,7 @@ int plotUnfoldingMatrix(const TString conf,
     }
   }
   std::cout << "fnameTag=<" << fnameTag << ">\n";
-  CPlot::sOutDir=TString("plots") + fnameTag;
+  CPlot::sOutDir.Append(fnameTag);
 
 
   if (DYTools::processData(runMode)) {

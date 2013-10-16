@@ -97,7 +97,7 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", EventSelector::_selectDefault);
+			      "", "", EventSelector::_selectDefault);
     
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 

@@ -75,7 +75,7 @@ int plotDYEfficiency(const TString conf,
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", EventSelector::_selectDefault);
+			      "", "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
   // Event weight handler
