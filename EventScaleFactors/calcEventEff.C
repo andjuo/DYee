@@ -75,7 +75,7 @@ template<class T> T SQR(const T& x) { return x*x; }
 
 int fillEfficiencyConstants( const InputFileMgr_t &inpMgr );
 
-int fillOneEfficiency(const TString &dirTag, const TString filename, 
+int fillOneEfficiency(const TString &use_dirTag, const TString filename, 
   UInt_t kindIdx, vector<TMatrixD*> &data, vector<TMatrixD*> &dataErrLo, 
   vector<TMatrixD*> &dataErrHi, vector<TMatrixD*> &dataAvgErr, int weightedCnC);
 
@@ -141,12 +141,17 @@ double getHLTefficiencySmeared(DYTools::TDataKind_t dataKind,
 			       int etBin2, int etaBin2, double Et2,
 			       const EffArray_t &rndWeight);
 
-void drawEfficiencies(TFile *fRoot);
+#ifndef calcEventEffLink_H
+void drawEfficiencies(TFile *fRootOutput, 
+		      int ignoreAsymHLT=0,
+		      std::vector<TGraphErrors*> *grDataVec=NULL,
+		      std::vector<TGraphErrors*> *grMCVec=NULL);
+#endif
 
 void drawEfficiencyGraphs(
      TGraphErrors *grData, TGraphErrors *grMc,
      TString yAxisTitle, TString text, TString plotName,
-     TFile *fRoot);
+     TFile *fRootOutput);
 
 //template<class Graph_t>
 //void drawEfficiencyGraphsAsymmErrors(Graph_t *grData, Graph_t *grMc,
@@ -2480,7 +2485,11 @@ void drawEventScaleFactorGraphs(TGraphErrors *gr, TString yAxisTitle,
 
 // -------------------------------------------------------------------------
 
-void drawEfficiencies(TFile *fRoot){
+void drawEfficiencies(TFile *fRootOutput,
+		      int ignoreAsymHLT,
+		      std::vector<TGraphErrors*> *grDataVec,
+		      std::vector<TGraphErrors*> *grMCVec
+		      ){
   // Make graphs
   double x[etBinCount];
   double dx[etBinCount];
@@ -2500,7 +2509,7 @@ void drawEfficiencies(TFile *fRoot){
   const char *etaLabelStr=(signedEta) ? "#eta" : "|#eta|";
 
   for (int kind=0; kind<NEffTypes; ++kind) {
-    if ((nonUniversalHLT) && (kind==DYTools::HLT)) continue; // skip for now
+    if ((nonUniversalHLT) && (kind==DYTools::HLT) && !ignoreAsymHLT) continue; // skip for now
     for (int iEta=0; iEta<etaBinCount; ++iEta) {
       TString etaStr=
 	Form("%s_%5.3lf__%5.3lf", etaSignStr,
@@ -2519,18 +2528,32 @@ void drawEfficiencies(TFile *fRoot){
       }
       TGraphErrors *grDataEff 
 	= new TGraphErrors(etBinCount, x,  effData, dx, effDataErr);
+      if (grDataVec) grDataVec->push_back(grDataEff);
   
       TGraphErrors *grMcEff 
 	= new TGraphErrors(etBinCount, x,  effMC, dx, effMCErr);
+      if (grMCVec) grMCVec->push_back(grMcEff);
+
   
       // Draw all graphs
       TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
       TString ylabel=TString("efficiency_{") + effName + TString("}");
       TString plotName = TString("plot_eff_") + DYTools::analysisTag + TString("_") +
 	effName + etaStr;
-      
+
       drawEfficiencyGraphs(grDataEff, grMcEff,
-			   ylabel, plotLabel, plotName, fRoot);
+			   ylabel, plotLabel, plotName, fRootOutput);
+
+      if (grDataVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","data_");
+	grDataEff->SetTitle(title);
+      }
+      if (grMCVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","mc_");
+	grMcEff->SetTitle(title);
+      }
 
       //delete grMcEff;
       //delete grDataEff;
@@ -2609,9 +2632,11 @@ void drawEfficiencies(TFile *fRoot){
       }
       TGraphErrors *grDataEff 
 	= new TGraphErrors(specEtBinCount, tmpBinCs,  effData, dTmpBins, effDataErr);
+      if (grDataVec) grDataVec->push_back(grDataEff);
   
       TGraphErrors *grMcEff 
 	= new TGraphErrors(specEtBinCount, tmpBinCs,  effMC, dTmpBins, effMCErr);
+      if (grMCVec) grMCVec->push_back(grMcEff);
   
       // Draw all graphs
       TString effName=EfficiencyKindName(DYTools::HLT);
@@ -2620,8 +2645,18 @@ void drawEfficiencies(TFile *fRoot){
 	effName + etaStr;
       
       drawEfficiencyGraphs(grDataEff, grMcEff,
-			   ylabel, plotLabel, plotName, fRoot);
+			   ylabel, plotLabel, plotName, fRootOutput);
 
+      if (grDataVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","data_");
+	grDataEff->SetTitle(title);
+      }
+      if (grMCVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","mc_");
+	grMcEff->SetTitle(title);
+      }
    
     }
     if (tmpBinCs) delete tmpBinCs;
@@ -3013,12 +3048,12 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr ) {
 
 // -------------------------------------------------------------------------
 
-int fillOneEfficiency(const TString &dirTag, const TString filename, 
+int fillOneEfficiency(const TString &use_dirTag, const TString filename, 
    UInt_t kindIdx, vector<TMatrixD*> &effV, vector<TMatrixD*> &errLoV, 
    vector<TMatrixD*> &errHiV, vector<TMatrixD*> &avgErrV, 
    int weightedCnC) {
 
-  TString fullFName=TString("../root_files/tag_and_probe/")+dirTag+TString("/")+filename;
+  TString fullFName=TString("../root_files/tag_and_probe/")+use_dirTag+TString("/")+filename;
   TFile *f=new TFile(fullFName);
   if(!f->IsOpen()) {
     if (allowToIgnoreAnalysisTag) {
