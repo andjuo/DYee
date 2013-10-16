@@ -1,3 +1,5 @@
+// Updated on Oct 11, 2013 to be used with the newer setup
+
 #include <TROOT.h>
 #include <TCanvas.h>
 #include <TGraphErrors.h>
@@ -5,12 +7,12 @@
 #include "../Include/MitStyleRemix.hh"
 #include "../Include/ComparisonPlot.hh"
 #include "../Include/MyTools.hh"
-#include "../Include/UnfoldingTools.hh"
+//#include "../Include/UnfoldingTools.hh"
 #include "calcEventEffLink.h"
-#include "../Covariance/colorPalettes.hh"
+#include "../Include/colorPalettes.hh"
 
 // --------------------------------------------------------------
-
+/*
 TH1F* getHistoFromFile(const char *fname, 
 		       const char *varName, const char *varErrName,
 		       int isMatrix,
@@ -39,8 +41,8 @@ TH1F* getHistoFromFile(const char *fname,
        std::cout << "failed to get <" << varName << "> or <" << varErrName << ">\n";
        return NULL;
      }
-     unfolding::deflattenMatrix(*x, var);
-     unfolding::deflattenMatrix(*xErr, varErr);
+     deflattenMatrix(*x, var);
+     deflattenMatrix(*xErr, varErr);
      delete x;
      delete xErr;
    }
@@ -67,6 +69,7 @@ TH1F* getHistoFromFile(const std::string &fname,
 			  isMatrix,
 			  newHistoName.c_str());
 }
+*/
 
 // --------------------------------------------------------------
 
@@ -112,51 +115,32 @@ void calcHltEff(DYTools::TDataKind_t dataKind,
 
 // --------------------------------------------------------------
 
-void compareDoubleHLTeff() {
+int compareDoubleHLTeff() {
 
-  const TString mcInputFile="../config_files/fall11mc_vilnius.input";
-  const TString tnpMCInputFile="../config_files/sf_mc_et6_eta5_vilnius.conf";
-  const TString tnpDataInputFile="../config_files/sf_data_et6_eta5_vilnius.conf";
-  const TString triggerSetString="Full2011_hltEffOld";
-  int puReweight=1;
+  const TString confFileName="../config_files/data_vilnius8TeV.conf.py";
+  if (DYTools::energy8TeV==0) {
+    std::cout << "the input file is for 8TeV\n";
+    return retCodeError;
+  }
 
   if (nonUniversalHLT==0) {
     std::cout << "nonUniversalHLT has to be 1\n";
-    return;
+    return retCodeError;
   }
 
-  // Construct the trigger object
-  TriggerSelection triggers(triggerSetString, false, 0); 
-  assert ( triggers.isDefined() );
-
-  MCInputFileMgr_t mcMgr;
-  TnPInputFileMgr_t tnpDataMgr,tnpMCMgr;
-
-  if (!mcMgr.Load(mcInputFile) ||
-      !tnpMCMgr.Load(tnpMCInputFile) ||
-      !tnpDataMgr.Load(tnpDataInputFile)) {
-    return;
+  // establish the access
+  InputFileMgr_t inpMgr;
+  EventSelector_t evtSelector;
+  TString puStr;
+  DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
+  if (!initManagers(confFileName,runMode,inpMgr,evtSelector,puStr,0)) {
+    std::cout << "failed to initialize managers\n";
+    return retCodeError;
   }
-  if (!tnpMCMgr.hasSameBinCounts(tnpDataMgr)) {
-    cout << "Files tnpMCInputFile=<" << tnpMCInputFile 
-	 << ">, tnpDataInputFile=<" << tnpDataInputFile 
-	 << "> have different bin counts:\n";
-    cout << "MC   input: " << tnpMCMgr;
-    cout << "Data input: " << tnpDataMgr;
-    return;
-  }
-  dirTag=tnpMCMgr.dirTag();
- 
-  etBinning=tnpMCMgr.etBinsKind();
-  etBinCount=DYTools::getNEtBins(etBinning);
-  etBinLimits=DYTools::getEtBinLimits(etBinning);
-  
-  etaBinning=tnpMCMgr.etaBinsKind();
-  etaBinCount=DYTools::getNEtaBins(etaBinning);
-  etaBinLimits=DYTools::getEtaBinLimits(etaBinning);
 
-  if (!fillEfficiencyConstants( tnpMCMgr, tnpDataMgr, triggers, puReweight )) {
-    return;
+  // Read efficiency constants from ROOT files
+  if (!fillEfficiencyConstants( inpMgr ) ) {
+    return retCodeError;
   }
 
   std::vector<TGraphErrors*> grDataV, grMCV;
@@ -357,7 +341,7 @@ void compareDoubleHLTeff() {
   }
 
   // make plots
-  if (1) { // Et-diagonal efficiencies
+  if (0) { // Et-diagonal efficiencies
     for (unsigned int i=0; i<grDataV.size(); i+=2) {
       if (i!=4) continue;
       unsigned int idx=i/2;
@@ -365,13 +349,14 @@ void compareDoubleHLTeff() {
       TString cpName=TString("cp_") + etaStrV[idx];
       TCanvas *c=new TCanvas(canvName,canvName, 600,600);
       c->SetLeftMargin(0.2);
-      CPlot *plot1=new CPlot(cpName,"","E_{T} [GeV]","e_{1}e_{2} HLT efficiency");
+      CPlot *plot1=new CPlot(cpName,"","E_{T;1}=E_{T;2}=E_{T} [GeV]","e_{1}e_{2} HLT efficiency");
 
-      plot1->SetYRange(0.6,1.1);
+      plot1->SetYRange(0.6,1.05);
       
       plot1->SetLogx();
       grDataV[i]->GetXaxis()->SetMoreLogLabels();
       grDataV[i]->GetXaxis()->SetNoExponent();
+      grDataV[i]->GetXaxis()->SetTitleOffset(1.06);
       grDataV[i]->SetFillStyle(3005);
       grDataV[i]->SetFillColor(kBlue);
       grDataV[i+1]->SetFillStyle(3004);
@@ -396,7 +381,7 @@ void compareDoubleHLTeff() {
 
 
   if (1) { // 2D distributions
-    int studyData=0;
+    int studyData=1;
     for (unsigned int i=0; i<effData2DV.size(); i+=2) {
       if (i!=2) continue;
       TH2D *h2trunc=(studyData) ? effData2DV[i  ] : effMC2DV[i  ];
@@ -446,19 +431,26 @@ void compareDoubleHLTeff() {
       drawHistoSubpadAdjustZ(c,3,h2Diff ,colors2, 1,1.001,51);
 
       TLatex *txt=new TLatex();
-      h2Diff->GetZaxis()->SetRangeUser(1e-3,1.0);
-      txt->SetTextSize(0.035);
-      txt->DrawLatex(700.,9.5, "10^{-3}");
+      TLatex *txt2=new TLatex();
+      // adjust z-range in the difference plot
+      if (1) {
+	h2Diff->GetZaxis()->SetRangeUser(1e-3,1.0);
+	txt->SetTextSize(0.035);
+	txt->DrawLatex(700.,9.5, "10^{-3}");
+      }
+      else {
+	h2Diff->GetZaxis()->SetRangeUser(1e-3,0.01);
+      }
 
 
       c->cd(2);
-      txt->SetTextSize(0.06);
-      txt->DrawLatex(40.,300.,plotLabelV[i]);
+      txt2->SetTextSize(0.06);
+      txt2->DrawLatex(40.,300.,plotLabelV[i]);
 
       c->Update();
       //break;
     }
   }
 
-  return;
+  return retCodeOk;
 }
