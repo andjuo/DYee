@@ -151,8 +151,9 @@ public:
     return lumiText;
   }
 
-  void PreparePads(TCanvas *c, int subpad1=1, int subpad2=2, TString name="comp", double padYDivPoint=0.29) {
-    const double dy=0.005;
+  void PreparePads(TCanvas *c, int subpad1=1, int subpad2=2, TString name="comp", double padYDivPoint=0.29, double dyPads=0.005) {
+    if (padYDivPoint<0.) padYDivPoint=0.29;
+    const double dy=dyPads;
 
     TPad *pad1 = (TPad*)c->GetPad(subpad1);
     TPad *pad2 = (TPad*)c->GetPad(subpad2);
@@ -184,12 +185,12 @@ public:
     const double leftM= c->GetLeftMargin();
     const double rightM= c->GetRightMargin();
     pad1->SetTopMargin(0.08);
-    pad1->SetBottomMargin(0.015); // All X axis labels and titles are thus cut off
+    pad1->SetBottomMargin(0.017); // All X axis labels and titles are thus cut off
     pad1->SetRightMargin(rightM);
     pad1->SetLeftMargin(leftM);
     //p->SetFillStyle(0);
 
-    pad2->SetTopMargin(0.045);
+    pad2->SetTopMargin(0.025);
     pad2->SetTopMargin(0.14);
     pad2->SetBottomMargin(0.45);
     pad2->SetRightMargin(rightM);
@@ -205,9 +206,9 @@ public:
     pad2->Draw();
   }
 
-  void Prepare2Pads(TCanvas *c) {
+  void Prepare2Pads(TCanvas *c, double dyPads=0.005) {
     c->Divide(2,1);
-    PreparePads(c); 
+    PreparePads(c,1,2,"comp",-1,dyPads);
   }
 
   void Prepare6Pads(TCanvas *c, int landscape, TString name="comp", double padYDivPoint=0.29) {
@@ -390,7 +391,7 @@ public:
 
 	if (fPrintRatios) printHisto(std::cout,hratio);
 	TString opt=item->drawopt;
-	opt="P";
+	if (!opt.Contains("P")) opt.Append("P");
 	if (first) {
 	  first=0;
 	  hratio->GetYaxis()->SetTitle(fRatioLabel);
@@ -416,6 +417,7 @@ public:
 	  opt.ReplaceAll("SAME","");
 	}
 	else opt.Append("same");
+	//std::cout << "opt=<" << opt << ">\n";
 	hratio->Draw(opt);
       }
 
