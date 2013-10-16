@@ -280,7 +280,7 @@ inline int printHisto(const TH2D* histo, int exponent=0) { return printHistoErr(
 
 //------------------------------------------------------------------------------------------------------------------------
 
-/*
+
 inline
 TH1D *extractRapidityDependence(const TString &name, const TString &title,
 				const TMatrixD &m, const TMatrixD &mErr,
@@ -333,13 +333,16 @@ TH1D *extractMassDependence(const TString &name, const TString &title,
     }
     double val=m[iM][iYBin];
     double factor=1.;
-    if (iM==DYTools::nMassBins-1) {
+    if ((iM==DYTools::nMassBins-1) && DYTools::study2D) {
+      // this correction may be needed for the 2D case
      factor *= DYTools::nYBins[iM]/double(DYTools::nYBins[0]);
+     std::cout << "extractMassDependence: change factor: 1 --> " << factor << "\n";
     }
     if (perRapidityBinWidth) {
       factor *= (DYTools::yRangeMax-DYTools::yRangeMin)/double(DYTools::nYBins[iM]);
     }
     if (perMassBinWidth) factor/=(DYTools::massBinLimits[iM+1]-DYTools::massBinLimits[iM]);
+    //std::cout << "factor=" << factor << "\n";
     h->SetBinContent(iM+1, val*factor);
     h->SetBinError(iM+1, fabs(mErr[iM][iYBin])*factor);
   }
@@ -348,6 +351,7 @@ TH1D *extractMassDependence(const TString &name, const TString &title,
 
 //-----------------------------------------------------------------
 
+/*
 inline
 TH1D *extractMassDependenceSpec(const TString &name, const TString &title,
 			    const TMatrixD &m, const TMatrixD &mErr,
@@ -401,7 +405,6 @@ TH1D *extractMassDependenceSpec(const TString &name, const TString &title,
 
   return h;
 }
-
 */
 
 
