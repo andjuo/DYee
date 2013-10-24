@@ -43,14 +43,10 @@ namespace DYTools {
 
   const int study2D=1;
   const int extendYRangeFor1D=1; // whether |ymax|=14 for 1D study
-#ifdef useDefaultBinSet
-#  ifdef unlimited_Y_in_1D
-    const TString analysisTag_USER=(!study2D) ? "-unlimY" : "";
-#  else
-    const TString analysisTag_USER="-default"; // extra name to differentiate the analysis files
-#  endif
+#ifdef unlimited_Y_in_1D
+  const TString analysisTag_USER=(!study2D) ? "-unlimY" : "";
 #else
-  const TString analysisTag_USER="-withFullOverflowNew";
+  const TString analysisTag_USER=""; // extra name to differentiate the analysis files
 #endif
 
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
@@ -91,14 +87,6 @@ namespace DYTools {
 	     ((et1>etMinLead) || (et2>etMinLead)) ) ? true : false;
   }
 
-
-  // Constants that define binning in mass and rapidity
-  // Note: bin zero is underflow, overflow is neglected
-  const int _nMassBins2D = 7;
-  const double _massBinLimits2D[_nMassBins2D+1] = 
-    {0, // first bin is underflow
-     20, 30, 45, 60, 120, 200, 1500
-    }; // overflow is very unlikely, do not account for it
   // Rapidity binning is different for different mass bins
   // Note: this implementation neglects underflow and overflow
   // in rapidity.
@@ -107,59 +95,85 @@ namespace DYTools {
   const double _yRangeEdge_base = _yRangeMax_base;
   const int _nBinsYLowMass  = (energy8TeV == 1) ? 24 : 25;
   const int _nBinsYHighMass = (energy8TeV == 1) ? 12 : 10;
+
+  // ----------------------------
+
+  // Declare mass binnings
+  typedef enum { _MassBins_Undefined, _MassBins_default, 
+		 _MassBins_test4, _MassBins_Zpeak,
+		 _MassBins_noUnderflow, _MassBins_withFullOverflow 
+  }     TMassBinning_t;
+
+  // ----------------------------
+
+  //
+  // Define mass and rapidity ranges
+  //
+
+#ifdef useDefaultBinSet
+
+  // Constants that define binning in mass and rapidity
+  // Note: bin zero is underflow, overflow is neglected
+  const int _nMassBins2D = 7;
+  const double _massBinLimits2D[_nMassBins2D+1] = 
+    {0, // first bin is underflow
+     20, 30, 45, 60, 120, 200, 1500
+    }; // overflow is very unlikely, do not account for it
   const int _nYBins2D[_nMassBins2D] = 
     { _nBinsYLowMass,// underflow, binned like first mass bin 
       _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, 
       _nBinsYLowMass, 
       _nBinsYHighMass
     }; // overflow is neglected
-
+  const int _nYBinsMax2D=_nBinsYLowMass; // the largest division into Y bins
   
-  // Constants that define binning in mass and rapidity
-  const int _nMassBins2D_noUnderflow = 6;
-  const double _massBinLimits2D_noUnderflow[_nMassBins2D_noUnderflow+1] = 
-    {
-     20, 30, 45, 60, 120, 200, 1500
-    }; // overflow is very unlikely, do not account for it
-  // Rapidity binning is different for different mass bins
-  // Note: this implementation neglects underflow and overflow
-  // in rapidity.
-  const int _nBinsYLowMass_noUnderflow  = (energy8TeV == 1) ? 24 : 25;
-  const int _nBinsYHighMass_noUnderflow = (energy8TeV == 1) ? 12 : 10;
-  const int _nYBins2D_noUnderflow[_nMassBins2D_noUnderflow] = 
-    { 
-      _nBinsYLowMass_noUnderflow, 
-      _nBinsYLowMass_noUnderflow, _nBinsYLowMass_noUnderflow, 
-      _nBinsYLowMass_noUnderflow, _nBinsYLowMass_noUnderflow,
-      _nBinsYHighMass_noUnderflow
-    }; // overflow is neglected
+  //
+  // Define default mass binning for 1D
+  //
 
+  // 2011 mass binning
+  const int _nMassBins2011 = 40;
+  const double _massBinLimits2011[_nMassBins2011+1] = 
+    {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64, 68, 72, 76, 
+     81, 86, 91, 96, 101, 106, 110, 115, 120, 126, 133, 141, 
+     150, 160, 171, 185, 200, 220, 243, 273, 320, 380, 440, 
+     510, 600, 1000, 1500}; // 40 bins
+  const int _nYBinsMax2011=1; // the largest division into Y bins
+  const int _nYBins2011[_nMassBins2011] = { 
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+  };
 
-  // Constants that define binning in mass and rapidity
-  const int _nMassBins2D_withFullOverflow = 8;
-  const double _massBinLimits2D_withFullOverflow[_nMassBins2D_withFullOverflow+1] = 
-    {
-      0, // underflow
-      20, 30, 45, 60, 120, 200, 1500,
-      3000 // overflow
-    }; 
-  // Rapidity binning is different for different mass bins
-  // yRangeMax has no meaning. There is no limit in findYAbsIndex
-  const double _yRangeEdge_withFullOverflow= _yRangeEdge_base;
-  const double _yRangeMax_withFullOverflow = _yRangeEdge_withFullOverflow + 0.1;
-  const int _nBinsYLowMass_withFullOverflow  = _nBinsYLowMass + 1;
-  const int _nBinsYHighMass_withFullOverflow = _nBinsYHighMass + 1;
-  const int _nYBins2D_withFullOverflow[_nMassBins2D_withFullOverflow] = 
-    { 
-      _nBinsYLowMass_withFullOverflow, _nBinsYLowMass_withFullOverflow,
-      _nBinsYLowMass_withFullOverflow, _nBinsYLowMass_withFullOverflow, 
-      _nBinsYLowMass_withFullOverflow, _nBinsYLowMass_withFullOverflow,
-      _nBinsYHighMass_withFullOverflow,
-      _nBinsYHighMass_withFullOverflow
-    }; // overflow is neglected
+  const TString analysisTag_binning="";
+  const DYTools::TMassBinning_t massBinningSet= _MassBins_default;
+  const int _nMassBins1D=_nMassBins2011;
+  const double *_massBinLimits1D=_massBinLimits2011;
+  const int *_nYBins1D=_nYBins2011;
+  const int _nYBinsMax1D=_nYBinsMax2011;
+  const double _yRangeEdge=_yRangeEdge_base;
+  const double _yRangeMax=_yRangeMax_base; 
 
-  
-  // ------------- 2011 and 2010 content is below ---------------
+#else
+  // non standard ranges
+  //#include "rangeDef_noUnderflow_inc.h"
+  #include "rangeDef_withFullOverflow_inc.h"
+  //#include "rangeDef_massBinTest4_inc.h"
+  //#include "rangeDef_ZpeakRegion_inc.h"
+
+#endif
+
+  // variables to be used in the analysis
+
+  const int nMassBins=(study2D) ? _nMassBins2D : _nMassBins1D;
+  const double *massBinLimits=(study2D) ? _massBinLimits2D : _massBinLimits1D;
+  const int *nYBins=(study2D) ? _nYBins2D : _nYBins1D;
+  const int nYBinsMax=(study2D) ? _nYBinsMax2D : _nYBinsMax1D;
+  const double yRangeEdge=_yRangeEdge;
+  const double yRangeMax=_yRangeMax; 
+
+  // ----------------------------
 
   // Systematics modes for unfolding and acceptance 
   typedef enum { SYST_MODE_FAILURE=0, NO_SYST, RESOLUTION_STUDY, FSR_STUDY, ESCALE_RESIDUAL, ESCALE_STUDY, ESCALE_STUDY_RND, SYST_RND } TSystematicsStudy_t;
@@ -184,52 +198,15 @@ namespace DYTools {
     return yes;
   }
 
+  // ----------------------------
 
-  //
-  // Define mass binning
-  //
+  const TString study2Dstr=TString((study2D) ? "2D" : "1D") + analysisTag_binning;
+  const TString analysisTag=study2Dstr + analysisTag_USER;
+  const int nUnfoldingBinsMax= nMassBins * nYBinsMax;
+  const int nUnfoldingBins= (study2D) ? 
+    ((nMassBins-2) * nYBinsMax + 
+     nYBins[nMassBins-2] + nYBins[nMassBins-1]) : nMassBins;
 
-  // 2011 mass binning
-  const int _nMassBins2011 = 40;
-  const double _massBinLimits2011[_nMassBins2011+1] = 
-    {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64, 68, 72, 76, 
-     81, 86, 91, 96, 101, 106, 110, 115, 120, 126, 133, 141, 
-     150, 160, 171, 185, 200, 220, 243, 273, 320, 380, 440, 
-     510, 600, 1000, 1500}; // 40 bins
-  const int _nYBinsMax2011=1; // the largest division into Y bins
-  const int _nYBins2011[_nMassBins2011] = { 
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-  };
-
-  const int _nMassBinsTest4 = 4;
-  const double _massBinLimitsTest4[_nMassBinsTest4+1] = 
-    {15,45,60,120,1500}; // 4 bins with Z-peak region singled-out
-  const int _nYBinsMaxTest4=1; // the largest division into Y bins
-  const int _nYBinsTest4[_nMassBinsTest4] = { 1, 1, 1, 1 };
-  const int _nYBinsTest4_2D[_nMassBinsTest4] = { 2, 2, 2, 1 };
-
-  // Z-peak region 1GeV bins
-  const int _nMassBinsZpeak = 60;
-  const double _massBinLimitsZpeak[_nMassBinsZpeak+1] = 
-    { 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
-      70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-      80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
-      90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
-      100, 101, 102, 103, 104, 105, 106, 107, 108, 109,
-      110, 111, 112, 113, 114, 115, 116, 117, 118, 119,
-      120 };
-  const int _nYBinsMaxZpeak=1; // the largest division into Y bins
-  const int _nYBinsZpeak[_nMassBinsZpeak] = { 
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-  };
 
   // generic bin idx finder
   inline
@@ -245,70 +222,6 @@ namespace DYTools {
     return result;
 
   };
-
-  // some derived bin idx finders -- for debug
-  //inline int _findMassBin2011(double mass) { return _findMassBin(mass,_nMassBins2011,_massBinLimits2011); }
-  //inline int _findMassBin13(double mass) { return _findMassBin(mass,_nMassBins13,_massBinLimits13); }
-  //inline int _findMassBinLumi(double mass) { return _findMassBin(mass,_nMassBinsLumi,_massBinLimitsLumi); }
-  //inline int _findMassBinZpeak(double mass) { return _findMassBin(mass,_nMassBinsZpeak,_massBinLimitsZpeak); }
-
-// Declare mass binnings
-  typedef enum { _MassBins_Undefined, _MassBins_2011, _MassBins_2011_2D, 
-		 _MassBins_test4, _MassBins_Zpeak,
-		 _MassBins_noUnderflow, _MassBins_withFullOverflow 
-  }     TMassBinning_t;
-
-
-  // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-  // Declare mass binning for the analysis (1D and 2D case)
-  // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-  
-  // default set
-#ifdef useDefaultBinSet
-  const double yRangeEdge=_yRangeEdge_base;
-  const double yRangeMax=_yRangeMax_base; // alternative: yRangeMax_withFullOverflow
-  const DYTools::TMassBinning_t massBinningSet=(study2D) ? _MassBins_2011_2D : _MassBins_2011;
-  const int nMassBins=(study2D) ? _nMassBins2D : _nMassBins2011;
-  const double *massBinLimits=(study2D) ? _massBinLimits2D : _massBinLimits2011;
-  const int *nYBins=(study2D) ? _nYBins2D : _nYBins2011;
-  const int _nYBinsMax2D=_nBinsYLowMass; // the largest division into Y bins
-  const int nYBinsMax=(study2D) ? _nYBinsMax2D : _nYBinsMax2011;
-
-#undef useDefaultBinSet
-#else
-
-  // set withFullOverflow
-  const double yRangeEdge=_yRangeEdge_withFullOverflow;
-  const double yRangeMax=_yRangeMax_withFullOverflow;
-  const DYTools::TMassBinning_t massBinningSet=(study2D) ? _MassBins_withFullOverflow : _MassBins_2011;
-  const int nMassBins=(study2D) ? _nMassBins2D_withFullOverflow : _nMassBins2011;
-  const double *massBinLimits=(study2D) ? _massBinLimits2D_withFullOverflow : _massBinLimits2011;
-  const int *nYBins=(study2D) ? _nYBins2D_withFullOverflow : _nYBins2011;
-  const int _nYBinsMax2D=_nBinsYLowMass_withFullOverflow; // the largest division into Y bins
-  const int nYBinsMax=(study2D) ? _nYBinsMax2D : _nYBinsMax2011;
-
-#endif
-
-
-  /*
-  const DYTools::TMassBinning_t massBinningSet= _MassBins_test4;
-  const int nMassBins= _nMassBinsTest4;
-  const double *massBinLimits=_massBinLimitsTest4;
-  const int *nYBins=(study2D) ? _nYBinsTest4_2D : _nYBinsTest4;
-  const int nYBinsMax= (study2D) ? 2 : 1;
-  */
-  
-
-  const TString study2Dstr=(study2D) ? "2D" : "1D";
-  const TString analysisTag=study2Dstr + analysisTag_USER;
-  const int nUnfoldingBinsMax= nMassBins * nYBinsMax;
-  const int nUnfoldingBins= (study2D) ? 
-    ((nMassBins-2) * nYBinsMax + 
-     nYBins[nMassBins-2] + nYBins[nMassBins-1]) : nMassBins;
-
-  // some analyses use 1D always
-  //const int nMassBins1D=nMassBins2011;
-  //const double *massBinLimits1D=massBinLimits2011;
 
   // 
   // Define functions which should be used in the code
