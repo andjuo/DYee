@@ -66,6 +66,7 @@ seedMin=1001
 seedMax=1020
 Use7TeVMCWeight=1 # Whether renormalize the 1st sample weight to 1 in MC macros
 IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
+DDBkgVersion=20131231
 
 [TAG_AND_PROBE]
 # Tag and probe options
