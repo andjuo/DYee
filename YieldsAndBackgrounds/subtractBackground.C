@@ -114,112 +114,8 @@ int subtractBackground(const TString conf,
   }
   //return retCodeStop;
   
-  bool useTrue2eBkgDataDriven = false;
-  bool useFakeBkgDataDriven = false;
-    
-  /*
-
-  TH2D *ddbkgTrue2e=NULL, *ddbkgTrue2eSystErr=NULL;
-  TH2D *ddbkgFake=NULL, *ddbkgFakeSystErr=NULL;
-
-  const int checkBinning=1;
-  if (useTrue2eBkgDataDriven) {
-    TString fname=inpMgr.GetTrue2eDDBkgFName();
-    if (!LoadThreeMatrices(fname,
-			   &ddbkgTrue2e,&ddbkgTrue2eSystErr,
-			   "true2eBackgroundFromData",
-			   "true2eBackgroundFromDataError",
-			   "true2eBackgroundFromDataErrorSyst",
-			   checkBinning,1)) {
-       std::cout << "failed to load data from <" << fname << ">\n";
-       return retCodeError;
-    }
-    ddbkgTrue2e->Print("range");
-    ddbkgTrue2eSystErr->Print("range");
-  }
-
-  if (useFakeBkgDataDriven) {
-    TString fname=inpMgr.GetFakeDDBkgFName();
-    if (!LoadThreeMatrices(fname,
-			   &ddbkgFake,&ddbkgFakeSystErr,
-			   "fakeBackgroundFromData",
-			   "fakeBackgroundFromDataError",
-			   "fakeBackgroundFromDataErrorSyst",
-			   checkBinning,1)) {
-       std::cout << "failed to load data from <" << fname << ">\n";
-       return retCodeError;
-    }
-  }
-
-  if (0) {
-    TCanvas *cx=new TCanvas("cx","cx",600,600);
-    if (ddbkgTrue2e) ddbkgTrue2e->Draw("COLZ");
-    cx->Update();
-  }
-
-  // background
-  TH2D *mcbkgTrue2e=createBaseH2("mcBkgTrue2e","mcBkgTrue2e");
-  TH2D *mcbkgTrue2eSystErr=createBaseH2("mcBkgTrue2eSyst","mcBkgTrue2eSyst");
-  TH2D *mcbkgFake=createBaseH2("mcBkgFake","mcBkgFake");
-  TH2D *mcbkgFakeSystErr=createBaseH2("mcBkgFakeSyst","mcBkgFakeSyst");
-
-  // Calculate true dielectron background, which includes
-  // WW,WZ,ZZ, ttbar, Wt, and DY->tautau
-  for (unsigned int i=0; i<yields.size(); ++i) {
-    TString sname=inpMgr.sampleName(i);
-    double systWeight=0.;
-    int add=0;
-    if (sname == "ztt") { systWeight=0.; add=1; }
-    else if (sname == "ttbar") { systWeight=0.5; add=1; }
-    else if (sname == "ww") { systWeight=1.0; add=1; }
-    else if (sname == "wtop") { systWeight=1.0; add=1; }
-    else if ((sname == "zz") || (sname == "wz")) { add=2; }
-    else if ((sname == "qcd") || (sname == "wjets")) { systWeight=0.5; add=-1; }
-    else if ((sname != "data") && (sname != "zee")) {
-      std::cout << "the sample " << sname << " is not considered in the systematics\n";
-      return retCodeError;
-    }
-
-    if (add==1) { // weighted error
-      mcbkgTrue2e->Add(yields[i]);
-      if (systWeight > 0.) {
-	TH2D *weights=(TH2D*)yields[i]->Clone(yields[i]->GetName() + TString("_clone"));
-	removeError(weights);
-	swapContentAndError(weights);
-	mcbkgTrue2eSystErr->Add(weights,systWeight);
-	delete weights;
-      }
-    }
-    else if (add==2) { // 100% syst error
-      // Previous version of DYee package (for 2011 data) 
-      // had the syst error on zz and wz as
-      // a linear sum of yields. Here it is added in quadrature
-      mcbkgTrue2e->Add(yields[i]);
-      TH2D *weights=(TH2D*)yields[i]->Clone(yields[i]->GetName() + TString("_clone"));
-      swapContentAndError(weights);
-      mcbkgTrue2eSystErr->Add(weights,1.);
-      delete weights;
-    }
-    else if (add==-1) { 
-      mcbkgFake->Add(yields[i]);
-      if (systWeight > 0.) {
-	TH2D *weights=(TH2D*)yields[i]->Clone(yields[i]->GetName() + TString("_clone"));
-	removeError(weights);
-	swapContentAndError(weights);
-	mcbkgFakeSystErr->Add(weights,systWeight);
-	delete weights;
-      }
-    }
-  }
-
-  if (0) {
-    printHistoErr(mcbkgTrue2e,mcbkgTrue2eSystErr);
-    printHistoErr(mcbkgFake,  mcbkgFakeSystErr);
-  }
-
-  TH2D *mcTotalBkg=createBaseH2("mcTotalBkg","mcTotalBkg");
-  TH2D *dataTotalBkg=createBaseH2("dataTotalBkg","dataTotalBkg");
-  */
+  bool useTrue2eBkgDataDriven = true;
+  bool useFakeBkgDataDriven = true;
 
   HistoPair2D_t ddbkgTrue2e;
   HistoPair2D_t ddbkgFake;
@@ -227,6 +123,7 @@ int subtractBackground(const TString conf,
   const int checkBinning=1;
   if (useTrue2eBkgDataDriven) {
     TString fname=inpMgr.GetTrue2eDDBkgFName();
+    std::cout << "fname=" << fname << "\n";
     if (!ddbkgTrue2e.loadThreeMatrices(fname,
 			   "true2eBackgroundFromData",
 			   "true2eBackgroundFromDataError",
@@ -261,6 +158,9 @@ int subtractBackground(const TString conf,
   HistoPair2D_t mcbkgTrue2e("mcBkgTrue2e");
   HistoPair2D_t mcbkgFake("mcBkgFake");
 
+  TH2D *hWZZZ=NULL;
+  int add_WZZZ_error_old_way=1;
+
   // Calculate true dielectron background, which includes
   // WW,WZ,ZZ, ttbar, Wt, and DY->tautau
   for (unsigned int i=0; i<yields.size(); ++i) {
@@ -288,15 +188,27 @@ int subtractBackground(const TString conf,
 	delete weights;
       }
     }
-    else if (add==2) { // 100% syst error
-      // Previous version of DYee package (for 2011 data) 
-      // had the syst error on zz and wz as
-      // a linear sum of yields. Here it is added in quadrature
+    else if (add==2) { 
       mcbkgTrue2e.add(yields[i]);
-      TH2D *weights=(TH2D*)yields[i]->Clone(yields[i]->GetName() + TString("_clone"));
-      swapContentAndError(weights);
-      mcbkgTrue2e.addSystErr(weights,1.);
-      delete weights;
+      // 100% syst error
+      if (add_WZZZ_error_old_way) {
+	// Previous version of DYee package (for 2011 data) 
+	// had the syst error on zz and wz as
+	// a linear sum of yields. Here it is added in quadrature
+	if (!hWZZZ) {
+	  hWZZZ=Clone(yields[i],"hWZZZ","hWZZZ");
+	}
+	else {
+	  hWZZZ->Add(yields[i]);
+	}
+      }
+      else {
+	// Here it is added in quadrature
+	TH2D *weights=(TH2D*)yields[i]->Clone(yields[i]->GetName() + TString("_clone"));
+	swapContentAndError(weights);
+	mcbkgTrue2e.addSystErr(weights,1.);
+	delete weights;
+      }
     }
     else if (add==-1) { 
       mcbkgFake.add(yields[i]);
@@ -308,6 +220,12 @@ int subtractBackground(const TString conf,
 	delete weights;
       }
     }
+  }
+
+  if (add_WZZZ_error_old_way) {
+    swapContentAndError(hWZZZ);
+    mcbkgTrue2e.addSystErr(hWZZZ,1.);
+    swapContentAndError(hWZZZ);
   }
 
   if (0) {
@@ -431,7 +349,9 @@ int subtractBackground(const TString conf,
   PlotMatrixVariousBinning(signalYields,"signalYields","COLZ",foutPlots);
   PlotMatrixVariousBinning(signalYieldsError,"signalYieldsError","COLZ",foutPlots);
   foutPlots->Close();
+  */
 
+  /*
   if (0) {
     for(int i=0; i<DYTools::nMassBins; i++){
       // Print tables of yields and background
@@ -450,7 +370,7 @@ int subtractBackground(const TString conf,
 	DYTools::findAbsYValueRange(i,yi, absYmin,absYmax);
 	printf("%5.1f-%5.1f GeV ", DYTools::massBinLimits[i], DYTools::massBinLimits[i+1]);
 	printf("%4.2f-%4.2f ", absYmin,absYmax);
-	printf(" %7.0f+-%3.0f ", observedYields[i][yi], observedYieldsErr[i][yi]);
+	printf(" %7.0f+-%3.0f ", observedYield.getBinContent(i,yi), observedYield.getBinError(i,yi));
 	printf(" %5.1f+-%4.1f+-%4.1f ", true2eBackground[i][yi], true2eBackgroundError[i][yi], true2eBackgroundErrorSyst[i][yi]);
 	printf(" %6.2f+-%4.2f+-%4.2f ", wzzz[i][yi], wzzzError[i][yi], wzzzErrorSyst[i][yi]);
 	printf(" %5.1f+-%5.1f+-%5.1f ", fakeEleBackground[i][yi], fakeEleBackgroundError[i][yi], fakeEleBackgroundErrorSyst[i][yi]);
@@ -461,37 +381,55 @@ int subtractBackground(const TString conf,
     }
     std::cout << std::endl;
   }
+  */
 
   if (1) {
-    for(int i=0; i<DYTools::nMassBins; i++){
-      // Print tables of yields and background
-      if ( (DYTools::study2D==1) ||
-	   ((DYTools::study2D==0) && (i==0)) ) {
+    for (int ibackground=0; ibackground<2; ++ibackground) {
+      const HistoPair2D_t *bkgTrue2e=(ibackground==0) ? &mcbkgTrue2e : &ddbkgTrue2e;
+      const HistoPair2D_t *bkgFake=(ibackground==0) ? &mcbkgFake : &ddbkgFake;
+      const HistoPair2D_t *totBkg= (ibackground==0) ? &mcbkgTotal : &ddbkgTotal;
+      const HistoPair2D_t *sigYield=(ibackground==0) ? &signalYieldMCbkg : &signalYieldDDbkg;
+
+      if ((ibackground==1) && (!useTrue2eBkgDataDriven || !useFakeBkgDataDriven)) {
+	std::cout << "\nData-driven background is not used";
+	if (( useTrue2eBkgDataDriven && !useFakeBkgDataDriven) ||
+	    (!useTrue2eBkgDataDriven &&  useFakeBkgDataDriven)) std::cout << "fully";
+	std::cout << "\n";
+	continue;
+      }
+
+      for(int iidx=0; iidx<DYTools::nMassBins; iidx++){
+	// Print tables of yields and background
+	if ( (DYTools::study2D==1) ||
+	     ((DYTools::study2D==0) && (iidx==0)) ) {
 	   
-	printf("\n\n\t\tTables for iMass=%d\n\n",i);
+	  printf("\n\n\t\tTables for iMass=%d, %s background\n\n",iidx,(ibackground) ? "data-driven" : "MC");
 	
-	// Table 1: split background into true, wz/zz, and qcd
-	printf(" Note: stat error in signal yield contain stat error on background,\n");
-	printf("   and syst error on signal yield contains syst error on background\n");
-	printf("mass range   rapidity range   observed       true2e-bg         fake-bg                 total-bg            signal\n");
+	  // Table 1: split background into true and fake
+	  printf(" Note: stat error in signal yield contain stat error on background,\n");
+	  printf("   and syst error on signal yield contains syst error on background\n");
+	  printf("mass range   rapidity range   observed       true2e-bg         fake-bg                 total-bg            signal\n");
+	}
+	for (int yiidx=0; yiidx<DYTools::nYBins[iidx]; ++yiidx) {
+	  double absYmin=0, absYmax=0;
+	  DYTools::findAbsYValueRange(iidx,yiidx, absYmin,absYmax);
+	  printf("%5.1f-%5.1f GeV ", DYTools::massBinLimits[iidx], DYTools::massBinLimits[iidx+1]);
+	  printf("%4.2f-%4.2f ", absYmin,absYmax);
+	  const int i=iidx+1;
+	  const int yi=yiidx+1;
+	  printf(" %7.0f+-%3.0f ", observedYield.getBinContent(i,yi), observedYield.getBinError(i,yi));
+	  printf(" %5.1f+-%4.1f+-%4.1f ", bkgTrue2e->getBinContent(i,yi),bkgTrue2e->getBinError(i,yi),bkgTrue2e->getBinSystError(i,yi));
+	  printf(" %5.1f+-%5.1f+-%5.1f ", bkgFake->getBinContent(i,yi),bkgFake->getBinError(i,yi),bkgFake->getBinSystError(i,yi));
+	  printf("    %5.1f+-%4.1f+-%4.1f ",totBkg->getBinContent(i,yi),totBkg->getBinError(i,yi),totBkg->getBinSystError(i,yi));
+	  printf("    %8.1f+-%5.1f+-%5.1f ", sigYield->getBinContent(i,yi),sigYield->getBinError(i,yi),sigYield->getBinSystError(i,yi));
+	  printf("\n");
+	}
       }
-      for (int yi=0; yi<DYTools::nYBins[i]; ++yi) {
-	double absYmin=0, absYmax=0;
-	DYTools::findAbsYValueRange(i,yi, absYmin,absYmax);
-	printf("%5.1f-%5.1f GeV ", DYTools::massBinLimits[i], DYTools::massBinLimits[i+1]);
-	printf("%4.2f-%4.2f ", absYmin,absYmax);
-	printf(" %7.0f+-%3.0f ", observedYields[i][yi], observedYieldsErr[i][yi]);
-	printf(" %5.1f+-%4.1f+-%4.1f ", true2eBackground[i][yi], true2eBackgroundError[i][yi], true2eBackgroundErrorSyst[i][yi]);
-	printf(" %5.1f+-%5.1f+-%5.1f ", fakeEleBackground[i][yi], fakeEleBackgroundError[i][yi], fakeEleBackgroundErrorSyst[i][yi]);
-	printf("    %5.1f+-%4.1f+-%4.1f ", totalBackground[i][yi], totalBackgroundError[i][yi], totalBackgroundErrorSyst[i][yi]);
-	printf("    %8.1f+-%5.1f+-%5.1f ", signalYields[i][yi], signalYieldsError[i][yi], signalYieldsErrorSyst[i][yi]);
-	printf("\n");
-      }
+      std::cout << std::endl;
     }
-    std::cout << std::endl;
   }
 
-
+  /*
   if (0) {
     int yi=0;
     // Table 2: combined true2e and WZ/ZZ backgrounds only
