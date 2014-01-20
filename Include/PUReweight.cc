@@ -80,7 +80,7 @@ int PUReweight_t::initializeHildrethWeights(){
   #ifdef DYee8TeV_reg
   // any MC sample and plot the "Info.nPUmean" variable which, for MC, contains
   // the number of simulated ("true", not "observed") pile-up at generator level. 
-  ftargetName= "../root_files/pileup/8TeV_reg/dataPileupHildreth_mean_full2012_20131106_repacked.root";
+  ftargetName= "../root_files_reg/pileup/8TeV_reg/dataPileupHildreth_mean_full2012_20131106_repacked.root";
   #endif
 #endif
   std::cout << "PUReweight::initializeHildrethWeights ftargetName=" << ftargetName << "\n";
@@ -104,7 +104,7 @@ int PUReweight_t::initializeHildrethWeights(){
   fsourceName = "../root_files/pileup/8TeV/mcPileupHildreth_full2012_20130521_repacked.root";  
 #else
   #ifdef DYee8TeV_reg
-  fsourceName = "../root_files/pileup/8TeV_reg/mcPileupHildreth_mean_full2012_20131106_repacked.root";
+  fsourceName = "../root_files_reg/pileup/8TeV_reg/mcPileupHildreth_mean_full2012_20131106_repacked.root";
   #endif
 #endif
   std::cout << "PUReweight::initializeHildrethWeights fsourceName=" << fsourceName << "\n";
