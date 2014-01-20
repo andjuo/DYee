@@ -238,6 +238,9 @@ public:
 #ifdef DYee8TeV
     TString dir="../root_files/";
 #endif
+#ifdef DYee8TeV_reg
+    TString dir="../root_files_reg/";
+#endif
 #ifdef DYee7TeV
     TString dir="../root_files7TeV/";
 #endif
@@ -376,15 +379,25 @@ public:
   }
   */
 
-  TString GetTrue2eDDBkgFName() const {
+  TString GetDDBkgFName(const TString fnameBase_inp) const {
     TString tag=this->dyTag();
-    TString fname=Form("../root_files/ddbkgYield/%s/true2eBkgDataPoints_%s.root",tag.Data(),DYTools::study2Dstr.Data());
+    TString dir=this->resultBaseDir("ddbkgYield",DYTools::NO_SYST);
+    TString fnameBase=fnameBase_inp;
+    std::string ver=this->userKeyValue("DDBkgVersion");
+    if (ver.size()) fnameBase.Append(TString("_") + TString(ver.c_str()));
+    TString fname=dir + fnameBase + 
+      TString(Form("_%s.root",DYTools::study2Dstr.Data()));
+    return fname;
+  }
+
+  TString GetTrue2eDDBkgFName() const {
+    TString fname=this->GetDDBkgFName("true2eBkgDataPoints");
     return fname;
   }
 
   TString GetFakeDDBkgFName() const {
-    TString tag=this->dyTag();
-    TString fname=Form("../root_files/ddbkgYield/%s/fakeBkgDataPoints_%s.root",tag.Data(),DYTools::study2Dstr.Data());
+    TString fname=this->GetDDBkgFName("fakeBkgDataPoints");
+    //TString fname=Form("../root_files/ddbkgYield/%s/fakeBkgDataPoints_%s.root",tag.Data(),DYTools::study2Dstr.Data());
     return fname;
   }
 
