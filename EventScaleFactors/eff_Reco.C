@@ -216,7 +216,7 @@ int eff_Reco(const TString configFile,
   // For 8 TeV, this is not needed and the default ones will be used
   TString puTargetFName = "";
   TString puSourceFName = "";
-  if( DYTools::energy8TeV == 1 ){
+  if( DYTools::energy8TeV ){
     puTargetFName = "undefined";
     puSourceFName = "undefined";
   }else{

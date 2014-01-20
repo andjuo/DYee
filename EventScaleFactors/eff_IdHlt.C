@@ -231,7 +231,7 @@ int eff_IdHlt(const TString configFile,
   // For 8 TeV, these names are blank and the default Hildreth method is used.
   TString puTargetFName = "";
   TString puSourceFName = "";
-  if( DYTools::energy8TeV==1 ){
+  if( DYTools::energy8TeV ){
     puTargetFName = "undefined";
   }else{
     if (effType==DYTools::HLT) {

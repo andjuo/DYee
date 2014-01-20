@@ -181,7 +181,7 @@ int CreatePUWeightedBranch(const TString &fName,
   PUReweight_t puReweight;
   // Only MC will be reweighted. 
   if( isMC ){
-    if( DYTools::energy8TeV == 1){
+    if( DYTools::energy8TeV ){
       // For 8 TeV, standard Hildreth weights are used.
       // The method does not need to be set because above
       // it is set in the constructor by default.
@@ -219,7 +219,7 @@ int CreatePUWeightedBranch(const TString &fName,
 
   // Print everything
   if( isMC ){
-    if( DYTools::energy8TeV == 1 ){
+    if( DYTools::energy8TeV ){
       printf("PU reweight info: this is MC. The weights are standard Hildreth weights.\n");
     }else{
       printf("PU reweight info: this is MC. The weights are prepared based on:\n");
@@ -286,7 +286,7 @@ int CreatePUWeightedBranch(const TString &fName,
       evWeightBr->GetEntry(i);
       // For MC, apply PU weights
       if(isMC){
-	if( DYTools::energy8TeV == 1 ){
+	if( DYTools::energy8TeV ){
 	  pvWeight=evWeight * puReweight.getWeightHildreth(nGoodPV);
 	}else{
 	  pvWeight=evWeight * puReweight.getWeightTwoHistos(nGoodPV);

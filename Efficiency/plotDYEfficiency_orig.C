@@ -403,7 +403,7 @@ void plotDYEfficiency(const TString input,
 
 	// The selection below is for the EGM working points from spring 2012
 	// recommended for both 2011 and 2012 data
-	if( DYTools::energy8TeV == 1){
+	if( DYTools::energy8TeV ){
 	  if(!passEGMID2012(dielectron, WP_MEDIUM, info->rhoLowEta)) continue;
 	}else{
 	  if(!passEGMID2011(dielectron, WP_MEDIUM, info->rhoLowEta)) continue;
