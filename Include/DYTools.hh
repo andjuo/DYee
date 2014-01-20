@@ -1,13 +1,14 @@
 #ifndef DYTools_HH
 #define DYTools_HH
 
-#define DYee7TeV
+//#define DYee7TeV
 //#define DYee8TeV
+#define DYee8TeV_reg
 
-#ifdef DYee7TeV
-# ifdef DYee8TeV
-#   error define only 7TeV or 8TeV analysis
-# endif
+#if (defined DYee7TeV && (defined DYee8TeV || defined DYee8TeV_reg)) || (defined DYee8TeV && defined DYee8TeV_reg)
+#   error define only 7TeV, 8TeV or 8TeV_reg analysis
+#elif !(defined DYee7TeV || defined DYee8TeV || defined DYee8TeV_reg) 
+#   error analysis kind is not specified
 #endif
 
 
@@ -41,7 +42,7 @@ namespace DYTools {
   //             nMassBins, massBinLimits, nYBins
   // ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 
-  const int study2D=1;
+  const int study2D=0;
   const int extendYRangeFor1D=1; // whether |ymax|=14 for 1D study
 #ifdef unlimited_Y_in_1D
   const TString analysisTag_USER=(!study2D) ? "-unlimY" : "";
@@ -55,8 +56,11 @@ namespace DYTools {
 #ifdef DYee7TeV
   const int energy8TeV=0;
 #endif
-#ifdef DYee8TeV
+#ifdef DYee8TeV 
   const int energy8TeV=1;
+#endif
+#ifdef DYee8TeV_reg
+  const int energy8TeV=2;
 #endif
 
   // Global parameters, kinematics, etc
@@ -74,9 +78,14 @@ namespace DYTools {
 
   const int maxTnPCanvasDivisions=10; // maximum number of canvas divisions in EventScaleFactors macros
 
-  //const TString strLumiAtECMS="4.7 fb^{-1} at #sqrt{s} = 7 TeV";
+#ifndef DYee8TeV_reg // luminosity for not-regressed files or 7TeV analysis
   const TString strLumiAtECMS=(energy8TeV) ? "19.8 fb^{-1} at #sqrt(s) = 8 TeV" : "4.8 fb^{-1} at #sqrt{s} = 7 TeV";
   const double lumiAtECMS=(energy8TeV) ? 19789. : 4839.;
+#else // luminosity for regressed files or 7TeV analysis
+  const TString strLumiAtECMS=(energy8TeV==2) ? "19.7 fb^{-1} at #sqrt(s) = 8 TeV" : "4.8 fb^{-1} at #sqrt{s} = 7 TeV";
+  const double lumiAtECMS=(energy8TeV==2) ? 19712. : 4839.;
+#endif
+
   const double lumiAtECMS_accuracy=1.;
 
 
@@ -91,10 +100,10 @@ namespace DYTools {
   // Note: this implementation neglects underflow and overflow
   // in rapidity.
   const double yRangeMin =  0.0;
-  const double _yRangeMax_base =  electronEtaMax + ((!study2D && extendYRangeFor1D) ? ((energy8TeV==1) ? 11.6:11.5) : 0);
+  const double _yRangeMax_base =  electronEtaMax + ((!study2D && extendYRangeFor1D) ? ((energy8TeV) ? 6.5:6.5) : 0);
   const double _yRangeEdge_base = _yRangeMax_base;
-  const int _nBinsYLowMass  = (energy8TeV == 1) ? 24 : 25;
-  const int _nBinsYHighMass = (energy8TeV == 1) ? 12 : 10;
+  const int _nBinsYLowMass  = (energy8TeV) ? 24 : 25;
+  const int _nBinsYHighMass = (energy8TeV) ? 12 : 10;
 
   // ----------------------------
 

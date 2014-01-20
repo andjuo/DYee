@@ -3,6 +3,7 @@
 
 // ----------------------------------------------------
 
+#include "../Include/DYTools.hh"
 #include "../Include/PUReweight.hh"
 #include "../Include/FEWZ.hh"
 #include "../Include/TGenInfo.hh"

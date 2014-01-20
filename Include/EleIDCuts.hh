@@ -11,6 +11,10 @@
 #ifdef DYee8TeV
 #include "Inc_8TeV/EleIDCuts.hh"
 #endif
+// --------------- 8 TeV analysis (regressed) -------------------
+#ifdef DYee8TeV_reg
+#include "Inc_8TeV_reg/EleIDCuts.hh"
+#endif
 // --------------------------------------------------
 
 
@@ -28,7 +32,7 @@ typedef enum { _EleID_Smurf2011,
 #ifdef DYee7TeV
 const TEleID_t _electronID=_EleID_EGM2011_Medium;
 #endif
-#ifdef DYee8TeV
+#if (defined DYee8TeV) || (defined DYee8TeV_reg)
 const TEleID_t _electronID=_EleID_EGM2012_Medium;
 #endif
 
@@ -49,7 +53,7 @@ Bool_t passEleID(const EleObj_t *electron, const mithep::TEventInfo *info=NULL) 
     pass=passEGMID2011(electron,WP_MEDIUM,info->rhoLowEta);
     break;
 #endif
-#ifdef DYee8TeV
+#if (defined DYee8TeV) || (defined DYee8TeV_reg)
   case _EleID_EGM2012_Medium: 
     assert(info);
     pass=passEGMID2012(electron,WP_MEDIUM,info->rhoLowEta);

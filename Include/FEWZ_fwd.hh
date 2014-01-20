@@ -11,6 +11,9 @@
 #ifdef DYee8TeV
 #include "Inc_8TeV/FEWZ.hh"
 #endif
+#ifdef DYee8TeV_reg
+#include "Inc_8TeV_reg/FEWZ.hh"
+#endif
 
 
 #endif

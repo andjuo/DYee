@@ -89,9 +89,15 @@ public:
   const TClonesArray* getPVArr() const { return pvArr; }
 
   int getNPV(int isData) const {
-    int npv=0;
+    int npv=-100;
     if (isData) npv=pvArr->GetEntriesFast();
+#if (defined DYee7TeV) || (defined DYee8TeV)
     else npv=info->nPU;
+#else
+#    if (defined DYee8TeV_reg)
+       npv=int(info->nPUmean);
+#    endif
+#endif
     return npv;
   }
 

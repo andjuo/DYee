@@ -1,18 +1,6 @@
 #include "../Include/PUReweight.hh"
 #include "assert.h"
 
-// check inclusions
-#ifdef DYee7TeV
-#define __dyee_def_ok
-#endif
-#ifdef DYee8TeV
-#define __dyee_def_ok
-#endif
-#ifndef __dyee_def_ok
-#error either DYee7TeV or DYee8TeV has to be defined
-#endif
-
-
 // --------------------------------------------------------------
 PUReweight_t::PUReweight_t(TReweightMethod_t method):
   FName(), FFile(NULL), hRef(NULL), 
@@ -88,6 +76,12 @@ int PUReweight_t::initializeHildrethWeights(){
   TString ftargetName = "../root_files7TeV/pileup/dataPileupHildreth_full2011_20121110_repacked.root";
 #ifdef DYee8TeV
   ftargetName = "../root_files/pileup/8TeV/dataPileupHildreth_full2012_20130521_repacked.root";
+#else
+  #ifdef DYee8TeV_reg
+  // any MC sample and plot the "Info.nPUmean" variable which, for MC, contains
+  // the number of simulated ("true", not "observed") pile-up at generator level. 
+  ftargetName= "../root_files/pileup/8TeV_reg/dataPileupHildreth_mean_full2012_20131106_repacked.root";
+  #endif
 #endif
   std::cout << "PUReweight::initializeHildrethWeights ftargetName=" << ftargetName << "\n";
   TFile f1(ftargetName);
@@ -108,6 +102,10 @@ int PUReweight_t::initializeHildrethWeights(){
   TString fsourceName = "../root_files7TeV/pileup/mcPileupHildreth_full2011_20121110_repacked.root";
 #ifdef DYee8TeV
   fsourceName = "../root_files/pileup/8TeV/mcPileupHildreth_full2012_20130521_repacked.root";  
+#else
+  #ifdef DYee8TeV_reg
+  fsourceName = "../root_files/pileup/8TeV_reg/mcPileupHildreth_mean_full2012_20131106_repacked.root";
+  #endif
 #endif
   std::cout << "PUReweight::initializeHildrethWeights fsourceName=" << fsourceName << "\n";
   TFile f2(fsourceName);

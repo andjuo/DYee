@@ -23,11 +23,13 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr) {
     if (!fPUReweight) ok=0; else fDoPUReweight=do_puReweight;
 
     // hard-coded check
+#ifndef DYee8TeV_reg
     double expectWeight_at_11=(DYTools::energy8TeV) ? 1.283627 : 1.32768;
     if (fabs(fPUReweight->getWeight(11) - expectWeight_at_11)>1e-4) {
       std::cout << "EventWeight::init failed hard-coded check\n";
       assert(0);
     }
+#endif
   }
 
   if (do_fewzCorr) {
