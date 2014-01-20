@@ -83,6 +83,8 @@ public:
     Fh2ss->SetTitle(nameSS);
   }
 
+  int ptrsOk() const { return ((Fh2pp!=NULL) && (Fh2pm!=NULL) && (Fh2mm!=NULL) && (Fh2ss!=NULL)) ? 1:0; }
+
   TH2D* getH2PP() { return Fh2pp; }
   TH2D* getH2PM() { return Fh2pm; }
   TH2D* getH2MM() { return Fh2mm; }
