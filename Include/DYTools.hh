@@ -594,7 +594,7 @@ namespace DYTools {
     return result;
   };
 
-  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5Negs, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs} TEtaBinSet_t;
+  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5corr, ETABINS5Negs, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs} TEtaBinSet_t;
   const int nEtaBins1 = 1;
   const double etaBinLimits1[nEtBins1 + 1] = 
     {0, 2.5000001};
@@ -613,6 +613,9 @@ namespace DYTools {
   const int nEtaBins5 = 5;
   const double etaBinLimits5[nEtaBins5 + 1] =
     {0, 0.8, 1.4442, 1.566, 2.0, 2.500001 };
+  const int nEtaBins5corr = 5;
+  const double etaBinLimits5corr[nEtaBins5corr + 1 ] = 
+    {0, 0.8, 1.4442, 1.556, 2.2, 2.400001 };
   const int nEtaBins4test = 4;
   const double etaBinLimits4test[nEtaBins4test + 1] =
     {0, 0.8, 1.479, 2.0, 2.500001 };
@@ -652,6 +655,7 @@ namespace DYTools {
     case ETABINS3: n = nEtaBins3; break;
     case ETABINS3Negs: n = nEtaBins3Negs; break;
     case ETABINS5: n = nEtaBins5; break;
+    case ETABINS5corr: n = nEtaBins5corr; break;
     case ETABINS4test: n = nEtaBins4test; break;
     case ETABINS4testNegs: n = nEtaBins4testNegs; break;
     case ETABINS4alt: n = nEtaBins4alt; break;
@@ -680,6 +684,7 @@ namespace DYTools {
     case ETABINS3: limits = etaBinLimits3; break;
     case ETABINS3Negs: limits = etaBinLimits3Negs; break;
     case ETABINS5: limits = etaBinLimits5; break;
+    case ETABINS5corr: limits = etaBinLimits5corr; break;
     case ETABINS4test: limits = etaBinLimits4test; break;
     case ETABINS4testNegs: limits = etaBinLimits4testNegs; break;
     case ETABINS4alt: limits = etaBinLimits4alt; break;
@@ -707,6 +712,7 @@ namespace DYTools {
     case ETABINS2: 
     case ETABINS3: 
     case ETABINS5:
+    case ETABINS5corr:
     case ETABINS4test:
     case ETABINS4alt:
     case ETABINS5alt:
