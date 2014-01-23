@@ -86,6 +86,9 @@ bool passID(const mithep::TElectron *electron, double rho){
 #ifdef DYee8TeV
   result = passEGMID2012(electron, WP_MEDIUM, rho);
 #endif
+#ifdef DYee8TeV_reg
+  result = passEGMID2012(electron, WP_MEDIUM, rho);
+#endif
 #ifdef DYee7TeV
   result = passEGMID2011(electron, WP_MEDIUM, rho);
 #endif
@@ -96,6 +99,9 @@ bool passIDTag(const mithep::TElectron *electron, double rho){
 
   bool result = false;
 #ifdef DYee8TeV
+  result = passEGMID2012(electron, WP_TIGHT, rho);
+#endif
+#ifdef DYee8TeV_reg
   result = passEGMID2012(electron, WP_TIGHT, rho);
 #endif
 #ifdef DYee7TeV
