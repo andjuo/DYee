@@ -38,6 +38,21 @@ public:
   template<class int_type>
   void reserve(int_type reserve_size) { _info.reserve(reserve_size); }
 
+  const std::string get_line(unsigned int idx) const { return _info[idx]; }
+
+  // ----------------
+
+  unsigned int locate(const std::string &key, unsigned int start=0) const {
+    const unsigned int m1=(unsigned int)(-1);
+    unsigned int idx=m1;
+    for (unsigned int i=start; (idx==m1) && (i<_info.size()); ++i) {
+      if (PosOk(_info[i],key)) idx=i;
+    }
+    return idx;
+  }
+
+  // ----------------
+
   void append(const std::string &line) { _info.push_back(line); }
 
   void print() const {
@@ -229,6 +244,7 @@ public:
 
   unsigned int userKeyCount() const { return FUserKeys.size(); }
   std::string userKeyValue(const std::string &key) const;
+  TString userKeyValueAsTString(const std::string &key) const { return TString(this->userKeyValue(key).c_str()); }
   int userKeyValueAsInt(const std::string &key) const { return AsInt(this->userKeyValue(key)); }
   double userKeyValueAsDouble(const std::string &key) const { return AsDouble(this->userKeyValue(key)); }
 
@@ -333,6 +349,8 @@ public:
     return dir;
   }
 
+  TString convertSkim2Ntuple(TString fname) const;
+
   TString correctionFullFileName(const TString &correctionName, DYTools::TSystematicsStudy_t systMode, int applyNtupleExtraTag) const {
     TString correctionDir=this->constDir(systMode,0);
     //if (systMode!=DYTools::NO_SYST) 
@@ -346,12 +364,27 @@ public:
   // TnP section
   const TDescriptiveInfo_t *infoSection() const { return FInfoSection; }
   TString tnpTag() const { return FSelectionTag; }
-  DYTools::TEtBinSet_t etBinsKind() const { return DYTools::ETBINS6; }
-  DYTools::TEtaBinSet_t etaBinsKind() { return DYTools::ETABINS5; }
+  //DYTools::TEtBinSet_t etBinsKind() const { return DYTools::ETBINS6; }
+  //DYTools::TEtaBinSet_t etaBinsKind() { return DYTools::ETABINS5; }
 
-  TString tnpSelEventsFullName(DYTools::TSystematicsStudy_t systMode, int createDir=0, int applyNtupleExtraTag=1) const {
+  TString tnpDir(DYTools::TSystematicsStudy_t systMode, int createDir=0) const { 
     TString dir=resultBaseDir("tag_and_probe",systMode);
     if (createDir) CreateDir(dir,1);
+    return dir;
+  }
+
+  TString tnpSelectEventsFName(DYTools::TSystematicsStudy_t systMode, const TString &sampleType, const TString &effType, const TString &triggerName) const {
+    const TString u="_";
+    const TString b="/";
+    TString dir=tnpDir(systMode) + b;
+    TString ending=(FPUReweightFlag) ? "_PU.root" : ".root";
+    TString fname=Form("selectEvents_%s_%s_%s_%s%s",DYTools::analysisTag.Data(),sampleType.Data(),effType.Data(),triggerName.Data(),ending.Data());
+    TString fullName=dir+fname;
+    return fullName;
+  }
+
+  TString tnpSFSelEventsFullName(DYTools::TSystematicsStudy_t systMode, int createDir=0, int applyNtupleExtraTag=1) const {
+    TString dir=this->tnpDir(systMode,createDir);
     applyNtupleExtraTag=1;
     TString fname=this->resultBaseFileName("eventSF_selectedEvents",applyNtupleExtraTag);
     TString rem=TString("_") + DYTools::analysisTag;
@@ -362,6 +395,32 @@ public:
   }
 
   int tnpEffCalcMethod(DYTools::TDataKind_t, DYTools::TEfficiencyKind_t kind) const; // does not use file info. To be fixed
+
+  TString getTNP_calcMethod(const TDescriptiveInfo_t &info, DYTools::TDataKind_t dataKind, DYTools::TEfficiencyKind_t kind) const;
+
+  std::string getTNP_etetaBinningString(const TDescriptiveInfo_t &info) const;
+  TString getTNP_etBinningString(const TDescriptiveInfo_t &info) const;
+  TString getTNP_etaBinningString(const TDescriptiveInfo_t &info) const;
+
+  int getTNP_ntuples(const TDescriptiveInfo_t &info, int runOnData,
+		     std::vector<TString> &ntupleFileNames,
+		     std::vector<TString> &jsonFileNames) const;
+
+  TString getTNP_calcMethod(DYTools::TDataKind_t dataKind, DYTools::TEfficiencyKind_t kind) const {
+    return (FInfoSection) ? this->getTNP_calcMethod(*FInfoSection,dataKind,kind) : TString("getTNP_*: call LoadTnP first");
+  }
+
+  TString getTNP_etBinningString() const { return (FInfoSection) ? this->getTNP_etBinningString(*FInfoSection) : TString("getTNP*: call LoadTnP first"); }
+  TString getTNP_etaBinningString() const {
+    return (FInfoSection) ? this->getTNP_etaBinningString(*FInfoSection) : TString("getTNP*: call LoadTnP first");
+  }
+
+  int getTNP_ntuples(int runOnData,
+		     std::vector<TString> &ntupleFileNames,
+		     std::vector<TString> &jsonFileNames) const {
+    if (FInfoSection) return getTNP_ntuples(*FInfoSection,runOnData,ntupleFileNames,jsonFileNames);
+    return this->reportError("getTNP*: call LoadTnP first");
+  }
 
 
   /*

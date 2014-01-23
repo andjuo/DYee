@@ -566,6 +566,22 @@ void InputFileMgr_t::PrintSampleFileNames(int nameOnly) const {
   std::cout << "\n";
 }
 
+// -----------------------------------------------------------
+
+TString InputFileMgr_t::convertSkim2Ntuple(TString fname) const {
+  if (fname.Index(FSkimDef)!=-1) {
+    //std::cout << "modifying <" << fname << ">\n";
+    fname.ReplaceAll(FSkimDef,FNtupleDef);
+  }
+  else if (fname.Index(FNtupleDef)!=-1) {
+    fname.ReplaceAll(FNtupleDef,FSkimDef);
+  }
+  else {
+    this->reportError("convertSkim2Ntuple: could not convert <%s>",fname);
+  }
+  //std::cout << "new name=<" << fname << ">\n";
+  return fname;
+}
 
 // -----------------------------------------------------------
 
@@ -593,6 +609,101 @@ int InputFileMgr_t::tnpEffCalcMethod(DYTools::TDataKind_t dataKind, DYTools::TEf
   return method;
 }
 
+// -----------------------------------------------------------
+
+TString InputFileMgr_t::getTNP_calcMethod(const TDescriptiveInfo_t &info, DYTools::TDataKind_t dataKind, DYTools::TEfficiencyKind_t kind) const {
+  std::string dataStr=DataKindName(dataKind).Data();
+  std::string kindStr=EfficiencyKindName(kind).Data();
+  if (DYTools::efficiencyIsHLT(kind)) kindStr="HLT";
+  std::string key=kindStr + std::string("_") + dataStr;
+  for (unsigned int i=0; i<key.size(); i++) key[i]=toupper(key[i]);
+  unsigned int idx=info.locate(key);
+  std::string key1,value;
+  if (idx<info.size()) {
+    if (!GetKeyValue(info.get_line(idx),key1,value)) {
+      reportError("getTNP_calcMethod","code error");
+    }
+  }
+  return TString(value.c_str());
+}
+
+// -----------------------------------------------------------
+
+std::string InputFileMgr_t::getTNP_etetaBinningString(const TDescriptiveInfo_t &info) const {
+  std::string key="MAP";
+  std::string value, key1;
+  unsigned int idx=info.locate(key);
+  if ((idx<info.size()) && !GetKeyValue(info.get_line(idx),key1,value)) {
+    reportError("getTNP_etetaBinningString","code error");
+  }
+  return value;
+}
+// -----------------------------------------------------------
+
+TString InputFileMgr_t::getTNP_etBinningString(const TDescriptiveInfo_t &info) const {
+  std::string value=getTNP_etetaBinningString(info);
+  size_t p=value.find("ETB");
+  size_t p1=value.find(" ",p);
+  if (!PosOk(p1)) p1=value.size();
+  return TString(value.substr(p,p1-p).c_str());
+}
+
+
+// -----------------------------------------------------------
+
+TString InputFileMgr_t::getTNP_etaBinningString(const TDescriptiveInfo_t &info) const {
+  std::string value=getTNP_etetaBinningString(info);
+  size_t p=value.find("ETAB");
+  size_t p1=value.find(" ",p);
+  if (!PosOk(p1)) p1=value.size();
+  return TString(value.substr(p,p1-p).c_str());
+}
+
+ 
+// -----------------------------------------------------------
+
+int InputFileMgr_t::getTNP_ntuples(const TDescriptiveInfo_t &info,
+				   int runOnData,
+				   std::vector<TString> &ntupleFileNames,
+				   std::vector<TString> &jsonFileNames) const {
+  int res=1;
+  if (info.size()) res=1; // dummy to prevent compiler complaints
+  ntupleFileNames.clear();
+  jsonFileNames.clear();
+  // obtain file names
+  if (!runOnData) {
+    for (unsigned int i=0; i<FMCSignal.size(); ++i) {
+      if (FMCSignal[i]->getFName(i).Index("zeem20to500")!=-1) {
+	ntupleFileNames.push_back(FMCSignal[i]->getFName(i));
+	break;
+      }
+    }
+  }
+  else {
+    const CSample_t *sample= FSampleInfos[0];
+    for (unsigned int i=0; i<sample->size(); ++i) {
+      ntupleFileNames.push_back(sample->getFName(i));
+      jsonFileNames.push_back(sample->getJsonFName(i));
+    }
+  }
+
+  // change 'tight-loose_skim' to 'ntuple'
+  for (unsigned int i=0; i<ntupleFileNames.size(); ++i) {
+    TString fname=ntupleFileNames[i];
+    if (fname.Index(FSkimDef)!=-1) {
+      //std::cout << "modifying i=" << i << " <" << fname << ">\n";
+      fname.ReplaceAll(FSkimDef,FNtupleDef);
+      //std::cout << "new name=<" << fname << ">\n";
+      ntupleFileNames[i]=fname;
+    }
+  }
+
+  res=(ntupleFileNames.size()>0) ? 1:0;
+  if (!res) res=reportError("getTNP_ntuples","no files found (runOnData=%d)",runOnData);
+  return res;
+}
+
+ 
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 /*
