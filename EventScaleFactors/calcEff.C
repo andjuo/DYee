@@ -51,9 +51,9 @@
 #include "../Include/EleIDCuts.hh"
 #include "../Include/TriggerSelection.hh"
 
-#include "../Include/cutFunctions.hh"
-#include "../Include/fitFunctions.hh"
-#include "../Include/fitFunctionsCore.hh"
+#include "../EventScaleFactors/cutFunctions.hh"
+#include "../EventScaleFactors/fitFunctions.hh"
+#include "../EventScaleFactors/fitFunctionsCore.hh"
 #include "../EventScaleFactors/tnpSelectEvents.hh"
 
 #include "../Include/EventSelector.hh"
@@ -73,7 +73,7 @@ using namespace mithep;
 
 //=== MAIN MACRO =================================================================================================
 
-void calcEff(const TString configFile, const TString effTypeString, const TString triggerSetString, int performPUReweight, int puDependence=0) 
+int calcEff(const TString configFile, const TString effTypeString, int runOnData, int puDependence=0) 
 {
 
   //  ---------------------------------
@@ -81,22 +81,18 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
   //  ---------------------------------
 
   // verify whether it was a compilation check
-  if (configFile.Contains("_DebugRun_") || triggerSetString.Contains("_DebugRun_")) {
+  if (configFile.Contains("_DebugRun_") || 
+      configFile.Contains("_check_")) {
     std::cout << "calcEff: _DebugRun_ detected. Terminating the script\n";
-    return;
+    return retCodeStop;
   }
 
   if (!effTypeString.Contains("RECO") &&
       !effTypeString.Contains("ID") &&
       !effTypeString.Contains("HLT")) {
     std::cout << "calcEff: effTypeString should be \"RECO\",\"ID\" or \"HLT*\"\n";
-    return;
+    return retCodeError;
   }
-
-  // fast check
-  // Construct the trigger object
-  TriggerSelection triggers(triggerSetString, true, 0); // later calls actOnData
-  assert ( triggers.isDefined() );
 
   //  ---------------------------------
   //         Normal execution
@@ -106,88 +102,56 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
  
   gBenchmark->Start("calcEff");
   
+  const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  const DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
+  //DYTools::printExecMode(runMode,systMode);
 
-  //--------------------------------------------------------------------------------------------------------------
+  TDescriptiveInfo_t tnpSection;
+  InputFileMgr_t inpMgr;
+  if (!inpMgr.Load(configFile,&tnpSection) ||
+      !inpMgr.KeepFirstAndLastSample()
+      //|| !inpMgr.SetSkimsToNtuples()
+      ) return retCodeError;
+
+  // Construct eventSelector, update inpMgr and plot directory
+  EventSelector_t evtSelector(inpMgr,runMode,systMode,
+			      "", "", EventSelector::_selectDefault);
+  TriggerSelection_t triggers(evtSelector.trigger());
+
+
+  // Prepare output directory
+  TString tagAndProbeDir=inpMgr.tnpDir(systMode,1);
+
+ //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
   
   Double_t massLow  = 60;
   Double_t massHigh = 120;
 
-  // Read in the configuratoin file
-  TString sampleTypeString = "";
-  TString calcMethodString = "";
-  TString etBinningString  = "";
-  TString etaBinningString = "";
-  TString dirTag;
-  vector<TString> ntupleFileNames;
-  ifstream ifs;
-  ifs.open(configFile.Data());
-  if (!ifs.is_open()) {
-    std::cout << "configFile=" << configFile << "\n";
-    assert(ifs.is_open());
-  }
-  string line;
-  Int_t state=0;
-  Int_t subState=0;
-  TString effTypeString_local=effTypeString;
-  if (effTypeString.Contains("HLT")) effTypeString_local="HLT"; // HLT_legX uses HLT efficiency method
-  while(getline(ifs,line)) {
-    if(line[0]=='#') continue;
-    if(line[0]=='%') break;
-    if(state==0){
-      // Read 1st line of content: data or MC?
-      sampleTypeString = TString(line);
-      state++;
-    }else if(state==1) {
-      // Read 2d content line: efficiency fitting mode
-      size_t pos=line.find(':');
-      if (pos==string::npos) {
-	std::cout << "expected format is EFFICIENCY:fitting_mode\n";
-	return;
-      }
-      subState++;
-      if (line.find(effTypeString_local)!=string::npos) {
-	calcMethodString = TString(line.c_str()+pos+1);
-      }
-      if (subState==3) state++;
-    }else if(state==2) {
-      // Read 3rd content line: SC ET binning
-      etBinningString = TString(line);
-      state++;
-    }else if(state==3) {
-      // Read 4th content line: SC eta binning
-      etaBinningString = TString(line);
-      state++;
-    }else if(state==4) {
-      // Read 5th content line: directory tag
-      dirTag = TString(line);
-      state++;
-    }else if(state==5) {
-      ntupleFileNames.push_back(TString(line));
-    }
-  }
-  ifs.close();
-
-  if (state!=5) {
-    std::cout << "failed to read input file\n";
-    return;
-  }
-  
-  int calcMethod = 0;
-  std::cout << "calcMethodString=<" << calcMethodString << ">\n";
-  if(calcMethodString == "COUNTnCOUNT")
-    calcMethod = DYTools::COUNTnCOUNT;
-  else if(calcMethodString == "COUNTnFIT")
-    calcMethod = DYTools::COUNTnFIT;
-  else if(calcMethodString == "FITnFIT")
-    calcMethod = DYTools::FITnFIT;
-  else
-    assert(0);
-  printf("Efficiency calculation method: %s\n", calcMethodString.Data());
-
   DYTools::TEfficiencyKind_t effType = DetermineEfficiencyKind(effTypeString);
   printf("Efficiency type to measure: %s\n", EfficiencyKindName(effType).Data());
+  // Read in the configuration file
+  DYTools::TDataKind_t dataKind = (runOnData) ? DYTools::DATA : DYTools::MC;
+  TString sampleTypeString = (runOnData) ? "DATA" : "MC";
+  TString calcMethodString = inpMgr.getTNP_calcMethod(tnpSection,dataKind,effType);
+  TString etBinningString  = inpMgr.getTNP_etBinningString(tnpSection);
+  TString etaBinningString = inpMgr.getTNP_etaBinningString(tnpSection);
+  TString dirTag= inpMgr.selectionTag();
+
+  vector<TString> ntupleFileNames;
+  vector<TString> jsonFileNames;
+  inpMgr.getTNP_ntuples(tnpSection,runOnData,ntupleFileNames,jsonFileNames);
+  if (1) {
+    for (unsigned int i=0; i<ntupleFileNames.size(); ++i) {
+      std::cout << " i=" << i << ": " << ntupleFileNames[i];
+      if (jsonFileNames.size()>i) std::cout << "; json " << jsonFileNames[i];
+      std::cout << "\n";
+    }
+  }
+
+  printf("Efficiency calculation method: %s\n", calcMethodString.Data());
+  int calcMethod= DetermineTnPMethod(calcMethodString);
 
   DYTools::TEtBinSet_t etBinning = DetermineEtBinSet(etBinningString);
   printf("SC ET binning: %s\n", EtBinSetName(etBinning).Data());
@@ -195,17 +159,12 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
   DYTools::TEtaBinSet_t etaBinning = DetermineEtaBinSet(etaBinningString);
   printf("SC eta binning: %s\n", EtaBinSetName(etaBinning).Data());
 
-  int sample;
-  if(sampleTypeString == "DATA")
-    sample = DYTools::DATA;
-  else if(sampleTypeString == "MC")
-    sample = DYTools::MC;
-  else
-    assert(0);
   printf("Sample: %s\n", sampleTypeString.Data());
+  int sample=DetermineDataKind(sampleTypeString);
 
   // Correct the trigger object
   triggers.actOnData((sample==DYTools::DATA)?true:false);
+  evtSelector.setTriggerActsOnData((sample==DYTools::DATA)?true:false);
 
   // The label is a string that contains the fields that are passed to
   // the function below, to be used to name files with the output later.
@@ -225,15 +184,11 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
 
   
 
-  // Save MC templates if sample is MC
-  TString tagAndProbeDir(TString("../root_files/tag_and_probe/")+dirTag);
-  //gSystem->mkdir(tagAndProbeDir,kTRUE);
-
   TFile *templatesFile = 0;
   vector<vector<TH1F*>*> hPassTemplateV;
   vector<vector<TH1F*>*> hFailTemplateV;
   TString labelMC = getLabel(-1111, effType, calcMethod, etBinning, etaBinning, triggers);
-  TString puTag=(performPUReweight) ? "_PU" : "";
+  TString puTag= (inpMgr.puReweightFlag()) ? "_PU" : "";
   if (puDependence) puTag.Append("_varPU");
   TString templatesLabel = tagAndProbeDir + TString("/mass_templates_")+labelMC + puTag + TString(".root");
 
@@ -263,13 +218,15 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
     if( calcMethod != DYTools::COUNTnCOUNT ){
       templatesFile = new TFile(templatesLabel);
       if( ! templatesFile->IsOpen() ) {
-	std::cout << "templatesFile name " << templatesLabel << "\n";
+	std::cout << "failed to open the templatesFile name " << templatesLabel << "\n";
 	assert(0);
       }
     }
   }
 
   // Load selected events
+  TString selectEventsFName=inpMgr.tnpSelectEventsFName(systMode,sampleTypeString,effTypeString,triggers.triggerSetName());
+  /*
   TString uScore="_";
   TString selectEventsFName=tagAndProbeDir + TString("/selectEvents_") 
     + DYTools::analysisTag + uScore
@@ -277,6 +234,7 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
     + effTypeString + uScore +  triggers.triggerSetName();
   if (performPUReweight) selectEventsFName.Append("_PU");
   selectEventsFName.Append(".root");
+  */
   std::cout << "selectEventsFName=<" << selectEventsFName << ">\n"; 
   TFile *selectedEventsFile = new TFile(selectEventsFName);
   if(!selectedEventsFile || !selectedEventsFile->IsOpen()) {
@@ -488,6 +446,7 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
   printf("\nNumber of probes, total                                      %15.0f\n", double(passTree->GetEntries() + failTree->GetEntries()));
   printf("Number of probes, passed                                     %15.0f\n", double(passTree->GetEntries()));
   printf("Number of probes, failed                                     %15.0f\n", double(failTree->GetEntries()));
+  std::cout.flush();
 
   // Human-readbale text file to store measured efficiencies
   TString reslog = tagAndProbeDir+TString("/efficiency_TnP_")+label+puTag+TString(".txt");
@@ -578,7 +537,7 @@ void calcEff(const TString configFile, const TString effTypeString, const TStrin
  
   gBenchmark->Show("calcEff");
   
-  
+  return retCodeOk;
 }
 
 

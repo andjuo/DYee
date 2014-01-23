@@ -1,25 +1,18 @@
 #!/bin/bash
 
-debugMode=0
+debugMode="DYTools::NORMAL_RUN"
 fullRun=1
-puReweight=1
 
-if [ ${#1} -gt 0 ] ; then mcConfInputFile=$1; fi
-if [ ${#2} -gt 0 ] ; then triggerSet=$2; fi
-if [ ${#3} -gt 0 ] ; then debugMode=$3; fi
-if [ ${#4} -gt 0 ] ; then tnpDataFile=$4; fi
-if [ ${#5} -gt 0 ] ; then tnpMCFile=$5; fi
+if [ ${#1} -gt 0 ] ; then confInputFile=$1; fi
+if [ ${#2} -gt 0 ] ; then debugMode=$2; fi
 
-if [ ${#6} -gt 0 ] ; then 
-    fullRun=$6; 
-    if [ ${fullRun} -eq -1 ] ; then
+if [ ${#3} -gt 0 ] ; then 
+    fullRun=$3; 
+    if [ ${#fullRun} -eq 2 ] && [ ${fullRun} -eq -1 ] ; then
 	echo -e "\n\t fullRun=-1. Skipping evaluateESF.sh\n\n"
 	exit
     fi
 fi
-
-#tnpDataFile="../config_files/sf_data_eta2.conf"
-#tnpMCFile="../config_files/sf_mc_eta2.conf"
 
 collectEvents=1 # recommended to have it set to 1. calcEventEff prepares skim fil
 
@@ -31,26 +24,17 @@ timeStamp="-`date +%Y%m%d-%H%M`"
 #
 # Check if the environment variables are set. Assign values if they are empty
 #
-if [ ${#triggerSet} -eq 0 ] ; then  
-    triggerSet="Full2012_hltEffOld"
+if [ ${#confInputFile} -eq 0 ] ; then
+    confInputFile="../config_files/data8TeV.input" # used in CalcEventEff.C
 fi
-if [ ${#mcConfInputFile} -eq 0 ] ; then
-    mcConfInputFile="../config_files/summer12mc.input" # used in CalcEventEff.C
-fi
-if [ ${#tnpDataFile} -eq 0 ] ; then
-  tnpDataFile="../config_files/sf_data.conf"   # file for eff_*.C
-fi
-if [ ${#tnpMCFile} -eq 0 ] ; then
-  tnpMCFile="../config_files/sf_mc.conf"   # file for eff_*.C
+if [ ${#debugMode} -eq 0 ] ; then
+    debugMode="DYTools::NORMAL_RUN"
 fi
 
 echo
 echo
 echo "evaluateESF.sh:"
-echo "    triggerSet=${triggerSet}"
-echo "    mcConfInputFile=${mcConfInputFile}"
-echo "    tnpMCFile=${tnpMCFile}"
-echo "    tnpDataFile=${tnpDataFile}"
+echo "    confInputFile=${confInputFile}"
 echo "    timeStamp=${timeStamp}"
 echo "    debugMode=${debugMode}"
 echo 
@@ -63,16 +47,22 @@ echo
 runMC_Reco=0
 runMC_Id=0
 runMC_Hlt=0
+runMC_Hlt_leg1=0
+runMC_Hlt_leg2=0
 runData_Reco=0
 runData_Id=1
 runData_Hlt=1
+runData_Hlt_leg1=1
+runData_Hlt_leg2=1
 runCalcEventEff=0
 
 #
 #  Modify flags if fullRun=1
 #
 
+longFullRunFlag=0
 if [ ${#fullRun} -eq 7 ] ; then
+    longFullRunFlag=1
   if [ ${fullRun:0:1} -eq 1 ] ; then runMC_Reco=1; else runMC_Reco=0; fi
   if [ ${fullRun:1:1} -eq 1 ] ; then runMC_Id=1; else runMC_Id=0; fi
   if [ ${fullRun:2:1} -eq 1 ] ; then runMC_Hlt=1; else runMC_Hlt=0; fi
@@ -80,38 +70,69 @@ if [ ${#fullRun} -eq 7 ] ; then
   if [ ${fullRun:4:1} -eq 1 ] ; then runData_Id=1; else runData_Id=0; fi
   if [ ${fullRun:5:1} -eq 1 ] ; then runData_Hlt=1; else runData_Hlt=0; fi
   if [ ${fullRun:6:1} -eq 1 ] ; then runCalcEventEff=1; else runCalcEventEff=0; fi
+
+elif [ ${#fullRun} -eq 11 ] ; then
+    longFullRunFlag=1
+  if [ ${fullRun:0:1} -eq 1 ] ; then runData_Reco=1; else runData_Reco=0; fi
+  if [ ${fullRun:1:1} -eq 1 ] ; then runData_Id=1; else runData_Id=0; fi
+  if [ ${fullRun:2:1} -eq 1 ] ; then runData_Hlt=1; else runData_Hlt=0; fi
+  if [ ${fullRun:3:1} -eq 1 ] ; then runData_Hlt_leg1=1; else runData_Hlt_leg1=0; fi
+  if [ ${fullRun:4:1} -eq 1 ] ; then runData_Hlt_leg2=1; else runData_Hlt_leg2=0; fi
+  if [ ${fullRun:5:1} -eq 1 ] ; then runMC_Reco=1; else runMC_Reco=0; fi
+  if [ ${fullRun:6:1} -eq 1 ] ; then runMC_Id=1; else runMC_Id=0; fi
+  if [ ${fullRun:7:1} -eq 1 ] ; then runMC_Hlt=1; else runMC_Hlt=0; fi
+  if [ ${fullRun:8:1} -eq 1 ] ; then runMC_Hlt_leg1=1; else runMC_Hlt_leg1=0; fi
+  if [ ${fullRun:9:1} -eq 1 ] ; then runMC_Hlt_leg2=1; else runMC_Hlt_leg2=0; fi
+  if [ ${fullRun:10:1} -eq 1 ] ; then runCalcEventEff=1; else runCalcEventEff=0; fi
+
+elif [ ${#fullRun} -eq 19 ] ; then  # "dataXXXXXmcXXXXXsfX"
+    longFullRunFlag=1
+  if [ ! ${fullRun:0:4} == "data" ] || [ ! ${fullRun:9:2} == "mc" ] || [ ! ${fullRun:16:2} == "sf" ] ; then
+      echo "the expected format for a string of length 19 is 'dataXXXXXmcXXXXXsfX'"
+      exit 0
+  fi
+  if [ ${fullRun:4:1} -eq 1 ] ; then runData_Reco=1; else runData_Reco=0; fi
+  if [ ${fullRun:5:1} -eq 1 ] ; then runData_Id=1; else runData_Id=0; fi
+  if [ ${fullRun:6:1} -eq 1 ] ; then runData_Hlt=1; else runData_Hlt=0; fi
+  if [ ${fullRun:7:1} -eq 1 ] ; then runData_Hlt_leg1=1; else runData_Hlt_leg1=0; fi
+  if [ ${fullRun:8:1} -eq 1 ] ; then runData_Hlt_leg2=1; else runData_Hlt_leg2=0; fi
+  if [ ${fullRun:11:1} -eq 1 ] ; then runMC_Reco=1; else runMC_Reco=0; fi
+  if [ ${fullRun:12:1} -eq 1 ] ; then runMC_Id=1; else runMC_Id=0; fi
+  if [ ${fullRun:13:1} -eq 1 ] ; then runMC_Hlt=1; else runMC_Hlt=0; fi
+  if [ ${fullRun:14:1} -eq 1 ] ; then runMC_Hlt_leg1=1; else runMC_Hlt_leg1=0; fi
+  if [ ${fullRun:15:1} -eq 1 ] ; then runMC_Hlt_leg2=1; else runMC_Hlt_leg2=0; fi
+  if [ ${fullRun:18:1} -eq 1 ] ; then runCalcEventEff=1; else runCalcEventEff=0; fi
+
+elif [ ${#fullRun} -eq 1 ] && [ ${fullRun} -eq 1 ] ; then
+  runMC_Reco=1; runMC_Id=1; runMC_Hlt=1
+  runMC_Hlt_leg1=1;
+  runMC_Hlt_leg2=1;
+  runData_Reco=1; runData_Id=1; runData_Hlt=1
+  runData_Hlt_leg1=1;
+  runData_Hlt_leg2=1;
+  runCalcEventEff=1   # it prepares the skim for event efficiencies
+
+else
+  echo
+  echo "evaluateESF.sh failed to recognize the string fullRun[${#fullRun}]=\"${fullRun}\""
+  echo
+  exit 0
+fi
+
+if [ ${longFullRunFlag} -eq 1 ] ; then
   echo 
   echo " evaluateESF.sh special fullRun string obtained (${fullRun}), decoded as:"
-  echo "  runMC_Reco=${runMC_Reco}, runMC_Id=${runMC_Id}, runMC_Hlt=${runMC_Hlt}"
-  echo "  runData_Reco=${runData_Reco}, runData_Id=${runData_Id}, runData_Hlt=${runData_Hlt}"
+  echo "  runData_Reco=${runData_Reco}, runData_Id=${runData_Id}, runData_Hlt=${runData_Hlt}, runData_Hlt_leg1=${runData_Hlt_leg1}, runData_Hlt_leg2=${runData_Hlt_leg2}"
+  echo "  runMC_Reco=${runMC_Reco}, runMC_Id=${runMC_Id}, runMC_Hlt=${runMC_Hlt} runMC_Hlt_leg1=${runMC_Hlt_leg1}, runMC_Hlt_leg2=${runMC_Hlt_leg2}"
   echo "  runCalcEventEff=${runCalcEventEff}"
   echo
-elif [ ${fullRun} -eq 1 ] ; then
-  runMC_Reco=1; runMC_Id=1; runMC_Hlt=1
-  runData_Reco=1; runData_Id=1; runData_Hlt=1
-  runCalcEventEff=1   # it prepares the skim for event efficiencies
 fi
+
 
 #
 #  Flag of an error
 #
 noError=1
-
-
-# determine whether a triple run on data is required
-lumiWeighting=0
-# Lumi weighting is disabled from April 01, 2012
-#tmp1=${triggerSet/hltEffNew/}  # replace hltEffNew with nothing
-#tmp2=${triggerSet/Full2011/}   # replace Full2011 with nothing
-##echo "lengths=${#triggerSet}, ${#tmp1}, ${#tmp2}"
-## compare the lengths
-#if [ ${#triggerSet} -ne ${#tmp1} ] && 
-#   [ ${#triggerSet} -ne ${#tmp2} ] ; then
-#  lumiWeighting=1
-#else
-#  lumiWeighting=0
-#fi
-
 
 # --------------------------------
 #    Define functions to run
@@ -142,17 +163,16 @@ checkFile() {
 
 
 runEffReco() {
- dataKind=${inpFile/data/}
- if [ ${#dataKind} -eq ${#inpFile} ] ; then dataKind="mc"; else dataKind="data"; fi
 # calculate
- root -b -q -l  eff_Reco.C+\(\"${inpFile}\",\"RECO\",\"${triggerSet}\",${puReweight},${debugMode}\) \
-     | tee log${timeStamp}-${dataKind}-RECO-puW${puReweight}.out
+ effKind="RECO"
+ root -b -q -l  eff_Reco.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode}\) \
+     | tee log${timeStamp}-${dataKind}-RECO.out
   if [ $? != 0 ] ; then noError=0;
   else
      checkFile eff_Reco_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: eff_Reco(\"$inpFile\",\"RECO\",\"${triggerSet}\",puReweight=${puReweight},debug=${debugMode})"
+     echo "DONE: eff_Reco(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -161,31 +181,30 @@ runEffReco() {
 
 runEffIdHlt() {
  effKind=$1
- if [ ${#dataKind} -eq ${#inpFile} ] ; then dataKind="mc"; else dataKind="data"; fi
 # calculate
- root -b -q -l  eff_IdHlt.C+\(\"${inpFile}\",\"${effKind}\",\"${triggerSet}\",${puReweight},${debugMode}\) \
-     | tee log${timeStamp}-${dataKind}-${effKind}-puW${puReweight}.out
+ root -b -q -l  eff_IdHlt.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode}\) \
+     | tee log${timeStamp}-${dataKind}-${effKind}.out
   if [ $? != 0 ] ; then noError=0;
   else 
      checkFile eff_IdHlt_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: eff_IdHlt(\"$inpFile\",\"${effKind}\",\"${triggerSet}\",puReweight=${puReweight},debug=${debugMode})"
+     echo "DONE: eff_IdHlt(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
 }
 
 runCalcEventEff() {
- _collectEvents=$1
- if [ ${#_collectEvents} -eq 0 ] ; then _collectEvents=1; fi
- root -b -q -l  calcEventEff.C+\(\"${mcConfInputFile}\",\"${tnpDataFile}\",\"${tnpMCFile}\",\"${triggerSet}\",${_collectEvents},${puReweight},${debugMode}\) \
-     | tee log${timeStamp}-calcEventEff-puW${puReweight}.out
+  _collectEvents=$1
+  if [ ${#_collectEvents} -eq 0 ] ; then _collectEvents=1; fi
+  root -b -q -l  calcEventEff.C+\(\"${inpFile}\",${_collectEvents},${debugMode}\) \
+      | tee log${timeStamp}-calcEventEff.out
   if [ $? != 0 ] ; then noError=0;
   else 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEventEff(\"${mcConfInputFile}\",\"${tnpDataFile}\",\"${tnpMCFile}\",\"${triggerSet}\",collectEvents=${_collectEvents},puReweight=${puReweight},debug=${debugMode})"
+     echo "DONE: calcEventEff(\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -205,65 +224,70 @@ checkFile tnpSelectEvents_hh.so
 #   Check that the codes compile
 #
 
-storeTriggerSet=${triggerSet}
-triggerSet="_DebugRun_"
+inpFile="_check_"
+onData=0
+dataKind="check"
 if [ $(( ${runMC_Reco} + ${runData_Reco} )) -gt 0 ] && [ ${noError} -eq 1 ] ; then runEffReco; fi
 doIdHlt=$(( ${runMC_Id} + ${runMC_Hlt} + ${runData_Id} + ${runData_Hlt} ))
+if [ ${doIdHlt} -eq 0 ] ; then
+  doIdHlt=$(( ${runMC_Hlt_leg1} + ${runMC_Hlt_leg2} + ${runData_Hlt_leg1} + ${runData_Hlt_leg2} ))
+fi
 if [ ${doIdHlt} -gt 0 ] && [ ${noError} -eq 1 ] ; then runEffIdHlt "ID"; fi
 if [ ${runCalcEventEff} -eq 1 ] && [ ${noError} -eq 1 ] ; then runCalcEventEff; fi
 if [ ${noError} -eq 1 ] ; then echo; echo "  -=- Resuming normal calculation -=-"; echo; fi
-triggerSet=${storeTriggerSet}
 
-
+inpFile=${confInputFile}
 
 # Process MC
 
+onData=0
+dataKind="mc"
+
 if [ ${runMC_Reco} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  inpFile="${tnpMCFile}"
   runEffReco
 fi
 
 if [ ${runMC_Id} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  inpFile="${tnpMCFile}"
   runEffIdHlt "ID"
 fi
 
 if [ ${runMC_Hlt} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  inpFile="${tnpMCFile}"
   runEffIdHlt "HLT"
+fi
+
+if [ ${runMC_Hlt_leg1} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffIdHlt "HLTleg1"
+fi
+
+if [ ${runMC_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffIdHlt "HLTleg2"
 fi
 
 
 # Process data
 
-storeTriggerSet=${triggerSet}
+onData=1
+dataKind="data"
 
-if [ ${lumiWeighting} -eq 0 ] ; then
-  loopTriggers="${triggerSet}"
-else
-  loopTriggers="2011A_SingleEG_hltEffNew 2011A_DoubleEG_hltEffNew 2011B_DoubleEG_hltEffNew"
+if [ ${runData_Reco} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffReco
 fi
 
-for triggerSet in ${loopTriggers} ; do
-  if [ ${runData_Reco} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    inpFile="${tnpDataFile}"
-    runEffReco
-  fi
-done
-
-for triggerSet in ${loopTriggers} ; do
-  if [ ${runData_Id} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    inpFile="${tnpDataFile}"
+if [ ${runData_Id} -eq 1 ] && [ ${noError} -eq 1 ] ; then
     runEffIdHlt "ID"
-  fi
-done
+fi
 
-for triggerSet in ${loopTriggers} ; do
-  if [ ${runData_Hlt} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    inpFile="${tnpDataFile}"
+if [ ${runData_Hlt} -eq 1 ] && [ ${noError} -eq 1 ] ; then
     runEffIdHlt "HLT"
-  fi
-done
+fi
+
+if [ ${runData_Hlt_leg1} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+    runEffIdHlt "HLTleg1"
+fi
+
+if [ ${runData_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+    runEffIdHlt "HLTleg2"
+fi
 
 triggerSet=${storeTriggerSet}
 

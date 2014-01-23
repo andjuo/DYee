@@ -73,7 +73,7 @@ template<class T> T SQR(const T& x) { return x*x; }
 
 //=== FUNCTION DECLARATIONS ======================================================================================
 
-int fillEfficiencyConstants( const InputFileMgr_t &inpMgr );
+int fillEfficiencyConstants( const InputFileMgr_t &inpMgr, DYTools::TSystematicsStudy_t systMode );
 
 int fillOneEfficiency(const TString &use_dirTag, const TString filename, 
   UInt_t kindIdx, vector<TMatrixD*> &data, vector<TMatrixD*> &dataErrLo, 
@@ -304,11 +304,15 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
 
   //dirTag=inpMgr.tnpTag();
 
-  etBinning=inpMgr.etBinsKind();
+  TString etStr=inpMgr.getTNP_etBinningString();
+  std::cout << "etStr=" << etStr << "\n";
+  etBinning=DetermineEtBinSet(etStr);
   etBinCount=DYTools::getNEtBins(etBinning);
   etBinLimits=DYTools::getEtBinLimits(etBinning);
   
-  etaBinning=inpMgr.etaBinsKind();
+  TString etaStr=inpMgr.getTNP_etaBinningString();
+  std::cout << "etaStr=" << etaStr << "\n";
+  etaBinning=DetermineEtaBinSet(etaStr);
   etaBinCount=DYTools::getNEtaBins(etaBinning);
   etaBinLimits=DYTools::getEtaBinLimits(etaBinning);
 
@@ -343,8 +347,9 @@ int calcEventEff(const TString confFileName,
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
 
   // verify whether it was a compilation check
-  if (confFileName.Contains("_DebugRun_")) {
-    std::cout << "calcEventEff: _DebugRun_ detected. Terminating the script\n";
+  if (confFileName.Contains("_DebugRun_") ||
+      confFileName.Contains("_check_")) {
+    std::cout << "calcEventEff: _DebugRun_/_check_ detected. Terminating the script\n";
     return retCodeOk;
   }
 
@@ -363,77 +368,17 @@ int calcEventEff(const TString confFileName,
   EventSelector_t evtSelector;
   TString puStr;
 
-  const int newCode=1;
-  if (!newCode) {
-    if (!inpMgr.LoadTnP(confFileName)) return retCodeError;
-    // no energy correction for this evaluation
-    inpMgr.clearEnergyScaleTag();
+  //HERE("\n\tCalling initManagers\n");
+  if (!initManagers(confFileName,runMode,inpMgr,evtSelector,puStr,1)) {
+    std::cout << "failed to initialize managers\n";
+    return retCodeError;
+  }
 
-    const int puReweight=inpMgr.puReweightFlag();
-    const int useFewzWeights=inpMgr.fewzFlag();
-    puStr = (puReweight) ? "PU" : "";
-    if (!useFewzWeights) puStr.Append("_noFEWZ");
-    if (nonUniversalHLT) puStr.Append("_HLTlegs");
-    //CPlot::sOutDir = TString("plots") + DYTools::analysisTag + puStr;
-    //std::cout << "changed CPlot::sOutDir=<" << CPlot::sOutDir << ">\n";
-    //gSystem->mkdir(CPlot::sOutDir,true);
-    
-    // Construct eventSelector, update mgr and plot directory
-    TString plotsExtraTag=puStr;
-    if (!evtSelector.init(inpMgr,runMode,systMode,
-			  "",plotsExtraTag, EventSelector::_selectHLTOrdered)) {
-      std::cout << "failed to create eventSelector\n";
-      return retCodeError;
-    }
-    evtSelector.setTriggerActsOnData(false);
-    
-    // Prepare output directory
-    inpMgr.constDir(systMode,1);
-    
-    //  ---------------------------------
-    //         Normal execution
-    //  ---------------------------------
-    
-    ro_Data= new EffArray_t[nexp];
-    ro_MC  = new EffArray_t[nexp];
-    assert(ro_Data && ro_MC);
-    
-    
-    //dirTag=inpMgr.tnpTag();
-    
-    etBinning=inpMgr.etBinsKind();
-    etBinCount=DYTools::getNEtBins(etBinning);
-    etBinLimits=DYTools::getEtBinLimits(etBinning);
-    
-    etaBinning=inpMgr.etaBinsKind();
-    etaBinCount=DYTools::getNEtaBins(etaBinning);
-    etaBinLimits=DYTools::getEtaBinLimits(etaBinning);
-    
-    if (etBinCount>DYTools::nEtBinsMax) {
-      printf("ERROR in the code: etBinCount=%d, hard-coded DYTools::nEtBinsMax=%d\n",etBinCount,DYTools::nEtBinsMax);
-      std::cout << std::endl;
-      assert(0);
-    }
-    if (etaBinCount>DYTools::nEtaBinsMax) {
-      printf("ERROR in the code: etaBinCount=%d, hard-coded DYTools::nEtaBinsMax=%d\n",etaBinCount,DYTools::nEtaBinsMax);
-      std::cout << std::endl;
-      assert(0);
-    }
-  }
-  else {
-    // new code
-    //HERE("\n\tCalling initManagers\n");
-    if (!initManagers(confFileName,runMode,inpMgr,evtSelector,puStr,1)) {
-      std::cout << "failed to initialize managers\n";
-      return retCodeError;
-    }
-  }
-	// resulting relocation due to a new code
   //const int puReweight=inpMgr.puReweightFlag();
   //const int useFewzWeights=inpMgr.fewzFlag();
 	// end of relocation
 
-  TString selectEventsFName=inpMgr.tnpSelEventsFullName(systMode,0);
+  TString selectEventsFName=inpMgr.tnpSFSelEventsFullName(systMode,0);
   
   // remove HLTlegs tag from the file name, if needed
   if (nonUniversalHLT) selectEventsFName.ReplaceAll("_HLTlegs","");
@@ -454,6 +399,7 @@ int calcEventEff(const TString confFileName,
 
   int applyNtupleExtraTag=1;
   TString corrName="scale_factors";
+  corrName.Append(inpMgr.userKeyValueAsTString("T&P_ESF_extra"));
   if (nonUniversalHLT) corrName.Append("_asymHLT");
   TString sfConstFileName=inpMgr.correctionFullFileName(corrName,systMode,applyNtupleExtraTag);
   std::cout << "\n\tsfConstFileName=<" << sfConstFileName << ">\n";
@@ -462,7 +408,7 @@ int calcEventEff(const TString confFileName,
 
   // Read efficiency constants from ROOT files
   // This has to be done AFTER configuration file is parsed
-  if (!fillEfficiencyConstants( inpMgr ) ) {
+  if (!fillEfficiencyConstants( inpMgr, systMode ) ) {
     return retCodeError;
   }
 
@@ -1599,12 +1545,22 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
       //if (ifile>0) break;
 
       // Read input file
-      TFile infile(mcSample->getFName(ifile),"read");
-      assert(infile.IsOpen());
-      std::cout << " Reading file <" << mcSample->getFName(ifile) << ">\n";
+      TFile *infile = new TFile(mcSample->getFName(ifile),"read");
+      if (!infile->IsOpen()) {
+	delete infile;
+	TString fname_orig=mcSample->getFName(ifile);
+	TString fname=inpMgr.convertSkim2Ntuple(fname_orig);
+	std::cout << "failed to open <" << fname_orig << ">... trying <" << fname << ">\n";
+	infile = new TFile(fname,"read");
+	if (!infile->IsOpen()) {
+	  std::cout << "total failure\n";
+	  return retCodeError;
+	}
+      }
+      std::cout << " Reading file <" << infile->GetName() << ">\n";
 
       // Get the TTrees
-      if (!accessInfo.setTree(infile,"Events",true)) {
+      if (!accessInfo.setTree(*infile,"Events",true)) {
 	return retCodeError;
       }
 
@@ -1756,6 +1712,7 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
       ecTotal.add(ec);
 
       //if (ecTotal.numDielectronsPass[0]>20000) break;
+      delete infile;
     } // end loop over files
     //ecSample.print(); // print info about sample
     evtSelector.printCounts();
@@ -2841,7 +2798,7 @@ TGraphErrors* createGraph_vsMassFI(const TVectorD &v, const TVectorD &vErr,
   double rapidity=DYTools::findAbsYValue(0,rapidityIndex);
 
   for(int i=0; i<DYTools::nMassBins; i++){
-    std::cout << "i=" << i << ", rapidityIndex=" << rapidityIndex << "\n";
+    std::cout << "massBin or i=" << i << ", rapidityIndex=" << rapidityIndex << "\n";
     std::cout << "nYBins[massBin]=" << DYTools::nYBins[i] << "\n";
     int idx=DYTools::findIndexFlat(i,rapidityIndex);
     if (i==DYTools::nMassBins-1) {
@@ -2986,7 +2943,7 @@ void drawEventScaleFactorsHltFI
 // This method reads all ROOT files that have efficiencies from
 // tag and probe in TMatrixD form and converts the matrices into 
 // more simple arrays.
-int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr ) {
+int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr, DYTools::TSystematicsStudy_t systMode ) {
 
   int puReweight = inpMgr.puReweightFlag();
   TriggerSelection_t triggers(inpMgr.triggerTag(),true);
@@ -3011,6 +2968,9 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr ) {
   mcEffAvgErr.reserve(NEffTypes);
 
   int res=1;
+  TString tnpDirTag=inpMgr.tnpDir(systMode,0);
+  std::cout << "tnpDirTag=<" << tnpDirTag << ">" << std::endl;
+
   for (int kind=0; res && (kind<NEffTypes); ++kind) {    
     DYTools::TEtBinSet_t localEtBinning= etBinning;
     DYTools::TEfficiencyKind_t effKind=DYTools::TEfficiencyKind_t(kind);
@@ -3024,7 +2984,7 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr ) {
     int weightedCnC= 
       (DYTools::efficiencyIsHLT(effKind))  ?
       		puReweight : 0;
-    res=fillOneEfficiency(inpMgr.tnpTag(), dataFName, kind, 
+    res=fillOneEfficiency(tnpDirTag, dataFName, kind, 
 			  dataEff, dataEffErrLo, dataEffErrHi, dataEffAvgErr,
 			  weightedCnC);
   }
@@ -3038,7 +2998,7 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr ) {
 	       inpMgr.tnpEffCalcMethod(DYTools::MC,effKind),
 	       localEtBinning, etaBinning, triggers)
       + fnEnd;
-    res=fillOneEfficiency(inpMgr.tnpTag(), mcFName, kind, 
+    res=fillOneEfficiency(tnpDirTag, mcFName, kind, 
 			  mcEff, mcEffErrLo, mcEffErrHi, mcEffAvgErr, puReweight);
   }
   if (res!=1) std::cout << "Error in fillEfficiencyConstants\n"; 
@@ -3053,7 +3013,7 @@ int fillOneEfficiency(const TString &use_dirTag, const TString filename,
    vector<TMatrixD*> &errHiV, vector<TMatrixD*> &avgErrV, 
    int weightedCnC) {
 
-  TString fullFName=TString("../root_files/tag_and_probe/")+use_dirTag+TString("/")+filename;
+  TString fullFName= use_dirTag+TString("/")+filename;
   TFile *f=new TFile(fullFName);
   if(!f->IsOpen()) {
     if (allowToIgnoreAnalysisTag) {

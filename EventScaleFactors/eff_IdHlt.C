@@ -92,11 +92,15 @@ int eff_IdHlt(const TString configFile,
   if (!effTypeString.Contains("ID") &&
       !effTypeString.Contains("HLT")) {
     std::cout << "eff_IdHlt: effTypeString should be either \"ID\" or \"HLT\"\n";
-    //return retCodeError; // will abort later
+    //return retCodeError; // will abort later, after an additional check
   }
 
   const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   DYTools::printExecMode(runMode,systMode);
+
+  if (configFile.Contains("_check_")) {
+    return retCodeStop;
+  }
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -111,14 +115,15 @@ int eff_IdHlt(const TString configFile,
 
   // Construct eventSelector, update inpMgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", EventSelector::_selectDefault);
+			      "","", EventSelector::_selectDefault);
 
   // Event weight handler
   EventWeight_t evWeight;
   evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  TriggerSelection_t triggers(evtSelector.trigger());
 
   // Prepare output directory
-  gSystem->mkdir(inpMgr.tnpDir(systMode),true);
+  TString tagAndProbeDir=inpMgr.tnpDir(systMode,1);
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -128,7 +133,7 @@ int eff_IdHlt(const TString configFile,
     (inpMgr.puReweightFlag()) ?
             tnpSelectEvent_t::_skipWeight :
 	    tnpSelectEvent_t::_dontSkipWeight;
-  TString puStr = (inpMgr.puReweightFlag()) ? "_PU" : "";
+  //TString puStr = (inpMgr.puReweightFlag()) ? "_PU" : "";
  
   Double_t massLow  = 60;
   Double_t massHigh = 120;
@@ -137,31 +142,30 @@ int eff_IdHlt(const TString configFile,
   printf("Efficiency type to measure: %s\n", EfficiencyKindName(effType).Data());
   if ((effType!=DYTools::ID) && !DYTools::efficiencyIsHLT(effType)) {
     std::cout << "eff_IdHlt does not work with <" << EfficiencyKindName(effType) << "> efficiency\n";
-    assert(0);
+    return retCodeError;
   }
 
   // Read in the configuration file
+  DYTools::TDataKind_t dataKind = (runOnData) ? DYTools::DATA : DYTools::MC;
   TString sampleTypeString = (runOnData) ? "DATA" : "MC";
-  TString calcMethodString = inpMgr.getTNP_calcMethod(tnpSection,effType);
+  TString calcMethodString = inpMgr.getTNP_calcMethod(tnpSection,dataKind,effType);
   TString etBinningString  = inpMgr.getTNP_etBinningString(tnpSection);
   TString etaBinningString = inpMgr.getTNP_etaBinningString(tnpSection);
   TString dirTag= inpMgr.selectionTag();
+
   vector<TString> ntupleFileNames;
   vector<TString> jsonFileNames;
   inpMgr.getTNP_ntuples(tnpSection,runOnData,ntupleFileNames,jsonFileNames);
-
-  int calcMethod = 0;
-  printf("Efficiency calculation method: %s\n", calcMethodString.Data());
-  if(calcMethodString == "COUNTnCOUNT")
-    calcMethod = DYTools::COUNTnCOUNT;
-  else if(calcMethodString == "COUNTnFIT")
-    calcMethod = DYTools::COUNTnFIT;
-  else if(calcMethodString == "FITnFIT")
-    calcMethod = DYTools::FITnFIT;
-  else {
-    std::cout << "... identification failed" << std::endl;
-    assert(0);
+  if (1) {
+    for (unsigned int i=0; i<ntupleFileNames.size(); ++i) {
+      std::cout << " i=" << i << ": " << ntupleFileNames[i];
+      if (jsonFileNames.size()>i) std::cout << "; json " << jsonFileNames[i];
+      std::cout << "\n";
+    }
   }
+
+  printf("Efficiency calculation method: %s\n", calcMethodString.Data());
+  int calcMethod= DetermineTnPMethod(calcMethodString);
 
   DYTools::TEtBinSet_t etBinning = DetermineEtBinSet(etBinningString);
   printf("SC ET binning: %s\n", EtBinSetName(etBinning).Data());
@@ -169,24 +173,18 @@ int eff_IdHlt(const TString configFile,
   DYTools::TEtaBinSet_t etaBinning = DetermineEtaBinSet(etaBinningString);
   printf("SC eta binning: %s\n", EtaBinSetName(etaBinning).Data());
 
-  int sample;
   printf("Sample: %s\n", sampleTypeString.Data());
-  if(sampleTypeString == "DATA")
-    sample = DYTools::DATA;
-  else if(sampleTypeString == "MC")
-    sample = DYTools::MC;
-  else {
-    std::cout << "... identification failed" << std::endl;
-    assert(0);
-  }
+  int sample=DetermineDataKind(sampleTypeString);
 
   // Correct the trigger object
+  triggers.actOnData((sample==DYTools::DATA)?true:false);
   evtSelector.setTriggerActsOnData((sample==DYTools::DATA)?true:false);
+
   if (effType==DYTools::HLT) {
     std::cout //<< "\tHLT efficiency calculation method " 
-	      //<< evtSelector.trigger().hltEffCalcName() << 
+	      //<< triggers.hltEffCalcName() << 
 	      << " triggerSet=" 
-	      << evtSelector.trigger().triggerSetName() << "\n";
+	      << triggers.triggerSetName() << "\n";
   }
   else {
     //triggers.hltEffCalcMethod(HLTEffCalc_2011Old);
@@ -198,7 +196,7 @@ int eff_IdHlt(const TString configFile,
 
  // The label is a string that contains the fields that are passed to
   // the function below, to be used to name files with the output later.
-  TString label = getLabel(sample, effType, calcMethod, etBinning, etaBinning, evtSelector.trigger());
+  TString label = getLabel(sample, effType, calcMethod, etBinning, etaBinning, triggers);
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -217,13 +215,7 @@ int eff_IdHlt(const TString configFile,
   TH1F* hMassPass       = new TH1F("hMassPass" ,"",30,massLow,massHigh);
   TH1F* hMassFail       = new TH1F("hMassFail" ,"",30,massLow,massHigh);
 
-  // Save MC templates if sample is MC
-  TString tagAndProbeDir(TString("../root_files/tag_and_probe/")+dirTag);
-  gSystem->mkdir(tagAndProbeDir,kTRUE);
-
-  TString ntuplesDir=tagAndProbeDir;
-  ntuplesDir.ReplaceAll("tag_and_probe","selected_events");
-
+#if (defined DYee7TeV)
   // The source/target histograms are unbiased pile-up distributions
   // for data(target) and MC(source) prepared according to Hildreth's instructions.
   // Note: for 7 TeV, the data histogram for TnP takes into account TnP trigger prescales
@@ -258,6 +250,7 @@ int eff_IdHlt(const TString configFile,
       }
     }
   }
+#endif // end of block for 7TeV analysis
 
 
   TFile *templatesFile = 0;
@@ -266,7 +259,7 @@ int eff_IdHlt(const TString configFile,
   if( sample != DYTools::DATA) {
     // For simulation, we will be saving templates
     TString labelMC = 
-      getLabel(-1111, effType, calcMethod, etBinning, etaBinning, evtSelector.trigger());
+      getLabel(-1111, effType, calcMethod, etBinning, etaBinning, triggers);
     TString templatesLabel = tagAndProbeDir + 
       TString("/mass_templates_")+labelMC+TString(".root");
     templatesFile = new TFile(templatesLabel,"recreate");
@@ -285,7 +278,7 @@ int eff_IdHlt(const TString configFile,
     // however, if the request is COUNTnCOUNT, do nothing
     if( calcMethod != DYTools::COUNTnCOUNT ){
       TString labelMC = 
-	getLabel(-1111, effType, calcMethod, etBinning, etaBinning, evtSelector.trigger());
+	getLabel(-1111, effType, calcMethod, etBinning, etaBinning, triggers);
       TString templatesLabel = 
 	tagAndProbeDir+TString("/mass_templates_")+labelMC+TString(".root");
       templatesFile = new TFile(templatesLabel);
@@ -297,12 +290,15 @@ int eff_IdHlt(const TString configFile,
   // This file can be utilized in the future, but for now
   // opening it just removes complaints about memory resident
   // trees. No events are actually written.
+  TString selectEventsFName=inpMgr.tnpSelectEventsFName(systMode,sampleTypeString,effTypeString,triggers.triggerSetName());
+  /*
   TString uScore="_";
   TString selectEventsFName=tagAndProbeDir + TString("/selectEvents_") 
     + DYTools::analysisTag + uScore+
     + sampleTypeString + uScore +
-    + effTypeString + uScore +  evtSelector.trigger().triggerSetName() + puStr;
+    + effTypeString + uScore +  triggers.triggerSetName() + puStr;
   selectEventsFName.Append(".root");
+  */
   std::cout << "selectEventsFName=<" << selectEventsFName << ">\n"; 
   TFile *selectedEventsFile = new TFile(selectEventsFName,"recreate");
   if (!selectedEventsFile) {
@@ -400,7 +396,7 @@ int eff_IdHlt(const TString configFile,
     UInt_t runNumMin = UInt_t(eventTree->GetMinimum("runNum"));
     UInt_t runNumMax = UInt_t(eventTree->GetMaximum("runNum"));
     std::cout << "runNumMin=" << runNumMin << ", runNumMax=" << runNumMax << "\n";
-    if (!evtSelector.trigger().validRunRange(runNumMin,runNumMax)) {
+    if (!triggers.validRunRange(runNumMin,runNumMax)) {
       std::cout << "... file contains uninteresting run range\n";
       continue;
     }
@@ -437,38 +433,20 @@ int eff_IdHlt(const TString configFile,
       // Check that the whole event has fired the appropriate trigger
       infoBr->GetEntry(ientry);
       
-      /* Old code
-      // For EPS2011 for both data and MC (starting from Summer11 production)
-      // we use a special trigger for tag and probe that has second leg
-      // unbiased with cuts at HLT
-      ULong_t eventTriggerBit = kHLT_Ele17_CaloIdVT_CaloIsoVT_TrkIdT_TrkIsoVT_SC8_Mass30
-	| kHLT_Ele32_CaloIdL_CaloIsoVL_SC17;
-      // The tag trigger bit matches the "electron" of the trigger we
-      // use for this tag and probe study: electron+sc
-      ULong_t tagTriggerObjectBit = kHLT_Ele17_CaloIdVT_CaloIsoVT_TrkIdT_TrkIsoVT_SC8_Mass30_EleObj
-	| kHLT_Ele32_CaloIdL_CaloIsoVL_SC17_EleObj;
-      // The probe trigger, however, is any of possibilities used in
-      // the trigger that is used in the main analysis
-      ULong_t probeTriggerObjectBit = kHLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL_Ele1Obj
-	| kHLT_Ele17_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele8_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele1Obj
-	| kHLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL_Ele2Obj
-	| kHLT_Ele17_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele8_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele2Obj;
-      */
-
       // Apply JSON file selection to data
       if(hasJSON && !jsonParser.HasRunLumi(info->runNum, info->lumiSec)) continue;  // not certified run? Skip to next event...
       eventsAfterJson++;
 
       // Event level trigger cut
       bool idEffTrigger = (effType==DYTools::ID) ? true:false;
-      ULong_t eventTriggerBit= evtSelector.trigger().getEventTriggerBit_TagProbe(info->runNum, idEffTrigger);
+      ULong_t eventTriggerBit= triggers.getEventTriggerBit_TagProbe(info->runNum, idEffTrigger);
 
       if(!(info->triggerBits & eventTriggerBit)) continue;  // no trigger accept? Skip to next event... 
       eventsAfterTrigger++;
 
-      ULong_t tagTriggerObjectBit= evtSelector.trigger().getTagTriggerObjBit(info->runNum,idEffTrigger);
-      ULong_t probeTriggerObjectBit_Tight= evtSelector.trigger().getProbeTriggerObjBit_Tight(info->runNum,idEffTrigger);
-      ULong_t probeTriggerObjectBit_Loose= evtSelector.trigger().getProbeTriggerObjBit_Loose(info->runNum,idEffTrigger);
+      ULong_t tagTriggerObjectBit= triggers.getTagTriggerObjBit(info->runNum,idEffTrigger);
+      ULong_t probeTriggerObjectBit_Tight= triggers.getProbeTriggerObjBit_Tight(info->runNum,idEffTrigger);
+      ULong_t probeTriggerObjectBit_Loose= triggers.getProbeTriggerObjBit_Loose(info->runNum,idEffTrigger);
 //       ULong_t probeTriggerObjectBit= probeTriggerObjectBit_Tight | probeTriggerObjectBit_Loose;
 
       // loop through dielectrons
@@ -588,7 +566,7 @@ int eff_IdHlt(const TString configFile,
 	  isProbePass1 = isHLTProbePass1;
 	  isProbePass2 = isHLTProbePass2;
 	  //if ((effType==DYTools::HLT_rndTag) 
-	  //    && evtSelector.trigger().useRandomTagTnPMethod(info->runNum)) {
+	  //    && triggers.useRandomTagTnPMethod(info->runNum)) {
 	  //  std::cout << "random tag\n";
 	  //  if (rnd->Uniform() <= 0.5) {
 	  //    // tag is 1st electron
@@ -624,21 +602,13 @@ int eff_IdHlt(const TString configFile,
 	// but for MC, since this will be used for PU reweighting,
 	// we are using the gen-level number of simulated PU.
 	if( (sample==DYTools::DATA) ) {
-	  if (1) {
-	    storeNGoodPV = countGoodVertices(pvArr);
-	  }
-	  else {
-	    for(Int_t ipv=0; ipv<pvArr->GetEntriesFast(); ipv++) {
-	      const mithep::TVertex *pv = (mithep::TVertex*)((*pvArr)[ipv]);
-	      if(pv->nTracksFit                        < 1)  continue;
-	      if(pv->ndof                              < 4)  continue;
-	      if(fabs(pv->z)                           > 24) continue;
-	      if(sqrt((pv->x)*(pv->x)+(pv->y)*(pv->y)) > 2)  continue;
-	      storeNGoodPV++;
-	    }
-	  }
+	  storeNGoodPV = countGoodVertices(pvArr);
 	}else{
+#ifdef DYee8TeV_reg
+	  storeNGoodPV = int(info->nPUmean);
+#else
 	  storeNGoodPV = info->nPU;
+#endif
 	}
 	
 	storeMass = dielectron->mass;
@@ -744,6 +714,9 @@ int eff_IdHlt(const TString configFile,
     // For 8 TeV, they are not used.
     TString puTargetDistrName="pileup_lumibased_data";
     TString puSourceDistrName="pileup_simulevel_mc";
+#if !(defined DYee7TeV)
+    TString puTargetFName="", puSourceFName=""; // not used
+#endif
 //     TString refDistribution="hNGoodPV_data";
 
     TString sampleNameBase= effTypeString + TString("_") + 
@@ -829,7 +802,7 @@ int eff_IdHlt(const TString configFile,
 		      resrootBase,
 		      //resultsRootFile,
 		      NsetBins, effType, setBinsType, 
-		      dirTag, evtSelector.trigger().triggerSetName(),0);
+		      dirTag, triggers.triggerSetName(),0);
 
   effOutput.close();
   fitLog.close();
@@ -860,7 +833,7 @@ int eff_IdHlt(const TString configFile,
   std::cout << "selectedEventsFile <" << selectEventsFName << "> saved\n";
   gBenchmark->Show("eff_IdHlt");
   
-  
+  return retCodeOk;
 }
 
 

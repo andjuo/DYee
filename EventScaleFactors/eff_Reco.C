@@ -94,6 +94,10 @@ int eff_Reco(const TString configFile,
   const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   DYTools::printExecMode(runMode,systMode);
 
+  if (configFile.Contains("_check_")) {
+    return retCodeStop;
+  }
+
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
@@ -107,14 +111,15 @@ int eff_Reco(const TString configFile,
 
   // Construct eventSelector, update inpMgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", EventSelector::_selectDefault);
+			      "", "", EventSelector::_selectDefault);
+  TriggerSelection_t triggers(evtSelector.trigger());
 
   // Event weight handler
   EventWeight_t evWeight;
   evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
 
   // Prepare output directory
-  gSystem->mkdir(inpMgr.tnpDir(systMode),true);
+  TString tagAndProbeDir=inpMgr.tnpDir(systMode,1);
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -124,34 +129,34 @@ int eff_Reco(const TString configFile,
     (inpMgr.puReweightFlag()) ?
       tnpSelectEvent_t::_skipWeight :
       tnpSelectEvent_t::_dontSkipWeight;
-  TString puStr=(inpMgr.puReweightFlag()) ? "_PU" : "";
+  //TString puStr=(inpMgr.puReweightFlag()) ? "_PU" : "";
   
   Double_t massLow  = 60;
   Double_t massHigh = 120;
 
   // Read in the configuration file
+  DYTools::TDataKind_t dataKind = (runOnData) ? DYTools::DATA : DYTools::MC;
   TString sampleTypeString = (runOnData) ? "DATA" : "MC";
-  TString calcMethodString = inpMgr.getTNP_calcMethod(tnpSection,DYTools::RECO);
+  TString calcMethodString = inpMgr.getTNP_calcMethod(tnpSection,dataKind,DYTools::RECO);
+  std::cout << "calcMethodString=" << calcMethodString << "\n";
+
   TString etBinningString  = inpMgr.getTNP_etBinningString(tnpSection);
   TString etaBinningString = inpMgr.getTNP_etaBinningString(tnpSection);
   TString dirTag= inpMgr.selectionTag();
+
   vector<TString> ntupleFileNames;
   vector<TString> jsonFileNames;
-  inpMgr.getTNP_ntuples(tnpSection,runOnData,ntupleFileName,jsonFileNames);
-
-  
-  int calcMethod = 0;
-  printf("Efficiency calculation method: %s\n", calcMethodString.Data());
-  if(calcMethodString == "COUNTnCOUNT")
-    calcMethod = DYTools::COUNTnCOUNT;
-  else if(calcMethodString == "COUNTnFIT")
-    calcMethod = DYTools::COUNTnFIT;
-  else if(calcMethodString == "FITnFIT")
-    calcMethod = DYTools::FITnFIT;
-  else {
-    std::cout << "... identification failed" << std::endl;
-    assert(0);
+  inpMgr.getTNP_ntuples(tnpSection,runOnData,ntupleFileNames,jsonFileNames);
+  if (1) {
+    for (unsigned int i=0; i<ntupleFileNames.size(); ++i) {
+      std::cout << " i=" << i << ": " << ntupleFileNames[i];
+      if (jsonFileNames.size()>i) std::cout << "; json " << jsonFileNames[i];
+      std::cout << "\n";
+    }
   }
+  
+  printf("Efficiency calculation method: %s\n", calcMethodString.Data());
+  int calcMethod= DetermineTnPMethod(calcMethodString);
 
   DYTools::TEfficiencyKind_t effType = DetermineEfficiencyKind(effTypeString);
   printf("Efficiency type to measure: %s\n", EfficiencyKindName(effType).Data());
@@ -166,24 +171,16 @@ int eff_Reco(const TString configFile,
   DYTools::TEtaBinSet_t etaBinning = DetermineEtaBinSet(etaBinningString);
   printf("SC eta binning: %s\n", EtaBinSetName(etaBinning).Data());
 
-  int sample;
   printf("Sample: %s\n", sampleTypeString.Data());
-  if(sampleTypeString == "DATA")
-    sample = DYTools::DATA;
-  else if(sampleTypeString == "MC")
-    sample = DYTools::MC;
-  else {
-    std::cout << "... identification failed" << std::endl;
-    assert(0);
-  }
+  int sample=DetermineDataKind(sampleTypeString);
 
   // Correct the trigger object
-  //triggers.actOnData((sample==DYTools::DATA)?true:false);
+  triggers.actOnData((sample==DYTools::DATA)?true:false);
   evtSelector.setTriggerActsOnData((sample==DYTools::DATA)?true:false);
 
   // The label is a string that contains the fields that are passed to
   // the function below, to be used to name files with the output later.
-  TString label = getLabel(sample, effType, calcMethod, etBinning, etaBinning, evtSelector.trigger());
+  TString label = getLabel(sample, effType, calcMethod, etBinning, etaBinning, triggers);
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -201,15 +198,7 @@ int eff_Reco(const TString configFile,
   TH1F* hMassPass       = new TH1F("hMassPass" ,"",30,massLow,massHigh);
   TH1F* hMassFail       = new TH1F("hMassFail" ,"",30,massLow,massHigh);
 
-  
-
-  // Save MC templates if sample is MC
-  TString tagAndProbeDir(TString("../root_files/tag_and_probe/")+dirTag);
-  gSystem->mkdir(tagAndProbeDir,kTRUE);
-
-  TString ntuplesDir=tagAndProbeDir;
-  ntuplesDir.ReplaceAll("tag_and_probe","selected_events");
-
+#if (defined DYee7TeV)
   // Here, for 7 TeV we set the names of the source/target histograms with 
   // unbiased pile-up distributions that are  prepared according to Hildreth's instructions.
   // The data histogram for TnP takes into account TnP trigger prescales.
@@ -237,7 +226,7 @@ int eff_Reco(const TString configFile,
       }
     }
   }
-
+#endif // end of block for 7TeV analysis
 
   TFile *templatesFile = 0;
   vector<TH1F*> hPassTemplateV;
@@ -245,7 +234,7 @@ int eff_Reco(const TString configFile,
   if( sample != DYTools::DATA) {
     // For simulation, we will be saving templates
     TString labelMC = 
-      getLabel(-1111, effType, calcMethod, etBinning, etaBinning, evtSelector.trigger());
+      getLabel(-1111, effType, calcMethod, etBinning, etaBinning, triggers);
     TString templatesLabel = 
       tagAndProbeDir + TString("/mass_templates_")+ labelMC+TString(".root");
     templatesFile = new TFile(templatesLabel,"recreate");
@@ -264,7 +253,7 @@ int eff_Reco(const TString configFile,
     // however, if the request is COUNTnCOUNT, do nothing
     if( calcMethod != DYTools::COUNTnCOUNT ){
       TString labelMC = 
-	getLabel(-1111, effType, calcMethod, etBinning, etaBinning, evtSelector.trigger());
+	getLabel(-1111, effType, calcMethod, etBinning, etaBinning, triggers);
       TString templatesLabel = 
 	tagAndProbeDir+TString("/mass_templates_")+labelMC+TString(".root");
       templatesFile = new TFile(templatesLabel);
@@ -276,13 +265,16 @@ int eff_Reco(const TString configFile,
   }
 
   // This file is utilized by fit_EffReco
+  TString selectEventsFName=inpMgr.tnpSelectEventsFName(systMode,sampleTypeString,effTypeString,triggers.triggerSetName());
+    /*
   TString uScore="_";
   TString selectEventsFName=tagAndProbeDir + TString("/selectEvents_") 
     + DYTools::analysisTag + uScore
     + sampleTypeString + uScore +
-    + effTypeString + uScore +  evtSelector.trigger().triggerSetName();
+    + effTypeString + uScore +  triggers.triggerSetName();
   if (inpMgr.puReweightFlag()) selectEventsFName.Append(puStr);
   selectEventsFName.Append(".root");
+    */
   std::cout << "selectEventsFName=<" << selectEventsFName << ">\n"; 
   TFile *selectedEventsFile = new TFile(selectEventsFName,"recreate");
   if(!selectedEventsFile) 
@@ -382,7 +374,7 @@ int eff_Reco(const TString configFile,
     UInt_t runNumMin = UInt_t(eventTree->GetMinimum("runNum"));
     UInt_t runNumMax = UInt_t(eventTree->GetMaximum("runNum"));
     std::cout << "runNumMin=" << runNumMin << ", runNumMax=" << runNumMax << "\n";
-    if (!evtSelector.trigger().validRunRange(runNumMin,runNumMax)) {
+    if (!triggers.validRunRange(runNumMin,runNumMax)) {
       std::cout << "... file contains uninteresting run range\n";
       continue;
     }
@@ -418,27 +410,13 @@ int eff_Reco(const TString configFile,
       // Check that the whole event has fired the appropriate trigger
       infoBr->GetEntry(ientry);
 
-      /*  Old code
-      // For EPS2011 for both data and MC (starting from Summer11 production)
-      // we use a special trigger for tag and probe that has second leg
-      // unbiased with cuts at HLT
-      ULong_t eventTriggerBit = kHLT_Ele17_CaloIdVT_CaloIsoVT_TrkIdT_TrkIsoVT_SC8_Mass30
-	| kHLT_Ele32_CaloIdL_CaloIsoVL_SC17;
-      // The tag trigger bit matches the "electron" of the trigger we
-      // use for this tag and probe study: electron+sc
-      ULong_t tagTriggerObjectBit = kHLT_Ele17_CaloIdVT_CaloIsoVT_TrkIdT_TrkIsoVT_SC8_Mass30_EleObj
-	| kHLT_Ele32_CaloIdL_CaloIsoVL_SC17_EleObj;
-      // The probe trigger, however, is any of possibilities used in
-      // the trigger that is used in the main analysis
-      */
-
       // Apply JSON file selection to data
       if(hasJSON && !jsonParser.HasRunLumi(info->runNum, info->lumiSec)) continue;  // not certified run? Skip to next event...
       eventsAfterJson++;
 
       // Event level trigger cut
-      ULong_t eventTriggerBit= evtSelector.trigger().getEventTriggerBit_SCtoGSF(info->runNum);
-      ULong_t tagTriggerObjectBit= evtSelector.trigger().getLeadingTriggerObjectBit_SCtoGSF(info->runNum);
+      ULong_t eventTriggerBit= triggers.getEventTriggerBit_SCtoGSF(info->runNum);
+      ULong_t tagTriggerObjectBit= triggers.getLeadingTriggerObjectBit_SCtoGSF(info->runNum);
 
       if(!(info->triggerBits & eventTriggerBit)) continue;  // no trigger accept? Skip to next event... 
       eventsAfterTrigger++;
@@ -547,21 +525,13 @@ int eff_Reco(const TString configFile,
 	  // but for MC, since this will be used for PU reweighting,
 	  // we are using the gen-level number of simulated PU.
 	  if( (sample==DYTools::DATA) ) {
-		if (1) {
-		  storeNGoodPV = countGoodVertices(pvArr);
-		}
-		else {
-		  for(Int_t ipv=0; ipv<pvArr->GetEntriesFast(); ipv++) {
-		    const mithep::TVertex *pv = (mithep::TVertex*)((*pvArr)[ipv]);
-		    if(pv->nTracksFit                        < 1)  continue;
-		    if(pv->ndof                              < 4)  continue;
-		    if(fabs(pv->z)                           > 24) continue;
-		    if(sqrt((pv->x)*(pv->x)+(pv->y)*(pv->y)) > 2)  continue;
-		    storeNGoodPV++;
-		  }
-		}
+	    storeNGoodPV = countGoodVertices(pvArr);
 	  }else{
+#ifdef DYee8TeV_reg
+	    storeNGoodPV = int(info->nPUmean);
+#else
 	    storeNGoodPV = info->nPU;
+#endif
 	  }
 
 	  // total probes
@@ -624,6 +594,9 @@ int eff_Reco(const TString configFile,
     // For 8 TeV, they are not used.
     TString puTargetDistrName="pileup_lumibased_data";
     TString puSourceDistrName="pileup_simulevel_mc";
+#if !(defined DYee7TeV)
+    TString puTargetFName="", puSourceFName=""; // not used
+#endif
 //     TString refDistribution="hNGoodPV_data";
     
     TString sampleNameBase= effTypeString + TString("_") + 
@@ -723,7 +696,7 @@ int eff_Reco(const TString configFile,
 		      resrootBase,
 		      //resultsRootFile, //resultsRootFilePlots,
 		      NsetBins, effType, setBinsType,
-		      dirTag, evtSelector.trigger().triggerSetName(),0);
+		      dirTag, triggers.triggerSetName(),0);
   
 
   effOutput.close();
@@ -756,7 +729,7 @@ int eff_Reco(const TString configFile,
   std::cout << "selectedEventsFile <" << selectEventsFName << "> saved\n";
  
   gBenchmark->Show("eff_Reco");
-  
+
   return retCodeOk;
 }
 
