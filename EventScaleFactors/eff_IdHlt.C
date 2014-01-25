@@ -626,6 +626,9 @@ int eff_IdHlt(const TString configFile,
 	  storeEt   = dielectron->scEt_2;
 	  storeEta  = dielectron->scEta_2;
 	  if (new_store_data_code) {
+#ifdef tnpStoreTag
+	    storeData.assignTag(dielectron->scEt_1,dielectron->scEta_1);
+#endif
 	    storeData.assign(dielectron->mass,dielectron->y,
 			     dielectron->scEt_2,dielectron->scEta_2,
 			     storeNGoodPV,event_weight,1.);
@@ -655,6 +658,9 @@ int eff_IdHlt(const TString configFile,
 	  storeEt   = dielectron->scEt_1;
 	  storeEta  = dielectron->scEta_1;
 	  if (new_store_data_code) {
+#ifdef tnpStoreTag
+	    storeData.assignTag(dielectron->scEt_2,dielectron->scEta_2);
+#endif
 	    storeData.assign(dielectron->mass,dielectron->y,
 			     dielectron->scEt_1,dielectron->scEta_1,
 			     storeNGoodPV,event_weight,1.);

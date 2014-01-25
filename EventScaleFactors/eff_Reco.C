@@ -544,7 +544,11 @@ int eff_Reco(const TString configFile,
 	  storeEt   = sc->scEt;
 	  storeEta  = sc->scEta;
 	  if (new_store_data_code) {
+#ifdef tnpStoreTag
+	    storeData.assignTag(electron->scEt,electron->scEta);
+#endif
 	    storeData.assign(mass,ee_rapidity,sc->scEt,sc->scEta, storeNGoodPV,
+
 			     event_weight, 1.);
 	  }
 	  int templateBin = 

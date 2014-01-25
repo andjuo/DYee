@@ -4,6 +4,8 @@
 #define tnpSelectEventsIsObject
 #define esfSelectEventsIsObject
 
+#define tnpStoreTag
+
 #if defined(tnpSelectEventsIsObject) || defined(esfSelectEventsIsObject)
 #include <TObject.h>
 #endif
@@ -15,6 +17,8 @@
 #include "../Include/PUReweight.hh"
 #include "../Include/DYTools.hh"
 #include "../Include/AccessOrigNtuples.hh"
+
+
 
 // ------------------------------------------------------
 
@@ -32,6 +36,15 @@ public:
   Double_t et,eta; // probe
   UInt_t nGoodPV;
   Double_t eventWeight,weight;
+#ifdef tnpStoreTag
+  Double_t tagEt,tagEta;
+#endif
+
+#ifdef tnpStoreTag
+  void assignTag(Double_t tag_et, Double_t tag_eta) {
+    tagEt=tag_et; tagEta=tag_eta;
+  }
+#endif
 
   void assign(Double_t mass_1, Double_t yZee1, Double_t et_1, Double_t eta_1, 
 	      UInt_t nGoodPV_1, Double_t event_weight1, Double_t weight1) {
@@ -48,6 +61,10 @@ public:
     tree->Branch("nGoodPV",&this->nGoodPV,"nGoodPV/i");
     tree->Branch("eventWeight",&this->eventWeight,"eventWeight/D");
     if (opt!=_skipWeight) tree->Branch("weight",&this->weight,"weight/D");
+#ifdef tnpStoreTag
+    tree->Branch("tagEt",&this->tagEt,"tagEt/D");
+    tree->Branch("tagEta",&this->tagEta,"tagEta/D");
+#endif
   }
 
   void setBranchAddress(TTree *tree) {
@@ -58,6 +75,10 @@ public:
     tree->SetBranchAddress("nGoodPV",&this->nGoodPV);
     tree->SetBranchAddress("eventWeight",&this->eventWeight);
     tree->SetBranchAddress("weight",&this->weight);
+#ifdef tnpStoreTag
+    tree->SetBranchAddress("tagEt",&this->tagEt);
+    tree->SetBranchAddress("tagEta",&this->tagEta);
+#endif
   }
 
   bool insideMassWindow(double mass_low, double mass_high) const {
