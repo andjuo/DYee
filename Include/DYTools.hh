@@ -615,7 +615,7 @@ namespace DYTools {
     {0, 0.8, 1.4442, 1.566, 2.0, 2.500001 };
   const int nEtaBins5corr = 5;
   const double etaBinLimits5corr[nEtaBins5corr + 1 ] = 
-    {0, 0.8, 1.4442, 1.556, 2.2, 2.400001 };
+    {0, 0.8, 1.4442, 1.556, 2.0, 2.400001 };
   const int nEtaBins4test = 4;
   const double etaBinLimits4test[nEtaBins4test + 1] =
     {0, 0.8, 1.479, 2.0, 2.500001 };
