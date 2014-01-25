@@ -726,6 +726,8 @@ int calcEventEff(const TString confFileName,
     //if (puReweight) weight *= PUReweight.getWeightHildreth(selData.nGoodPV);
     if ( 0 || ( ientry%20000 == 0 )) std::cout << "ientry=" << ientry << ", weight=" << weight << ", scaleFactor=" << scaleFactor << "\n";
 
+    //std::cout << "sel_ientry=" << ientry << ", weight_from_file=" << selData.weight << ", final weight=" << weight << "; scaleFactor=" << scaleFactor << "\n";
+
     hScale->Fill(scaleFactor, weight);
     hScaleReco->Fill( scaleFactorReco, weight);
     hScaleId ->Fill( scaleFactorId, weight);
@@ -1573,6 +1575,7 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	  (isample==0) && (ifile==0)) {
 	extraWeightFactor=maxEvents / (inpMgr.totalLumi() * inpMgr.mcSampleInfo(0)->getXsec(ifile));
       }
+      //extraWeightFactor=1.451900637222e-01; // compensate for 10-20GeV sample
       //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
       //const double extraWeightFactor=1.0;
       if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), mcSample->getXsec(ifile), 
@@ -1686,8 +1689,12 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	  }
 
 	  if (0) {
-	    const mithep::TGenInfo *gen=accessInfo.genPtr();
-	    std::cout << "ientry=" << ientry << ", iD=" << i << ", gen->vec(" << gen->vmass << "," << gen->vpt << "," << gen->vy << "), weight=" << evWeight << "\n";
+	    //const mithep::TGenInfo *gen=accessInfo.genPtr();
+	    const mithep::TEventInfo *info=accessInfo.evtInfoPtr();
+	    //std::cout << "ientry=" << ientry << ", iD=" << i << ", gen->vec(" << gen->vmass << "," << gen->vpt << "," << gen->vy << "), weight=" << evWeight << "\n";
+	    // line for DrellYanDMDY: std::cout << "ientry=" << ientry << ", event(" << info->runNum << "," << info->evtNum << "), (m,y)=(" << dielectron->mass << "," << dielectron->y << "), weights: " << sample_weight << "(s), " << fewz.getWeight(gen->vmass,gen->vpt,gen->vy) << "(f), saved weight=" << weight << ", nGoodPV=" << nGoodPV << "\n";
+	    int nGoodPV=countGoodVertices(accessInfo.getPVArr());
+	    std::cout << "ientry=" << ientry << ", event(" << info->runNum << "," << info->evtNum << "), (m,y)=(" << dielectron->mass << "," << dielectron->y << "), weights: " << evWeight << ", saved weight=" << evWeight.totalWeight() << ", nGoodPV=" << nGoodPV << "\n";
 	  }
 
 	  if (int(ec.numDielectronsPass[0]+1e-3)%20000 == 0) {
