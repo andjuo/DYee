@@ -400,13 +400,6 @@ int eff_Reco(const TString configFile,
       //for(UInt_t ientry=0; ientry<1000; ientry++) { 
       if (DYTools::isDebugMode(runMode) && (ientry>100000)) break;  // This is for faster turn-around in testing
       
-      if(sample != DYTools::DATA)
-	genBr->GetEntry(ientry);
-      eleArr->Clear();
-      electronBr->GetEntry(ientry);
-      scArr->Clear();
-      photonBr->GetEntry(ientry);
-      
       // Check that the whole event has fired the appropriate trigger
       infoBr->GetEntry(ientry);
 
@@ -424,6 +417,15 @@ int eff_Reco(const TString configFile,
       // Apply event-level pfMET
       if( !(info->pfMET < 20 ) ) continue;
       eventsAfterMET++;
+
+      // get analysis object arrays
+      if(sample != DYTools::DATA)  
+	genBr->GetEntry(ientry);
+
+      eleArr->Clear();
+      electronBr->GetEntry(ientry);
+      scArr->Clear();
+      photonBr->GetEntry(ientry);
 
       // Loop over the tag electrons
       for(int iele = 0; iele < eleArr->GetEntriesFast(); iele++){
