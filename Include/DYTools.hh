@@ -643,6 +643,11 @@ namespace DYTools {
 
   const int nEtaBinsMax= nEtaBins5altNegs;
 
+  inline
+  int mergeEtBins(int binning) {
+    return ((binning==ETABINS5) || (binning==ETABINS5corr)) ? 1:0;
+  }
+
 
   inline 
   int getNEtaBins(int binning){

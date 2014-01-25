@@ -402,7 +402,7 @@ void measureEfficiencyCountAndCount(TTree *passTree, TTree *failTree,
       // a function of mass takes into account this 100% correlation in
       // the efficiencies of the merged bins. This is done in calcEventEff.C
       bool isRECO=(effType == DYTools::RECO) ? true : false;
-      if( isRECO && etaBinning == DYTools::ETABINS5 && limitsEt[i+1]  <= 20.0){
+      if( isRECO && DYTools::mergeEtBins(etaBinning) && limitsEt[i+1]  <= 20.0){
 	if ( j == 0 || j == 1 ){
 	  // Barrel eta bins
 	  limitsEtaMin = limitsEta[0];
@@ -503,7 +503,7 @@ void measureEfficiencyCountAndCount(TTree *passTree, TTree *failTree,
       // when the arrays are introduced
       bool isHLT = (effType == DYTools::HLT) ? true : false;
       if( isHLT) {
-	if(etBinning == DYTools::ETBINS6 && etaBinning == DYTools::ETABINS5){
+	if(etBinning == DYTools::ETBINS6 && DYTools::mergeEtBins(etaBinning)) {
 	  double extraErr = effHltSystErrBarrel[i];
 	  if( j > 2 ) 
 	    extraErr = effHltSystErrEndcap[i];
@@ -628,7 +628,7 @@ void measureEfficiencyWithFit(TTree *passTree, TTree *failTree,
       //   The calculation of the error on the event-level scale factors as 
       // a function of mass takes into account this 100% correlation in
       // the efficiencies of the merged bins. This is done in calcEventEff.C
-      if( isRECO && etaBinning == DYTools::ETABINS5 && limitsEt[i+1] <= 20.0){
+      if( isRECO && DYTools::mergeEtBins(etaBinning) && limitsEt[i+1] <= 20.0){
 	if ( j == 0 || j == 1 ){
 	  // Barrel eta bins
 	  limitsEtaMin = limitsEta[0];
@@ -688,7 +688,7 @@ void measureEfficiencyWithFit(TTree *passTree, TTree *failTree,
 	// Note: the original templates are cloned, so that we do not mess with 
 	// the original ones. This is important because each template is used twice
 	// in this implementation, once for each of the bins being merged.
-	if( isRECO && etaBinning == DYTools::ETABINS5 && limitsEt[i+1] <= 20.0 ){
+	if( isRECO && DYTools::mergeEtBins(etaBinning) && limitsEt[i+1] <= 20.0 ){
 	  if ( j == 0 || j == 1 ){
 	    // Barrel eta bins
 	    TH1F *templatePassOne = (TH1F*)getPassTemplate(i,0,etaBinning, templatesFile, puBin)->Clone();
