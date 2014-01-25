@@ -369,7 +369,7 @@ int calcEventEff(const TString confFileName,
   TString puStr;
 
   //HERE("\n\tCalling initManagers\n");
-  if (!initManagers(confFileName,runMode,inpMgr,evtSelector,puStr,1)) {
+  if (!initManagers(confFileName,DYTools::NORMAL_RUN,inpMgr,evtSelector,puStr,1)) {
     std::cout << "failed to initialize managers\n";
     return retCodeError;
   }
@@ -554,7 +554,7 @@ int calcEventEff(const TString confFileName,
 	  // for the efficiencies in the merged bins are the same,
 	  // and the errors are 100% correlated. Take this into
 	  // account and make the smearing 100% correlated as well.
-	  if( kind == 0 && etaBinning == DYTools::ETABINS5 
+	  if( kind == 0 && DYTools::mergeEtBins(etaBinning)
 	      && (getEtBinLimits(etBinning))[iEt+1] <= 20.0 
 	      && (iEta == 1 || iEta == 4)    ) {
 	    // We are dealing with merged bins of the RECO efficiency with the right binning
@@ -576,7 +576,7 @@ int calcEventEff(const TString confFileName,
 	  // In the case of RECO efficiency with MERGED bins for tag and
 	  // probe and ETABINS5, the randomization is different. See 
 	  // comments above. 
-	  if( kind == 0 && etaBinning == DYTools::ETABINS5 
+	  if( kind == 0 && DYTools::mergeEtBins(etaBinning)
 	      && (getEtBinLimits(etBinning))[iEt+1] <= 20.0 
 	      && (iEta == 1 || iEta == 4)    ) {
 	    // We are dealing with merged bins of the RECO efficiency with the right binning
