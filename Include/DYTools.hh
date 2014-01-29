@@ -109,6 +109,7 @@ namespace DYTools {
 
   // Declare mass binnings
   typedef enum { _MassBins_Undefined, _MassBins_default, 
+		 _MassBins_2012,
 		 _MassBins_test4, _MassBins_Zpeak,
 		 _MassBins_noUnderflow, _MassBins_withFullOverflow 
   }     TMassBinning_t;
@@ -155,12 +156,27 @@ namespace DYTools {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1
   };
 
+  // 2011 mass binning
+  const int _nMassBins2012 = 41;
+  const double _massBinLimits2012[_nMassBins2012+1] = 
+    {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64, 68, 72, 76, 
+     81, 86, 91, 96, 101, 106, 110, 115, 120, 126, 133, 141, 
+     150, 160, 171, 185, 200, 220, 243, 273, 320, 380, 440, 
+     510, 600, 1000, 1500, 2000 }; // 41 bin
+  const int _nYBinsMax2012=1; // the largest division into Y bins
+  const int _nYBins2012[_nMassBins2012] = { 
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+  };
+
   const TString analysisTag_binning="";
-  const DYTools::TMassBinning_t massBinningSet= _MassBins_default;
-  const int _nMassBins1D=_nMassBins2011;
-  const double *_massBinLimits1D=_massBinLimits2011;
-  const int *_nYBins1D=_nYBins2011;
-  const int _nYBinsMax1D=_nYBinsMax2011;
+  const DYTools::TMassBinning_t massBinningSet= _MassBins_2012; //_MassBins_default;
+  const int _nMassBins1D=_nMassBins2012;
+  const double *_massBinLimits1D=_massBinLimits2012;
+  const int *_nYBins1D=_nYBins2012;
+  const int _nYBinsMax1D=_nYBinsMax2012;
   const double _yRangeEdge=_yRangeEdge_base;
   const double _yRangeMax=_yRangeMax_base; 
 
