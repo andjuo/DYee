@@ -21,6 +21,7 @@
  * Copyright (C) 2008 FNAL 
  *****************************************************************************/
 
+#include "../Include/DYTools.hh" // no actual dependency but forces recompilation
 #include "RooCMSShape.h"
 
 ClassImp(RooCMSShape) 
