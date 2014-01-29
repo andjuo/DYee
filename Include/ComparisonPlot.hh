@@ -74,6 +74,7 @@ public:
 
   void ErrorsOnRatios(unsigned int on=1) { fErrorsOnRatios=on; }
   void SetRatioYRange(double ymin, double ymax) { fRatioYMin=ymin; fRatioYMax=ymax; }
+  void SetRatioYRangeC(double y_center, double delta_y) { fRatioYMin=y_center-delta_y;; fRatioYMax=y_center+delta_y; }
   void SetRatioNdivisions(int cnt) { fRatioNdivisions=cnt; }
   void SetRatioLabelSize(double size) { fRatioYLabelSize=size; }
   void SetRatioYTitleSize(double size, double offset=-99) { fRatioYTitleSize=size; if (offset>=0) fRatioYTitleOffset=offset; }
@@ -122,6 +123,10 @@ public:
   }
 
   void Skip(TH1D* h) { SkipInRatioPlots(h); }
+
+  void AddHist1D(TH1D *h, TString label, TString drawopt, int color=kBlack, int linesty=1, int fillsty=0, int legendSymbolLP=0) {
+    CPlot::AddHist1D(h,label,drawopt,color,linesty,fillsty,legendSymbolLP);
+  }
 
   TLatex* AddTextCMSPreliminary(double x=0.93, double y=0.94) {
     TLatex *cmsText = new TLatex();
