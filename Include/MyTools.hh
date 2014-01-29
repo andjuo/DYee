@@ -950,7 +950,7 @@ TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, c
   return h;
 }
 // -------------------------------------------
-
+/*
 inline
 TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL) {
   if ((ixBin<=0) || (ixBin>h2->GetNbinsX())) {
@@ -965,6 +965,35 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
   }
   h->GetXaxis()->SetTitle( h2->GetYaxis()->GetTitle() );
   for (int ibin=1; ibin<=h2->GetNbinsY(); ibin++) {
+    h->SetBinContent(ibin,h2->GetBinContent(ixBin,ibin));
+    h->SetBinError(ibin,h2->GetBinError(ixBin,ibin));
+  }
+  return h;
+}
+*/
+
+// -------------------------------------------
+
+inline
+TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL, int set_nYbins=-1, double set_ymin=0., double set_ymax=1.) {
+  if ((ixBin<=0) || (ixBin>h2->GetNbinsX())) {
+    std::cout << "\n\n\tcreateProfileY(" << h2->GetName() << ", ixBin=" << ixBin << "(bad value!!), name=" << name << ")\n\n";
+  }
+  TH1D *h=NULL;
+  if (set_nYbins==-1) {
+    h=new TH1D(name,"",h2->GetNbinsY(),h2->GetYaxis()->GetXbins()->GetArray());
+    set_nYbins=100000;
+  }
+  else h=new TH1D(name,"",set_nYbins,set_ymin,set_ymax);
+
+  h->SetDirectory(0);
+  h->SetStats(0);
+  if (setTitle) {
+    if (title) h->SetTitle(title);
+    else h->SetTitle(name);
+  }
+  h->GetXaxis()->SetTitle( h2->GetYaxis()->GetTitle() );
+  for (int ibin=1; (ibin<=h2->GetNbinsY()) && (ibin<=set_nYbins); ibin++) {
     h->SetBinContent(ibin,h2->GetBinContent(ixBin,ibin));
     h->SetBinError(ibin,h2->GetBinError(ixBin,ibin));
   }
