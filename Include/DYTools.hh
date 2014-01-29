@@ -594,7 +594,7 @@ namespace DYTools {
     return result;
   };
 
-  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5corr, ETABINS5Negs, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs} TEtaBinSet_t;
+  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5corr, ETABINS5Negs, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs, ETABINS14} TEtaBinSet_t;
   const int nEtaBins1 = 1;
   const double etaBinLimits1[nEtBins1 + 1] = 
     {0, 2.5000001};
@@ -640,6 +640,9 @@ namespace DYTools {
   const int nEtaBins8altNegs = 16;
   const double etaBinLimits8altNegs[nEtaBins8altNegs + 1 ] =
     {-2.50001, -2.2, -2.0, -1.8, -1.479, -1.0, -0.8, -0.4, 0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.5 };
+  const int nEtaBins14 = 14;
+  const double etaBinLimits14[nEtaBins14 + 1 ] = 
+    {0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.556, 1.8, 2.0, 2.2, 2.3, 2.4, 2.500001 };
 
   const int nEtaBinsMax= nEtaBins5altNegs;
 
@@ -669,6 +672,7 @@ namespace DYTools {
     case ETABINS5altNegs: n = nEtaBins5altNegs; break;
     case ETABINS8alt: n = nEtaBins8alt; break;
     case ETABINS8altNegs: n = nEtaBins8altNegs; break;
+    case ETABINS14: n = nEtaBins14; break;
     default:
       printf("ERROR: unknown binning requested\n");
       assert(0);
@@ -698,6 +702,7 @@ namespace DYTools {
     case ETABINS5altNegs: limits = etaBinLimits5altNegs; break;
     case ETABINS8alt: limits = etaBinLimits8alt; break;
     case ETABINS8altNegs: limits = etaBinLimits8altNegs; break;
+    case ETABINS14: limits = etaBinLimits14; break;
     default:
       printf("ERROR: unknown/undefined binning requested\n");
       assert(0);
@@ -722,6 +727,7 @@ namespace DYTools {
     case ETABINS4alt:
     case ETABINS5alt:
     case ETABINS8alt:
+    case ETABINS14: 
       yes=0;
       break;
     case ETABINS2Negs: 
