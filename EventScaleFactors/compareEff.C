@@ -123,23 +123,39 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
   TString fnameBase="efficiency_TnP_1D_Full2012_";
 
-  TString fname1=path1 + fnameBase + effKindLongStr1 + TString(".root");
-  TString fname2=path2 + fnameBase + effKindLongStr2 + TString(".root");
 
-  DYTools::TEtBinSet_t etBinSet1=DYTools::ETBINS6;
-  DYTools::TEtaBinSet_t etaBinSet1=DYTools::ETABINS5;
-  DYTools::TEtBinSet_t etBinSet2=DYTools::ETBINS6;
-  DYTools::TEtaBinSet_t etaBinSet2=DYTools::ETABINS5;
+  //DYTools::TEtBinSet_t etBinSet1=DYTools::ETBINS6;
+  //DYTools::TEtaBinSet_t etaBinSet1=DYTools::ETABINS5;
+  //DYTools::TEtBinSet_t etBinSet2=DYTools::ETBINS6;
+  //DYTools::TEtaBinSet_t etaBinSet2=DYTools::ETABINS5;
 
   TString label1="new n-tuples";
   TString label2="old n-tuples";
   TString fnameTag="-new_vs_old--";
 
-  etaBinSet2=DYTools::ETABINS5corr;
-  label1="etaMax = 2.5";
-  label2="etaMax = 2.4";
-  fnameTag="-diffEtaMax--";
+  if (0) {
+    //etaBinSet2=DYTools::ETABINS5corr;
+    label1="etaMax = 2.5";
+    label2="etaMax = 2.4";
+    fnameTag="-diffEtaMax--";
+  }
 
+  if (1) {
+    path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
+    path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
+    label1="DYee |#eta|<2.4";
+    label2="DMDY |#eta|<2.4";
+    fnameTag="-cmpPkg--";
+  }
+
+  TString fname1=path1 + fnameBase + effKindLongStr1 + TString(".root");
+  TString fname2=path2 + fnameBase + effKindLongStr2 + TString(".root");
+
+  DYTools::TEtBinSet_t etBinSet1=DetermineEtBinSet(effKindLongStr1);
+  DYTools::TEtaBinSet_t etaBinSet1=DetermineEtaBinSet(effKindLongStr1);
+  DYTools::TEtBinSet_t etBinSet2=DetermineEtBinSet(effKindLongStr2);
+  DYTools::TEtaBinSet_t etaBinSet2=DetermineEtaBinSet(effKindLongStr2);
+  std::cout << "sets: "<< EtBinSetName(etBinSet1) << "," << EtaBinSetName(etaBinSet1) << "  " << EtBinSetName(etBinSet2) << "," << EtaBinSetName(etaBinSet2) << "\n";
 
   TString effKind=effDataKindString(effKindLongStr1);
   if (effKind != effDataKindString(effKindLongStr2)) {
@@ -225,7 +241,9 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   //fname.Append(".png");
   std::cout << "fname=" << fname << "\n";
 
-  SaveCanvas(cx,fname);
+  TString locOutDir=TString("plots") + fnameTag;
+  locOutDir.ReplaceAll("--","");
+  SaveCanvas(cx,fname,locOutDir);
 
   return ;
 }
