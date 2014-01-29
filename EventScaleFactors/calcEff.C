@@ -483,6 +483,24 @@ int calcEff(const TString configFile, const TString effTypeString, int runOnData
   //   bool isRECO=(effType == DYTools::RECO) ? true : false;
   const char* setBinsType="cache";
 
+  TFile *ftmp=NULL; // a dummy file to store duplicated tree
+  if (etaBinning==DYTools::ETABINS5corr) {
+#ifndef tnpStoreTag
+    std::cout << "\n\nThe correction for etaBinning=DYTools::ETABINS5corr\n";
+    std::cout << " requires that the selected file contains (tagEt,tagEta)\n";
+    return retCodeErr;
+#endif
+    std::cout << "\n\nEnforcing |tagEta|<2.4 cut\n";
+    ftmp=new TFile("tmp_file.root","recreate");
+    TTree *passTreeOrig=passTree;
+    TTree *failTreeOrig=failTree;
+    TString tagEtaCut= Form(" ( abs(tagEta) < %5.3f ) ", 2.4);
+    passTree= passTreeOrig->CopyTree(tagEtaCut);
+    failTree= failTreeOrig->CopyTree(tagEtaCut);
+    delete passTreeOrig;
+    delete failTreeOrig;
+  }
+
   int nDivisions = DYTools::getNEtBins(etBinning)*DYTools::getNEtaBins(etaBinning);
   //std::cout << "nDivisions=" << getNEtBins(etBinning) << "*" << getNEtaBins(etaBinning) << "=" << nDivisions << "\n";
   double ymax = 800;
@@ -506,6 +524,9 @@ int calcEff(const TString configFile, const TString effTypeString, int runOnData
 
   effOutput.close();
   fitLog.close();
+
+  if (ftmp) { ftmp->Close(); delete ftmp; }
+
   TString command = "cat ";
   command += reslog;
   system(command.Data());
