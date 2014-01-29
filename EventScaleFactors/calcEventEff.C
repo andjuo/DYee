@@ -360,6 +360,15 @@ int calcEventEff(const TString confFileName,
       return retCodeError;
   }
 
+  if (( DYTools::study2D && (DYTools::nYBins[0]==1)) ||
+      (!DYTools::study2D && (DYTools::nYBins[0] >1))) {
+    std::cout << "\n\nlinking error:\n";
+    std::cout << " either study2D=1 but DYTools::nYBins[0]=1\n";
+    std::cout << " or study2D=0 but DYTools::nYBins[0] >1\n";
+    std::cout << "Try to remove *.d *.so and recompile\n\n";
+    return retCodeError;
+  }
+
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
@@ -1506,6 +1515,7 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 			const TString &outSkimFName, 
 			DYTools::TRunMode_t runMode) {
 
+
   // Event weight handler
   EventWeight_t evWeight;
   evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
@@ -1522,6 +1532,16 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	 << outSkimFName << ">\n";
     return 0;
   }
+
+  if (DYTools::study2D) {
+    std::cout << "createSelectionFile: In general the lower mass limit\n" 
+	      << "in the 2D case is higher than in 1D case. Change\n";
+    std::cout << "the value of study2D in DYTools.hh or remove this\n"
+	      << "forced stop\n";
+    return 0;
+  }
+
+
   TTree *skimTree= new TTree("Events","Events");
   assert(skimTree);
   selData.createBranches(skimTree);
