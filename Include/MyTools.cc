@@ -131,7 +131,10 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
 int checkMatrixSize(const TMatrixD &m, const TString &name) {
   int res= ((m.GetNrows() == DYTools::nMassBins) &&
 	    (m.GetNcols() == DYTools::nYBinsMax)) ? 1:0;
-  if (!res) std::cout << "matrix (name=" << name << ") failed range check\n";
+  if (!res) {
+    std::cout << "matrix (name=" << name << ") failed range check\n";
+    std::cout << "expected: " << DYTools::nMassBins << "x" << DYTools::nYBinsMax << ", got " << m.GetNrows() << "x" << m.GetNcols() << std::endl;
+  }
   return res;
 }
 
