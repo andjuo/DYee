@@ -17,7 +17,7 @@
 
 // ------------------------------------------------------
 
-int plotEffVsTag(const TString configFile, const TString effTypeString, int runOnData ) {
+int plotEffVsTag(const TString configFile, const TString effTypeString="RECO", int runOnData=0 ) {
 
   // -------
   // setup -
@@ -62,7 +62,8 @@ int plotEffVsTag(const TString configFile, const TString effTypeString, int runO
   TString sampleTypeString = (runOnData) ? "DATA" : "MC";
   //TString calcMethodString = inpMgr.getTNP_calcMethod(tnpSection,dataKind,effType);
   TString etBinningString  = inpMgr.getTNP_etBinningString(tnpSection);
-  TString etaBinningString = inpMgr.getTNP_etaBinningString(tnpSection);
+  //TString etaBinningString = inpMgr.getTNP_etaBinningString(tnpSection);
+  TString etaBinningString= "DYTools::ETABINS14";
   TString dirTag= inpMgr.selectionTag();
 
   vector<TString> ntupleFileNames;
@@ -127,16 +128,19 @@ int plotEffVsTag(const TString configFile, const TString effTypeString, int runO
  
   TString tagEtaCutFormat= " ( abs(tagEta) >= %5.3f && abs(tagEta) < %5.3f ) ";
   
-  double tagEtaMin=0.;
-  double tagEtaMax=2.5;
-  int tagEtaCount=25;
+  //double tagEtaMin=0.;
+  //double tagEtaMax=2.5;
+  //int tagEtaCount=25;
   //double tagH=(tagEtaMax-tagEtaMin)/double(tagEtaCount);
   
   TString histoName="histo";
   TString histoTitle="efficiency";
-  TH2D *h2=new TH2D(histoName,histoTitle, 
+  //TH2D *h2=new TH2D(histoName,histoTitle, 
+  //		    nEtaProbe,limitsEtaProbe,
+  //		    tagEtaCount,tagEtaMin,tagEtaMax);
+  TH2D *h2=new TH2D(histoName,histoTitle,
 		    nEtaProbe,limitsEtaProbe,
-		    tagEtaCount,tagEtaMin,tagEtaMax);
+		    nEtaProbe,limitsEtaProbe);
   h2->SetDirectory(0);
   h2->GetXaxis()->SetTitle("probe #eta");
   h2->GetYaxis()->SetTitle("tag #eta");
@@ -222,7 +226,7 @@ int plotEffVsTag(const TString configFile, const TString effTypeString, int runO
   h2->Draw("COLZ");
   cx->Update();
 
-  SaveCanvas(cx,TString("canv_passFail_") + effTypeString);
+  SaveCanvas(cx,TString("canvVer4_passFail_") + effTypeString,"plots_tagEta");
 
   return retCodeOk;
 }
