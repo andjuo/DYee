@@ -935,7 +935,19 @@ TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, c
   if ((iyBin<=0) || (iyBin>h2->GetNbinsY())) {
     std::cout << "\n\n\tcreateProfileX(" << h2->GetName() << ", iyBin=" << iyBin << "(bad value!!), name=" << name << ")\n\n";
   }
-  TH1D *h=new TH1D(name,"",h2->GetNbinsX(),h2->GetXaxis()->GetXbins()->GetArray());
+
+  // prepare the range info
+  int nxBins=h2->GetNbinsX();
+  double *xv=new double[nxBins+1];
+  TAxis *ax=h2->GetXaxis();
+  for (int i=1; i<=nxBins; i++) {
+    xv[i-1] = ax->GetBinLowEdge(i);
+  }
+  xv[nxBins]=ax->GetBinLowEdge(nxBins) + ax->GetBinWidth(nxBins);
+  TH1D *h=new TH1D(name,"",h2->GetNbinsX(),xv);
+  delete [] xv;
+
+  // copy the profile
   h->SetDirectory(0);
   h->SetStats(0);
   if (setTitle) {
@@ -981,8 +993,18 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
   }
   TH1D *h=NULL;
   if (set_nYbins==-1) {
-    h=new TH1D(name,"",h2->GetNbinsY(),h2->GetYaxis()->GetXbins()->GetArray());
-    set_nYbins=100000;
+    int nyBins=h2->GetNbinsY();
+    double *yv=new double[nyBins+1];
+    TAxis *ay=h2->GetYaxis();
+    for (int i=1; i<=nyBins; i++) {
+      yv[i-1] = ay->GetBinLowEdge(i);
+      std::cout << "yv[" << i-1 << "]=" << yv[i-1] << "\n";
+    }
+    yv[nyBins]=ay->GetBinLowEdge(nyBins) + ay->GetBinWidth(nyBins);
+    std::cout << "yv[nYBins=" << nyBins << "]=" << yv[nyBins] << "\n";
+    h=new TH1D(name,"",h2->GetNbinsY(),yv);
+    delete [] yv;
+    set_nYbins=h2->GetNbinsY();
   }
   else h=new TH1D(name,"",set_nYbins,set_ymin,set_ymax);
 
@@ -1213,6 +1235,12 @@ TH2D* Clone(TH2D* histo, const TString &newName, int setTitle=0) {
   if (setTitle) h2->SetTitle(newName);
   return h2;
 }
+
+//--------------------------------------------------
+
+// Histo has bins (1,Nx) x (1,Ny). 
+// Select a histogram (xbin1,xbin2) x (ybin1,ybin2)
+TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle=0);
 
 //--------------------------------------------------
 

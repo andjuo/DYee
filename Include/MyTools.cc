@@ -226,3 +226,56 @@ int LoadThreeMatrices(const TString &fileName, TH2D **h2, TH2D **h2syst, const T
 //--------------------------------------------------
 //--------------------------------------------------
 
+
+inline
+TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle) {
+  int nXBins=histo->GetNbinsX();
+  int nYBins=histo->GetNbinsY();
+  if ((xbin1==0) || (ybin1==0) ||
+      (xbin1>xbin2) || (ybin1>ybin2)) {
+    std::cout << "extractSubArea: problem with the requested area ";
+    printf("(xbin1=%d, xbin2=%d, ybin1=%d, ybin2=%d)\n",xbin1,xbin2,ybin1,ybin2);
+    std::cout << std::endl;
+    return NULL;
+  }
+  if ((xbin2>nXBins) || (ybin2>nYBins)) {
+    std::cout << "extractSubArea: \n";
+    printf("requested last bin x=%d (available %d), y=%d (%d)",xbin2,nXBins,ybin2,nYBins);
+    std::cout << std::endl;
+    return NULL;
+  }
+  
+  const TAxis *ax=histo->GetXaxis();
+  const TAxis *ay=histo->GetYaxis();
+  
+  double *xnew=new double[xbin2-xbin1+2];
+  for (int i=0; i<xbin2-xbin1+1; ++i) xnew[i]= ax->GetBinLowEdge(i+xbin1);
+  xnew[xbin2-xbin1+1]= ax->GetBinLowEdge(xbin2) + ax->GetBinWidth(xbin2);
+  double *ynew=new double[ybin2-ybin1+2];
+  for (int i=0; i<ybin2-ybin1+1; ++i) ynew[i]= ay->GetBinLowEdge(i+ybin1);
+  ynew[ybin2-ybin1+1]= ay->GetBinLowEdge(ybin2) + ay->GetBinWidth(ybin2);
+
+  TH2D *h2=new TH2D(newName,"",xbin2-xbin1+1,xnew,ybin2-ybin1+1,ynew);
+  if (setTitle) h2->SetTitle(newName);
+  h2->SetDirectory(0);
+  h2->SetStats(0);
+  h2->GetXaxis()->SetTitle(histo->GetXaxis()->GetTitle());
+  h2->GetYaxis()->SetTitle(histo->GetYaxis()->GetTitle());
+
+  for (int ibin=xbin1; ibin<=xbin2; ++ibin) {
+    for (int jbin=ybin1; jbin<=ybin2; ++jbin) {
+      const int new_ibin= ibin-xbin1+1;
+      const int new_jbin= jbin-ybin1+1;
+      h2->SetBinContent(new_ibin,new_jbin,histo->GetBinContent(ibin,jbin));
+      h2->SetBinError  (new_ibin,new_jbin,histo->GetBinError  (ibin,jbin));
+    }
+  }
+  delete [] xnew;
+  delete [] ynew;
+  return h2;
+}
+
+
+//--------------------------------------------------
+//--------------------------------------------------
+
