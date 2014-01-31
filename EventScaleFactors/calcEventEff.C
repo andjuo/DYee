@@ -293,14 +293,6 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
   // Prepare output directory
   inpMgr.constDir(systMode,createDestinationDir);
 
-  //
-  // prepare global variables
-  // 
-
-  ro_Data= new EffArray_t[nexp];
-  ro_MC  = new EffArray_t[nexp];
-  assert(ro_Data && ro_MC);
-
 
   //dirTag=inpMgr.tnpTag();
 
@@ -327,6 +319,55 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
     assert(0);
   }
 
+  return 1;
+}
+
+// -----------------------------------------
+
+int preparePseudoExps(int nExps, int debug_pseudo_exps) {
+  //
+  // prepare global variables
+  // 
+
+  ro_Data= new EffArray_t[nExps];
+  ro_MC  = new EffArray_t[nExps];
+  //assert(ro_Data && ro_MC);
+  if (!ro_Data || !ro_MC) {
+    std::cout << Form("preparePseudoExps(nExps=%d,debug_pseudo_exps=%d): failed to allocate ro_Data\n",nExps,debug_pseudo_exps);
+    return 0;
+  }
+
+  for (int isData=0; isData<2; ++isData) {
+    int extra_sign=(isData) ? 1 : -1; // for debug_pseudo_exps
+    for (int i=0; i<nExps; i++) {
+      EffArray_t *arr= (isData==0) ? (&ro_MC[i]) : (&ro_Data[i]);
+    for (int kind=0; kind<NEffTypes; ++kind) {
+      for (int iEt=0; iEt<DYTools::nEtBinsMax; ++iEt) {
+	for (int iEta=0; iEta<DYTools::nEtaBinsMax; ++iEta) {
+	  // In the special case of the RECO efficiency for low Et
+	  // electrons, some eta bins are MERGED in tag and probe.
+	  // However the binning is kept standard, so the values
+	  // for the efficiencies in the merged bins are the same,
+	  // and the errors are 100% correlated. Take this into
+	  // account and make the smearing 100% correlated as well.
+	  if( kind == 0 && DYTools::mergeEtBins(etaBinning)
+	      && (getEtBinLimits(etBinning))[iEt+1] <= 20.0 
+	      && (iEta == 1 || iEta == 4)    ) {
+	    // We are dealing with merged bins of the RECO efficiency with the right binning
+	    // For iEta == 1 or 4, fall back to the values for iEta == 0 or 3.
+	    (*arr)[kind][iEt][iEta]= (*arr)[kind][iEt][iEta-1];
+	  }else{
+	    // The default case, all other efficiencies and bins
+	    (*arr)[kind][iEt][iEta]=
+	      (debug_pseudo_exps) ? 
+	      extra_sign*((kind+1)*100 + (iEt+1)*10 + iEta+1) :
+	      gRandom->Gaus(0.0,1.0);
+	  }
+	}
+      }
+    }
+    }
+  }
   return 1;
 }
 
@@ -552,6 +593,9 @@ int calcEventEff(const TString confFileName,
   }
   */
   int debug_pseudo_exps=0;
+  if (!preparePseudoExps(nexp,debug_pseudo_exps)) return retCodeError;
+
+  /*
   for (int i=0; i<nexp; i++) {
     EffArray_t *arr= & ro_Data[i];
     for (int kind=0; kind<NEffTypes; ++kind) {
@@ -601,6 +645,7 @@ int calcEventEff(const TString confFileName,
       }
     }
   }
+  */
   
   // Create container for data for error estimates based on pseudo-experiments
   //TH1D *systScale[DYTools::nMassBins][nexp];
@@ -680,13 +725,14 @@ int calcEventEff(const TString confFileName,
     hSystEsfEvtWV.push_back(h);
   }
 
-  PUReweight_t PUReweight(PUReweight_t::_Hildreth);
-  // For Hildreth method of PU reweighting, the lines below are not needed
-//   if (puReweight) {
-//     assert(PUReweight.setDefaultFile(mcMgr.dirTag(),DYTools::analysisTag_USER,0));
-//     assert(PUReweight.setReference("hNGoodPV_data"));
-//     assert(PUReweight.setActiveSample("hNGoodPV_zee"));
-//   }
+  // PU-weight is present in the weighted of the selected events
+  //PUReweight_t PUReweight(PUReweight_t::_Hildreth);
+  //// For Hildreth method of PU reweighting, the lines below are not needed
+  ////   if (puReweight) {
+  ////     assert(PUReweight.setDefaultFile(mcMgr.dirTag(),DYTools::analysisTag_USER,0));
+  ////     assert(PUReweight.setReference("hNGoodPV_data"));
+  ////     assert(PUReweight.setActiveSample("hNGoodPV_zee"));
+  ////}
 
   //HERE("break the macro"); return;
 
