@@ -1239,8 +1239,11 @@ TH2D* Clone(TH2D* histo, const TString &newName, int setTitle=0) {
 //--------------------------------------------------
 
 // Histo has bins (1,Nx) x (1,Ny). 
-// Select a histogram (xbin1,xbin2) x (ybin1,ybin2)
-TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle=0);
+// Select a histogram (xbin1,xbin2) x (ybin1,ybin2).
+//   If the axes are divided at integers (e.g. indices are used), the option
+// resetAxis=1 might be useful. It ignores
+// the actual values of the original axes.
+TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle=0, int resetAxis=0); 
 
 //--------------------------------------------------
 

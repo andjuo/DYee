@@ -228,7 +228,7 @@ int LoadThreeMatrices(const TString &fileName, TH2D **h2, TH2D **h2syst, const T
 
 
 inline
-TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle) {
+TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle, int resetAxis) {
   int nXBins=histo->GetNbinsX();
   int nYBins=histo->GetNbinsY();
   if ((xbin1==0) || (ybin1==0) ||
@@ -249,11 +249,23 @@ TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, co
   const TAxis *ay=histo->GetYaxis();
   
   double *xnew=new double[xbin2-xbin1+2];
-  for (int i=0; i<xbin2-xbin1+1; ++i) xnew[i]= ax->GetBinLowEdge(i+xbin1);
-  xnew[xbin2-xbin1+1]= ax->GetBinLowEdge(xbin2) + ax->GetBinWidth(xbin2);
   double *ynew=new double[ybin2-ybin1+2];
-  for (int i=0; i<ybin2-ybin1+1; ++i) ynew[i]= ay->GetBinLowEdge(i+ybin1);
-  ynew[ybin2-ybin1+1]= ay->GetBinLowEdge(ybin2) + ay->GetBinWidth(ybin2);
+  if (resetAxis) {
+    // ignore the actual shift of the axes
+    int lastXbin=xbin2-xbin1+1;
+    int lastYbin=ybin2-ybin1+1;
+    for (int i=0; i<lastXbin; ++i) xnew[i]=ax->GetBinLowEdge(i+1);
+    xnew[lastXbin]= ax->GetBinLowEdge(lastXbin) + ax->GetBinWidth(lastXbin);
+    for (int i=0; i<lastYbin; ++i) ynew[i]=ay->GetBinLowEdge(i+1);
+    ynew[lastYbin]= ay->GetBinLowEdge(lastYbin) + ay->GetBinWidth(lastYbin);
+  }
+  else { 
+    // keep original labels of the axis
+    for (int i=0; i<xbin2-xbin1+1; ++i) xnew[i]= ax->GetBinLowEdge(i+xbin1);
+    xnew[xbin2-xbin1+1]= ax->GetBinLowEdge(xbin2) + ax->GetBinWidth(xbin2);
+    for (int i=0; i<ybin2-ybin1+1; ++i) ynew[i]= ay->GetBinLowEdge(i+ybin1);
+    ynew[ybin2-ybin1+1]= ay->GetBinLowEdge(ybin2) + ay->GetBinWidth(ybin2);
+  }
 
   TH2D *h2=new TH2D(newName,"",xbin2-xbin1+1,xnew,ybin2-ybin1+1,ynew);
   if (setTitle) h2->SetTitle(newName);

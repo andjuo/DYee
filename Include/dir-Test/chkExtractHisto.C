@@ -17,9 +17,28 @@ void chkExtractHisto() {
     }
   }
 
-  if (1) {
-    TH2D *h2=extractSubArea(hSrc, 1,1,1,1, "h2",1);
-    h2->Print("range");
+  if (0) { // full range
+    if (1) {
+      TH2D *h2=extractSubArea(hSrc, 1,10,1,5, "h2",1);
+      h2->Print("range");
+    }
+    
+    if (1) {
+      TH2D *h2reset=extractSubArea(hSrc, 1,10,1,5, "h2_reset",1,1);
+      h2reset->Print("range");
+    }
+  }
+
+  if (1) { // partial area
+    if (1) {
+      TH2D *h2=extractSubArea(hSrc, 2,5,3,4, "h2",1);
+      h2->Print("range");
+    }
+    
+    if (1) {
+      TH2D *h2reset=extractSubArea(hSrc, 2,5,3,4, "h2_reset",1,1);
+      h2reset->Print("range");
+    }
   }
 
   if (0) {
