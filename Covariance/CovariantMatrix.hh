@@ -440,7 +440,8 @@ public:
     TString name=TString("h2D_") + FName;
     TString title=name;
     TH2D* h2=createHisto2D(CovM, NULL, name.Data(), title.Data(), centerRange, massBins,maxValUser);
-    drawHistoSubpad(c,subPad,h2,centerRange,massBins,nColorBins);
+    if (c && h2) drawHistoSubpad(c,subPad,h2,centerRange,massBins,nColorBins);
+    else std::cout << "CovariantMatrix(" << FName << ")::DrawSubpad: either canvas or histogram is null. Nothing drawn\n";
     return h2;
   }
 
@@ -448,6 +449,21 @@ public:
 
   TH2D* Draw(TCanvas *c, TColorRange_t centerRange, int massBins, int nColorBins=51, double maxValUser=0.) const {
     return DrawSubpad(c,0,centerRange,massBins,nColorBins,maxValUser);
+  }
+
+  // --------------------------------
+
+  TH2D* DrawCorrSubpad(TCanvas *c, int subPad, TColorRange_t centerRange, int massBins, int nColorBins=51, double maxValUser=0.) const {
+    TString newName=this->FName + TString("_corr");
+    CovarianceMatrix_t Mcorr(newName,*this);
+    Mcorr.Correlations(*this);
+    return Mcorr.DrawSubpad(c,subPad,centerRange,massBins,nColorBins,maxValUser);
+  }
+
+  // --------------------------------
+
+  TH2D* DrawCorr(TCanvas *c, TColorRange_t centerRange, int massBins, int nColorBins=51, double maxValUser=0.) const {
+    return DrawCorrSubpad(c,0,centerRange,massBins,nColorBins,maxValUser);
   }
 
   // --------------------------------
