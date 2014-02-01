@@ -45,6 +45,13 @@ void studyEffCov(int debugMode) {
   TString rhoFileName=Form("rhoFile_%s_%d.root",name_extraTag.Data(),nExps);
   TString covFileName=Form("covRhoFile_%s_%d.root",name_extraTag.Data(),nExps);
 
+  TString covFileNamePublic=
+    TString(Form("covRhoFile_el%dD_%dexps",1+DYTools::study2D,nExps)) +
+    mgr.mgr().userKeyValueAsTString("T&P_ESF_extra") +
+    TString((nonUniversalHLT) ? "_asymHLT" : "") +
+    TString(".root");
+
+
   // there is a 'nMB' tag
   //if (DYTools::study2D) {
   //  rhoFileName.ReplaceAll(".root","_2D.root");
@@ -75,7 +82,20 @@ void studyEffCov(int debugMode) {
   EtEtaIndexer_t fidx1(etBinCount,etaBinCount);
   EtEtaIndexer_t fidx2(etBinCount,etaBinCount);
 
+  std::vector<TH1D*> hScaleFIV_150; // flat indexing. 150 bins, like in calcEventEff.C
+  std::vector<TH1D*> hScaleFIV_1500;
+
+  std::vector<TString> sample_labels;
+  sample_labels.reserve(nTotBins);
+  for (int i=0; i<nTotBins; ++i) { sample_labels.push_back(TString(Form("_fib%d",i))); }
+  if (!createAnyH1Vec(hScaleFIV_150,"hScaleFIV_150",sample_labels,150,0.,1.5,"scale factor","counts",1) ||
+      !createAnyH1Vec(hScaleFIV_1500,"hScaleFIV_1500",sample_labels,1500,0,1.5,"scale factor","counts",1)) {
+    std::cout << "failed to prepare scale factor histo-arrays\n";
+    return ;
+  }
+
   if (debugMode!=-1) {
+
 
     for (int i=0; i<nTotBins; ++i) {
       TMatrixD *Mptr= new TMatrixD(fidx1.maxFlatIdx(),fidx1.maxFlatIdx());
@@ -159,7 +179,10 @@ void studyEffCov(int debugMode) {
 		  << " eff=" << tmpEff1 << "*" << tmpEff2 << "=" << tmpEff1*tmpEff2 << "; vs " << tmpEffx << "\n";
 	return;
       }
-	
+
+      hScaleFIV_150[massBin]->Fill(scaleFactor,weight);
+      hScaleFIV_1500[massBin]->Fill(scaleFactor,weight);
+
       sumWeight(massBin) += weight;
       sumWeightRho(massBin) += weight*scaleFactor;
       sumWeightRhoSqr(massBin) += weight*pow(scaleFactor, 2.);
@@ -189,6 +212,9 @@ void studyEffCov(int debugMode) {
     for (unsigned int i=0; i<etEtaPairsV.size(); ++i) {
       etEtaPairsV[i]->Write(Form("etEtaPairs_mfidx_%u",i));
     }
+    saveVec(rhoFile,hScaleFIV_150,"esf_histos_150");
+    saveVec(rhoFile,hScaleFIV_1500,"esf_histos_1500");
+
     rhoFile.Close();
   }
   else {
@@ -202,15 +228,20 @@ void studyEffCov(int debugMode) {
       TMatrixD *Mptr= (TMatrixD*)rhoFile.Get(Form("etEtaPairs_mfidx_%d",i));
       etEtaPairsV.push_back(Mptr);
     }
+    loadVec(rhoFile,hScaleFIV_150,"esf_histos_150");
+    loadVec(rhoFile,hScaleFIV_1500,"esf_histos_1500");
+
     rhoFile.Close();
   }
 
 
   // -=----   calculate further
 
-  TVectorD avgRho(nTotBins);
+  TVectorD avgRho(nTotBins), avgRhoErr(nTotBins);
   for (int i=0; i<nTotBins; ++i) {
-    avgRho(i) = sumWeightRho[i]/sumWeight[i];
+    double mean=sumWeightRho[i]/sumWeight[i];
+    avgRho(i) = mean;
+    avgRhoErr(i) = sumWeightRhoSqr[i]/sumWeight[i] - mean*mean;
   }
 
 
@@ -428,9 +459,34 @@ void studyEffCov(int debugMode) {
 
     TMatrixD esfM(DYTools::nMassBins,DYTools::nYBinsMax);
     TMatrixD esfMerr(DYTools::nMassBins,DYTools::nYBinsMax);
-    if (!deflattenMatrix(avgRhoMean,esfM) ||
-	!deflattenMatrix(avgRhoRMS,esfMerr)) {
+    TMatrixD esfMpseudo(DYTools::nMassBins,DYTools::nYBinsMax);
+    TMatrixD esfMpseudoErr(DYTools::nMassBins,DYTools::nYBinsMax);
+    if (!deflattenMatrix(avgRho,esfM) ||
+	!deflattenMatrix(avgRhoErr,esfMerr) ||
+	!deflattenMatrix(avgRhoMean,esfMpseudo) ||
+	!deflattenMatrix(avgRhoRMS,esfMpseudoErr)) {
       std::cout << "failed to deflatten scale factors\n";
+      return;
+    }
+
+    TVectorD esfFromHisto150(nTotBins), esfFromHisto150err(nTotBins);
+    TVectorD esfFromHisto1500(nTotBins), esfFromHisto1500err(nTotBins);
+    for (int i=0; i<nTotBins; ++i) {
+      esfFromHisto150(i)= hScaleFIV_150[i]->GetMean();
+      esfFromHisto150err(i)= hScaleFIV_150[i]->GetRMS();
+      esfFromHisto1500(i)= hScaleFIV_1500[i]->GetMean();
+      esfFromHisto1500err(i)= hScaleFIV_1500[i]->GetRMS();
+    }
+    TMatrixD esfMFromHisto150(DYTools::nMassBins,DYTools::nYBinsMax);
+    TMatrixD esfMFromHisto150err(esfMFromHisto150);
+    TMatrixD esfMFromHisto1500(esfMFromHisto150);
+    TMatrixD esfMFromHisto1500err(esfMFromHisto150);
+    if (!deflattenMatrix(esfFromHisto150,esfMFromHisto150) ||
+	!deflattenMatrix(esfFromHisto150err,esfMFromHisto150err) ||
+	!deflattenMatrix(esfFromHisto1500,esfMFromHisto1500) ||
+	!deflattenMatrix(esfFromHisto1500err,esfMFromHisto1500err)) {
+      std::cout << "failed to deflatten scale factors from histos\n";
+      return;
     }
 
     TFile fCov(covFileName,"recreate");
@@ -441,9 +497,47 @@ void studyEffCov(int debugMode) {
     avgRhoRMS.Write("scaleFactorErrFlatIdxArray");
     esfM.Write("scaleFactor");
     esfMerr.Write("scaleFactorErr");
+    esfMpseudo.Write("scaleFactor_pseudo");
+    esfMpseudoErr.Write("scaleFactor_pseudoErr");
+    esfMFromHisto150.Write("scaleFactor_hb150");
+    esfMFromHisto150err.Write("scaleFactor_hb150err");
+    esfMFromHisto1500.Write("scaleFactor_hb1500");
+    esfMFromHisto1500err.Write("scaleFactor_hb1500err");
     
     fCov.Close();
     std::cout << "file <" << covFileName << "> recreated\n";
+
+
+    TFile fResult(covFileNamePublic,"recreate");
+    int rangeMin=(DYTools::study2D) ? 25  : 1;
+    int rangeMax=(DYTools::study2D) ? 156 : DYTools::nMassBins;
+    TH2D *h2covSave=extractSubArea(h2cov,rangeMin,rangeMax,rangeMin,rangeMax,Form("covRhoRho_%d",nExps),1,1); // reset axis!
+    TH2D *h2corrSave=extractSubArea(h2corr,rangeMin,rangeMax,rangeMin,rangeMax,Form("corrRhoRho_%d",nExps),1,1); // reset axis!
+
+    TH2D *h2ScaleFactorsFull=createHisto2D(esfM,&esfMpseudoErr,"hScaleFactorFull","scale factor (all bins)",_colrange_positive,0);
+    int esfXRangeMin=(DYTools::study2D) ? 2 : 1;
+    int esfXRangeMax=(DYTools::study2D) ? 7 : DYTools::nMassBins;
+    int esfYRangeMin=(DYTools::study2D) ?  1 : 1;
+    int esfYRangeMax=(DYTools::study2D) ? 24 : 1;
+    TH2D *h2ScaleFactors=extractSubArea(h2ScaleFactorsFull,esfXRangeMin,esfXRangeMax,esfYRangeMin,esfYRangeMax,"scaleFactor",1, 1); // reset axis!
+    h2covSave->Write("covRhoRho");
+    h2corrSave->Write("corrRhoRho");
+    h2ScaleFactors->Write("scaleFactors");
+    fResult.Close();
+    std::cout << "file <" << fResult.GetName() << "> saved\n";
+
+    if (0) {
+      h2covSave->Print("range");
+    }
+
+    if (1) { 
+      TCanvas *ctest=new TCanvas("ctest","ctest",1200,600);
+      ctest->Divide(2,1);
+      AdjustFor2DplotWithHeight(ctest);
+      ctest->cd(1); h2covSave->Draw("COLZ");
+      ctest->cd(2); h2corrSave->Draw("COLZ");
+      ctest->Update();
+    }
   }
 
 }
