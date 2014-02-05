@@ -141,6 +141,12 @@ public:
     fLeg->SetX1(fLeg->GetX1()+dx1); fLeg->SetY1(fLeg->GetY1()+dy1); 
     fLeg->SetX2(fLeg->GetX2()+dx2); fLeg->SetY2(fLeg->GetY2()+dy2);
   } 
+
+  void WidenLegend(double dx, double dy) {
+    assert(fLeg);
+    fLeg->SetX2(fLeg->GetX2()+dx); fLeg->SetY2(fLeg->GetY2()+dy);
+  } 
+  
   
   // Set stats box position
   void SetStats(double x, double y) { fStatsX = x; fStatsY = y; }
