@@ -133,19 +133,63 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   TString label2="old n-tuples";
   TString fnameTag="-new_vs_old--";
 
-  if (0) {
+  TString effKindLongStr3="";
+  TString label3="";
+
+  if (1) {
     //etaBinSet2=DYTools::ETABINS5corr;
+    path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
+    path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    if (0) {
+      effKindLongStr1.ReplaceAll("RECO","ID");
+      effKindLongStr2.ReplaceAll("RECO","ID");
+    }
+    else if (0) {
+      effKindLongStr1.ReplaceAll("RECO_fit-fit","HLT_count-count");
+      effKindLongStr2.ReplaceAll("RECO_fit-fit","HLT_count-count");
+    }
+    else if (0) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
+    }
+    else if (0) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
+    }
+    else if (1) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
+    }
     label1="etaMax = 2.5";
     label2="etaMax = 2.4";
     fnameTag="-diffEtaMax--";
   }
 
-  if (1) {
+  if (0) {
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
     path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
     label1="DYee |#eta|<2.4";
     label2="DMDY |#eta|<2.4";
     fnameTag="-cmpPkg--";
+  }
+
+  if (1) {
+    path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
+    path2=path1;
+    effKindLongStr1="dataHLT_count-countEtBins6EtaBins5corr_PU";
+    effKindLongStr2="dataHLTleg1_count-countEtBins6EtaBins5corr_PU";
+    effKindLongStr3="dataHLTleg2_count-countEtBins6EtaBins5corr_PU";
+    if (0) {
+      effKindLongStr1.ReplaceAll("data","mc");
+      effKindLongStr2.ReplaceAll("data","mc");
+      effKindLongStr3.ReplaceAll("data","mc");
+    }
+    label1="HLT (7TeV analysis style)";
+    label2="HLT leg1";
+    label3="HLT leg2";
+    fnameTag="-cmpHLT-etaMax24--";
   }
 
   TString fname1=path1 + fnameBase + effKindLongStr1 + TString(".root");
@@ -157,11 +201,15 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   DYTools::TEtaBinSet_t etaBinSet2=DetermineEtaBinSet(effKindLongStr2);
   std::cout << "sets: "<< EtBinSetName(etBinSet1) << "," << EtaBinSetName(etaBinSet1) << "  " << EtBinSetName(etBinSet2) << "," << EtaBinSetName(etaBinSet2) << "\n";
 
-  TString effKind=effDataKindString(effKindLongStr1);
-  if (effKind != effDataKindString(effKindLongStr2)) {
-    std::cout << "effKind1=<" << effKind << ">\n";
-    std::cout << "effKind2=<" << effDataKindString(effKindLongStr2) << ">\n";
-    return;
+  TString effKind =effDataKindString(effKindLongStr1);
+  TString effKind2=effDataKindString(effKindLongStr2);
+  if (effKind != effKind2) {
+    if ( !efficiencyIsHLT(DetermineEfficiencyKind(effKind )) ||
+	 !efficiencyIsHLT(DetermineEfficiencyKind(effKind2)) ) {
+      std::cout << "effKind1=<" << effKind << ">\n";
+      std::cout << "effKind2=<" << effDataKindString(effKindLongStr2) << ">\n";
+      return;
+    }
   }
 
   TString dataKind=effKind + TString(" ");
@@ -197,6 +245,39 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   div->Divide(histo1,histo2,1.,1.,"b");
   div->Print("range");
 
+  TH1D *histo3=NULL;
+  TGraphAsymmErrors* gr3=NULL;
+  TH1D* div31=NULL;
+
+  if (effKindLongStr3.Length() && label3.Length()) {
+    TString fname3= path2 + fnameBase + effKindLongStr3 + TString(".root");
+    int weighted3=(effKindLongStr3.Index("count-count")!=-1) ? 1:0;
+    TMatrixD *eff3=NULL, *eff3ErrLo=NULL, *eff3ErrHi=NULL;
+    if (!loadEff(fname3,weighted3,&eff3,&eff3ErrLo,&eff3ErrHi)) {
+      std::cout << "failed to get field from <" << fname3 << "> (3)\n";
+      return ;
+    }
+    DYTools::TEtBinSet_t etBinSet3=DetermineEtBinSet(effKindLongStr3);
+    DYTools::TEtaBinSet_t etaBinSet3=DetermineEtaBinSet(effKindLongStr3);
+   
+    TString histo3Name="histo3";
+    gr3=getAsymGraph(etBinSet3,etaBinSet3,iEta,*eff3,*eff3ErrLo,*eff3ErrHi, &histo3,histo3Name);
+    gr3->Print("range");
+    delete eff3;
+    delete eff3ErrLo;
+    delete eff3ErrHi;
+
+    div31=(TH1D*)histo1->Clone("div31");
+    div31->SetTitle("div31");
+    div31->Divide(histo1,histo3,1.,1.,"b");
+    div31->Print("range");
+    div31->SetLineColor(kGreen+1);
+    div31->SetMarkerColor(kGreen+1);
+
+    div->Divide(histo2,histo1,1.,1.,"b");
+    div->SetLineColor(kBlue);
+    div->SetMarkerColor(kBlue);
+  }
 
   ComparisonPlot_t cpTemp(ComparisonPlot_t::_ratioPlain,"comp","comp",
 			  "E_{T}","eff","ratio");
@@ -207,6 +288,21 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
 
   CPlot cp("comp",cpTitle,"E_{T}","efficiency");
   cp.SetLogx();
+  if (gr3) {
+    cp.SetYRange(0.3,1.01);
+    if (DetermineDataKind(effKind)==DYTools::DATA) {
+      if (iEta==2) cp.SetYRange(0.3,1.01);
+      else if (iEta==1) cp.SetYRange(0.3,1.01);
+      else if (iEta==0) cp.SetYRange(0.3,1.01);
+    }
+    else {
+      if (iEta==0) cp.SetYRange(0.5,1.01);
+      else if (iEta==1) cp.SetYRange(0.5,1.01);
+      else if (iEta==2) cp.SetYRange(0.5,1.01);
+      else if (iEta==3) cp.SetYRange(0.5,1.01);
+      else if (iEta==4) cp.SetYRange(0.5,1.01);
+    }
+  }
   TCanvas *cx=new TCanvas("cx","cx",600,700);
   cpTemp.Prepare2Pads(cx);
 
@@ -214,6 +310,7 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
 
   cp.AddGraph(gr1,label1,"LP",kBlack);
   cp.AddGraph(gr2,label2,"LP",kBlue);
+  if (gr3) cp.AddGraph(gr3,label3,"LP",kGreen+1);
   cp.Draw(cx,0,"png",1);
   cp.TransLegend(0, -0.4);
   cx->cd(2);
@@ -228,7 +325,15 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   div->GetYaxis()->SetTitle("ratio");
   div->GetYaxis()->SetTitleOffset(0.7);
   div->GetYaxis()->SetTitleSize(0.1);
+  div->GetYaxis()->SetNdivisions(805);  
+  if (div31) {
+    div->GetYaxis()->SetRangeUser(0.99,1.01);
+    if (iEta==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
+  }
   div->Draw("LP");
+  if (div31) {
+    div31->Draw("LP same");
+  }
 
   cx->Update();
 
