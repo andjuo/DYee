@@ -16,6 +16,28 @@ TH2D* loadESF(TString fname, TString label) {
 }
 
 // ------------------------------------------------------------
+/*
+  Not relevant
+TH2D* loadESF_any(TString fname, TString label) {
+  int checkBinning=0;
+  TFile fin(fname,"read");
+  if (!fin.IsOpen()) {
+    std::cout << "failed to open a file <" << fname << ">\n";
+    return NULL;
+  }
+  TMatrixD* sf=(TMatrixD*) fin.Get("scaleFactor");
+  TMatrixD* sfErr=(TMatrixD*) fin.Get("scaleFactorErr");
+  fin.Close();
+
+  TH2D* h2=LoadMatrixFields(fname, checkBinning, "scaleFactor", "scaleFactorErr", 1, 1);
+  h2->SetTitle(label);
+  h2->GetXaxis()->SetMoreLogLabels();
+  h2->GetXaxis()->SetNoExponent();
+  return h2;
+}
+*/
+
+// ------------------------------------------------------------
 
 
 void compareESF(TString esfLongStr1="1D_Full2012_hltEffOld_PU",
@@ -98,11 +120,12 @@ void compareESF(TString esfLongStr1="1D_Full2012_hltEffOld_PU",
   }
 
 
-  if (0) {
-    path1="/home/andriusj/cms/DYee-20131024/root_files_reg/constants/DY_j22_19712pb/"; 
-    path2="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/constants/DY_j22_19789pb/";
-    esfLongStr1="etaMax24_asymHLT_1D";
-    esfLongStr2="1D_Full2012_hltEffOld_PU";
+  if (1) {
+    path1="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/constants/DY_j22_19789pb/";
+    //path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/constants/DY_j22_19712pb/"; // new n-tuples
+    path2="/home/andriusj/cms/DYee-20131024/root_files_reg/constants/DY_j22_19712pb/"; 
+    esfLongStr1="1D_Full2012_hltEffOld_PU";
+    esfLongStr2="etaMax24_asymHLT_1D";
     label1="DYDM |#eta|<2.5 (Summer 2013)";
     label2="DYee |#eta|<2.4 asym.HLT";
     //fnameTag="-cmpPkg--";
@@ -175,8 +198,8 @@ void compareESF(TString esfLongStr1="1D_Full2012_hltEffOld_PU",
     TH1D *h2= createProfileX(h2esf2,1,"hProf2",1,"hProf2");
 
     ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,"cpESF","","M_{ee} [GeV]", "event scale factor","ratio");
-    cp->SetRatioYRangeC(1,0.002);
-    cp->SetRatioYRange(0.96, 1.00);
+    //cp->SetRatioYRangeC(1,0.002);
+    cp->SetRatioYRange(1.00, 1.04);
     cp->SetLogx();
     cp->AddHist1D(h1, label1,"LPE1",kBlack,1,0);
     cp->AddHist1D(h2, label2,"LPE1",kBlue ,2,0);
@@ -184,7 +207,8 @@ void compareESF(TString esfLongStr1="1D_Full2012_hltEffOld_PU",
     TCanvas *cy=new TCanvas("cy","cy",600,700);
     cp->Prepare2Pads(cy);
     cp->Draw(cy);
-    cp->TransLegend(-0.1,-0.6);
+    cp->TransLegend(-0.2,-0.6);
+    cp->WidenLegend(0.2,0.);
     cy->Update();
   }
 
