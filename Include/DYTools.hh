@@ -646,10 +646,10 @@ namespace DYTools {
     {-2.500001, -2.2, -1.479, -0.8, 0, 0.8, 1.479, 2.2, 2.500001 };
   const int nEtaBins5alt = 5;
   const double etaBinLimits5alt[nEtaBins5alt + 1 ] = 
-    {0, 0.8, 1.4442, 1.556, 2.2, 2.500001 };
+    {0, 0.8, 1.4442, 1.566, 2.2, 2.500001 };
   const int nEtaBins5altNegs = 10;
   const double etaBinLimits5altNegs[nEtaBins5altNegs + 1 ] =
-    {-2.500001, -2.2, -1.556, -1.4442, -0.8, 0, 0.8, 1.4442, 1.556, 2.2, 2.500001 };
+    {-2.500001, -2.2, -1.566, -1.4442, -0.8, 0, 0.8, 1.4442, 1.566, 2.2, 2.500001 };
   const int nEtaBins8alt = 8;
   const double etaBinLimits8alt[nEtaBins8alt + 1 ] =
     {0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.50001 };
@@ -658,7 +658,7 @@ namespace DYTools {
     {-2.50001, -2.2, -2.0, -1.8, -1.479, -1.0, -0.8, -0.4, 0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.5 };
   const int nEtaBins14 = 14;
   const double etaBinLimits14[nEtaBins14 + 1 ] = 
-    {0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.556, 1.8, 2.0, 2.2, 2.3, 2.4, 2.500001 };
+    {0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.566, 1.8, 2.0, 2.2, 2.3, 2.4, 2.500001 };
 
   const int nEtaBinsMax= nEtaBins5altNegs;
 
