@@ -930,6 +930,10 @@ TH2D* createBaseH2(const TString &histoName, const TString &histoTitle="", int a
 // -------------------------------------------
 // -------------------------------------------
 
+TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL, int set_nYbins=-1, double set_ymin=0., double set_ymax=1.);
+TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, const char *title=NULL);
+
+/*
 inline
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, const char *title=NULL) {
   if ((iyBin<=0) || (iyBin>h2->GetNbinsY())) {
@@ -961,6 +965,8 @@ TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, c
   }
   return h;
 }
+*/
+
 // -------------------------------------------
 /*
 inline
@@ -985,7 +991,7 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
 */
 
 // -------------------------------------------
-
+/*
 inline
 TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL, int set_nYbins=-1, double set_ymin=0., double set_ymax=1.) {
   if ((ixBin<=0) || (ixBin>h2->GetNbinsX())) {
@@ -1021,6 +1027,7 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
   }
   return h;
 }
+*/
 
 // -------------------------------------------
 // -------------------------------------------

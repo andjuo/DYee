@@ -3,6 +3,99 @@
 //--------------------------------------------------
 //--------------------------------------------------
 
+TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle, const char *title) {
+  if ((iyBin<=0) || (iyBin>h2->GetNbinsY())) {
+    std::cout << "\n\n\tcreateProfileX(" << h2->GetName() << ", iyBin=" << iyBin << "(bad value!!), name=" << name << ")\n\n";
+  }
+
+  // prepare the range info
+  int nxBins=h2->GetNbinsX();
+  double *xv=new double[nxBins+1];
+  TAxis *ax=h2->GetXaxis();
+  for (int i=1; i<=nxBins; i++) {
+    xv[i-1] = ax->GetBinLowEdge(i);
+  }
+  xv[nxBins]=ax->GetBinLowEdge(nxBins) + ax->GetBinWidth(nxBins);
+  TH1D *h=new TH1D(name,"",h2->GetNbinsX(),xv);
+  delete [] xv;
+
+  // copy the profile
+  h->SetDirectory(0);
+  h->SetStats(0);
+  if (setTitle) {
+    if (title) h->SetTitle(title);
+    else h->SetTitle(name);
+  }
+  h->GetXaxis()->SetTitle( h2->GetXaxis()->GetTitle() );
+  for (int ibin=1; ibin<=h2->GetNbinsX(); ibin++) {
+    h->SetBinContent(ibin,h2->GetBinContent(ibin,iyBin));
+    h->SetBinError(ibin,h2->GetBinError(ibin,iyBin));
+  }
+  return h;
+}
+// -------------------------------------------
+/*
+inline
+TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL) {
+  if ((ixBin<=0) || (ixBin>h2->GetNbinsX())) {
+    std::cout << "\n\n\tcreateProfileY(" << h2->GetName() << ", ixBin=" << ixBin << "(bad value!!), name=" << name << ")\n\n";
+  }
+  TH1D *h=new TH1D(name,"",h2->GetNbinsY(),h2->GetYaxis()->GetXbins()->GetArray());
+  h->SetDirectory(0);
+  h->SetStats(0);
+  if (setTitle) {
+    if (title) h->SetTitle(title);
+    else h->SetTitle(name);
+  }
+  h->GetXaxis()->SetTitle( h2->GetYaxis()->GetTitle() );
+  for (int ibin=1; ibin<=h2->GetNbinsY(); ibin++) {
+    h->SetBinContent(ibin,h2->GetBinContent(ixBin,ibin));
+    h->SetBinError(ibin,h2->GetBinError(ixBin,ibin));
+  }
+  return h;
+}
+*/
+
+// -------------------------------------------
+
+TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle, const char *title, int set_nYbins, double set_ymin, double set_ymax) {
+  if ((ixBin<=0) || (ixBin>h2->GetNbinsX())) {
+    std::cout << "\n\n\tcreateProfileY(" << h2->GetName() << ", ixBin=" << ixBin << "(bad value!!), name=" << name << ")\n\n";
+  }
+  TH1D *h=NULL;
+  if (set_nYbins==-1) {
+    int nyBins=h2->GetNbinsY();
+    double *yv=new double[nyBins+1];
+    TAxis *ay=h2->GetYaxis();
+    for (int i=1; i<=nyBins; i++) {
+      yv[i-1] = ay->GetBinLowEdge(i);
+      //std::cout << "yv[" << i-1 << "]=" << yv[i-1] << "\n";
+    }
+    yv[nyBins]=ay->GetBinLowEdge(nyBins) + ay->GetBinWidth(nyBins);
+    std::cout << "yv[nYBins=" << nyBins << "]=" << yv[nyBins] << "\n";
+    h=new TH1D(name,"",h2->GetNbinsY(),yv);
+    delete [] yv;
+    set_nYbins=h2->GetNbinsY();
+  }
+  else h=new TH1D(name,"",set_nYbins,set_ymin,set_ymax);
+
+  h->SetDirectory(0);
+  h->SetStats(0);
+  if (setTitle) {
+    if (title) h->SetTitle(title);
+    else h->SetTitle(name);
+  }
+  h->GetXaxis()->SetTitle( h2->GetYaxis()->GetTitle() );
+  for (int ibin=1; (ibin<=h2->GetNbinsY()) && (ibin<=set_nYbins); ibin++) {
+    h->SetBinContent(ibin,h2->GetBinContent(ixBin,ibin));
+    h->SetBinError(ibin,h2->GetBinError(ixBin,ibin));
+  }
+  return h;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TH2D* LoadHisto2D(const TString &histoName, const TString &fname, const TString &subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
 
@@ -156,6 +249,8 @@ TH2D* LoadMatrixFields(TFile &fin, const TString &field, const TString &fieldErr
     if ((loadErr==1) && !err) std::cout << "\t failed to get errors\n";
     return NULL;
   }
+  //std::cout << "loaded field=<" << field << "> from file <" << fin.GetName() << ">\n";
+  //std::cout << "values are "; val->Print();
   TH2D *h2=createBaseH2(field,field,absoluteRapidity);
   for (int ibin=1; ibin<=h2->GetNbinsX(); ++ibin) {
     for (int jbin=1; jbin<=h2->GetNbinsY(); ++jbin) {
@@ -163,6 +258,7 @@ TH2D* LoadMatrixFields(TFile &fin, const TString &field, const TString &fieldErr
       double e=(loadErr==1) ? (*err)(ibin-1,jbin-1) : 0.;
       if (loadErr==2) e= ( (*err)(ibin-1,jbin-1) * (*err)(ibin-1,jbin-1) );
       if (loadErr==3) { value=0; e=(*err)(ibin-1,jbin-1); }
+      //std::cout << "putting ibin=" << ibin << ", jbin=" << jbin << ", value=" << value << "\n";
       h2->SetBinContent(ibin,jbin, value);
       h2->SetBinError(ibin,jbin, e);
     }
