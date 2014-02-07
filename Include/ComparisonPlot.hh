@@ -251,6 +251,13 @@ public:
     }
   }
 
+  int getSubPadIdx6(int landscape, int idx, int is_ratio) const {
+    int shift=2+landscape;
+    int padIdx1= idx + shift*int((idx-1)/shift);
+    int padIdx2= padIdx1 + shift;
+    return (is_ratio) ? padIdx2 : padIdx1;
+  }
+
   void Draw6(TCanvas *c, int landscape, int idx, bool doSave=false, TString format="png", int *subpad1=NULL, int *subpad2=NULL) {
     if ((landscape!=0) && (landscape!=1)) {
       std::cout << "Draw6 assumes landscape=0 or 1\n";
@@ -282,12 +289,17 @@ public:
 	savedTitles.push_back(fItems[i].hist1D->GetXaxis()->GetTitle());
 	fItems[i].hist1D->GetXaxis()->SetTitle("");
       }
+      else if (fItems[i].graph!=0) {
+	fItems[i].graph->GetXaxis()->SetLabelOffset(99.05);
+	savedTitles.push_back(fItems[i].graph->GetXaxis()->GetTitle());
+	fItems[i].graph->GetXaxis()->SetTitle("");
+      }
     }
-    if ( fHRatioIndices.size() ==0 ) return;
-
-    TH1D *hRef=fItems[fHRatioIndices[fRefIdx]].hist1D;
 
     CPlot::Draw(c,false,"png",subpad1);
+
+    if ( fHRatioIndices.size() ==0 ) return;
+    TH1D *hRef=fItems[fHRatioIndices[fRefIdx]].hist1D;
 
     padRatio->cd();
     TVectorD hratioActive(fHRatioIndices.size());
