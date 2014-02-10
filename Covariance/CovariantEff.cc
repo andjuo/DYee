@@ -41,17 +41,25 @@ int CovariantEffMgr_t::Setup(const TString &confFileName, int nExps) {
   //ro_MC_loc= new EffArray_t[nExps];
   //assert(ro_Data_loc && ro_MC_loc);
 
-  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  if (nExps>0) {
+    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
 
-  // Read efficiency constants from ROOT files
-  // This has to be done AFTER configuration file is parsed
-  if (!fillEfficiencyConstants( FInpMgr, systMode ) ) {
-    return reportError("Setup");
+    // Read efficiency constants from ROOT files
+    // This has to be done AFTER configuration file is parsed
+    if (!fillEfficiencyConstants( FInpMgr, systMode ) ) {
+      return reportError("Setup");
+    }
+
+    if (nExps>1) {
+      int debug_pseudo_exps=0;
+      if (!preparePseudoExps(nExps,debug_pseudo_exps)) 
+	return reportError("Setup");
+    }
+    std::cout << "CovariantEffMgr::Setup:  nExps=1\n";
   }
-
-  int debug_pseudo_exps=0;
-  if (!preparePseudoExps(nExps,debug_pseudo_exps)) 
-    return reportError("Setup");
+  else {
+    std::cout << "CovariantEffMgr::Setup:  nExps=0\n";
+  }
 
   FInitOk=res;
 

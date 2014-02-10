@@ -114,6 +114,7 @@ TString EfficiencyKindName(DYTools::TEfficiencyKind_t kind) {
   case HLT: name="HLT"; break;
   case HLT_leg1: name="HLTleg1"; break;
   case HLT_leg2: name="HLTleg2"; break;
+  case effNONE: name="effNONE"; break;
   default: name="Unknown_Efficiency_Kind";
   }
   return name;
@@ -158,7 +159,7 @@ TString EtaBinSetName(DYTools::TEtaBinSet_t set) {
   case ETABINS3: name="EtaBins3"; break;
   case ETABINS3Negs: name="EtaBins3Negs"; break;
   case ETABINS5: name="EtaBins5"; break;
-  case ETABINS5corr: name="EtaBins5corr"; break;
+  case ETABINS5corr: name="EtaBins5corr2"; break;
   case ETABINS5Negs: name="EtaBins5Negs"; break;
   case ETABINS4test: name="EtaBins4test"; break;
   case ETABINS4testNegs: name="EtaBins4testNegs"; break;
@@ -240,6 +241,7 @@ DYTools::TEfficiencyKind_t DetermineEfficiencyKind(const TString &str) {
   else if (str.Contains("HLTleg2")) kind=HLT_leg2;
   else if (str.Contains("HLT_leg2")) kind=HLT_leg2;
   else if (str.Contains("HLT")) kind=HLT;
+  else if (str.Contains("effNONE")) kind=effNONE;
   else {
     std::cout << "DetermineEfficiencyKind failed at <" << str << ">\n";
     assert(0);
