@@ -25,6 +25,8 @@ public:
   TString fRatioLabel;
   vector<TH1D*> fHRatioItems;
 
+  double fYTitleSize,fYTitleOffset,fYLabelSize;
+
   double fRatioYMin,fRatioYMax;
   int fRatioNdivisions, fPrintValues, fPrintRatios, fPrintRatioNames;
   double fRatioYTitleSize,fRatioYLabelSize;
@@ -40,6 +42,7 @@ public:
     canvas(NULL),
     padMain(NULL), padRatio(NULL),
     fRatioLabel(ratioYLabel), fHRatioItems(),
+    fYTitleSize(-1.), fYTitleOffset(-1.), fYLabelSize(-1.),
     fRatioYMin(0.), fRatioYMax(0.),
     fRatioNdivisions(805),
     fPrintValues(0),
@@ -60,6 +63,8 @@ public:
     canvas(NULL),
     padMain(NULL), padRatio(NULL),
     fRatioLabel(cp.fRatioLabel), fHRatioItems(),
+    fYTitleSize(cp.fYTitleSize), fYTitleOffset(cp.fYTitleOffset),
+    fYLabelSize(cp.fYLabelSize),
     fRatioYMin(cp.fRatioYMin), fRatioYMax(cp.fRatioYMax),
     fRatioNdivisions(cp.fRatioNdivisions),
     fPrintValues(cp.fPrintValues),
@@ -73,6 +78,8 @@ public:
 
 
   void ErrorsOnRatios(unsigned int on=1) { fErrorsOnRatios=on; }
+  void SetYTitleSize(double size, double offset=-99.) { fYTitleSize=size; if (offset>0.) fYTitleOffset=offset; }
+  void SetYLabelSize(double size) { fYLabelSize=size; }
   void SetRatioYRange(double ymin, double ymax) { fRatioYMin=ymin; fRatioYMax=ymax; }
   void SetRatioYRangeC(double y_center, double delta_y) { fRatioYMin=y_center-delta_y;; fRatioYMax=y_center+delta_y; }
   void SetRatioNdivisions(int cnt) { fRatioNdivisions=cnt; }
@@ -125,7 +132,19 @@ public:
   void Skip(TH1D* h) { SkipInRatioPlots(h); }
 
   void AddHist1D(TH1D *h, TString label, TString drawopt, int color=kBlack, int linesty=1, int fillsty=0, int legendSymbolLP=0) {
+    TAxis *ay=h->GetYaxis();
+    if (fYTitleSize>0.) ay->SetTitleSize(fYTitleSize);
+    if (fYTitleOffset>0.) ay->SetTitleOffset(fYTitleOffset);
+    if (fYLabelSize>0.) ay->SetLabelSize(fYLabelSize);
     CPlot::AddHist1D(h,label,drawopt,color,linesty,fillsty,legendSymbolLP);
+  }
+
+  void AddGraph(TGraph *gr, TString label, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1) {
+    TAxis *ay=gr->GetYaxis();
+    if (fYTitleSize>0.) ay->SetTitleSize(fYTitleSize);
+    if (fYTitleOffset>0.) ay->SetTitleOffset(fYTitleOffset);
+    if (fYLabelSize>0.) ay->SetLabelSize(fYLabelSize);
+    CPlot::AddGraph(gr,label,drawopt,color,marksty,linesty);
   }
 
   TLatex* AddTextCMSPreliminary(double x=0.93, double y=0.94) {
