@@ -58,6 +58,7 @@ TGraphAsymmErrors* getAsymGraph(DYTools::TEtBinSet_t etBinning_inp,
 // ------------------------------------------------------------
 
 int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {
+  std::cout  << "loading <" << fname << ">\n";
   TFile file1(fname,"read");
   if (!file1.IsOpen()) { std::cout << "failed to open file <" << file1.GetName() << ">\n"; return 0; }
   TString field="effArray2D";
@@ -84,8 +85,30 @@ int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo
 
 
 // ------------------------------------------------------------
-// does not work
 
+int loadEGammaEff(TString kindStr, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {
+  TString field=(kindStr.Index("mc")!=-1) ? "eff_mc" : "eff_data";
+  TString fname="mediumID.root";
+  TFile fin(fname,"read");
+  if (!fin.IsOpen()) {
+    std::cout << "Failed to open a file <" << fin.GetName() << ">\n";
+    return 0;
+  }
+  TMatrixD *Meff=(TMatrixD*)fin.Get(field);
+  TMatrixD *MeffLo=(TMatrixD*)fin.Get(field + TString("_errLo"));
+  TMatrixD *MeffHi=(TMatrixD*)fin.Get(field + TString("_errHi"));
+  fin.Close();
+  *eff=Meff;
+  *effLo=MeffLo;
+  *effHi=MeffHi;
+  std::cout << "eff="; Meff->Print();
+  std::cout << "effLo="; MeffLo->Print();
+  return 1;
+}
+
+// ------------------------------------------------------------
+// does not work
+/*
 TGraphAsymmErrors* divideEffs(const TGraphAsymmErrors *gr1, const TGraphAsymmErrors *gr2) {
   TH1F *h1=gr1->GetHistogram();
   TH1F *h2=gr2->GetHistogram();
@@ -95,6 +118,7 @@ TGraphAsymmErrors* divideEffs(const TGraphAsymmErrors *gr1, const TGraphAsymmErr
   div->Divide(h1,h2,"cl=0.683 b(1,1) mode");
   return div;
 }
+*/
 
 // ------------------------------------------------------------
 
@@ -116,72 +140,89 @@ TString effDataKindString(const TString str) {
 
 void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU", 
 		TString effKindLongStr2="mcRECO_count-countEtBins6EtaBins5_PU",
-		int iEta=0) {
+		int iBr=0, int iEta=0, double ratioTitleOffset=0.58) {
   TString path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
   TString path2="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/";
   //path2="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/tag_and_probe/DY_j22_19789pb/";
   path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
   TString fnameBase="efficiency_TnP_1D_Full2012_";
 
-
-  //DYTools::TEtBinSet_t etBinSet1=DYTools::ETBINS6;
-  //DYTools::TEtaBinSet_t etaBinSet1=DYTools::ETABINS5;
-  //DYTools::TEtBinSet_t etBinSet2=DYTools::ETBINS6;
-  //DYTools::TEtaBinSet_t etaBinSet2=DYTools::ETABINS5;
-
   TString label1="new n-tuples";
   TString label2="old n-tuples";
-  TString fnameTag="-new_vs_old--";
+  TString fnameTag;
 
+  TString path3="";
   TString effKindLongStr3="";
   TString label3="";
 
+  int HLTcomparison=0;
+  double transLegendX=-0.2;
+  double transLegendY=-0.4;
+
+
   if (1) {
+    path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
+    path2="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/tag_and_probe/DY_j22_19789pb/";
+    label1="new n-tuples";
+    label2="old n-tuples";
+    fnameTag="-new_vs_old--";
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    transLegendX=-0.05;
+    transLegendY=-0.6;
+  }
+
+  if (0) {
+    path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
+    path2="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    label1="DYee |#eta|<2.5";
+    label2="DMDY |#eta|<2.5";
+    fnameTag="-cmpPkg-Eta25--";
+  }
+
+  if (0) {
     //etaBinSet2=DYTools::ETABINS5corr;
     path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
     path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
     effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
     effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
-    if (0) {
-      effKindLongStr1.ReplaceAll("RECO","ID");
-      effKindLongStr2.ReplaceAll("RECO","ID");
-    }
-    else if (0) {
-      effKindLongStr1.ReplaceAll("RECO_fit-fit","HLT_count-count");
-      effKindLongStr2.ReplaceAll("RECO_fit-fit","HLT_count-count");
-    }
-    else if (0) {
-      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
-      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
-    }
-    else if (0) {
-      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
-      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
-    }
-    else if (1) {
-      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
-      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
-    }
     label1="etaMax = 2.5";
     label2="etaMax = 2.4";
+    fnameTag="-diffEtaMaxDMDY--";
+  }
+
+  if (0) {
+    path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
+    path2=path1;
+
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5corr_PU";
+    label1="DYee |#eta|<2.5";
+    label2="DYee |#eta|<2.4";
     fnameTag="-diffEtaMax--";
   }
 
   if (0) {
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
     path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5corr_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
     label1="DYee |#eta|<2.4";
     label2="DMDY |#eta|<2.4";
     fnameTag="-cmpPkg--";
   }
 
-  if (1) {
+  if (0) {
+    HLTcomparison=1;
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
     path2=path1;
+    path3=path1;
     effKindLongStr1="dataHLT_count-countEtBins6EtaBins5corr_PU";
     effKindLongStr2="dataHLTleg1_count-countEtBins6EtaBins5corr_PU";
     effKindLongStr3="dataHLTleg2_count-countEtBins6EtaBins5corr_PU";
-    if (0) {
+    if (iBr==1) {
       effKindLongStr1.ReplaceAll("data","mc");
       effKindLongStr2.ReplaceAll("data","mc");
       effKindLongStr3.ReplaceAll("data","mc");
@@ -191,6 +232,91 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
     label3="HLT leg2";
     fnameTag="-cmpHLT-etaMax24--";
   }
+
+  if (0) {
+    path1="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/tag_and_probe/DY_j22_19789pb/";
+    //path2="/media/spektras/DrellYanDMDY-Ilya-20130808/root_files/constants/DY_j22_19789pb/";
+    path2="/home/andriusj/cms/DMDY-Ilya-20130808-my-copy/root_files/tag_and_probe/DY_j22_19789pb/";
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    label1="DYDM (Summer2013,""my"")";
+    label2="DYDM (Ilya)";
+    fnameTag="-checkSummer2013--";
+  }
+
+  if (0) {
+    path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
+    path2="./";
+    effKindLongStr1="dataID_fit-fitEtBins6EtaBins5corr_PU";
+    effKindLongStr2="EGAMMA_dataID_EtBins6EtaBins5";
+    label1="DYee |#eta|<2.4";
+    label2="EGamma";
+    if (1) {
+      path3="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
+      effKindLongStr3="dataID_fit-fitEtBins6EtaBins5_PU";
+      label3="DYee |#eta|<2.5";
+    }
+    fnameTag="-cmpEGamma--";
+    
+  }
+
+  if (label2 == TString("EGamma")) {
+    if (iBr==0) {
+    }
+    else if (iBr==1) {
+      effKindLongStr1.ReplaceAll("dataID_fit-fit","mcID_count-count");
+      effKindLongStr2.ReplaceAll("dataID","mcID");
+    }
+    else {
+      std::cout << "iBr error\n";
+      return;
+    }
+  }
+  else {
+    if (iBr==0) {
+    }
+    else if (iBr==1) {
+      effKindLongStr1.ReplaceAll("RECO","ID");
+      effKindLongStr2.ReplaceAll("RECO","ID");
+    }
+    else if (iBr==2) {
+      effKindLongStr1.ReplaceAll("RECO_fit-fit","HLT_count-count");
+      effKindLongStr2.ReplaceAll("RECO_fit-fit","HLT_count-count");
+    }
+    else if (iBr==3) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
+    }
+    else if (iBr==4) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
+    }
+    else if (iBr==5) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
+    }
+    else if (iBr==6) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
+    }
+    else if (iBr==7) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
+    }
+    else if (iBr==8) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLTleg1_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLTleg1_count-count");
+    }
+    else if (iBr==9) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLTleg2_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLTleg2_count-count");
+    }
+    else {
+      std::cout << "iBr error\n";
+      return;
+    }
+  }
+
 
   TString fname1=path1 + fnameBase + effKindLongStr1 + TString(".root");
   TString fname2=path2 + fnameBase + effKindLongStr2 + TString(".root");
@@ -229,9 +355,17 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
     return ;
   }
 
-  if (!loadEff(fname2,weighted2,&eff2,&eff2ErrLo,&eff2ErrHi)) {
-    std::cout << "failed to get fields from <" << fname2 << "> (2)\n"; 
-    return ;
+  if (label2 == TString("EGamma")) {
+    if (!loadEGammaEff(effKindLongStr2,&eff2,&eff2ErrLo,&eff2ErrHi)) {
+      std::cout << "failed to load EGammaEff\n";
+      return;
+    }
+  }
+  else {
+    if (!loadEff(fname2,weighted2,&eff2,&eff2ErrLo,&eff2ErrHi)) {
+      std::cout << "failed to get fields from <" << fname2 << "> (2)\n"; 
+      return ;
+    }
   }
 
   TGraphAsymmErrors* gr1=getAsymGraph(etBinSet1,etaBinSet1,iEta,*eff1,*eff1ErrLo,*eff1ErrHi,&histo1,histo1Name);
@@ -250,7 +384,7 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   TH1D* div31=NULL;
 
   if (effKindLongStr3.Length() && label3.Length()) {
-    TString fname3= path2 + fnameBase + effKindLongStr3 + TString(".root");
+    TString fname3= path3 + fnameBase + effKindLongStr3 + TString(".root");
     int weighted3=(effKindLongStr3.Index("count-count")!=-1) ? 1:0;
     TMatrixD *eff3=NULL, *eff3ErrLo=NULL, *eff3ErrHi=NULL;
     if (!loadEff(fname3,weighted3,&eff3,&eff3ErrLo,&eff3ErrHi)) {
@@ -269,7 +403,8 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
 
     div31=(TH1D*)histo1->Clone("div31");
     div31->SetTitle("div31");
-    div31->Divide(histo1,histo3,1.,1.,"b");
+    if (HLTcomparison) div31->Divide(histo1,histo3,1.,1.,"b");
+    else div31->Divide(histo2,histo3,1.,1.,"b");
     div31->Print("range");
     div31->SetLineColor(kGreen+1);
     div31->SetMarkerColor(kGreen+1);
@@ -288,8 +423,10 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
 
   CPlot cp("comp",cpTitle,"E_{T}","efficiency");
   cp.SetLogx();
-  if (gr3) {
-    cp.SetYRange(0.3,1.01);
+
+  if (gr3 && HLTcomparison) { // for HLT efficiency
+    cp.SetYRange(0.0,1.02);
+    /*
     if (DetermineDataKind(effKind)==DYTools::DATA) {
       if (iEta==2) cp.SetYRange(0.3,1.01);
       else if (iEta==1) cp.SetYRange(0.3,1.01);
@@ -302,33 +439,47 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
       else if (iEta==3) cp.SetYRange(0.5,1.01);
       else if (iEta==4) cp.SetYRange(0.5,1.01);
     }
+    */
   }
+
   TCanvas *cx=new TCanvas("cx","cx",600,700);
   cpTemp.Prepare2Pads(cx);
 
   gr1->GetYaxis()->SetTitleOffset(1.4);
 
-  cp.AddGraph(gr1,label1,"LP",kBlack);
-  cp.AddGraph(gr2,label2,"LP",kBlue);
+  if (gr3 && !HLTcomparison) {
+    std::cout << "\n\tInverted plotting order 2,1\n";
+    cp.AddGraph(gr2,label2,"LP",kBlue);
+    cp.AddGraph(gr1,label1,"LP",kBlack);
+  }
+  else {
+    cp.AddGraph(gr1,label1,"LP",kBlack);
+    cp.AddGraph(gr2,label2,"LP",kBlue);
+  }
   if (gr3) cp.AddGraph(gr3,label3,"LP",kGreen+1);
   cp.Draw(cx,0,"png",1);
-  cp.TransLegend(0, -0.4);
+  cp.TransLegend(transLegendX, transLegendY);
+  cp.WidenLegend(0.2,0.);
   cx->cd(2);
   cx->GetPad(2)->SetLogx(cp.fLogx);
   div->SetTitle("");
   div->GetXaxis()->SetTitle("E_{T}");
   div->GetXaxis()->SetTitleSize(0.17);
-  div->GetXaxis()->SetLabelSize(0.17);
+  div->GetXaxis()->SetLabelSize(0.15);
   div->GetXaxis()->SetNoExponent();
   div->GetXaxis()->SetMoreLogLabels();
 
   div->GetYaxis()->SetTitle("ratio");
-  div->GetYaxis()->SetTitleOffset(0.7);
-  div->GetYaxis()->SetTitleSize(0.1);
+  div->GetYaxis()->SetTitleOffset(0.5);
+  if (ratioTitleOffset>0) div->GetYaxis()->SetTitleOffset(ratioTitleOffset);
+  div->GetYaxis()->SetTitleSize(0.13);
+  div->GetYaxis()->SetLabelSize(0.13);
   div->GetYaxis()->SetNdivisions(805);  
   if (div31) {
-    div->GetYaxis()->SetRangeUser(0.99,1.01);
-    if (iEta==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
+    if (HLTcomparison) {
+      div->GetYaxis()->SetRangeUser(0.99,1.01);
+      if (iEta==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
+    }
   }
   div->Draw("LP");
   if (div31) {
@@ -337,18 +488,20 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
 
   cx->Update();
 
-  TString fname=TString("fig-eff-") + fnameTag + cpTitle;
-  fname.ReplaceAll(" #leq "," ");
-  fname.ReplaceAll(" ","_");
-  fname.ReplaceAll("(#eta)","Eta");
-  fname.ReplaceAll("#eta","eta");
-  fname.ReplaceAll(".","_");
-  //fname.Append(".png");
-  std::cout << "fname=" << fname << "\n";
+  if (fnameTag.Length()) {
+    TString fname=TString("fig-eff-") + fnameTag + cpTitle;
+    fname.ReplaceAll(" #leq "," ");
+    fname.ReplaceAll(" ","_");
+    fname.ReplaceAll("(#eta)","Eta");
+    fname.ReplaceAll("#eta","eta");
+    fname.ReplaceAll(".","_");
+    //fname.Append(".png");
+    std::cout << "fname=" << fname << "\n";
 
-  TString locOutDir=TString("plots") + fnameTag;
-  locOutDir.ReplaceAll("--","");
-  SaveCanvas(cx,fname,locOutDir);
+    TString locOutDir=TString("plots") + fnameTag;
+    locOutDir.ReplaceAll("--","");
+    SaveCanvas(cx,fname,locOutDir);
+  }
 
   return ;
 }
