@@ -301,12 +301,23 @@ public:
     
     std::vector<TString> savedTitles;
     savedTitles.reserve(fItems.size());
+    double ymin=1e9, ymax=-1e9;
     for (unsigned int i=0; i<fItems.size(); ++i) {
       if (fItems[i].hist1D!=0) {
 	fHRatioIndices.push_back(i);
-	fItems[i].hist1D->GetXaxis()->SetLabelOffset(99.05);
-	savedTitles.push_back(fItems[i].hist1D->GetXaxis()->GetTitle());
-	fItems[i].hist1D->GetXaxis()->SetTitle("");
+	TH1D *h=fItems[i].hist1D;
+	TAxis *ax=h->GetXaxis();
+	ax->SetLabelOffset(99.05);
+	savedTitles.push_back(ax->GetTitle());
+	ax->SetTitle("");
+	//if (h->GetMinimum()<ymin) ymin=h->GetMinimum();
+	//if (h->GetMaximum()>ymax) ymax=h->GetMaximum();
+	for (int ib=1; ib<=h->GetNbinsX(); ++ib) {
+	  double yc=h->GetBinContent(ib);
+	  double ye=h->GetBinError(ib);
+	  if (yc+ye > ymax) ymax=yc+ye;
+	  if (yc-ye < ymin) ymin=yc-ye;
+	}
       }
       else if (fItems[i].graph!=0) {
 	fItems[i].graph->GetXaxis()->SetLabelOffset(99.05);
@@ -314,8 +325,17 @@ public:
 	fItems[i].graph->GetXaxis()->SetTitle("");
       }
     }
+    // update ymin,ymax
+    std::cout << "setting ymin=" << ymin << ", ymax=" << ymax << "\n";
+    for (unsigned int i=0; i<fItems.size(); ++i) {
+      if (fItems[i].hist1D!=0) {
+	fItems[i].hist1D->GetYaxis()->SetRangeUser(ymin,ymax);
+      }
+    }
 
     CPlot::Draw(c,false,"png",subpad1);
+
+
 
     if ( fHRatioIndices.size() ==0 ) return;
     TH1D *hRef=fItems[fHRatioIndices[fRefIdx]].hist1D;
