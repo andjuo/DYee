@@ -166,6 +166,7 @@ protected:
   std::vector<std::string> FUserKeys,FUserValues;
 
   TString FNtupleDef, FSkimDef;
+  TString FRootFileBaseDir; // automatic. Can be changed by user
   TString FNtupleNameExtraTag; // automatic tag
   TString FDirNameExtraTag; // automatic tag
   TDescriptiveInfo_t *FInfoSection; // reserved for TnP section
@@ -185,10 +186,13 @@ public:
     FMCSampleNames(), FMCSignal(),
     FUserKeys(), FUserValues(),
     FNtupleDef(), FSkimDef(),
+    FRootFileBaseDir(),
     FNtupleNameExtraTag(),
     FDirNameExtraTag(),
     FInfoSection()
-  {}
+  {
+    this->autosetRootDir();
+  }
 
   void Clear();
 
@@ -211,6 +215,9 @@ public:
   const TString& skimDef() const { return FSkimDef; }
   const TString& ntupleNameExtraTag() const { return FNtupleNameExtraTag; }
   const TString& dirNameExtraTag() const { return FDirNameExtraTag; }
+  const TString& rootFileBaseDir() const { return FRootFileBaseDir; }
+  // void autosetRootDir(); // see below
+  void rootFileBaseDir(TString newdir) { FRootFileBaseDir=newdir; }
 
   const std::vector<TString>& sampleNames() const { return FSampleNames; }
   const std::vector<CSample_t*>& sampleInfos() const { return FSampleInfos; }
@@ -248,9 +255,8 @@ public:
   int userKeyValueAsInt(const std::string &key) const { return AsInt(this->userKeyValue(key)); }
   double userKeyValueAsDouble(const std::string &key) const { return AsDouble(this->userKeyValue(key)); }
 
-  TString resultBaseDir(const TString &collection,
-			//DYTools::TRunMode_t runMode,
-			DYTools::TSystematicsStudy_t systMode) const {
+
+  void autosetRootDir() {
 #ifdef DYee8TeV
     TString dir="../root_files/";
 #endif
@@ -260,6 +266,13 @@ public:
 #ifdef DYee7TeV
     TString dir="../root_files7TeV/";
 #endif
+    FRootFileBaseDir=dir;
+  }
+
+  TString resultBaseDir(const TString &collection,
+			//DYTools::TRunMode_t runMode,
+			DYTools::TSystematicsStudy_t systMode) const {
+    TString dir=FRootFileBaseDir;
     dir.Append(collection);
     dir.Append("/");
     dir.Append(this->dyTag() + 
@@ -410,6 +423,7 @@ public:
     return (FInfoSection) ? this->getTNP_calcMethod(*FInfoSection,dataKind,kind) : TString("getTNP_*: call LoadTnP first");
   }
 
+  std::string getTNP_etetaBinningString() const { return (FInfoSection) ? this->getTNP_etetaBinningString(*FInfoSection) : std::string("getTNP*: call LoadTnP first") ; }
   TString getTNP_etBinningString() const { return (FInfoSection) ? this->getTNP_etBinningString(*FInfoSection) : TString("getTNP*: call LoadTnP first"); }
   TString getTNP_etaBinningString() const {
     return (FInfoSection) ? this->getTNP_etaBinningString(*FInfoSection) : TString("getTNP*: call LoadTnP first");
@@ -503,6 +517,7 @@ public:
     out << " nTupleDef=<" << m.FNtupleDef 
 	<< ">, skimDef=<" << m.FSkimDef << ">";
     out << ";\n";
+    out << " rootFileBaseDir=<" << m.FRootFileBaseDir << ">\n";
     out << " " << m.FUserKeys.size() << " user keys: \n";
     for (unsigned int i=0; i<m.FUserKeys.size(); i++) {
       out << "  -- key=<" << m.FUserKeys[i] << ">, value=<" << m.FUserValues[i] << "\n";
