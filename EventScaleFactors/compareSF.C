@@ -156,17 +156,10 @@ TString effDataKindString(const TString str) {
 // ------------------------------------------------------------
 
 void compareSF(int iBr=0, int iEta=0, 
-	       //int nDim=1, 
 	       int doSave=0,
-	       double ratioTitleOffset=0.58) {
+	       double ratioTitleOffset=0.58,
+	       double transLegendY_user=0.) {
 
-  /*
-  if (((nDim==1) &&  DYTools::study2D) ||
-      ((nDim==2) && !DYTools::study2D)) {
-    std::cout << "the macro uses basic implementations that require nDim info to match study2D in DYTools.hh\n";
-    return;
-  }
-  */
 
   TString path1, path2; 
   TString fnameBase="scale_factors_";
@@ -177,51 +170,76 @@ void compareSF(int iBr=0, int iEta=0,
   TString fileTag1, fileTag2;
   TString sfKind;
 
-  TString path3="";
-  TString sfKindLongStr3="";
-  TString label3="";
+  TString path3, sfKindLongStr3,label3,fileTag3;
 
   TString egammaFName;
 
   int HLTcomparison=0;
   double transLegendX=-0.2;
   double transLegendY=-0.4;
+  int exchange12=0;
 
-  if (1) {
+  if (1) { // compare to EGamma
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/constants/DY_j22_19712pb/"; 
     path1="./";
     path2="./";
     fnameBase="el-effs-";
     egammaFName="mediumID.root";
-    //fileTag1="etaMax24_asymHLT_1D";
-    //fileTag2="EGAMMA";
     fileTag1="ETBINS6ETABINS5corr2";
+    //fileTag2="EGAMMA";
     sfKindLongStr1="sf_ID_ETBINS6ETABINS5corr2";
-    sfKindLongStr2="sf_ID_EtBins6EtaBins5";
+    sfKindLongStr2="sf_ID_EtBins6EtaBins5_EGamma";
     label1="DYee |#eta|<2.4";
     label2="EGamma";
-    if (0) {
-      path3="/home/andriusj/cms/DYee-20131024/root_files_reg/constants/DY_j22_19712pb/"; 
-      sfKindLongStr3="1D";
+    if (1) {
+      path3="./";
+      fileTag3="ETBINS6ETABINS5";
+      sfKindLongStr3="sf_ID_ETBINS6ETABINS5";
       label3="DYee |#eta|<2.5";
+      exchange12=1;
     }
-    fnameTag="-cmpEGamma-LABEL-";
+    fnameTag="-cmpEGamma-LABEL";
     transLegendX=-0.1;
   }
 
-  if (iBr==0) {
-    fnameTag.ReplaceAll("LABEL","ID");
-    sfKind="ID";
+  if (0) {
+    path1="./";
+    path2="./";
+    fnameBase="el-effs-";
+    fileTag1="ETBINS6ETABINS5-summer2013";
+    fileTag2="ETBINS6ETABINS5corr2";
+    sfKindLongStr1="sf_ID_ETBINS6ETABINS5";
+    sfKindLongStr2="sf_ID_ETBINS6ETABINS5corr2";
+    label1="Summer2013";
+    label2="DYee |#eta|<2.4";
+    if (1) {
+      path3="./";
+      fileTag3="ETBINS6ETABINS5";
+      sfKindLongStr3="sf_ID_ETBINS6ETABINS5";
+      label3="DYee |#eta|<2.5";
+      exchange12=0;
+    }
+    fnameTag="-cmpSummer2013-LABEL";
+    transLegendX=-0.1;
+    //transLegendY=-0.2;
   }
+
+  if (transLegendY_user!=0.) transLegendY=transLegendY_user;
+
+  if (iBr==0) sfKind="ID";
+  else if (iBr==1) sfKind="RECO";
+  else if (iBr==2) sfKind="HLT";
   else {
     std::cout << "iBr error\n";
     return;
   }
 
-  //if (DYTools::study2D) {
-  //  fileTag1.ReplaceAll("1D","2D");
-  //  fileTag2.ReplaceAll("1D","2D");
-  //}
+  fnameTag.ReplaceAll("LABEL",sfKind);
+  if (iBr!=0) {
+    sfKindLongStr1.ReplaceAll("ID",sfKind);
+    sfKindLongStr2.ReplaceAll("ID",sfKind);
+    sfKindLongStr3.ReplaceAll("ID",sfKind);
+  }
 
   DYTools::TEtBinSet_t etBinSet1=DetermineEtBinSet(sfKindLongStr1);
   DYTools::TEtaBinSet_t etaBinSet1=DetermineEtaBinSet(sfKindLongStr1);
@@ -288,11 +306,10 @@ void compareSF(int iBr=0, int iEta=0,
   TGraphAsymmErrors* gr3=NULL;
   TH1D* div31=NULL;
 
-  if (sfKindLongStr3.Length() && label3.Length()) {
-    TString fname3= path3 + fnameBase + sfKindLongStr3 + TString(".root");
-    int weighted3=(sfKindLongStr3.Index("count-count")!=-1) ? 1:0;
+  if (sfKindLongStr3.Length() && fileTag3.Length() && label3.Length()) {
+    TString fname3= path3 + fnameBase + fileTag3 + TString(".root");
     TMatrixD *sf3=NULL, *sf3ErrLo=NULL, *sf3ErrHi=NULL;
-    if (!loadSF(fname3,weighted3,&sf3,&sf3ErrLo,&sf3ErrHi)) {
+    if (!loadSF(fname3,sfKind,&sf3,&sf3ErrLo,&sf3ErrHi)) {
       std::cout << "failed to get field from <" << fname3 << "> (3)\n";
       return ;
     }
@@ -309,7 +326,10 @@ void compareSF(int iBr=0, int iEta=0,
     div31=(TH1D*)histo1->Clone("div31");
     div31->SetTitle("div31");
     if (HLTcomparison) div31->Divide(histo1,histo3,1.,1.,"b");
-    else div31->Divide(histo2,histo3,1.,1.,"b");
+    else {
+      if (!exchange12) div31->Divide(histo3,histo1,1.,1.,"b");
+      else div31->Divide(histo2,histo3,1.,1.,"b");
+    }
     div31->Print("range");
     div31->SetLineColor(kGreen+1);
     div31->SetMarkerColor(kGreen+1);
@@ -326,6 +346,7 @@ void compareSF(int iBr=0, int iEta=0,
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,"comp",cpTitle,
 		      "E_{T}",effKind + TString(" scale factor"),"ratio");
   cp.SetLogx();
+  cp.AddLine(10.,1.,500.,1.,kBlack,2);
 
   if (gr3 && HLTcomparison) { // for HLT sficiency
     cp.SetYRange(0.0,1.02);
@@ -350,9 +371,9 @@ void compareSF(int iBr=0, int iEta=0,
 
   gr1->GetYaxis()->SetTitleOffset(1.4);
 
-  if (gr3 && !HLTcomparison) {
+  if (gr3 && !HLTcomparison && exchange12) {
     std::cout << "\n\tInverted plotting order 2,1\n";
-    gr2->GetYaxis()->SetTitleOffset(1.2);
+    gr2->GetYaxis()->SetTitleOffset(1.4);
     //gr1->SetMarkerStyle(24);
     div->SetMarkerStyle(24);
     cp.AddGraph(gr2,label2,"LPE1",kBlue);
@@ -410,8 +431,9 @@ void compareSF(int iBr=0, int iEta=0,
 
   cx->Update();
 
+  // Save file
   if (fnameTag.Length()) {
-    TString fname=TString("fig-sf-") + fnameTag + cpTitle;
+    TString fname=TString("fig-sf") + cpTitle;
     fname.ReplaceAll(" #leq "," ");
     fname.ReplaceAll(" ","_");
     fname.ReplaceAll("(#eta)","Eta");
@@ -420,13 +442,14 @@ void compareSF(int iBr=0, int iEta=0,
     //fname.Append(".png");
     std::cout << "fname=" << fname << "\n";
 
+    TString locOutDir=TString("plots") + fnameTag;
     if (doSave) {
-      TString locOutDir=TString("plots") + fnameTag;
       locOutDir.ReplaceAll("--","");
       SaveCanvas(cx,fname,locOutDir);
     }
     else {
       std::cout << "... canvas not saved, as requested\n";
+      std::cout << "   locOutDir=" << locOutDir << "\n";
     }
   }
 

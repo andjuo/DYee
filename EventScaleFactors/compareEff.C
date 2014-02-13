@@ -138,13 +138,10 @@ TString effDataKindString(const TString str) {
 // ------------------------------------------------------------
 
 
-void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU", 
-		TString effKindLongStr2="mcRECO_count-countEtBins6EtaBins5_PU",
-		int iBr=0, int iEta=0, double ratioTitleOffset=0.58) {
-  TString path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
-  TString path2="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/";
-  //path2="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/tag_and_probe/DY_j22_19789pb/";
-  path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
+void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
+		double transLegendY_user=0.) {
+  TString path1, path2;
+  TString effKindLongStr1,effKindLongStr2;
   TString fnameBase="efficiency_TnP_1D_Full2012_";
 
   TString label1="new n-tuples";
@@ -160,7 +157,7 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   double transLegendY=-0.4;
 
 
-  if (1) {
+  if (0) {
     path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
     path2="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/tag_and_probe/DY_j22_19789pb/";
     label1="new n-tuples";
@@ -244,7 +241,7 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
     fnameTag="-checkSummer2013--";
   }
 
-  if (0) {
+  if (1) {
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
     path2="./";
     effKindLongStr1="dataID_fit-fitEtBins6EtaBins5corr_PU";
@@ -257,8 +254,15 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
       label3="DYee |#eta|<2.5";
     }
     fnameTag="-cmpEGamma--";
-    
+    transLegendX=-0.1;
   }
+
+
+  // -------------------------------
+  // processing
+  // -------------------------------
+
+  if (transLegendY_user!=0.) transLegendY=transLegendY_user;
 
   if (label2 == TString("EGamma")) {
     if (iBr==0) {
@@ -449,14 +453,21 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
 
   if (gr3 && !HLTcomparison) {
     std::cout << "\n\tInverted plotting order 2,1\n";
-    cp.AddGraph(gr2,label2,"LP",kBlue);
-    cp.AddGraph(gr1,label1,"LP",kBlack);
+    gr2->GetYaxis()->SetTitleOffset(1.2);
+    //gr1->SetMarkerStyle(24);
+    div->SetMarkerStyle(24);
+    cp.AddGraph(gr2,label2,"LPE1",kBlue);
+    cp.AddGraph(gr1,label1," PE1",kBlack,24);
   }
   else {
-    cp.AddGraph(gr1,label1,"LP",kBlack);
-    cp.AddGraph(gr2,label2,"LP",kBlue);
+    cp.AddGraph(gr1,label1,"LPE1",kBlack);
+    cp.AddGraph(gr2,label2,"LPE1",kBlue,24);
   }
-  if (gr3) cp.AddGraph(gr3,label3,"LP",kGreen+1);
+  if (gr3) {
+    //gr3->SetMarkerStyle(27);
+    div31->SetMarkerStyle(27);
+    cp.AddGraph(gr3,label3," PE1",kGreen+1,27);
+  }
   cp.Draw(cx,0,"png",1);
   cp.TransLegend(transLegendX, transLegendY);
   cp.WidenLegend(0.2,0.);
@@ -471,6 +482,10 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
 
   div->GetYaxis()->SetTitle("ratio");
   div->GetYaxis()->SetTitleOffset(0.5);
+  if (label2 == TString("EGamma")) {
+    div->GetYaxis()->SetTitle("EG/our");
+    div->GetYaxis()->SetTitleOffset(0.45);
+  }
   if (ratioTitleOffset>0) div->GetYaxis()->SetTitleOffset(ratioTitleOffset);
   div->GetYaxis()->SetTitleSize(0.13);
   div->GetYaxis()->SetLabelSize(0.13);
@@ -485,6 +500,12 @@ void compareEff(TString effKindLongStr1="mcRECO_count-countEtBins6EtaBins5_PU",
   if (div31) {
     div31->Draw("LP same");
   }
+
+  TLine *lineAtOne =   new TLine(10,1., 500,1.);
+  lineAtOne->SetLineStyle(kDashed);
+  lineAtOne->SetLineWidth(1);
+  lineAtOne->SetLineColor(kBlack);
+  lineAtOne->Draw();
 
   cx->Update();
 
