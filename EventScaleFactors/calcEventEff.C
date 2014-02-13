@@ -157,7 +157,7 @@ void drawEfficiencyGraphs(
 //void drawEfficiencyGraphsAsymmErrors(Graph_t *grData, Graph_t *grMc,
 //			  TString yAxisTitle, TString text, TString plotName);
 
-void drawScaleFactors(TFile *fRoot);
+void drawScaleFactors(TFile *fRoot, int saveArrs=0);
 
 void drawScaleFactorGraphs(TGraphErrors *gr, TString yAxisTitle, TString text, 
 			   TString plotName, TFile *fRoot);
@@ -1356,7 +1356,7 @@ int calcEventEff(const TString confFileName,
 
   drawEfficiencies(faPlots);
   HERE("next: drawScaleFactors");
-  drawScaleFactors(faPlots);
+  drawScaleFactors(faPlots,1); // saveArrs
 
 #ifdef debug_systScaleArrs
   if (1)
@@ -2351,6 +2351,7 @@ double getHLTefficiencySmeared(DYTools::TDataKind_t dataKind,
    plot1.AddGraph(grMc  ,"MC"  ,"PE", kBlack);
    plot1.Draw(c2);
    plot1.SetYRange(0.0,1.1);
+   //plot1.SetYRange(0.6,1.0);
    grData->GetXaxis()->SetTitle("E_{T} [GeV]");
    grData->GetXaxis()->SetMoreLogLabels();
    grData->GetXaxis()->SetNoExponent();
@@ -2698,7 +2699,7 @@ void drawEfficiencies(TFile *fRootOutput,
 
 // -------------------------------------------------------------------------
 
-void drawScaleFactors(TFile *fRoot){
+void drawScaleFactors(TFile *fRoot, int saveArrs){
 
   double x[etBinCount];
   double dx[etBinCount];
@@ -2718,7 +2719,12 @@ void drawScaleFactors(TFile *fRoot){
   const char *etaSignStr=(signedEta) ? "_eta" : "_abs_eta";
   const char *etaLabelStr=(signedEta) ? "#eta" : "|#eta|";
 
+  TMatrixD MRho(etBinCount,etaBinCount);
+  TMatrixD MRhoErr(MRho);
+
   for (int kind=0; kind<NEffTypes; ++kind) {
+    if (saveArrs) { MRho.Zero(); MRhoErr.Zero(); }
+    
     for (int iEta=0; iEta<etaBinCount; ++iEta) {
       TString etaStr=
 	Form("%s_%5.3lf__%5.3lf", etaSignStr,
@@ -2726,7 +2732,7 @@ void drawScaleFactors(TFile *fRoot){
       etaStr.ReplaceAll(".","_");
       snprintf(plotLabel,bufsize,"%5.3lf < %s < %5.3lf",
 	       etaBinLimits[iEta],etaLabelStr,etaBinLimits[iEta+1]);
-
+      
       for (int iEt=0; iEt<etBinCount; ++iEt) {
 	scale[iEt]= (*dataEff[kind])[iEt][iEta] / (*mcEff[kind])[iEt][iEta];
 	scaleErr[iEt]= errOnRatio( (*dataEff[kind])[iEt][iEta], 
@@ -2734,16 +2740,52 @@ void drawScaleFactors(TFile *fRoot){
 				   (*mcEff[kind])[iEt][iEta], 
 				   (*mcEffAvgErr[kind])[iEt][iEta] );
       }
+      
+      if (saveArrs) {
+	for (int iEt=0; iEt<etBinCount; ++iEt) {
+	  MRho(iEt,iEta)=scale[iEt];  
+	  MRhoErr(iEt,iEta)=scaleErr[iEt];
+	}
+      }
 
       TGraphErrors *grScaleFactor
 	= new TGraphErrors(etBinCount, x, scale, dx, scaleErr);
       TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
       TString ylabel=TString("scale factor ") + effName;
-      TString plotName = TString("plot_scale_") + DYTools::analysisTag + TString("_") +
-	effName + etaStr;
-
-      drawScaleFactorGraphs(grScaleFactor, ylabel, plotLabel, plotName, fRoot);
+      TString plotName = TString("plot_scale_") + DYTools::analysisTag + 
+	TString("_") + effName + etaStr;
+      
+      if (saveArrs!=2) {
+	drawScaleFactorGraphs(grScaleFactor, ylabel, plotLabel, plotName, fRoot);
+      }
       //delete grScaleFactor;
+    }
+
+    if (saveArrs) {
+      TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
+      TString field=TString("scale_factor_") + effName;
+      TString err="_err";
+      MRho.Write(field);
+      MRhoErr.Write(field + err);
+    }
+  }
+
+  if (saveArrs) {
+    for (int kind=0; kind<NEffTypes; ++kind) {
+      TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
+      TString errLo="_errLo";
+      TString errHi="_errHi";
+      TString errAvg="_errAvg";
+      TString field=TString("data_eff_") + effName;
+      dataEff[kind]->Write(field);
+      dataEffErrLo[kind]->Write(field + errLo);
+      dataEffErrHi[kind]->Write(field + errHi);
+      dataEffAvgErr[kind]->Write(field + errAvg);
+      field=TString("mc_eff_") + effName;
+      mcEff[kind]->Write(field);
+      mcEffErrLo[kind]->Write(field + errLo);
+      mcEffErrHi[kind]->Write(field + errHi);
+      mcEffAvgErr[kind]->Write(field + errAvg);	
     }
   }
 }
