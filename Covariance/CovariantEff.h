@@ -21,6 +21,7 @@ class CovariantEffMgr_t : public BaseClass_t {
   CovariantEffMgr_t(); 
 
   const InputFileMgr_t& mgr() const { return FInpMgr; }
+  InputFileMgr_t& editMgr() { return FInpMgr; }
 
   int initOk() const { return FInitOk; }
   int Setup(const TString &confFileName, int nExps);
