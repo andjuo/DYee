@@ -72,6 +72,22 @@ Int_t roundToInt(Double_t x)
 }
 */
 
+
+//------------------------------------------------------------------------------------------------------------------------
+
+inline
+double errOnRatio(double a, double da, double b, double db){
+
+  const double zero=static_cast<double>(0);
+  double result = zero;
+  if(a == zero || b == zero)
+    return result;
+ 
+  result = (a/b)*sqrt( (da/a)*(da/a) + (db/b)*(db/b) );
+  return result;
+}
+
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class T>

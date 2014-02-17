@@ -2791,7 +2791,7 @@ void drawScaleFactors(TFile *fRoot, int saveArrs){
 }
 
 // -------------------------------------------------------------------------
-
+/*
 double errOnRatio(double a, double da, double b, double db){
 
   double result = 0;
@@ -2801,6 +2801,7 @@ double errOnRatio(double a, double da, double b, double db){
   result = (a/b)*sqrt( (da/a)*(da/a) + (db/b)*(db/b) );
   return result;
 }
+*/
 
 // -------------------------------------------------------------------------
 
