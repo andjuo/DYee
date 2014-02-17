@@ -109,7 +109,7 @@ namespace DYTools {
 
   // Declare mass binnings
   typedef enum { _MassBins_Undefined, _MassBins_default, 
-		 _MassBins_2012,
+		 _MassBins_2011, _MassBins_2012,
 		 _MassBins_test4, _MassBins_Zpeak,
 		 _MassBins_noUnderflow, _MassBins_withFullOverflow 
   }     TMassBinning_t;
@@ -172,11 +172,11 @@ namespace DYTools {
   };
 
   const TString analysisTag_binning="";
-  const DYTools::TMassBinning_t massBinningSet= _MassBins_2012; //_MassBins_default;
-  const int _nMassBins1D=_nMassBins2012;
-  const double *_massBinLimits1D=_massBinLimits2012;
-  const int *_nYBins1D=_nYBins2012;
-  const int _nYBinsMax1D=_nYBinsMax2012;
+  const DYTools::TMassBinning_t massBinningSet= _MassBins_2011; //_MassBins_default;
+  const int _nMassBins1D=_nMassBins2011;
+  const double *_massBinLimits1D=_massBinLimits2011;
+  const int *_nYBins1D=_nYBins2011;
+  const int _nYBinsMax1D=_nYBinsMax2011;
   const double _yRangeEdge=_yRangeEdge_base;
   const double _yRangeMax=_yRangeMax_base; 
 
