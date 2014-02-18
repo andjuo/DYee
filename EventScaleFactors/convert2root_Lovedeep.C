@@ -24,6 +24,13 @@ public:
     MerrLo.Write(field + TString("_errLo"));
     MerrHi.Write(field + TString("_errHi"));
   }
+
+  void Write_for_main_code(TFile &fout) const {
+    fout.cd();
+    M.Write("effArray2D");
+    MerrLo.Write("effArrayErrLow2D");
+    MerrHi.Write("effArrayErrHigh2D");
+  }
 };
 
 // ---------------------------------------------
@@ -190,4 +197,25 @@ void convert2root_Lovedeep () {
   saveVec(fout,hV_data,"effMediumID_Data_histo");
   fout.Close();
   std::cout << "file <" << fout.GetName() << "> created\n";
+
+  if (1) {
+    TString fname="efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
+    TDescriptiveInfo_t info;
+    info.reserve(5);
+    info.append("mediumID official scale factors");
+    info.append("Web page: https://twiki.cern.ch/twiki/bin/view/Main/EGammaScaleFactors2012");
+
+    TFile foutD(fname,"recreate");
+    MData.Write_for_main_code(foutD);
+    info.Write("info");
+    foutD.Close();
+    std::cout << "file <" << foutD.GetName() << "> created\n";
+
+    fname.ReplaceAll("dataID_fit-fit","mcID_count-count");
+    TFile foutMC(fname,"recreate");
+    MMC.Write_for_main_code(foutMC);
+    info.Write("info");
+    foutMC.Close();
+    std::cout << "file <" << foutMC.GetName() << "> created\n";
+  }
 }
