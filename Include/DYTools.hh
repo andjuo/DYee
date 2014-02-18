@@ -610,7 +610,7 @@ namespace DYTools {
     return result;
   };
 
-  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5Negs, ETABINS5_max25, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs, ETABINS14} TEtaBinSet_t;
+  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5egamma, ETABINS5Negs, ETABINS5_max25, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs, ETABINS14} TEtaBinSet_t;
   const int nEtaBins1 = 1;
   const double etaBinLimits1[nEtBins1 + 1] = 
     {0, 2.4000001};
@@ -664,7 +664,9 @@ namespace DYTools {
 
   inline
   int mergeEtBins(int binning) {
-    return ((binning==ETABINS5) || (binning==ETABINS5_max25)) ? 1:0;
+    return ((binning==ETABINS5) || (binning==ETABINS5_max25)
+	    || (binning==ETABINS5egamma)
+	    ) ? 1:0;
   }
 
 
@@ -678,6 +680,7 @@ namespace DYTools {
     case ETABINS2Negs: n = nEtaBins2Negs; break;
     case ETABINS3: n = nEtaBins3; break;
     case ETABINS3Negs: n = nEtaBins3Negs; break;
+    case ETABINS5egamma: // identical, although eff is with |eta|<2.5
     case ETABINS5: n = nEtaBins5; break;
     case ETABINS5_max25: n = nEtaBins5_max25; break;
     case ETABINS4test: n = nEtaBins4test; break;
@@ -708,6 +711,7 @@ namespace DYTools {
     case ETABINS2Negs: limits = etaBinLimits2Negs; break;
     case ETABINS3: limits = etaBinLimits3; break;
     case ETABINS3Negs: limits = etaBinLimits3Negs; break;
+    case ETABINS5egamma: // identical, although eff is with |eta|<2.5
     case ETABINS5: limits = etaBinLimits5; break;
     case ETABINS5_max25: limits = etaBinLimits5_max25; break;
     case ETABINS4test: limits = etaBinLimits4test; break;
@@ -737,6 +741,7 @@ namespace DYTools {
     case ETABINS1: 
     case ETABINS2: 
     case ETABINS3: 
+    case ETABINS5egamma: // identical, although eff is with |eta|<2.5
     case ETABINS5:
     case ETABINS5_max25:
     case ETABINS4test:
