@@ -25,11 +25,11 @@ public:
     MerrHi.Write(field + TString("_errHi"));
   }
 
-  void Write_for_main_code(TFile &fout) const {
+  void Write_for_main_code(TFile &fout, int mc) const {
     fout.cd();
-    M.Write("effArray2D");
-    MerrLo.Write("effArrayErrLow2D");
-    MerrHi.Write("effArrayErrHigh2D");
+    M.Write((mc==1) ? "effArray2DWeighted" : "effArray2D");
+    MerrLo.Write((mc==1) ? "effArrayErrLow2DWeighted" : "effArrayErrLow2D");
+    MerrHi.Write((mc==1) ? "effArrayErrHigh2DWeighted" : "effArrayErrHigh2D");
   }
 };
 
@@ -206,14 +206,14 @@ void convert2root_Lovedeep () {
     info.append("Web page: https://twiki.cern.ch/twiki/bin/view/Main/EGammaScaleFactors2012");
 
     TFile foutD(fname,"recreate");
-    MData.Write_for_main_code(foutD);
+    MData.Write_for_main_code(foutD,0);
     info.Write("info");
     foutD.Close();
     std::cout << "file <" << foutD.GetName() << "> created\n";
 
     fname.ReplaceAll("dataID_fit-fit","mcID_count-count");
     TFile foutMC(fname,"recreate");
-    MMC.Write_for_main_code(foutMC);
+    MMC.Write_for_main_code(foutMC,1);
     info.Write("info");
     foutMC.Close();
     std::cout << "file <" << foutMC.GetName() << "> created\n";
