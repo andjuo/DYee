@@ -511,7 +511,7 @@ namespace DYTools {
   //
   // Define Et and Eta binning
   //
-  typedef enum {ETBINS_UNDEFINED=-1, ETBINS1=1, ETBINS5, ETBINS6, ETBINS6alt, ETBINS6altB, ETBINS7, ETBINS7alt, ETBINS7altB, ETBINS8, ETBINS9} TEtBinSet_t;
+  typedef enum {ETBINS_UNDEFINED=-1, ETBINS1=1, ETBINS5, ETBINS6, ETBINS6syst, ETBINS6alt, ETBINS6altB, ETBINS7, ETBINS7alt, ETBINS7altB, ETBINS8, ETBINS9} TEtBinSet_t;
   const int nEtBins1 = 1;
   const double etBinLimits1[nEtBins1 + 1] = 
     {10, 500};
@@ -553,6 +553,7 @@ namespace DYTools {
     case ETBINS_UNDEFINED: n = 0; break;
     case ETBINS1: n = nEtBins1; break;
     case ETBINS5: n = nEtBins5; break;
+    case ETBINS6syst: // same as ETBINS6, avoid built-in systematics
     case ETBINS6: n = nEtBins6; break;
     case ETBINS6alt: n = nEtBins6alt; break;
     case ETBINS6altB: n = nEtBins6altB; break;
@@ -576,6 +577,7 @@ namespace DYTools {
     switch(binning) {
     case ETBINS1: limits=etBinLimits1; break;
     case ETBINS5: limits=etBinLimits5; break;
+    case ETBINS6syst: // same as ETBINS6, avoid built-in systematics
     case ETBINS6: limits=etBinLimits6; break;
     case ETBINS6alt: limits=etBinLimits6alt; break;
     case ETBINS6altB: limits=etBinLimits6altB; break;
