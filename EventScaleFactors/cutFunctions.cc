@@ -120,6 +120,40 @@ bool isTag(const mithep::TElectron *electron, ULong_t trigger, double rho){
   return result;
 }
 
+// -----------------------------------------------------
+// to select for tag-systematics studies
+// reduce the requirements for the tag when selecting the events
+// systMode=RESOLUTION_STUDY : lower tag pt cut
+// systMODE=FSR_STUDY : mediumID instead of tightID
+
+bool isTag_systStudy(const mithep::TElectron *electron, ULong_t trigger, double rho, DYTools::TSystematicsStudy_t systMode){
+  double elePtCut= (systMode==DYTools::RESOLUTION_STUDY) ? 20. : 25.;
+  if (electron->pt <= elePtCut) return false;
+
+  bool elePassHLT =  (electron ->hltMatchBits & trigger);
+  bool notInGap = ! DYTools::isEcalGap( electron->scEta );  
+  if ( !elePassHLT || !notInGap) return false;
+
+  bool elePassID=false;
+  if (systMode!=DYTools::FSR_STUDY) elePassID= passIDTag(electron, rho);
+  else {
+    // lower the ID requirement  
+#ifdef DYee8TeV
+    elePassID = passEGMID2012(electron, WP_MEDIUM, rho);
+#endif
+#ifdef DYee8TeV_reg
+    elePassID = passEGMID2012(electron, WP_MEDIUM, rho);
+#endif
+#ifdef DYee7TeV
+    elePassID = passEGMID2011(electron, WP_MEDIUM, rho);
+#endif
+  }
+
+  bool result = ( elePassID && elePassHLT && notInGap );
+
+  return result;
+}
+
 // -------------------------------------------------------------------
 
 TString getLabel(int sample, DYTools::TEfficiencyKind_t effType, int method,  DYTools::TEtBinSet_t etBinning, DYTools::TEtaBinSet_t etaBinning, const TriggerSelection_t &trigSet){

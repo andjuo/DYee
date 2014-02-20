@@ -79,7 +79,8 @@ const int performOppositeSignTest=1;
 int eff_IdHlt(const TString configFile, 
 	      const TString effTypeString, 
 	      int runOnData,
-	      DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN)
+	      DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+	      DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {
 
   gBenchmark->Start("eff_IdHlt");
@@ -95,7 +96,6 @@ int eff_IdHlt(const TString configFile,
     //return retCodeError; // will abort later, after an additional check
   }
 
-  const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   DYTools::printExecMode(runMode,systMode);
 
   if (configFile.Contains("_check_")) {
@@ -510,8 +510,17 @@ int eff_IdHlt(const TString configFile,
 	
 	dielectron->extractElectron(1,*ele1);
 	dielectron->extractElectron(2,*ele2);
-	bool isTag1 = isTag(ele1, tagTriggerObjectBit, info->rhoLowEta);
-	bool isTag2 = isTag(ele2, tagTriggerObjectBit, info->rhoLowEta);
+	bool isTag1 = false;
+	bool isTag2 = false;
+	
+	if (systMode == DYTools::NO_SYST) {
+	  isTag1=isTag(ele1, tagTriggerObjectBit, info->rhoLowEta);
+	  isTag2=isTag(ele2, tagTriggerObjectBit, info->rhoLowEta);
+	}
+	else {
+	  isTag1=isTag_systStudy(ele1, tagTriggerObjectBit, info->rhoLowEta, systMode);
+	  isTag2=isTag_systStudy(ele2, tagTriggerObjectBit, info->rhoLowEta, systMode);
+	}
 	
 	// Any electron that made it here is eligible to be a probe
 	// for ID cuts.

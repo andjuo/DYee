@@ -24,6 +24,12 @@ bool passID(const mithep::TElectron *electron, double rho);
 
 bool isTag(const mithep::TElectron *electron, ULong_t trigger, double rho);
 
+// to select for tag-systematics studies
+// reduce the requirements for the tag when selecting the events
+// systMode=RESOLUTION_STUDY : lower tag pt cut
+// systMODE=FSR_STUDY : mediumID instead of tightID
+bool isTag_systStudy(const mithep::TElectron *electron, ULong_t trigger, double rho, DYTools::TSystematicsStudy_t systMode);
+
 TString getLabel(int sample, DYTools::TEfficiencyKind_t effType, int method, 
 		 DYTools::TEtBinSet_t etBinning, 
 		 DYTools::TEtaBinSet_t etaBinning, 
