@@ -24,8 +24,20 @@ int PrepareEtEtaIdx(const esfSelectEvent_t &selData, EtEtaIndexer_t &fidx1, EtEt
 // ------------------------------------------------------
 // ------------------------------------------------------
 
-void studyEffCov(int debugMode) {
-  TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
+int studyEffCov(int debugMode) {
+  gBenchmark->Start("studyEffCov");
+
+  if (( DYTools::study2D && (DYTools::nYBins[0]==1)) ||
+      (!DYTools::study2D && (DYTools::nYBins[0] >1))) {
+    std::cout << "\n\nlinking error:\n";
+    std::cout << " either study2D=1 but DYTools::nYBins[0]=1\n";
+    std::cout << " or study2D=0 but DYTools::nYBins[0] >1\n";
+    std::cout << "Try to remove *.d *.so and recompile\n\n";
+    return retCodeError;
+  }
+
+//TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
+  TString confFileName="../config_files/data_vilnius8TeV_egamma.conf.py";
 
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   CovariantEffMgr_t mgr;
@@ -91,7 +103,7 @@ void studyEffCov(int debugMode) {
   if (!createAnyH1Vec(hScaleFIV_150,"hScaleFIV_150",sample_labels,150,0.,1.5,"scale factor","counts",1) ||
       !createAnyH1Vec(hScaleFIV_1500,"hScaleFIV_1500",sample_labels,1500,0,1.5,"scale factor","counts",1)) {
     std::cout << "failed to prepare scale factor histo-arrays\n";
-    return ;
+    return retCodeError;
   }
 
   if (debugMode!=-1) {
@@ -177,7 +189,7 @@ void studyEffCov(int debugMode) {
 					fidx2.getEtBin(),fidx2.getEtaBin(),selData.et_2);
 	std::cout << Form("(%3.1lf,%3.1lf; %3.1lf,%3.1lf)  ",selData.et_1,selData.eta_1,selData.et_2,selData.eta_2)
 		  << " eff=" << tmpEff1 << "*" << tmpEff2 << "=" << tmpEff1*tmpEff2 << "; vs " << tmpEffx << "\n";
-	return;
+	return retCodeStop;
       }
 
       hScaleFIV_150[massBin]->Fill(scaleFactor,weight);
@@ -297,7 +309,7 @@ void studyEffCov(int debugMode) {
     cx->Update();
     TString fname=Form("fig_MassBin_%d_%d__nExps%d.png",chkMassBin_i,chkMassBin_j,nExps);
     cx->SaveAs(fname);
-    return;
+    return retCodeStop;
   }
 
   TVectorD avgRhoMean(nTotBins);
@@ -341,7 +353,7 @@ void studyEffCov(int debugMode) {
       printf(" %2d %10.6lf +- % 8.6lf\n",i,avgRhoMean[i],avgRhoRMS[i]);
     }
     std::cout << "\n";
-    //return;
+    //return retCodeStop;
   }
 
   if (0) { // study (et,eta; et,eta) distributions
@@ -466,7 +478,7 @@ void studyEffCov(int debugMode) {
 	!deflattenMatrix(avgRhoMean,esfMpseudo) ||
 	!deflattenMatrix(avgRhoRMS,esfMpseudoErr)) {
       std::cout << "failed to deflatten scale factors\n";
-      return;
+      return retCodeError;
     }
 
     TVectorD esfFromHisto150(nTotBins), esfFromHisto150err(nTotBins);
@@ -486,7 +498,7 @@ void studyEffCov(int debugMode) {
 	!deflattenMatrix(esfFromHisto1500,esfMFromHisto1500) ||
 	!deflattenMatrix(esfFromHisto1500err,esfMFromHisto1500err)) {
       std::cout << "failed to deflatten scale factors from histos\n";
-      return;
+      return retCodeError;
     }
 
     TFile fCov(covFileName,"recreate");
@@ -540,4 +552,6 @@ void studyEffCov(int debugMode) {
     }
   }
 
+  gBenchmark->Show("studyEffCov");
+  return retCodeOk;
 }
