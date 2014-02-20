@@ -307,7 +307,7 @@ public:
 	fHRatioIndices.push_back(i);
 	TH1D *h=fItems[i].hist1D;
 	TAxis *ax=h->GetXaxis();
-	ax->SetLabelOffset(99.05);
+	if (fRefIdx!=(unsigned int)(-111)) ax->SetLabelOffset(99.05);
 	savedTitles.push_back(ax->GetTitle());
 	ax->SetTitle("");
 	for (int ib=1; ib<=h->GetNbinsX(); ++ib) {
@@ -318,7 +318,7 @@ public:
 	}
       }
       else if (fItems[i].graph!=0) {
-	fItems[i].graph->GetXaxis()->SetLabelOffset(99.05);
+	if (fRefIdx!=(unsigned int)(-111)) fItems[i].graph->GetXaxis()->SetLabelOffset(99.05);
 	savedTitles.push_back(fItems[i].graph->GetXaxis()->GetTitle());
 	fItems[i].graph->GetXaxis()->SetTitle("");
 	TGraph *gr=fItems[i].graph;
