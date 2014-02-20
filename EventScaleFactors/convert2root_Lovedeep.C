@@ -72,7 +72,7 @@ int LoadTable(const std::string &fname, TString label, std::vector<TGraphAsymmEr
   
   for (int i=0; i<count; ++i) {
     xcArr[i]=0.5*(ptArr[i]+ptArr[i+1]);
-    if (i==count-1) xcArr[count-1]=100.;
+    //if (i==count-1) xcArr[count-1]=100.;
     xloArr[i]=xcArr[i]-ptArr[i];
     xhiArr[i]=ptArr[i+1]-xcArr[i];
   }
@@ -112,7 +112,7 @@ int LoadTable(const std::string &fname, TString label, std::vector<TGraphAsymmEr
       h->SetStats(0);
       h->GetXaxis()->SetTitle("{#itp}_{T}");
       h->GetYaxis()->SetTitle(label);
-      for (int i=1; i<count; ++i) {
+      for (int i=1; i<=count; ++i) {
 	h->SetBinContent(i, ycArr[i-1]);
 	h->SetBinError  (i, 0.5*(yloArr[i-1]+yhiArr[i-1]));
       }
@@ -144,18 +144,38 @@ void convert2root_Lovedeep () {
     return;
   }
 
+  // From Lovedeep and Ilya's presentation on Oct 28, 2013
+  // Also shown in twiki 
+  // https://twiki.cern.ch/twiki/bin/view/Main/EGammaScaleFactors2012
+
+  const double IDsystBarrel_inPerc[]= { 11.0, 6.90, 1.40, 0.28, 0.14, 0.41 };
+  const double IDsystGap_inPerc   []= { 11.0, 8.30, 5.70, 2.40, 0.28, 0.43 };
+  const double IDsystEndcap_inPerc[]= { 12.0, 4.00, 2.20, 0.59, 0.30, 0.53 };
+
+  TMatrixD IDsyst(6,5);
+  for (int i=0; i<6; ++i) {
+    IDsyst(i,0)=0.01*IDsystBarrel_inPerc[i];
+    IDsyst(i,1)=0.01*IDsystBarrel_inPerc[i];
+    IDsyst(i,2)=0.01*IDsystGap_inPerc[i];
+    IDsyst(i,3)=0.01*IDsystEndcap_inPerc[i];
+    IDsyst(i,4)=0.01*IDsystEndcap_inPerc[i];
+  }
+  std::cout << "ID systematics: "; IDsyst.Print();
 
   for (unsigned int i=0; i<grV_mc.size(); ++i) {
+    std::cout << grV_mc[i]->GetTitle() << "\n";
     grV_mc[i]->Print("range");
   }
   for (unsigned int i=0; i<grV_data.size(); ++i) {
+    std::cout << grV_data[i]->GetTitle() << "\n";
     grV_data[i]->Print("range");
   }
   for (unsigned int i=0; i<grV_sf.size(); ++i) {
+    std::cout << grV_sf[i]->GetTitle() << "\n";
     grV_sf[i]->Print("range");
   }
 
-  TCanvas *cx = new TCanvas("cx","cx",1200,800);
+  TCanvas *cx = new TCanvas("cx","cx",1200,900);
 
   std::vector<ComparisonPlot_t*> cpV;
   for (unsigned int i=0; i<5; ++i) {
@@ -163,7 +183,10 @@ void convert2root_Lovedeep () {
     etaRange.ReplaceAll("effMC ","");
 
     ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,Form("cp_%d",i),etaRange,"p_{T}","ID efficiency","ID s.f.");
+    cp->SetPrintRatio(1);
     cp->SetLogx();
+    cp->SetYAxisTextSizes(0.08, 1., 0.07);
+    cp->SetXAxisTextSizes(0.08, 1., 0.07);
     cp->SetYRange(0.2,1.0);
     cp->SetRatioYRange(0.8,1.2);
     cp->AddHist1D(hV_mc[i],"h eff MC","LPE",kOrange,1,0);
@@ -190,6 +213,7 @@ void convert2root_Lovedeep () {
   MMC.Write(fout,"eff_mc");
   MData.Write(fout,"eff_data");
   MSF.Write(fout,"sf");
+  IDsyst.Write("sf_syst_rel_error");
   saveVec(fout,grV_mc,"effMediumID_MC");
   saveVec(fout,grV_data,"effMediumID_Data");
   saveVec(fout,grV_sf,"sfMediumID");
@@ -207,6 +231,7 @@ void convert2root_Lovedeep () {
 
     TFile foutD(fname,"recreate");
     MData.Write_for_main_code(foutD,0);
+    IDsyst.Write("sf_syst_rel_error");
     info.Write("info");
     foutD.Close();
     std::cout << "file <" << foutD.GetName() << "> created\n";
@@ -214,6 +239,7 @@ void convert2root_Lovedeep () {
     fname.ReplaceAll("dataID_fit-fit","mcID_count-count");
     TFile foutMC(fname,"recreate");
     MMC.Write_for_main_code(foutMC,1);
+    IDsyst.Write("sf_syst_rel_error");
     info.Write("info");
     foutMC.Close();
     std::cout << "file <" << foutMC.GetName() << "> created\n";

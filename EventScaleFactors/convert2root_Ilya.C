@@ -139,6 +139,23 @@ void convert2root_Ilya () {
     return;
   }
 
+  // From Ilya's presentation at Joint ECAL DPG/EGM POG meeting 
+  // on Aug 22, 2013; https://indico.cern.ch/event/268599/
+  const double RECOsyst_gap_inPerc   []= { 8.80, 7.30, 2.00, 0.93, 0.45, 0.65 };
+  const double RECOsyst_nonGap_inPerc[]= { 5.50, 3.10, 1.20, 0.79, 0.41, 0.45 };
+  
+  TMatrixD RECOsyst(6,5);
+  for (int i=0; i<6; ++i) {
+    for (int j=0; j<5; ++j) {
+      RECOsyst(i,j) = 0.01*( (j==2) ? RECOsyst_gap_inPerc[i] : RECOsyst_nonGap_inPerc[i]);
+    }
+  }
+  std::cout << "RECO systematics: ";  RECOsyst.Print();
+
+  // In Lovedeep&Ilya presentation on Oct 28, 2013
+  // the numbers below were named as "absolute errors on efficiencies"
+  //const double IDsyst_gap_inPerc   []= { 4.30, 4.60, 2.70, 1.50, 0.28, 0.51 };
+  //const double IDsyst_nonGap_inPerc[]= { 4.30, 4.20, 1.40, 0.43, 0.28, 0.45 };
 
   for (unsigned int i=0; i<grV_mc.size(); ++i) {
     grV_mc[i]->Print("range");
@@ -150,16 +167,19 @@ void convert2root_Ilya () {
     grV_sf[i]->Print("range");
   }
 
-  TCanvas *cx = new TCanvas("cx","cx",900,600);
+  TCanvas *cx = new TCanvas("cx","cx",1200,900);
 
   std::vector<ComparisonPlot_t*> cpV;
   for (unsigned int i=0; i<5; ++i) {
     TString etaRange=grV_mc[i]->GetTitle();
     etaRange.ReplaceAll("effMC ","");
 
-    ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,Form("cp_%d",i),etaRange,"p_{T}","ID efficiency","ID s.f.");
+    ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,Form("cp_%d",i),etaRange,"p_{T}","RECO efficiency","RECO s.f.");
+    cp->SetPrintRatio(1);
     cp->SetLogx();
-    cp->SetYRange(0.2,1.0);
+    cp->SetYAxisTextSizes(0.08, 1., 0.07);
+    cp->SetXAxisTextSizes(0.08, 1., 0.07);
+    cp->SetYRange(0.65,1.0);
     cp->SetRatioYRange(0.8,1.2);
     cp->AddHist1D(hV_mc[i],"h eff MC","LPE",kOrange,1,0);
     cp->AddHist1D(hV_data[i],"h eff data","LPE",kRed,2,0);
@@ -185,6 +205,7 @@ void convert2root_Ilya () {
   MMC.Write(fout,"eff_mc");
   MData.Write(fout,"eff_data");
   MSF.Write(fout,"sf");
+  RECOsyst.Write("sf_syst_rel_error");
   saveVec(fout,grV_mc,"effRECO_MC");
   saveVec(fout,grV_data,"effRECO_Data");
   saveVec(fout,grV_sf,"sfRECO");
@@ -202,6 +223,7 @@ void convert2root_Ilya () {
 
     TFile foutD(fname,"recreate");
     MData.Write_for_main_code(foutD,0);
+    RECOsyst.Write("sf_syst_rel_error");
     info.Write("info");
     foutD.Close();
     std::cout << "file <" << foutD.GetName() << "> created\n";
@@ -209,6 +231,7 @@ void convert2root_Ilya () {
     fname.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
     TFile foutMC(fname,"recreate");
     MMC.Write_for_main_code(foutMC,1);
+    RECOsyst.Write("sf_syst_rel_error");
     info.Write("info");
     foutMC.Close();
     std::cout << "file <" << foutMC.GetName() << "> created\n";
