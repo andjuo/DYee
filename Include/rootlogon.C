@@ -1,8 +1,8 @@
 {  
 
   // Load "MIT Style" plotting
-  gROOT->Macro("../Include/CPlot.cc+");
   gROOT->Macro("../Include/MitStyleRemix.cc+");
+  gROOT->Macro("../Include/CPlot.cc+");
 
   // Load structures for ntuple analysis
   // The ones below have class definitions and need to be compiled

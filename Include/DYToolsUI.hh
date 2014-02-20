@@ -17,6 +17,7 @@ TString MassBinningName(DYTools::TMassBinning_t set) {
   case _MassBins_Undefined: name="UNDEFINED"; break;
   case _MassBins_default: name="MassBinsDefault"; break;
   case _MassBins_2012: name="MassBins2012"; break;
+  case _MassBins_2011: name="MassBins2011"; break;
   case _MassBins_test4: name="MassBinsTest4"; break;
   case _MassBins_Zpeak: name="MassBinsZpeak"; break;
   case _MassBins_noUnderflow: name="MassBins_noUnderflow"; break;
@@ -159,7 +160,8 @@ TString EtaBinSetName(DYTools::TEtaBinSet_t set) {
   case ETABINS3: name="EtaBins3"; break;
   case ETABINS3Negs: name="EtaBins3Negs"; break;
   case ETABINS5: name="EtaBins5"; break;
-  case ETABINS5corr: name="EtaBins5corr2"; break;
+  case ETABINS5egamma: name="EtaBins5egamma"; break;
+  case ETABINS5_max25: name="EtaBins5_max25"; break;
   case ETABINS5Negs: name="EtaBins5Negs"; break;
   case ETABINS4test: name="EtaBins4test"; break;
   case ETABINS4testNegs: name="EtaBins4testNegs"; break;
@@ -286,7 +288,8 @@ DYTools::TEtaBinSet_t DetermineEtaBinSet(const TString& str) {
   else if (str.Contains("ETABINS3") || str.Contains("EtaBins3")) kind=ETABINS3;
   else if (str.Contains("ETABINS5altNegs") || str.Contains("EtaBins5altNegs")) kind=ETABINS5altNegs;
   else if (str.Contains("ETABINS5alt") || str.Contains("EtaBins5alt")) kind=ETABINS5alt;
-  else if (str.Contains("ETABINS5corr") || str.Contains("EtaBins5corr")) kind=ETABINS5corr;
+  else if (str.Contains("ETABINS5_max25") || str.Contains("EtaBins5_max25")) kind=ETABINS5_max25;
+  else if (str.Contains("ETABINS5egamma") || str.Contains("EtaBins5egamma")) kind=ETABINS5egamma;
   else if (str.Contains("ETABINS5") || str.Contains("EtaBins5")) kind=ETABINS5;
   else if (str.Contains("ETABINS4altNegs") || str.Contains("EtaBins4altNegs")) kind=ETABINS4altNegs;
   else if (str.Contains("ETABINS4alt") || str.Contains("EtaBins4alt")) kind=ETABINS4alt;

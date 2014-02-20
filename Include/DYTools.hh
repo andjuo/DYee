@@ -109,7 +109,7 @@ namespace DYTools {
 
   // Declare mass binnings
   typedef enum { _MassBins_Undefined, _MassBins_default, 
-		 _MassBins_2012,
+		 _MassBins_2011, _MassBins_2012,
 		 _MassBins_test4, _MassBins_Zpeak,
 		 _MassBins_noUnderflow, _MassBins_withFullOverflow 
   }     TMassBinning_t;
@@ -610,52 +610,52 @@ namespace DYTools {
     return result;
   };
 
-  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5corr, ETABINS5Negs, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs, ETABINS14} TEtaBinSet_t;
+  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5egamma, ETABINS5Negs, ETABINS5_max25, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs, ETABINS14} TEtaBinSet_t;
   const int nEtaBins1 = 1;
   const double etaBinLimits1[nEtBins1 + 1] = 
-    {0, 2.5000001};
+    {0, 2.4000001};
   const int nEtaBins2 = 2;
   const double etaBinLimits2[nEtaBins2 + 1] = 
-    {0, 1.479, 2.5000001};
+    {0, 1.479, 2.4000001};
   const int nEtaBins3 = 3;
   const double etaBinLimits3[nEtaBins3 + 1] = 
-    {0, 1.479, 2.0, 2.5000001};
+    {0, 1.479, 2.0, 2.4000001};
   const int nEtaBins3Negs = 6;
   const double etaBinLimits3Negs[nEtaBins3Negs + 1] = 
-    {-2.5000001, -2.0, -1.479, 0., 1.479, 2.0, 2.5000001};
+    {-2.4000001, -2.0, -1.479, 0., 1.479, 2.0, 2.4000001};
   const int nEtaBins2Negs = 4;
   const double etaBinLimits2Negs[nEtaBins2Negs + 1] = 
-    {-2.500001, -1.479, 0, 1.479, 2.5000001};
+    {-2.400001, -1.479, 0, 1.479, 2.4000001};
   const int nEtaBins5 = 5;
   const double etaBinLimits5[nEtaBins5 + 1] =
-    {0, 0.8, 1.4442, 1.566, 2.0, 2.500001 };
-  const int nEtaBins5corr = 5;
-  const double etaBinLimits5corr[nEtaBins5corr + 1 ] = 
     {0, 0.8, 1.4442, 1.566, 2.0, 2.400001 };
+  const int nEtaBins5_max25 = 5;
+  const double etaBinLimits5_max25[nEtaBins5_max25 + 1 ] = 
+    {0, 0.8, 1.4442, 1.566, 2.0, 2.500001 };
   const int nEtaBins4test = 4;
   const double etaBinLimits4test[nEtaBins4test + 1] =
-    {0, 0.8, 1.479, 2.0, 2.500001 };
+    {0, 0.8, 1.479, 2.0, 2.400001 };
   const int nEtaBins4testNegs = 8;
   const double etaBinLimits4testNegs[nEtaBins4testNegs + 1] =
-    {-2.50001, -2.0, -1.479, -0.8, 0, 0.8, 1.479, 2.0, 2.500001 };
+    {-2.40001, -2.0, -1.479, -0.8, 0, 0.8, 1.479, 2.0, 2.400001 };
   const int nEtaBins4alt = 4;
   const double etaBinLimits4alt[nEtaBins4alt + 1 ] = 
-    {0, 0.8, 1.479, 2.2, 2.500001 };
+    {0, 0.8, 1.479, 2.2, 2.400001 };
   const int nEtaBins4altNegs = 8;
   const double etaBinLimits4altNegs[nEtaBins4altNegs + 1 ] =
-    {-2.500001, -2.2, -1.479, -0.8, 0, 0.8, 1.479, 2.2, 2.500001 };
+    {-2.400001, -2.2, -1.479, -0.8, 0, 0.8, 1.479, 2.2, 2.400001 };
   const int nEtaBins5alt = 5;
   const double etaBinLimits5alt[nEtaBins5alt + 1 ] = 
-    {0, 0.8, 1.4442, 1.566, 2.2, 2.500001 };
+    {0, 0.8, 1.4442, 1.566, 2.2, 2.400001 };
   const int nEtaBins5altNegs = 10;
   const double etaBinLimits5altNegs[nEtaBins5altNegs + 1 ] =
-    {-2.500001, -2.2, -1.566, -1.4442, -0.8, 0, 0.8, 1.4442, 1.566, 2.2, 2.500001 };
+    {-2.400001, -2.2, -1.566, -1.4442, -0.8, 0, 0.8, 1.4442, 1.566, 2.2, 2.400001 };
   const int nEtaBins8alt = 8;
   const double etaBinLimits8alt[nEtaBins8alt + 1 ] =
-    {0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.50001 };
+    {0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.40001 };
   const int nEtaBins8altNegs = 16;
   const double etaBinLimits8altNegs[nEtaBins8altNegs + 1 ] =
-    {-2.50001, -2.2, -2.0, -1.8, -1.479, -1.0, -0.8, -0.4, 0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.5 };
+    {-2.40001, -2.2, -2.0, -1.8, -1.479, -1.0, -0.8, -0.4, 0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.4 };
   const int nEtaBins14 = 14;
   const double etaBinLimits14[nEtaBins14 + 1 ] = 
     {0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.566, 1.8, 2.0, 2.2, 2.3, 2.4, 2.500001 };
@@ -664,7 +664,9 @@ namespace DYTools {
 
   inline
   int mergeEtBins(int binning) {
-    return ((binning==ETABINS5) || (binning==ETABINS5corr)) ? 1:0;
+    return ((binning==ETABINS5) || (binning==ETABINS5_max25)
+	    || (binning==ETABINS5egamma)
+	    ) ? 1:0;
   }
 
 
@@ -678,8 +680,9 @@ namespace DYTools {
     case ETABINS2Negs: n = nEtaBins2Negs; break;
     case ETABINS3: n = nEtaBins3; break;
     case ETABINS3Negs: n = nEtaBins3Negs; break;
+    case ETABINS5egamma: // identical, although eff is with |eta|<2.5
     case ETABINS5: n = nEtaBins5; break;
-    case ETABINS5corr: n = nEtaBins5corr; break;
+    case ETABINS5_max25: n = nEtaBins5_max25; break;
     case ETABINS4test: n = nEtaBins4test; break;
     case ETABINS4testNegs: n = nEtaBins4testNegs; break;
     case ETABINS4alt: n = nEtaBins4alt; break;
@@ -708,8 +711,9 @@ namespace DYTools {
     case ETABINS2Negs: limits = etaBinLimits2Negs; break;
     case ETABINS3: limits = etaBinLimits3; break;
     case ETABINS3Negs: limits = etaBinLimits3Negs; break;
+    case ETABINS5egamma: // identical, although eff is with |eta|<2.5
     case ETABINS5: limits = etaBinLimits5; break;
-    case ETABINS5corr: limits = etaBinLimits5corr; break;
+    case ETABINS5_max25: limits = etaBinLimits5_max25; break;
     case ETABINS4test: limits = etaBinLimits4test; break;
     case ETABINS4testNegs: limits = etaBinLimits4testNegs; break;
     case ETABINS4alt: limits = etaBinLimits4alt; break;
@@ -737,8 +741,9 @@ namespace DYTools {
     case ETABINS1: 
     case ETABINS2: 
     case ETABINS3: 
+    case ETABINS5egamma: // identical, although eff is with |eta|<2.5
     case ETABINS5:
-    case ETABINS5corr:
+    case ETABINS5_max25:
     case ETABINS4test:
     case ETABINS4alt:
     case ETABINS5alt:

@@ -174,10 +174,9 @@ void compareSF(int iBr=0, int iEta=0,
 
   TString egammaFName;
 
-  int HLTcomparison=0;
   double transLegendX=-0.2;
   double transLegendY=-0.4;
-  int exchange12=0;
+  int exchange12=0;  // swap 2nd and 1st in the plot
 
   if (1) { // compare to EGamma
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/constants/DY_j22_19712pb/"; 
@@ -325,18 +324,16 @@ void compareSF(int iBr=0, int iEta=0,
 
     div31=(TH1D*)histo1->Clone("div31");
     div31->SetTitle("div31");
-    if (HLTcomparison) div31->Divide(histo1,histo3,1.,1.,"b");
-    else {
-      if (!exchange12) div31->Divide(histo3,histo1,1.,1.,"b");
-      else div31->Divide(histo2,histo3,1.,1.,"b");
-    }
+    if (!exchange12) div31->Divide(histo3,histo1,1.,1.,"b");
+    else div31->Divide(histo2,histo3,1.,1.,"b");
+
     div31->Print("range");
     div31->SetLineColor(kGreen+1);
     div31->SetMarkerColor(kGreen+1);
 
     div->Divide(histo2,histo1,1.,1.,"b");
-    div->SetLineColor(kBlue);
-    div->SetMarkerColor(kBlue);
+    div->SetLineColor(kBlack);
+    div->SetMarkerColor(kBlack);
   }
 
   double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinSet1);
@@ -348,30 +345,12 @@ void compareSF(int iBr=0, int iEta=0,
   cp.SetLogx();
   cp.AddLine(10.,1.,500.,1.,kBlack,2);
 
-  if (gr3 && HLTcomparison) { // for HLT sficiency
-    cp.SetYRange(0.0,1.02);
-    /*
-    if (DetermineDataKind(sfKind)==DYTools::DATA) {
-      if (iEta==2) cp.SetYRange(0.3,1.01);
-      else if (iEta==1) cp.SetYRange(0.3,1.01);
-      else if (iEta==0) cp.SetYRange(0.3,1.01);
-    }
-    else {
-      if (iEta==0) cp.SetYRange(0.5,1.01);
-      else if (iEta==1) cp.SetYRange(0.5,1.01);
-      else if (iEta==2) cp.SetYRange(0.5,1.01);
-      else if (iEta==3) cp.SetYRange(0.5,1.01);
-      else if (iEta==4) cp.SetYRange(0.5,1.01);
-    }
-    */
-  }
-
   TCanvas *cx=new TCanvas("cx","cx",600,700);
   cp.Prepare2Pads(cx);
 
   gr1->GetYaxis()->SetTitleOffset(1.4);
 
-  if (gr3 && !HLTcomparison && exchange12) {
+  if (gr3 && exchange12) {
     std::cout << "\n\tInverted plotting order 2,1\n";
     gr2->GetYaxis()->SetTitleOffset(1.4);
     //gr1->SetMarkerStyle(24);
@@ -412,12 +391,7 @@ void compareSF(int iBr=0, int iEta=0,
   div->GetYaxis()->SetTitleSize(0.13);
   div->GetYaxis()->SetLabelSize(0.13);
   div->GetYaxis()->SetNdivisions(805);  
-  if (div31) {
-    if (HLTcomparison) {
-      div->GetYaxis()->SetRangeUser(0.99,1.01);
-      if (iEta==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
-    }
-  }
+
   div->Draw("LP");
   if (div31) {
     div31->Draw("LP same");

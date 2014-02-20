@@ -27,4 +27,28 @@ void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18) {
   if (count==1) c->SetRightMargin(rmargin);
 }
 
+
+// ------------------------------------------------------------
+
+// A function to control space that histogram takes.
+// E.g. if the y-labels+title need more space call SetSideSpaces(c,0.2,0,0,0);
+
+inline
+void SetSideSpaces(TCanvas *c, double dxLeft=0.05, double dxRight=0.02, double dyTop=0., double dyBottom=0.02) {
+  int count=0;
+  for (int i=0; i<50; i++) {
+    TPad *pad=(TPad*)c->GetPad(i);
+    if (pad) {
+      count++;
+      pad->Range(pad->GetX1()-dxLeft,pad->GetY1()-dyBottom,
+		 pad->GetX2()-dxRight,pad->GetY2()-dyTop);
+      pad->SetLeftMargin(pad->GetLeftMargin() + dxLeft);
+      pad->SetRightMargin(pad->GetRightMargin() + dxRight);
+      pad->SetTopMargin(pad->GetTopMargin() + dyTop);
+      pad->SetBottomMargin(pad->GetBottomMargin() + dyBottom);
+    }
+  }
+}
+
+
 #endif

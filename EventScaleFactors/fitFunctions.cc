@@ -1,4 +1,5 @@
 #if !defined(__CINT__) || defined(__MAKECINT__)
+#include "../Include/DYTools.hh" // force recompilation
 #include "../EventScaleFactors/fitFunctions.hh"
 #include "../EventScaleFactors/effCalc.hh"
 #include "../Include/MyTools.hh"

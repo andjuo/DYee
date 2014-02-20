@@ -25,6 +25,7 @@ public:
   TString fRatioLabel;
   vector<TH1D*> fHRatioItems;
 
+  double fXTitleSize,fXTitleOffset,fXLabelSize;
   double fYTitleSize,fYTitleOffset,fYLabelSize;
 
   double fRatioYMin,fRatioYMax;
@@ -42,6 +43,7 @@ public:
     canvas(NULL),
     padMain(NULL), padRatio(NULL),
     fRatioLabel(ratioYLabel), fHRatioItems(),
+    fXTitleSize(-1.), fXTitleOffset(-1.), fXLabelSize(-1.),
     fYTitleSize(-1.), fYTitleOffset(-1.), fYLabelSize(-1.),
     fRatioYMin(0.), fRatioYMax(0.),
     fRatioNdivisions(805),
@@ -63,6 +65,8 @@ public:
     canvas(NULL),
     padMain(NULL), padRatio(NULL),
     fRatioLabel(cp.fRatioLabel), fHRatioItems(),
+    fXTitleSize(cp.fXTitleSize), fXTitleOffset(cp.fXTitleOffset),
+    fXLabelSize(cp.fXLabelSize),
     fYTitleSize(cp.fYTitleSize), fYTitleOffset(cp.fYTitleOffset),
     fYLabelSize(cp.fYLabelSize),
     fRatioYMin(cp.fRatioYMin), fRatioYMax(cp.fRatioYMax),
@@ -78,8 +82,12 @@ public:
 
 
   void ErrorsOnRatios(unsigned int on=1) { fErrorsOnRatios=on; }
+  void SetXTitleSize(double size, double offset=-99.) { fXTitleSize=size; if (offset>0.) fXTitleOffset=offset; }
+  void SetXLabelSize(double size) { fXLabelSize=size; }
+  void SetXAxisTextSizes(double title_size, double title_offset, double label_size) { fXTitleSize=title_size; fXTitleOffset=title_offset; fXLabelSize=label_size; }
   void SetYTitleSize(double size, double offset=-99.) { fYTitleSize=size; if (offset>0.) fYTitleOffset=offset; }
   void SetYLabelSize(double size) { fYLabelSize=size; }
+  void SetYAxisTextSizes(double title_size, double title_offset, double label_size) { fYTitleSize=title_size; fYTitleOffset=title_offset; fYLabelSize=label_size; }
   void SetRatioYRange(double ymin, double ymax) { fRatioYMin=ymin; fRatioYMax=ymax; }
   void SetRatioYRangeC(double y_center, double delta_y) { fRatioYMin=y_center-delta_y;; fRatioYMax=y_center+delta_y; }
   void SetRatioNdivisions(int cnt) { fRatioNdivisions=cnt; }
@@ -132,7 +140,11 @@ public:
   void Skip(TH1D* h) { SkipInRatioPlots(h); }
 
   void AddHist1D(TH1D *h, TString label, TString drawopt, int color=kBlack, int linesty=1, int fillsty=0, int legendSymbolLP=0) {
+    TAxis *ax=h->GetXaxis();
     TAxis *ay=h->GetYaxis();
+    if (fXTitleSize>0.) ax->SetTitleSize(fXTitleSize);
+    if (fXTitleOffset>0.) ax->SetTitleOffset(fXTitleOffset);
+    if (fXLabelSize>0.) ax->SetLabelSize(fXLabelSize);
     if (fYTitleSize>0.) ay->SetTitleSize(fYTitleSize);
     if (fYTitleOffset>0.) ay->SetTitleOffset(fYTitleOffset);
     if (fYLabelSize>0.) ay->SetLabelSize(fYLabelSize);
@@ -140,7 +152,11 @@ public:
   }
 
   void AddGraph(TGraph *gr, TString label, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1) {
+    TAxis *ax=gr->GetXaxis();
     TAxis *ay=gr->GetYaxis();
+    if (fXTitleSize>0.) ax->SetTitleSize(fXTitleSize);
+    if (fXTitleOffset>0.) ax->SetTitleOffset(fXTitleOffset);
+    if (fXLabelSize>0.) ax->SetLabelSize(fXLabelSize);
     if (fYTitleSize>0.) ay->SetTitleSize(fYTitleSize);
     if (fYTitleOffset>0.) ay->SetTitleOffset(fYTitleOffset);
     if (fYLabelSize>0.) ay->SetLabelSize(fYLabelSize);
@@ -307,7 +323,7 @@ public:
 	fHRatioIndices.push_back(i);
 	TH1D *h=fItems[i].hist1D;
 	TAxis *ax=h->GetXaxis();
-	ax->SetLabelOffset(99.05);
+	if (fRefIdx!=(unsigned int)(-111)) ax->SetLabelOffset(99.05);
 	savedTitles.push_back(ax->GetTitle());
 	ax->SetTitle("");
 	for (int ib=1; ib<=h->GetNbinsX(); ++ib) {
@@ -318,7 +334,7 @@ public:
 	}
       }
       else if (fItems[i].graph!=0) {
-	fItems[i].graph->GetXaxis()->SetLabelOffset(99.05);
+	if (fRefIdx!=(unsigned int)(-111)) fItems[i].graph->GetXaxis()->SetLabelOffset(99.05);
 	savedTitles.push_back(fItems[i].graph->GetXaxis()->GetTitle());
 	fItems[i].graph->GetXaxis()->SetTitle("");
 	TGraph *gr=fItems[i].graph;
