@@ -1741,9 +1741,13 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 
 	  // Consider only events in the mass range of interest
 	  // Use generator level post-FSR mass.
-	  if( accessInfo.genPtr()->mass < DYTools::massBinLimits[0] || 
-	      accessInfo.genPtr()->mass > DYTools::massBinLimits[DYTools::nMassBins]) {
-	    if (trace) printf("failed mass window\n");
+	  if( accessInfo.genPtr()->mass < DYTools::massBinLimits[0] ) {
+	    if (trace) printf("failed lower mass limit\n");
+	    continue;
+	  }
+	  if ((DYTools::massBinLimits[DYTools::nMassBins]<1001.) &&
+	      (accessInfo.genPtr()->mass > DYTools::massBinLimits[DYTools::nMassBins])) {
+	    if (trace) printf("failed upper mass limit\n");
 	    continue;
 	  }
 	  ec.numDielectronsGoodMass_inc();
