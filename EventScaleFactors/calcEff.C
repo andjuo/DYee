@@ -73,7 +73,8 @@ using namespace mithep;
 
 //=== MAIN MACRO =================================================================================================
 
-int calcEff(const TString configFile, const TString effTypeString, int runOnData, int puDependence=0) 
+int calcEff(const TString configFile, const TString effTypeString, int runOnData, int puDependence=0,
+	    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) 
 {
 
   //  ---------------------------------
@@ -102,7 +103,6 @@ int calcEff(const TString configFile, const TString effTypeString, int runOnData
  
   gBenchmark->Start("calcEff");
   
-  const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   const DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
   //DYTools::printExecMode(runMode,systMode);
 
