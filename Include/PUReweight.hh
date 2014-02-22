@@ -14,7 +14,10 @@
 class PUReweight_t {
 public:
   typedef enum { maxPVs=45 } TConst_t;
-  typedef enum { _none, _Hildreth, _TwoHistos } TReweightMethod_t;
+  typedef enum { _none, _Hildreth, 
+		 _Hildreth_plus5percent, _Hildreth_minus5percent,
+		 _TwoHistos } 
+    TReweightMethod_t;
 protected:
   TString FName; // file name
   TFile *FFile; // pointer to a file
@@ -44,19 +47,24 @@ public:
   const TH1F* getHWeigth() const { return hWeight; }
   int getCreate() const { return FCreate; }
 
-  void setActiveMethod(TReweightMethod_t method) {
+  int setActiveMethod(TReweightMethod_t method) {
+    int res=1;
     switch(method) {
     case _none: ; break;
     case _Hildreth: 
-      if (!hWeightHildreth) assert(initializeHildrethWeights());
+    case _Hildreth_plus5percent:
+    case _Hildreth_minus5percent:
+      if (!hWeightHildreth) assert(initializeHildrethWeights(method));
       break;
     case _TwoHistos: ; break; // RecoLevel initialization cannot be done here
     default:
       std::cout << "PUReweight::setActiveMethod is not ready for method=<"
 		<< method
 		<< ">\n";
+      res=0;
     }
     FActiveMethod=method;
+    return res;
   }
 
   // The generic getWeight is commented out to force the users
@@ -66,6 +74,8 @@ public:
     double weight=0.;
     switch(FActiveMethod) {
     case _none: assert(0); break;
+    case _Hildreth_plus5percent:
+    case _Hildreth_minus5percent:
     case _Hildreth: weight=getWeightHildreth(nPV); break;
     case _TwoHistos: weight=getWeightTwoHistos(nPV); break;
     default:
@@ -105,7 +115,7 @@ public:
     return w;
   }
 
-  int setHildrethWeights() { return initializeHildrethWeights(); }
+  int setHildrethWeights(TReweightMethod_t method=_Hildreth) { return initializeHildrethWeights(method); }
 
   // setup weights from two histograms: weights=targetHisto/sourceHisto
   int setSimpleWeights(const TString &targetFile, 
@@ -170,7 +180,7 @@ protected:
 
   int printHisto(std::ostream& out, const TH1F* histo, const TString &name) const;
 
-  int initializeHildrethWeights();
+  int initializeHildrethWeights(TReweightMethod_t method=_Hildreth);
 
   // weights=target/source
   int initializeTwoHistoWeights(TH1F* hTarget, TH1F* hSource);

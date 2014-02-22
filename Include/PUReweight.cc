@@ -4,17 +4,20 @@
 // --------------------------------------------------------------
 PUReweight_t::PUReweight_t(TReweightMethod_t method):
   FName(), FFile(NULL), hRef(NULL), 
-  hActive(NULL), hWeight(NULL), FCreate(0),
+  hActive(NULL), hWeight(NULL), 
+  hWeightHildreth(NULL),
+  FCreate(0),
   FActiveMethod(method)
 {
 
-  switch(method) {
-  case _none: break;
-  case _Hildreth: assert(initializeHildrethWeights()); break;
-  case _TwoHistos:
+  if (method==_TwoHistos) {
     std:: cout << "\nERROR: PUReweight constructor cannot be called with method _TwoHistos. Use method _none and setup the histograms by other methods\n";
     assert(0);
-  default: ;
+  }
+  int res=this->setActiveMethod(method);
+  if (!res) {
+    std::cout << "\nERROR in PUReweight constructor\n";
+    assert(0);
   }
 
 }
@@ -43,7 +46,16 @@ int printHisto_local(std::ostream& out, const TH1F* histo) {
 // --------------------------------------------------------------
 // --------------------------------------------------------------
 
-int PUReweight_t::initializeHildrethWeights(){
+int PUReweight_t::initializeHildrethWeights(TReweightMethod_t method){
+
+ switch (method) {
+ case _Hildreth:
+ case _Hildreth_plus5percent:
+ case _Hildreth_minus5percent: ; break; 
+ default:
+   std::cout << "PUReweight::initializeHildrethWeights called for a wrong method\n";
+   return 0;
+ }
 
   // The pile-up reweighting setup according to the Hildreth's method
   // is done below.
@@ -81,8 +93,18 @@ int PUReweight_t::initializeHildrethWeights(){
   // any MC sample and plot the "Info.nPUmean" variable which, for MC, contains
   // the number of simulated ("true", not "observed") pile-up at generator level. 
   ftargetName= "../root_files_reg/pileup/8TeV_reg/dataPileupHildreth_mean_full2012_20131106_repacked.root";
-  #endif
+  #else
+  if (method!=_Hildreth) {
+    std::cout << "initializeHildrethWeights is not available for this DYee flag with method!=_Hildreth\n";
+    return 0;
+  }
+  #endif // DYee8TeV_reg
 #endif
+#if defined(DYee8TeV) || defined(DYee8TeV_reg)
+  if (method==_Hildreth_plus5percent) ftargetName.ReplaceAll(".root","_plus5percent.root");
+  else if (method==_Hildreth_minus5percent) ftargetName.ReplaceAll(".root","_minus5percent.root");
+#endif
+
   std::cout << "PUReweight::initializeHildrethWeights ftargetName=" << ftargetName << "\n";
   TFile f1(ftargetName);
   if( ! f1.IsOpen()){
@@ -149,7 +171,8 @@ int PUReweight_t::initializeHildrethWeights(){
   f1.Close();
   f2.Close();
 
-  FActiveMethod=_Hildreth;
+  //FActiveMethod=_Hildreth;
+  FActiveMethod=method;
 //   printf("Pileup weights for the Hildreth method are constructed.\n");
 //   for(int i=1; i<= hWeightHildreth->GetNbinsX(); i++){
 //     printf("PU=%2d  weight=%f\n", i, hWeightHildreth->GetBinContent(i));
@@ -369,7 +392,7 @@ void PUReweight_t::print(std::ostream& out) const {
       std::cout << "... called from PUReweight::print\n";
     }
   }
-  else if (FActiveMethod==_Hildreth) {
+  else if ((FActiveMethod==_Hildreth) || (FActiveMethod==_Hildreth_plus5percent) || (FActiveMethod==_Hildreth_minus5percent)) {
     if (!printHisto(out,hWeightHildreth,hWeightHildreth->GetName())) {
       std::cout << "... called from PUReweight::print\n";
     }
