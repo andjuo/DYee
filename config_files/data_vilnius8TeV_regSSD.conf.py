@@ -69,14 +69,14 @@ seedMax=1020
 Use7TeVMCWeight=1 # Whether renormalize the 1st sample weight to 1 in MC macros
 IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
 DDBkgVersion=20131231
-T&P_ESF_extra=_etaMax24
+#T&P_ESF_extra=_etaMax24
 
 [TAG_AND_PROBE]
 # Tag and probe options
 
 #T&P_TAG=Date20130529_2012_j22_adhoc // ignored  // SelectionTag is used
 #MAP = ETBINS6 ETABINS5
-MAP = ETBINS6 ETABINS5corr
+MAP = ETBINS6 ETABINS5
 
 
 # How to measure efficiencies? COUNTnCOUNT, COUNTnFIT, FITnFIT for pass/fail samples
