@@ -153,6 +153,8 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
   TString label3="";
 
   int HLTcomparison=0;
+  //int divideBy1st=0;
+  int relRatio=0;
   double transLegendX=-0.2;
   double transLegendY=-0.4;
 
@@ -257,6 +259,23 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     transLegendX=-0.1;
   }
 
+  if (1) {
+    HLTcomparison=1;
+    //divideBy1st=1;
+    relRatio=1;
+    path1="../root_files_reg/tag_and_probe/DY_j22_19712pb/";
+    path2="../root_files_reg/tag_and_probe/DY_j22_19712pb___tagLowerPt_tagLowerPt/";
+    path3="../root_files_reg/tag_and_probe/DY_j22_19712pb___tagMediumID_tagMediumID/";
+    effKindLongStr1="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    effKindLongStr3="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    label1="Tight, pT>25GeV";
+    label2="Tight, pT>20GeV";
+    label3="Medium, pT>25GeV";
+    fnameTag="-tagLeg1--";
+    transLegendX=-0.2;
+  }
+
 
   // -------------------------------
   // processing
@@ -275,6 +294,26 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
       std::cout << "iBr error\n";
       return;
     }
+  }
+  else if (label3.Index("Medium")!=-1) {
+    if (iBr==0) {}
+    else if (iBr==1) {
+      effKindLongStr1.ReplaceAll("leg1","leg2");
+      effKindLongStr2.ReplaceAll("leg1","leg2");
+      effKindLongStr3.ReplaceAll("leg1","leg2");
+      fnameTag.ReplaceAll("Leg1","Leg2");
+    }
+    else if (iBr==2) {
+      effKindLongStr1.ReplaceAll("data","mc");
+      effKindLongStr2.ReplaceAll("data","mc");
+      effKindLongStr3.ReplaceAll("data","mc");
+    }
+    else if (iBr==3) { 
+      effKindLongStr1.ReplaceAll("dataHLTleg1","mcHLTleg2");
+      effKindLongStr2.ReplaceAll("dataHLTleg1","mcHLTleg2");
+      effKindLongStr3.ReplaceAll("dataHLTleg1","mcHLTleg2");
+      fnameTag.ReplaceAll("Leg1","Leg2");
+   }
   }
   else {
     if (iBr==0) {
@@ -373,19 +412,26 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
   }
 
   TGraphAsymmErrors* gr1=getAsymGraph(etBinSet1,etaBinSet1,iEta,*eff1,*eff1ErrLo,*eff1ErrHi,&histo1,histo1Name);
-  gr1->Print("range");
+  //std::cout << gr1->GetTitle() << ": "; gr1->Print("range");
 
   TGraphAsymmErrors* gr2=getAsymGraph(etBinSet2,etaBinSet2,iEta,*eff2,*eff2ErrLo,*eff2ErrHi,&histo2,histo2Name);
-  gr2->Print("range");
+  //std::cout << gr2->GetTitle() << ": "; gr2->Print("range");
 
-  //TGraphAsymmErrors* div=(TGraphAsymmErrors*)gr1->Clone("div");
-  TH1D *div=(TH1D*)histo1->Clone("div");
-  div->Divide(histo1,histo2,1.,1.,"b");
+  TGraphAsymmErrors* div=(TGraphAsymmErrors*)gr1->Clone("div");
+  //TH1D *div=(TH1D*)histo1->Clone("div");
+  //div->Divide(histo1,histo2,1.,1.,"b");
+  if (relRatio) {
+    TH1D *diff12=(TH1D*)histo1->Clone("diff12");
+    diff12->Add(histo2,-1.);
+    div->Divide(diff12,histo1,"pois");
+  }
+  else div->Divide(histo1,histo2,"pois");
   div->Print("range");
 
   TH1D *histo3=NULL;
   TGraphAsymmErrors* gr3=NULL;
-  TH1D* div31=NULL;
+  //TH1D* div31=NULL;
+  TGraphAsymmErrors* div31=NULL;
 
   if (effKindLongStr3.Length() && label3.Length()) {
     TString fname3= path3 + fnameBase + effKindLongStr3 + TString(".root");
@@ -400,20 +446,31 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
    
     TString histo3Name="histo3";
     gr3=getAsymGraph(etBinSet3,etaBinSet3,iEta,*eff3,*eff3ErrLo,*eff3ErrHi, &histo3,histo3Name);
-    gr3->Print("range");
+    //std::cout << gr3->GetTitle() << ": "; gr3->Print("range");
     delete eff3;
     delete eff3ErrLo;
     delete eff3ErrHi;
 
-    div31=(TH1D*)histo1->Clone("div31");
+    //div31=(TH1D*)histo1->Clone("div31");
+    div31=(TGraphAsymmErrors*)gr1->Clone("div31");
     div31->SetTitle("div31");
-    if (HLTcomparison) div31->Divide(histo1,histo3,1.,1.,"b");
-    else div31->Divide(histo2,histo3,1.,1.,"b");
+    //if (HLTcomparison) div31->Divide(histo1,histo3,1.,1.,"b");
+    //else div31->Divide(histo2,histo3,1.,1.,"b");
+    if (HLTcomparison) {
+      if (relRatio) {
+	TH1D *diff13=(TH1D*)histo1->Clone("diff13");
+	diff13->Add(histo3,-1.0);
+	div31->Divide(diff13,histo1,"pois");
+      }
+      else div31->Divide(histo1,histo3,"pois");
+    }
+    else div31->Divide(histo2,histo3,"pois");
     div31->Print("range");
     div31->SetLineColor(kGreen+1);
     div31->SetMarkerColor(kGreen+1);
 
-    div->Divide(histo2,histo1,1.,1.,"b");
+    //div->Divide(histo2,histo1,1.,1.,"b");
+    if (!relRatio) div->Divide(histo2,histo1,"pois");
     div->SetLineColor(kBlue);
     div->SetMarkerColor(kBlue);
   }
@@ -425,7 +482,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
   int signedEta=DYTools::signedEtaBinning(etaBinSet1);
   TString cpTitle=dataKind+ TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iEta],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iEta+1]));
 
-  CPlot cp("comp",cpTitle,"E_{T}","efficiency");
+  CPlot cp("comp",cpTitle,"E_{T} [GeV]","efficiency");
   cp.SetLogx();
 
   if (gr3 && HLTcomparison) { // for HLT efficiency
@@ -481,6 +538,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
   div->GetXaxis()->SetMoreLogLabels();
 
   div->GetYaxis()->SetTitle("ratio");
+  if (relRatio) div->GetYaxis()->SetTitle("([1]-[i])/[1]");
   div->GetYaxis()->SetTitleOffset(0.5);
   if (label2 == TString("EGamma")) {
     div->GetYaxis()->SetTitle("EG/our");
@@ -492,16 +550,22 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
   div->GetYaxis()->SetNdivisions(805);  
   if (div31) {
     if (HLTcomparison) {
-      div->GetYaxis()->SetRangeUser(0.99,1.01);
-      if (iEta==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
+      if (relRatio) {
+	div->GetYaxis()->SetRangeUser(-0.1,0.1);
+      }
+      else {
+	div->GetYaxis()->SetRangeUser(0.99,1.01);
+	if (iEta==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
+      }
     }
   }
-  div->Draw("LP");
+  div->Draw("ALPE");
   if (div31) {
-    div31->Draw("LP same");
+    div31->Draw("LPE1 same");
   }
 
-  TLine *lineAtOne =   new TLine(10,1., 500,1.);
+  double one=(relRatio) ? 0. : 1.;
+  TLine *lineAtOne =   new TLine(10,one, 500,one);
   lineAtOne->SetLineStyle(kDashed);
   lineAtOne->SetLineWidth(1);
   lineAtOne->SetLineColor(kBlack);
