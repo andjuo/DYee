@@ -50,6 +50,8 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case ESCALE_STUDY: name="EScale_study"; break;
   case ESCALE_STUDY_RND: name="EScale_study_randomized"; break;
   case SYST_RND: name="Syst_random"; break;
+  case PILEUP_5plus: name="Pileup5plus"; break;
+  case PILEUP_5minus: name="Pileup5minus"; break;
   default: name="UNKNOWN_SYSTEMATICS_NAME";
   }
   return name;
@@ -59,7 +61,10 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
 
 inline
 TString generateSystTag(DYTools::TSystematicsStudy_t systMode) { 
-  TString tag= (systMode==DYTools::NO_SYST) ? "" : SystematicsStudyName(systMode);
+  TString tag;
+  if (systMode!=DYTools::NO_SYST) {
+    tag=TString("_") + SystematicsStudyName(systMode);
+  }
   return tag; 
 }
 
@@ -208,6 +213,8 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   else if (str.Contains("ESCALE_STUDY_RND") || str.Contains("EScale_study_randomized")) study=ESCALE_STUDY_RND;
   else if (str.Contains("ESCALE_STUDY") || str.Contains("EScale_study")) study=ESCALE_STUDY;
   else if (str.Contains("SYST_RND") || str.Contains("SYST_RANDOM") || str.Contains("Syst_random")) study=SYST_RND;
+  else if (str.Contains("PILEUP_5plus") || str.Contains("PILEUP_5PLUS")) study=PILEUP_5plus;
+  else if (str.Contains("PILEUP_5minus") || str.Contains("PILEUP_5MINUS")) study=PILEUP_5minus;
   else {
     std::cout << "DetermineSystematicsStudy: failure at <" << str << ">\n";
     assert(0);
