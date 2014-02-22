@@ -383,8 +383,8 @@ public:
   TString tnpDir(DYTools::TSystematicsStudy_t systMode, int createDir=0) const { 
     TString dir=resultBaseDir("tag_and_probe",systMode);
     if (systMode!=DYTools::NO_SYST) {
-      dir.ReplaceAll(SystematicsStudyName(DYTools::RESOLUTION_STUDY),"_tagLowerPt");
-      dir.ReplaceAll(SystematicsStudyName(DYTools::FSR_STUDY),"_tagMediumID");
+      dir.ReplaceAll(SystematicsStudyName(DYTools::RESOLUTION_STUDY),"tagLowerPt");
+      dir.ReplaceAll(SystematicsStudyName(DYTools::FSR_STUDY),"tagMediumID");
     }
     if (createDir) CreateDir(dir,1);
     return dir;

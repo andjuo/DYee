@@ -124,7 +124,7 @@ int EventSelector_t::init(InputFileMgr_t &mgr,
     TString auto_tag=this->generateFullTag(runModeLocal,systMode,extraTag);
     if (auto_tag.Length()) auto_tag.Prepend("_");
     mgr.setNtupleNameExtraTag(auto_tag);
-    mgr.setDirNameExtraTag(auto_tag);
+    //mgr.setDirNameExtraTag(auto_tag);  // systMode is added by inpMgr
   }
   if (!res) this->reportError("EventSelector_t::EventSelector_t(mgr)");
   return 1;
