@@ -397,6 +397,7 @@ public:
     TString ending=(FPUReweightFlag) ? "_PU.root" : ".root";
     TString fname=Form("selectEvents_%s_%s_%s_%s%s",DYTools::analysisTag.Data(),sampleType.Data(),effType.Data(),triggerName.Data(),ending.Data());
     TString fullName=dir+fname;
+    fullName.ReplaceAll("//","/");
     return fullName;
   }
 
@@ -408,6 +409,7 @@ public:
     if (fname.Index(rem)!=-1) fname.ReplaceAll(rem,"");
     else fname.ReplaceAll(DYTools::analysisTag,"");
     TString fullName= dir + fname;
+    fullName.ReplaceAll("//","/");
     return fullName;
   }
 
