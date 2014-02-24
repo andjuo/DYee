@@ -10,7 +10,7 @@ EventWeight_t::~EventWeight_t() {
 
 // --------------------------------------------------------
 
-int EventWeight_t::init(int do_puReweight, int do_fewzCorr) {
+int EventWeight_t::init(int do_puReweight, int do_fewzCorr, DYTools::TSystematicsStudy_t systMode) {
   fDoPUReweight=0;
   fFewzCorr=0;
 
@@ -19,7 +19,8 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr) {
   
   int ok=1;
   if (do_puReweight) {
-    fPUReweight=new PUReweight_t();
+
+    fPUReweight=new PUReweight_t(systMode);
     if (!fPUReweight) ok=0; else fDoPUReweight=do_puReweight;
 
     // hard-coded check

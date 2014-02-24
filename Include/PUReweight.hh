@@ -29,6 +29,7 @@ protected:
   TReweightMethod_t FActiveMethod;
 public:
   PUReweight_t(TReweightMethod_t method=_Hildreth);
+  PUReweight_t(DYTools::TSystematicsStudy_t systMode, TReweightMethod_t method=_Hildreth);
   ~PUReweight_t() { this->clear(); }
 
   void clear() {

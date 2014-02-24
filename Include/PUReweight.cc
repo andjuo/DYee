@@ -23,6 +23,34 @@ PUReweight_t::PUReweight_t(TReweightMethod_t method):
 }
 
 // --------------------------------------------------------------
+
+PUReweight_t::PUReweight_t(DYTools::TSystematicsStudy_t systMode, TReweightMethod_t method) :
+  FName(), FFile(NULL), hRef(NULL), 
+  hActive(NULL), hWeight(NULL), 
+  hWeightHildreth(NULL),
+  FCreate(0),
+  FActiveMethod(method)
+{
+
+  if (method==_TwoHistos) {
+    std:: cout << "\nERROR: PUReweight(systMode) constructor cannot be called with method _TwoHistos. Use method _none and setup the histograms by other methods\n";
+    assert(0);
+  }
+
+  if (method==_Hildreth) {
+    if (systMode==DYTools::PILEUP_5plus) method=PUReweight_t::_Hildreth_plus5percent;
+    else if (systMode==DYTools::PILEUP_5minus) method=PUReweight_t::_Hildreth_minus5percent;
+  }
+
+  int res=this->setActiveMethod(method);
+  if (!res) {
+    std::cout << "\nERROR in PUReweight(systMode) constructor\n";
+    assert(0);
+  }
+  
+}
+
+// --------------------------------------------------------------
 // --------------------------------------------------------------
 
 int printHisto_local(std::ostream& out, const TH1F* histo) {
