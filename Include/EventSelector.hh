@@ -28,7 +28,11 @@
 // -------------------------------------------------
 
 namespace EventSelector {
-  typedef enum { _selectNone, _selectDefault, _selectHLTOrdered, _selectZeeSignalGen, _selectZeeSignalReco } TSelectionType_t;
+  typedef enum { _selectNone, _selectDefault, _selectHLTOrdered, 
+#ifdef DYee8TeV_reg
+		 _selectHLTOrdered_nonRegressed, // use non-regressed values
+#endif
+		 _selectZeeSignalGen, _selectZeeSignalReco } TSelectionType_t;
   typedef enum { _escaleNone, _escaleUncorrected, _escaleData, _escaleDataRnd, _escaleMC } TEScaleCorrection_t;
 
   std::string selectionName(TSelectionType_t selection) {
@@ -169,6 +173,12 @@ public:
   bool testDielectron_HLT_ordered(mithep::TDielectron *dielectron, 
 				  const mithep::TEventInfo *evtInfo,
 				  EventCounter_t *ec=NULL); // evtInfo is for eleID
+#ifdef DYee8TeV_reg
+  bool testDielectron_HLT_ordered_nonRegressed
+                     (mithep::TDielectron *dielectron, 
+		      const mithep::TEventInfo *evtInfo,
+		      EventCounter_t *ec=NULL); // evtInfo is for eleID
+#endif
 
   // dielectron may be modified by escale corrections
   //bool testDielectron_zeeSignalGen(mithep::TDielectron *dielectron, 
@@ -185,6 +195,9 @@ public:
     case EventSelector::_selectNone: break;
     case EventSelector::_selectDefault: ok=testDielectron_default(dielectron,evtInfo,ec); break;
     case EventSelector::_selectHLTOrdered: ok=testDielectron_HLT_ordered(dielectron,evtInfo,ec); break;
+#ifdef DYee8TeV_reg
+    case EventSelector::_selectHLTOrdered_nonRegressed: ok=testDielectron_HLT_ordered_nonRegressed(dielectron,evtInfo,ec); break;
+#endif
     //case EventSelector::_selectZeeSignalGen: ok=testDielectron_zeeSignalGen(dielectron,evtInfo,ec); break;
     default:
       ok=kFALSE;

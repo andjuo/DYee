@@ -356,6 +356,106 @@ bool EventSelector_t::testDielectron_HLT_ordered(mithep::TDielectron *dielectron
 
 // ---------------------------------------------------------------
 
+#ifdef DYee8TeV_reg
+
+// dielectron may be modified by escale corrections
+// HLT_ordered= default, but:
+//   - the trigger matching is strict (lead,trail)
+//   - mass cut is not applied
+bool EventSelector_t::testDielectron_HLT_ordered_nonRegressed(mithep::TDielectron *dielectron, 
+			 //DYTools::TDataKind_t dataKind,
+			 const mithep::TEventInfo *evtInfo,
+		         EventCounter_t *ec) {// evtInfo is for eleID
+
+  const int trace=0;
+
+  fEC.numDielectrons_inc();
+
+  //
+  // Energy scale corrections for data
+  // NOTE: the electrons and dielectron 4-vectors are updated, the supercluster quantities are not
+  //
+  Double_t scEt1 = dielectron->scEtUncorr_1;
+  Double_t scEt2 = dielectron->scEtUncorr_2;
+  // Electron energy scale correction
+  if((fEScaleCorrType==EventSelector::_escaleData) || 
+     (fEScaleCorrType==EventSelector::_escaleDataRnd)) {
+    if (!fEScale) {
+      return this->reportError("testDielectron_default: escaleData is requested, but the pointer is null");
+    }
+
+    double corr1 = 1, corr2= 1;
+    if (fEScaleCorrType==EventSelector::_escaleData) {
+      corr1=fEScale->getEnergyScaleCorrection(dielectron->scEta_1);
+      corr2=fEScale->getEnergyScaleCorrection(dielectron->scEta_2);
+    }
+    else {
+      corr1=fEScale->getEnergyScaleCorrectionRandomized(dielectron->scEta_1);
+      corr2=fEScale->getEnergyScaleCorrectionRandomized(dielectron->scEta_2);
+    }
+    scEt1 = dielectron->scEtUncorr_1 * corr1;
+    scEt2 = dielectron->scEtUncorr_2 * corr2;
+    
+    TLorentzVector ele1; 
+    ele1.SetPtEtaPhiM(dielectron->ptUncorr_1,dielectron->eta_1,dielectron->phi_1,0.000511);
+    ele1 *= corr1;
+    dielectron->pt_1  = ele1.Pt();
+    dielectron->eta_1 = ele1.Eta();
+    dielectron->phi_1 = ele1.Phi();
+    
+    TLorentzVector ele2; 
+    ele2.SetPtEtaPhiM(dielectron->ptUncorr_2,dielectron->eta_2,dielectron->phi_2,0.000511);
+    ele2 *= corr2;
+    dielectron->pt_2  = ele2.Pt();
+    dielectron->eta_2 = ele2.Eta();
+    dielectron->phi_2 = ele2.Phi();
+      
+    TLorentzVector vDiEle = ele1+ele2;            
+    dielectron->mass = vDiEle.M();
+    dielectron->pt   = vDiEle.Pt();
+    dielectron->y    = vDiEle.Rapidity();
+    dielectron->phi  = vDiEle.Phi(); 
+  }
+       	  
+  // requirements on BOTH electrons
+  // For DY ET cuts are asymmetric.
+  if( !DYTools::goodEtEtaPair(scEt1, dielectron->scEta_1,
+			      scEt2, dielectron->scEta_2) ) {
+    if (trace) std::cout << "failed (et,eta)\n";
+    return false;
+  }
+
+  if (ec) ec->numDielectronsGoodEtEta_inc();
+  fEC.numDielectronsGoodEtEta_inc();
+  
+  int leadingIs1st= ( dielectron->scEtUncorr_1 > dielectron->scEtUncorr_2 ) ? 1:0;
+
+  // Both electrons must match trigger objects. At least one ordering
+  // must match
+  if (! fTrigger.matchTriggerObjectBitOrdered(leadingIs1st,dielectron->hltMatchBits_1, dielectron->hltMatchBits_2, evtInfo->runNum) ) {
+    if (trace) std::cout << "failed trigger match\n";
+    return false;
+  }
+
+  if (ec) ec->numDielectronsHLTmatched_inc();
+  fEC.numDielectronsHLTmatched_inc();
+
+  // Other cuts to both electrons
+  if (!passEleID(dielectron,evtInfo)) {
+    if (trace) std::cout << "failed eleID\n";
+    return false;
+  }
+
+  if (ec) ec->numDielectronsIDpassed_inc();
+  fEC.numDielectronsIDpassed_inc();
+
+  // selection PASSED
+  return true;
+}
+#endif
+
+// ---------------------------------------------------------------
+
 std::ostream& EventSelector_t::printCounts(std::ostream &out) {
   /*
   char buf[20];
