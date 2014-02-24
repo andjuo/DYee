@@ -1,6 +1,7 @@
 #!/bin/bash
 
 debugMode="DYTools::NORMAL_RUN"
+systMode="DYTools::NO_SYST"
 fullRun=1
 
 if [ ${#1} -gt 0 ] ; then confInputFile=$1; fi
@@ -13,6 +14,9 @@ if [ ${#3} -gt 0 ] ; then
 	exit
     fi
 fi
+
+if [ ${#4} -gt 0 ] ; then  systMode=$4;  fi
+
 
 collectEvents=1 # recommended to have it set to 1. calcEventEff prepares skim fil
 
@@ -37,6 +41,7 @@ echo "evaluateESF.sh:"
 echo "    confInputFile=${confInputFile}"
 echo "    timeStamp=${timeStamp}"
 echo "    debugMode=${debugMode}"
+echo "    systMode=${systMode}"
 echo 
 echo
 
@@ -182,14 +187,14 @@ runEffReco() {
 runEffIdHlt() {
  effKind=$1
 # calculate
- root -b -q -l  eff_IdHlt.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode}\) \
+ root -b -q -l  eff_IdHlt.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode},${systMode}\) \
      | tee log${timeStamp}-${dataKind}-${effKind}.out
   if [ $? != 0 ] ; then noError=0;
   else 
      checkFile eff_IdHlt_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: eff_IdHlt(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode})"
+     echo "DONE: eff_IdHlt(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -198,13 +203,13 @@ runEffIdHlt() {
 runCalcEventEff() {
   _collectEvents=$1
   if [ ${#_collectEvents} -eq 0 ] ; then _collectEvents=1; fi
-  root -b -q -l  calcEventEff.C+\(\"${inpFile}\",${_collectEvents},${debugMode}\) \
+  root -b -q -l  calcEventEff.C+\(\"${inpFile}\",${_collectEvents},${debugMode},${systMode}\) \
       | tee log${timeStamp}-calcEventEff.out
   if [ $? != 0 ] ; then noError=0;
   else 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEventEff(\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode})"
+     echo "DONE: calcEventEff(\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi

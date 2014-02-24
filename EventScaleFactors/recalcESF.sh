@@ -6,6 +6,7 @@
 #
 
 debugMode="DYTools::NORMAL_RUN"
+systMode="DYTools::NO_SYST"
 fullRun=1
 
 if [ ${#1} -gt 0 ] ; then confInputFile=$1; fi
@@ -19,6 +20,8 @@ if [ ${#3} -gt 0 ] ; then
 	exit
     fi
 fi
+
+if [ ${#4} -gt 0 ] ; then  systMode=$4;  fi
 
 collectEvents=0  # it is recommended to have collectEvents=1 in evaluateESF!
 
@@ -43,6 +46,7 @@ echo "recalcESF.sh:"
 echo "    confInputFile=${confInputFile}"
 echo "    timeStamp=${timeStamp}"
 echo "    debugMode=${debugMode}"
+echo "    systMode=${systMode}"
 echo 
 echo
 
@@ -171,14 +175,14 @@ checkFile() {
 runCalcEff() {
  effKind=$1
 # calculate
- root -l -q -b  ${LXPLUS_CORRECTION} calcEff.C+\(\"${inpFile}\",\"${effKind}\",${onData}\) \
+ root -l -q -b  ${LXPLUS_CORRECTION} calcEff.C+\(\"${inpFile}\",\"${effKind}\",${onData},0,${systMode}\) \
      | tee log${timeStamp}-calcEff-${dataKind}-${effKind}.out
   if [ $? != 0 ] ; then noError=0;
   else 
      checkFile calcEff_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEff(\"$inpFile\",\"${effKind}\")"
+     echo "DONE: calcEff(\"$inpFile\",\"${effKind}\",${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -188,14 +192,14 @@ runCalcEventEff() {
  _collectEvents=$1
  echo "_collectEvents=${_collectEvents}"
  if [ ${#_collectEvents} -eq 0 ] ; then _collectEvents=0; fi
- root -l -q -b  ${LXPLUS_CORRECTION} calcEventEff.C+\(\"${inpFile}\",${_collectEvents},${debugMode}\) \
+ root -l -q -b  ${LXPLUS_CORRECTION} calcEventEff.C+\(\"${inpFile}\",${_collectEvents},${debugMode},${systMode}\) \
      | tee log${timeStamp}-calcEventEff.out
   if [ $? != 0 ] ; then noError=0;
   else 
       checkFile calcEventEff_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEventEff(\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode})"
+     echo "DONE: calcEventEff(\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
