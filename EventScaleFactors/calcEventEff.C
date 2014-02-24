@@ -85,7 +85,9 @@ int fillOneEfficiency(const TString &use_dirTag, const TString filename,
 
 int createSelectionFile(const InputFileMgr_t &mcMgr, 
 			EventSelector_t &evtSelector,
-			const TString &outSkimFName, DYTools::TRunMode_t runMode);
+			const TString &outSkimFName, 
+			DYTools::TRunMode_t runMode,
+			DYTools::TSystematicsStudy_t systMode);
 
 double findEventScaleFactor(int kind, const esfSelectEvent_t &data); // -1 for total
 
@@ -262,8 +264,9 @@ double *etaBinLimits=NULL;
 
 int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
 		 InputFileMgr_t &inpMgr, EventSelector_t &evtSelector,
-		 TString &puStr, int createDestinationDir) {
-  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+		 TString &puStr, int createDestinationDir,
+		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) 
+{
 
   //InputFileMgr_t inpMgr;
   if (!inpMgr.LoadTnP(confFileName)) return 0;
@@ -375,8 +378,9 @@ int preparePseudoExps(int nExps, int debug_pseudo_exps) {
 //=== MAIN MACRO =================================================================================================
 
 int calcEventEff(const TString confFileName,
-		  int selectEvents, 
-		  DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN)
+		 int selectEvents, 
+		 DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {
 
   gBenchmark->Start("calcEventEff");
@@ -384,8 +388,6 @@ int calcEventEff(const TString confFileName,
 //  ---------------------------------
 //       Preliminary checks
 //  ---------------------------------
-
-  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
 
   // verify whether it was a compilation check
   if (confFileName.Contains("_DebugRun_") ||
@@ -397,7 +399,8 @@ int calcEventEff(const TString confFileName,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,1, DYTools::NO_SYST)) 
+    if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST,
+				DYTools::UNREGRESSED_ENERGY))
       return retCodeError;
   }
 
@@ -429,6 +432,10 @@ int calcEventEff(const TString confFileName,
 	// end of relocation
 
   TString selectEventsFName=inpMgr.tnpSFSelEventsFullName(systMode,0);
+  if ((systMode!=DYTools::NO_SYST) && selectEvents) { 
+    // create dir
+    inpMgr.tnpDir(systMode,1);
+  }
   
   // remove HLTlegs tag from the file name, if needed
   if (nonUniversalHLT) selectEventsFName.ReplaceAll("_HLTlegs","");
@@ -436,7 +443,7 @@ int calcEventEff(const TString confFileName,
   std::cout << "selectEventsFName=<" << selectEventsFName << ">\n";
   
   if (selectEvents) {
-    if (!createSelectionFile(inpMgr, evtSelector,selectEventsFName, runMode)) {
+    if (!createSelectionFile(inpMgr, evtSelector,selectEventsFName, runMode,systMode)) {
       std::cout << "failed to create selection file <" 
 		<< selectEventsFName << ">\n";
     }
@@ -1559,12 +1566,13 @@ Bool_t matchedToGeneratorLevel(const TGenInfo *gen,
 int createSelectionFile(const InputFileMgr_t &inpMgr, 
 			EventSelector_t &evtSelector,
 			const TString &outSkimFName, 
-			DYTools::TRunMode_t runMode) {
+			DYTools::TRunMode_t runMode,
+			DYTools::TSystematicsStudy_t systMode) {
 
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
 
 #ifdef esfSelectEventsIsObject
   esfSelectEvent_t::Class()->IgnoreTObjectStreamer();
