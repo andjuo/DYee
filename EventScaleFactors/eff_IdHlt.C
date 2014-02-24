@@ -119,7 +119,7 @@ int eff_IdHlt(const TString configFile,
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
   TriggerSelection_t triggers(evtSelector.trigger());
 
   // Prepare output directory
@@ -291,6 +291,9 @@ int eff_IdHlt(const TString configFile,
   // opening it just removes complaints about memory resident
   // trees. No events are actually written.
   TString selectEventsFName=inpMgr.tnpSelectEventsFName(systMode,sampleTypeString,effTypeString,triggers.triggerSetName());
+  if (runMode==DYTools::DEBUG_RUN) {
+    selectEventsFName.ReplaceAll("/selectEvents","_DEBUG/selectEvents");
+  }
   /*
   TString uScore="_";
   TString selectEventsFName=tagAndProbeDir + TString("/selectEvents_") 
@@ -452,11 +455,26 @@ int eff_IdHlt(const TString configFile,
       // loop through dielectrons
       dielectronArr->Clear();
       dielectronBr->GetEntry(ientry);
+
+      mithep::TDielectron *dielectron=NULL;
+#ifdef DYee8TeV_reg
+      mithep::TDielectron unregDielectron;
+#endif
+
       for(Int_t i=0; i<dielectronArr->GetEntriesFast(); i++) {
-	
 	totalCand++;
-	const mithep::TDielectron *dielectron = (mithep::TDielectron*)((*dielectronArr)[i]);
-	
+	dielectron = (mithep::TDielectron*)((*dielectronArr)[i]);
+
+#ifdef DYee8TeV_reg
+	if (systMode==DYTools::UNREGRESSED_ENERGY) {
+	  unregDielectron.assign(dielectron);
+	  //std::cout << "dielectron info    : " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
+	  unregDielectron.replace2UncorrEn(0); // 0 - do replace, 1 - don't replace
+	  dielectron= &unregDielectron;
+	  //std::cout << "dielectron info (2): " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
+	}
+#endif
+
 	// Tag and probe is done around the Z peak
 	if((dielectron->mass < massLow) || (dielectron->mass > massHigh)) continue;
 	totalCandInMassWindow++;
@@ -513,6 +531,11 @@ int eff_IdHlt(const TString configFile,
 	bool isTag1 = false;
 	bool isTag2 = false;
 	
+	// Syst mode considers two cases:
+	//   Resolution_study: lower elePt
+	//   FSR_study: mediumID
+	// other systematics do not affect the selection, thus
+	// systMode branching for isTag() might be removed.
 	if (systMode == DYTools::NO_SYST) {
 	  isTag1=isTag(ele1, tagTriggerObjectBit, info->rhoLowEta);
 	  isTag2=isTag(ele2, tagTriggerObjectBit, info->rhoLowEta);
@@ -721,6 +744,7 @@ int eff_IdHlt(const TString configFile,
   if (inpMgr.puReweightFlag()) {
     selectedEventsFile->Close();
     delete selectedEventsFile;
+
     TString outFNamePV = tagAndProbeDir + 
       TString("/npv_tnp") + effTypeString + TString("_") + 
       sampleTypeString + DYTools::analysisTag + TString(".root");
@@ -737,7 +761,8 @@ int eff_IdHlt(const TString configFile,
     TString sampleNameBase= effTypeString + TString("_") + 
       sampleTypeString + DYTools::analysisTag;
     bool isMC = (sample==DYTools::MC);
-    int res=CreatePUWeightedBranch(selectEventsFName,
+    int res=CreatePUWeightedBranch(systMode,
+				   selectEventsFName,
 				   puTargetFName, puTargetDistrName,
 				   puSourceFName, puSourceDistrName,
 // 				   outFNamePV, sampleNameBase, 

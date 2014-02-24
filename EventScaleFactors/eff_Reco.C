@@ -116,7 +116,7 @@ int eff_Reco(const TString configFile,
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
 
   // Prepare output directory
   TString tagAndProbeDir=inpMgr.tnpDir(systMode,1);
@@ -592,6 +592,7 @@ int eff_Reco(const TString configFile,
   if (inpMgr.puReweightFlag()) {
     selectedEventsFile->Close();
     delete selectedEventsFile;
+
     TString outFNamePV = tagAndProbeDir + 
       TString("/npv_tnp") + effTypeString + TString("_") + sampleTypeString +
       DYTools::analysisTag + TString(".root");
@@ -608,7 +609,8 @@ int eff_Reco(const TString configFile,
     TString sampleNameBase= effTypeString + TString("_") + 
       sampleTypeString + DYTools::analysisTag;
     bool isMC = (sample==DYTools::MC);
-    int res=CreatePUWeightedBranch(selectEventsFName,
+    int res=CreatePUWeightedBranch(systMode,
+				   selectEventsFName,
 				   puTargetFName, puTargetDistrName,
 				   puSourceFName, puSourceDistrName,
 // 				   outFNamePV, sampleNameBase, 

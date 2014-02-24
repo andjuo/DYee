@@ -189,7 +189,8 @@ public:
 // The selected events file is read to determine PU distribution (which is saved to file
 // <savePUFName> in two histograms {savePUHistoNameBase}_pass and {savePUHistoNameBase}_fail
 			  
-int CreatePUWeightedBranch(const TString &fName,
+int CreatePUWeightedBranch(DYTools::TSystematicsStudy_t systMode,
+			   const TString &fName,
 			   const TString &puTargetFName, const TString &puTargetDistrName,
 			   const TString &puSourceFName, const TString &puSourceDistrName,			   
 // 			   const TString &savePUFName, 
@@ -199,7 +200,7 @@ int CreatePUWeightedBranch(const TString &fName,
   std::cout << "entered CreatePUWeightedBranch (" << fName << ")" << std::endl;
 
   // Set up pile-up reweighting
-  PUReweight_t puReweight;
+  PUReweight_t puReweight(systMode);
   // Only MC will be reweighted. 
   if( isMC ){
     if( DYTools::energy8TeV ){
