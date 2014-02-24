@@ -155,6 +155,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
   int HLTcomparison=0;
   //int divideBy1st=0;
   int relRatio=0;
+  int HLTsystematics=0;
   double transLegendX=-0.2;
   double transLegendY=-0.4;
 
@@ -259,8 +260,9 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     transLegendX=-0.1;
   }
 
-  if (0) {
+  if (0) { // tag-related HLT systematics
     HLTcomparison=1;
+    HLTsystematics=1;
     //divideBy1st=1;
     relRatio=1;
     path1="../root_files_reg/tag_and_probe/DY_j22_19712pb/";
@@ -272,11 +274,44 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     label1="Tight, pT>25GeV";
     label2="Tight, pT>20GeV";
     label3="Medium, pT>25GeV";
-    fnameTag="-tagLeg1--";
-    transLegendX=-0.2;
+    fnameTag="-HLTsyst-tagLeg1--";
+    transLegendX=-0.02;
   }
 
-  if (1) { // RECO syst max|eta|<2.5
+  if (0) { // PU-related HLT systematics
+    HLTcomparison=1;
+    HLTsystematics=1;
+    //divideBy1st=1;
+    relRatio=1;
+    path1="../root_files_reg/tag_and_probe/DY_j22_19712pb/";
+    path2="../root_files_reg/tag_and_probe/DY_j22_19712pb_Pileup5minus/";
+    path3="../root_files_reg/tag_and_probe/DY_j22_19712pb_Pileup5plus/";
+    effKindLongStr1="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    effKindLongStr3="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    label1="reference";
+    label2="PU -5%";
+    label3="PU +5%";
+    fnameTag="-HLTsyst-puLeg1--";
+    transLegendX=-0.02;
+  }
+
+  if (1) { // enReg-related HLT systematics
+    HLTcomparison=1;
+    HLTsystematics=1;
+    //divideBy1st=1;
+    relRatio=1;
+    path1="../root_files_reg/tag_and_probe/DY_j22_19712pb/";
+    path2="../root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    effKindLongStr1="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataHLTleg1_count-countEtBins6systEtaBins5_PU";
+    label1="reference";
+    label2="unregr.energy";
+    fnameTag="-HLTsyst-enRegLeg1--";
+    transLegendX=-0.02;
+  }
+
+  if (0) { // RECO syst max|eta|<2.5
     HLTcomparison=0;
     //divideBy1st=1;
     relRatio=1;
@@ -320,7 +355,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
       return;
     }
   }
-  else if (label3.Index("Medium")!=-1) {
+  else if (HLTsystematics) {
     if (iBr==0) {}
     else if (iBr==1) {
       effKindLongStr1.ReplaceAll("leg1","leg2");
