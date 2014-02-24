@@ -152,6 +152,27 @@ void convert2root_Ilya () {
   }
   std::cout << "RECO systematics: ";  RECOsyst.Print();
 
+  TMatrixD RECOsyst_etaMax25(6,5);
+  RECOsyst_etaMax25.Zero();
+  RECOsyst_etaMax25(0,3)=0.034;
+  RECOsyst_etaMax25(1,3)=0.024;
+  RECOsyst_etaMax25(0,4)=0.034;
+  RECOsyst_etaMax25(1,4)=0.024;
+  RECOsyst_etaMax25(2,4)=0.043;
+  RECOsyst_etaMax25(3,4)=0.039;
+  RECOsyst_etaMax25(4,4)=0.032;
+  RECOsyst_etaMax25(5,4)=0.028;
+
+  std::cout << "RECO systematics due to |eta|<2.5: ";  RECOsyst_etaMax25.Print();
+
+  TMatrixD RECOsyst_tot(6,5);
+  for (int iEt=0; iEt<6; ++iEt) {
+    for (int iEta=0; iEta<5; ++iEta) {
+      RECOsyst_tot(iEt,iEta)= sqrt(pow(RECOsyst(iEt,iEta),2)+pow(RECOsyst_etaMax25(iEt,iEta),2));
+    }
+  }
+
+
   // In Lovedeep&Ilya presentation on Oct 28, 2013
   // the numbers below were named as "absolute errors on efficiencies"
   //const double IDsyst_gap_inPerc   []= { 4.30, 4.60, 2.70, 1.50, 0.28, 0.51 };
@@ -201,39 +222,48 @@ void convert2root_Ilya () {
   cx->Update();
 
 
-  TFile fout("egammaRECO.root","recreate");
-  MMC.Write(fout,"eff_mc");
-  MData.Write(fout,"eff_data");
-  MSF.Write(fout,"sf");
-  RECOsyst.Write("sf_syst_rel_error");
-  saveVec(fout,grV_mc,"effRECO_MC");
-  saveVec(fout,grV_data,"effRECO_Data");
-  saveVec(fout,grV_sf,"sfRECO");
-  saveVec(fout,hV_mc,"effRECO_MC_histo");
-  saveVec(fout,hV_data,"effRECO_Data_histo");
-  fout.Close();
-  std::cout << "file <" << fout.GetName() << "> created\n";
-
   if (1) {
-    TString fname="efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
-    TDescriptiveInfo_t info;
-    info.reserve(5);
-    info.append("RECO efficiency scale factors");
-    info.append("https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgCommissioningAndPhysicsDeliverables");
 
-    TFile foutD(fname,"recreate");
-    MData.Write_for_main_code(foutD,0);
-    RECOsyst.Write("sf_syst_rel_error");
-    info.Write("info");
-    foutD.Close();
-    std::cout << "file <" << foutD.GetName() << "> created\n";
-
-    fname.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
-    TFile foutMC(fname,"recreate");
-    MMC.Write_for_main_code(foutMC,1);
-    RECOsyst.Write("sf_syst_rel_error");
-    info.Write("info");
-    foutMC.Close();
-    std::cout << "file <" << foutMC.GetName() << "> created\n";
+    TFile fout("egammaRECO.root","recreate");
+    MMC.Write(fout,"eff_mc");
+    MData.Write(fout,"eff_data");
+    MSF.Write(fout,"sf");
+    RECOsyst.Write("sf_syst_rel_error_egamma");
+    RECOsyst_etaMax25.Write("sf_syst_rel_error_maxEta25");
+    RECOsyst_tot.Write("sf_syst_rel_error");
+    saveVec(fout,grV_mc,"effRECO_MC");
+    saveVec(fout,grV_data,"effRECO_Data");
+    saveVec(fout,grV_sf,"sfRECO");
+    saveVec(fout,hV_mc,"effRECO_MC_histo");
+    saveVec(fout,hV_data,"effRECO_Data_histo");
+    fout.Close();
+    std::cout << "file <" << fout.GetName() << "> created\n";
+    
+    if (1) {
+      TString fname="efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
+      TDescriptiveInfo_t info;
+      info.reserve(5);
+      info.append("RECO efficiency scale factors");
+      info.append("https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgCommissioningAndPhysicsDeliverables");
+      
+      TFile foutD(fname,"recreate");
+      MData.Write_for_main_code(foutD,0);
+      RECOsyst.Write("sf_syst_rel_error_egamma");
+      RECOsyst_etaMax25.Write("sf_syst_rel_error_maxEta25");
+      RECOsyst_tot.Write("sf_syst_rel_error");
+      info.Write("info");
+      foutD.Close();
+      std::cout << "file <" << foutD.GetName() << "> created\n";
+      
+      fname.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
+      TFile foutMC(fname,"recreate");
+      MMC.Write_for_main_code(foutMC,1);
+      RECOsyst.Write("sf_syst_rel_error_egamma");
+      RECOsyst_etaMax25.Write("sf_syst_rel_error_maxEta25");
+      RECOsyst_tot.Write("sf_syst_rel_error");
+      info.Write("info");
+      foutMC.Close();
+      std::cout << "file <" << foutMC.GetName() << "> created\n";
+    }
   }
 }

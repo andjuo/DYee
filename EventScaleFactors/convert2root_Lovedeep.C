@@ -162,6 +162,24 @@ void convert2root_Lovedeep () {
   }
   std::cout << "ID systematics: "; IDsyst.Print();
 
+  TMatrixD IDsyst_etaMax25(6,5);
+  IDsyst_etaMax25.Zero();
+  IDsyst_etaMax25(0,4)=0.036;
+  IDsyst_etaMax25(1,4)=0.033;
+  IDsyst_etaMax25(2,4)=0.032;
+  IDsyst_etaMax25(3,4)=0.025;
+  IDsyst_etaMax25(4,4)=0.020;
+  IDsyst_etaMax25(5,4)=0.017;
+  std::cout << "ID systematics due to |eta|<2.5: "; IDsyst_etaMax25.Print();
+
+  TMatrixD IDsyst_tot(6,5);
+  for (int iEt=0; iEt<6; ++iEt) {
+    for (int iEta=0; iEta<5; ++iEta) {
+      IDsyst_tot(iEt,iEta)=sqrt(pow(IDsyst(iEt,iEta),2) + pow(IDsyst_etaMax25(iEt,iEta),2));
+    }
+  }
+
+
   for (unsigned int i=0; i<grV_mc.size(); ++i) {
     std::cout << grV_mc[i]->GetTitle() << "\n";
     grV_mc[i]->Print("range");
@@ -209,39 +227,48 @@ void convert2root_Lovedeep () {
   cx->Update();
 
 
-  TFile fout("mediumID.root","recreate");
-  MMC.Write(fout,"eff_mc");
-  MData.Write(fout,"eff_data");
-  MSF.Write(fout,"sf");
-  IDsyst.Write("sf_syst_rel_error");
-  saveVec(fout,grV_mc,"effMediumID_MC");
-  saveVec(fout,grV_data,"effMediumID_Data");
-  saveVec(fout,grV_sf,"sfMediumID");
-  saveVec(fout,hV_mc,"effMediumID_MC_histo");
-  saveVec(fout,hV_data,"effMediumID_Data_histo");
-  fout.Close();
-  std::cout << "file <" << fout.GetName() << "> created\n";
-
   if (1) {
-    TString fname="efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
-    TDescriptiveInfo_t info;
-    info.reserve(5);
-    info.append("mediumID official scale factors");
-    info.append("Web page: https://twiki.cern.ch/twiki/bin/view/Main/EGammaScaleFactors2012");
 
-    TFile foutD(fname,"recreate");
-    MData.Write_for_main_code(foutD,0);
-    IDsyst.Write("sf_syst_rel_error");
-    info.Write("info");
-    foutD.Close();
-    std::cout << "file <" << foutD.GetName() << "> created\n";
-
-    fname.ReplaceAll("dataID_fit-fit","mcID_count-count");
-    TFile foutMC(fname,"recreate");
-    MMC.Write_for_main_code(foutMC,1);
-    IDsyst.Write("sf_syst_rel_error");
-    info.Write("info");
-    foutMC.Close();
-    std::cout << "file <" << foutMC.GetName() << "> created\n";
+    TFile fout("mediumID.root","recreate");
+    MMC.Write(fout,"eff_mc");
+    MData.Write(fout,"eff_data");
+    MSF.Write(fout,"sf");
+    IDsyst.Write("sf_syst_rel_error_egamma");
+    IDsyst_etaMax25.Write("sf_syst_rel_error_maxEta25");
+    IDsyst_tot.Write("sf_syst_rel_error");
+    saveVec(fout,grV_mc,"effMediumID_MC");
+    saveVec(fout,grV_data,"effMediumID_Data");
+    saveVec(fout,grV_sf,"sfMediumID");
+    saveVec(fout,hV_mc,"effMediumID_MC_histo");
+    saveVec(fout,hV_data,"effMediumID_Data_histo");
+    fout.Close();
+    std::cout << "file <" << fout.GetName() << "> created\n";
+    
+    if (1) {
+      TString fname="efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
+      TDescriptiveInfo_t info;
+      info.reserve(5);
+      info.append("mediumID official scale factors");
+      info.append("Web page: https://twiki.cern.ch/twiki/bin/view/Main/EGammaScaleFactors2012");
+      
+      TFile foutD(fname,"recreate");
+      MData.Write_for_main_code(foutD,0);
+      IDsyst.Write("sf_syst_rel_error_egamma");
+      IDsyst_etaMax25.Write("sf_syst_rel_error_maxEta25");
+      IDsyst_tot.Write("sf_syst_rel_error");
+      info.Write("info");
+      foutD.Close();
+      std::cout << "file <" << foutD.GetName() << "> created\n";
+      
+      fname.ReplaceAll("dataID_fit-fit","mcID_count-count");
+      TFile foutMC(fname,"recreate");
+      MMC.Write_for_main_code(foutMC,1);
+      IDsyst.Write("sf_syst_rel_error_egamma");
+      IDsyst_etaMax25.Write("sf_syst_rel_error_maxEta25");
+      IDsyst_tot.Write("sf_syst_rel_error");
+      info.Write("info");
+      foutMC.Close();
+      std::cout << "file <" << foutMC.GetName() << "> created\n";
+    }
   }
 }
