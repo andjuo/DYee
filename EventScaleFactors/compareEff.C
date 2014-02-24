@@ -243,7 +243,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     fnameTag="-checkSummer2013--";
   }
 
-  if (1) {
+  if (0) {
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
     path2="./";
     effKindLongStr1="dataID_fit-fitEtBins6EtaBins5corr_PU";
@@ -259,7 +259,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     transLegendX=-0.1;
   }
 
-  if (1) {
+  if (0) {
     HLTcomparison=1;
     //divideBy1st=1;
     relRatio=1;
@@ -274,6 +274,31 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     label3="Medium, pT>25GeV";
     fnameTag="-tagLeg1--";
     transLegendX=-0.2;
+  }
+
+  if (1) { // RECO syst max|eta|<2.5
+    HLTcomparison=0;
+    //divideBy1st=1;
+    relRatio=1;
+    path1="../root_files_reg/tag_and_probe/DY_j22_19712pb/";
+    path2=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_max25_PU";
+    label1="max|#eta|<2.4";
+    label2="max|#eta|<2.5";
+
+    if (0) {
+      path3="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
+      effKindLongStr3="dataRECO_fit-fitEtBins6EtaBins5_PU";
+      label3="DMDY etaMax = 2.5";
+    }
+    if (0) {
+      path3="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
+     effKindLongStr3="dataRECO_fit-fitEtBins6EtaBins5_PU";
+     label3="DMDY etaMax = 2.4";
+   }
+    fnameTag="-recoMaxEtaSyst--";
+    transLegendX=0.0;
   }
 
 
@@ -329,6 +354,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     else if (iBr==3) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
       effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
+      effKindLongStr3.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
     }
     else if (iBr==4) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
@@ -475,14 +501,14 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     div->SetMarkerColor(kBlue);
   }
 
-  ComparisonPlot_t cpTemp(ComparisonPlot_t::_ratioPlain,"comp","comp",
-			  "E_{T}","eff","ratio");
-
   double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinSet1);
   int signedEta=DYTools::signedEtaBinning(etaBinSet1);
   TString cpTitle=dataKind+ TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iEta],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iEta+1]));
 
-  CPlot cp("comp",cpTitle,"E_{T} [GeV]","efficiency");
+  //CPlot cp("comp",cpTitle,"E_{T} [GeV]","efficiency");
+  ComparisonPlot_t cp(ComparisonPlot_t::_ratioRel,"comp",cpTitle,
+			  "E_{T} [GeV]","efficiency","ratio");
+  cp.SetRefIdx(-111); // do not plot lower panel
   cp.SetLogx();
 
   if (gr3 && HLTcomparison) { // for HLT efficiency
@@ -504,7 +530,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
   }
 
   TCanvas *cx=new TCanvas("cx","cx",600,700);
-  cpTemp.Prepare2Pads(cx);
+  cp.Prepare2Pads(cx);
 
   gr1->GetYaxis()->SetTitleOffset(1.4);
 
