@@ -51,8 +51,14 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case ESCALE_STUDY_RND: name="EScale_study_randomized"; break;
   case UNREGRESSED_ENERGY: name="Unregressed_energy"; break;
   case SYST_RND: name="Syst_random"; break;
+  case TAG_ID: name="TagID"; break;
+  case TAG_PT: name="TagPt"; break;
   case PILEUP_5plus: name="Pileup5plus"; break;
   case PILEUP_5minus: name="Pileup5minus"; break;
+  case UNREG_PU5plus: name="UnregEnPU5plus"; break;
+  case UNREG_PU5minus: name="UnregEnPU5minus"; break;
+  case UNREG_TagID: name="UnregTagID"; break;
+  case UNREG_TagPt: name="UnregTagPt"; break;
   default: name="UNKNOWN_SYSTEMATICS_NAME";
   }
   return name;
@@ -217,6 +223,12 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   else if (str.Contains("SYST_RND") || str.Contains("SYST_RANDOM") || str.Contains("Syst_random")) study=SYST_RND;
   else if (str.Contains("PILEUP_5plus") || str.Contains("PILEUP_5PLUS")) study=PILEUP_5plus;
   else if (str.Contains("PILEUP_5minus") || str.Contains("PILEUP_5MINUS")) study=PILEUP_5minus;
+  else if (str.Contains("UNREG_PU5plus") || str.Contains("UnregEnPU5plus")) study=UNREG_PU5plus;
+  else if (str.Contains("UNREG_PU5minus") || str.Contains("UnregEnPU5minus")) study=UNREG_PU5minus;
+  else if (str.Contains("UNREG_TagID") || str.Contains("UnregTagID")) study=UNREG_TagID;
+  else if (str.Contains("UNREG_TagPt") || str.Contains("UnregTagPt")) study=UNREG_TagPt;
+  else if (str.Contains("TAG_ID") || str.Contains("TagID")) study=TAG_ID;
+  else if (str.Contains("TAG_PT") || str.Contains("TagPt")) study=TAG_PT;
   else {
     std::cout << "DetermineSystematicsStudy: failure at <" << str << ">\n";
     assert(0);
