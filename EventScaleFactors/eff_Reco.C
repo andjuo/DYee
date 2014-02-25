@@ -77,7 +77,8 @@ const int evaluate_efficiencies=0;
 int eff_Reco(const TString configFile, 
 	     const TString effTypeString, 
 	     int runOnData,
-	     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN)
+	     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+	     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {
   using namespace mithep; 
   gBenchmark->Start("eff_Reco");
@@ -91,7 +92,6 @@ int eff_Reco(const TString configFile,
     return retCodeError;
   }
 
-  const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   DYTools::printExecMode(runMode,systMode);
 
   if (configFile.Contains("_check_")) {
@@ -427,12 +427,30 @@ int eff_Reco(const TString configFile,
       scArr->Clear();
       photonBr->GetEntry(ientry);
 
+
+      mithep::TElectron *electron=NULL;
+#ifdef DYee8TeV_reg
+      mithep::TElectron unregElectron;
+#endif
+
       // Loop over the tag electrons
       for(int iele = 0; iele < eleArr->GetEntriesFast(); iele++){
 	
-	const mithep::TElectron *electron = 
-	  (mithep::TElectron*)((*eleArr)[iele]);
 	tagCand++;
+	electron = (mithep::TElectron*)((*eleArr)[iele]);
+
+#ifdef DYee8TeV_reg
+	if ((systMode==DYTools::UNREGRESSED_ENERGY) ||
+	    (systMode==DYTools::UNREG_PU5plus) ||
+	    (systMode==DYTools::UNREG_PU5minus) ||
+	    (systMode==DYTools::UNREG_TagID) ||
+	    (systMode==DYTools::UNREG_TagPt))
+	  {
+	  unregElectron.assign(electron);
+	  unregElectron.replace2UncorrEn();
+	  electron= &unregElectron;
+	}
+#endif
 
 	// All cuts for the tag electron should be applied here
 	if(electron->scEt<20) continue;
@@ -453,6 +471,17 @@ int eff_Reco(const TString configFile,
 	// ECAL driven: this condition is NOT applied	
 	
 	if( !isTag( electron, tagTriggerObjectBit, info->rhoLowEta) ) continue;
+	// Syst mode for tag considers two cases:
+	//   Resolution_study or TAG_PT: lower elePt
+	//   FSR_study or TAG_ID: mediumID
+	// other systematics do not affect the selection, thus
+	// systMode branching for isTag() might be removed.
+	if (systMode == DYTools::NO_SYST) {
+	  isTag=isTag( electron, tagTriggerObjectBit, info->rhoLowEta);
+	}
+	else {
+	  isTag=isTag_systStudy( electron, tagTriggerObjectBit, info->rhoLowEta, systMode);
+	}
 
 	tagCandFinalCount++;
 	
