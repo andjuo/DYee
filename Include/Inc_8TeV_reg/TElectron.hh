@@ -20,7 +20,68 @@ namespace mithep
       {}
       ~TElectron(){}
     
-      Float_t pt, ptUncorr, eta, phi;          // kinematics
+    
+
+    void replace2UncorrEn() {
+      pt=ptUncorr;
+      scEt=scEtUncorr;
+    }
+
+    void assign(const TElectron *e) {
+      pt= e->pt; 
+      ptUncorr= e->ptUncorr;
+      eta= e->eta;
+      phi= e->phi;
+      trkIso03= e->trkIso03;
+      emIso03= e->emIso03;
+      hadIso03= e->hadIso03;
+      chIso_00_01= e->chIso_00_01;
+      chIso_01_02= e->chIso_01_02;
+      chIso_02_03= e->chIso_02_03;
+      chIso_03_04= e->chIso_03_04;
+      chIso_04_05= e->chIso_04_05;
+      gammaIso_00_01= e->gammaIso_00_01;
+      gammaIso_01_02= e->gammaIso_01_02;
+      gammaIso_02_03= e->gammaIso_02_03;
+      gammaIso_03_04= e->gammaIso_03_04;
+      gammaIso_04_05= e->gammaIso_04_05;
+      neuHadIso_00_01= e->neuHadIso_00_01;
+      neuHadIso_01_02= e->neuHadIso_01_02;
+      neuHadIso_02_03= e->neuHadIso_02_03;
+      neuHadIso_03_04= e->neuHadIso_03_04;
+      neuHadIso_04_05= e->neuHadIso_04_05;
+      pfPt= e->pfPt;
+      pfEta= e->pfEta;
+      pfPhi= e->pfPhi;
+      d0= e->d0;
+      dz= e->dz;
+      scEt= e->scEt;
+      scEtUncorr= e->scEtUncorr;
+      scEta= e->scEta;
+      scPhi= e->scPhi;
+      ecalE= e->ecalE;
+      HoverE= e->HoverE;
+      EoverP= e->EoverP;
+      fBrem= e->fBrem;
+      deltaEtaIn= e->deltaEtaIn;
+      deltaPhiIn= e->deltaPhiIn;
+      sigiEtaiEta= e->sigiEtaiEta;
+      partnerDeltaCot= e->partnerDeltaCot;
+      partnerDist= e->partnerDist;
+      mva= e->mva;
+      q= e->q;
+      nExpHitsInner= e->nExpHitsInner;
+      scID= e->scID;
+      trkID= e->trkID;
+      typeBits= e->typeBits;
+      hltMatchBits= e->hltMatchBits;
+      isConv= e->isConv;
+    }
+
+
+    // ---------- Data fields -------------
+
+    Float_t pt, ptUncorr, eta, phi;          // kinematics
       Float_t trkIso03;                        // track isolation
       Float_t emIso03;                         // ECAL-based isolation
       Float_t hadIso03;                        // HCAL-based isolation
