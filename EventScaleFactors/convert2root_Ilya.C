@@ -152,16 +152,17 @@ void convert2root_Ilya () {
   }
   std::cout << "RECO systematics: ";  RECOsyst.Print();
 
+  // values from 2014 Feb 25
   TMatrixD RECOsyst_etaMax25(6,5);
   RECOsyst_etaMax25.Zero();
-  RECOsyst_etaMax25(0,3)=0.034;
-  RECOsyst_etaMax25(1,3)=0.024;
-  RECOsyst_etaMax25(0,4)=0.034;
-  RECOsyst_etaMax25(1,4)=0.024;
+  RECOsyst_etaMax25(0,3)=0.047;
+  RECOsyst_etaMax25(1,3)=0.045;
+  RECOsyst_etaMax25(0,4)=0.047;
+  RECOsyst_etaMax25(1,4)=0.045;
   RECOsyst_etaMax25(2,4)=0.043;
-  RECOsyst_etaMax25(3,4)=0.039;
-  RECOsyst_etaMax25(4,4)=0.032;
-  RECOsyst_etaMax25(5,4)=0.028;
+  RECOsyst_etaMax25(3,4)=0.04;
+  RECOsyst_etaMax25(4,4)=0.035;
+  RECOsyst_etaMax25(5,4)=0.03;
 
   std::cout << "RECO systematics due to |eta|<2.5: ";  RECOsyst_etaMax25.Print();
 
