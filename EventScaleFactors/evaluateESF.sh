@@ -170,14 +170,14 @@ checkFile() {
 runEffReco() {
 # calculate
  effKind="RECO"
- root -b -q -l  eff_Reco.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode}\) \
+ root -b -q -l  eff_Reco.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode},${systMode}\) \
      | tee log${timeStamp}-${dataKind}-RECO.out
   if [ $? != 0 ] ; then noError=0;
   else
      checkFile eff_Reco_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: eff_Reco(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode})"
+     echo "DONE: eff_Reco(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -243,31 +243,6 @@ if [ ${noError} -eq 1 ] ; then echo; echo "  -=- Resuming normal calculation -=-
 
 inpFile=${confInputFile}
 
-# Process MC
-
-onData=0
-dataKind="mc"
-
-if [ ${runMC_Reco} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  runEffReco
-fi
-
-if [ ${runMC_Id} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  runEffIdHlt "ID"
-fi
-
-if [ ${runMC_Hlt} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  runEffIdHlt "HLT"
-fi
-
-if [ ${runMC_Hlt_leg1} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  runEffIdHlt "HLTleg1"
-fi
-
-if [ ${runMC_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-  runEffIdHlt "HLTleg2"
-fi
-
 
 # Process data
 
@@ -292,6 +267,31 @@ fi
 
 if [ ${runData_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
     runEffIdHlt "HLTleg2"
+fi
+
+# Process MC
+
+onData=0
+dataKind="mc"
+
+if [ ${runMC_Reco} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffReco
+fi
+
+if [ ${runMC_Id} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffIdHlt "ID"
+fi
+
+if [ ${runMC_Hlt} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffIdHlt "HLT"
+fi
+
+if [ ${runMC_Hlt_leg1} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffIdHlt "HLTleg1"
+fi
+
+if [ ${runMC_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+  runEffIdHlt "HLTleg2"
 fi
 
 triggerSet=${storeTriggerSet}
