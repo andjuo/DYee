@@ -104,7 +104,7 @@ int calcEff(const TString configFile, const TString effTypeString, int runOnData
   gBenchmark->Start("calcEff");
   
   const DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
-  //DYTools::printExecMode(runMode,systMode);
+  DYTools::printExecMode(runMode,systMode);
 
   TDescriptiveInfo_t tnpSection;
   InputFileMgr_t inpMgr;
