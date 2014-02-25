@@ -124,6 +124,7 @@ int eff_IdHlt(const TString configFile,
 
   // Prepare output directory
   TString tagAndProbeDir=inpMgr.tnpDir(systMode,1);
+  _TnP_fitPlots_dir = tagAndProbeDir;  // defined in fitFunctionsCore.hh
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 

@@ -3,6 +3,9 @@
 #include <RooEffProd.h>
 #endif
 
+
+TString _TnP_fitPlots_dir="../root_files/tag_and_probe/";
+
 int performWeightedFit=1;
 int debugWeightedFit=0; // extra datasets are created if this is 1
 // The flags below should be kept zero. If Erf is needed in the background
@@ -1233,7 +1236,8 @@ void fitMassWithTemplates(TTree *passTree, TTree *failTree, TString cut,
   cutF=cutF.ReplaceAll("___","_");
   cutF=cutF.ReplaceAll("__","_");
 
-  TString pngFilePath=TString("../root_files/tag_and_probe/") + dirTag + TString("/");
+  //TString pngFilePath=TString("../root_files/tag_and_probe/") + dirTag + TString("/");
+  TString pngFilePath= _TnP_fitPlots_dir;
   TString pngFileBase="fit-";
   if (performWeightedFit) pngFileBase.Append("weighted-");
   if (unbinnedFit) pngFileBase.Append("unbinned-"); else pngFileBase.Append("binned-");
@@ -1247,10 +1251,6 @@ void fitMassWithTemplates(TTree *passTree, TTree *failTree, TString cut,
   cPass.Update();
   if (plotsRootFile) { plotsRootFile->cd(); cPass.Write(); }
 
-  /*
-  if (isRECO) cPass.Print(("../root_files/tag_and_probe/"+(std::string)dirTag+"/fit-reco-"+(std::string)cutF+"-pass.png").c_str());
-  else cPass.Print(("../root_files/tag_and_probe/"+(std::string)dirTag+"/fit-id-"+(std::string)cutF+"-pass.png").c_str());
-  */
   cPass.Print((pngFilePath + pngFileBase + TString("-pass.png")).Data());
 
   failPad->cd();

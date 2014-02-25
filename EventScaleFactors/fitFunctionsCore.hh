@@ -54,6 +54,8 @@ enum BackgroundFitPDFType {EXPONENTIAL,
 			   CMS_SHAPE, 
 			   CHEBYCHEV};
 
+extern TString _TnP_fitPlots_dir;
+
 
 void printCorrelations(ostream& os, RooFitResult *res);
 
