@@ -127,7 +127,9 @@ bool isTag(const mithep::TElectron *electron, ULong_t trigger, double rho){
 // systMODE=FSR_STUDY : mediumID instead of tightID
 
 bool isTag_systStudy(const mithep::TElectron *electron, ULong_t trigger, double rho, DYTools::TSystematicsStudy_t systMode){
-  double elePtCut= (systMode==DYTools::RESOLUTION_STUDY) ? 20. : 25.;
+  double elePtCut= ((systMode==DYTools::RESOLUTION_STUDY) ||
+		    (systMode==DYTools::TAG_PT) ||
+		    (systMode==DYTools::UNREG_TagPt)) ? 20. : 25.;
   if (electron->pt <= elePtCut) return false;
 
   bool elePassHLT =  (electron ->hltMatchBits & trigger);
@@ -135,7 +137,11 @@ bool isTag_systStudy(const mithep::TElectron *electron, ULong_t trigger, double 
   if ( !elePassHLT || !notInGap) return false;
 
   bool elePassID=false;
-  if (systMode!=DYTools::FSR_STUDY) elePassID= passIDTag(electron, rho);
+  if ( (systMode!=DYTools::FSR_STUDY) 
+       && (systMode!=DYTools::TAG_ID)   
+       && (systMode!=DYTools::UNREG_TagID) ) {
+    elePassID= passIDTag(electron, rho);
+  }
   else {
     // lower the ID requirement  
 #ifdef DYee8TeV
