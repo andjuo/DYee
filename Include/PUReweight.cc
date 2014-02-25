@@ -38,8 +38,12 @@ PUReweight_t::PUReweight_t(DYTools::TSystematicsStudy_t systMode, TReweightMetho
   }
 
   if (method==_Hildreth) {
-    if (systMode==DYTools::PILEUP_5plus) method=PUReweight_t::_Hildreth_plus5percent;
-    else if (systMode==DYTools::PILEUP_5minus) method=PUReweight_t::_Hildreth_minus5percent;
+    if ((systMode==DYTools::PILEUP_5plus) || (systMode==DYTools::UNREG_PU5plus)) {
+      method=PUReweight_t::_Hildreth_plus5percent;
+    }
+    else if ((systMode==DYTools::PILEUP_5minus) || (systMode==DYTools::UNREG_PU5minus)) {
+      method=PUReweight_t::_Hildreth_minus5percent;
+    }
   }
 
   int res=this->setActiveMethod(method);
