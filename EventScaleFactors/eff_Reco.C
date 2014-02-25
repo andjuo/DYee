@@ -476,12 +476,14 @@ int eff_Reco(const TString configFile,
 	//   FSR_study or TAG_ID: mediumID
 	// other systematics do not affect the selection, thus
 	// systMode branching for isTag() might be removed.
+	bool tagOk=false;
 	if (systMode == DYTools::NO_SYST) {
-	  isTag=isTag( electron, tagTriggerObjectBit, info->rhoLowEta);
+	  tagOk=isTag( electron, tagTriggerObjectBit, info->rhoLowEta);
 	}
 	else {
-	  isTag=isTag_systStudy( electron, tagTriggerObjectBit, info->rhoLowEta, systMode);
+	  tagOk=isTag_systStudy( electron, tagTriggerObjectBit, info->rhoLowEta, systMode);
 	}
+	if (!tagOk) continue;
 
 	tagCandFinalCount++;
 	
