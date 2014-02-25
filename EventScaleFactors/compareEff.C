@@ -138,8 +138,9 @@ TString effDataKindString(const TString str) {
 // ------------------------------------------------------------
 
 
-void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
-		double transLegendY_user=0.) {
+void compareEff(int iBr=0, int iEta=0, 
+		double transLegendY_user=0.,
+		double ratioTitleOffset=0.58) {
   TString path1, path2;
   TString effKindLongStr1,effKindLongStr2;
   TString fnameBase="efficiency_TnP_1D_Full2012_";
@@ -296,7 +297,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     transLegendX=-0.02;
   }
 
-  if (1) { // enReg-related HLT systematics
+  if (0) { // enReg-related HLT systematics
     HLTcomparison=1;
     HLTsystematics=1;
     //divideBy1st=1;
@@ -311,11 +312,13 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
     transLegendX=-0.02;
   }
 
-  if (0) { // RECO syst max|eta|<2.5
+  if (1) { // RECO syst max|eta|<2.5
     HLTcomparison=0;
     //divideBy1st=1;
     relRatio=1;
+    int loc_unregressed=1;
     path1="../root_files_reg/tag_and_probe/DY_j22_19712pb/";
+    if (loc_unregressed) path1="../root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
     path2=path1;
     effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
     effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_max25_PU";
@@ -333,6 +336,7 @@ void compareEff(int iBr=0, int iEta=0, double ratioTitleOffset=0.58,
      label3="DMDY etaMax = 2.4";
    }
     fnameTag="-recoMaxEtaSyst--";
+    if (loc_unregressed) fnameTag="-unReg-recoMaxEtaSyst--";
     transLegendX=0.0;
   }
 
