@@ -7,11 +7,12 @@ triggerSet="Full2012_hltEffOld"
 tnpFullRun_eval=1
 
 tnpFullRun_recalc="data11111mc11111sf0"
-tnpFullRun_recalc="data00000mc00000sf1"
+tnpFullRun_recalc="data11000mc11000sf0"
 #tnpFullRun_recalc=1
 
 tnpFullRun_eval="data00000mc00000sf0"
-tnpFullRun_eval=-1
+tnpFullRun_eval="data11000mc11000sf0"
+#tnpFullRun_eval=-1
 
 timeStamp="-`date +%Y%m%d-%H%M`"
 
@@ -22,6 +23,8 @@ logDir="dir-logEtaMax24/"
 
 #debugMode="DYTools::DEBUG_RUN"
 debugMode="DYTools::NORMAL_RUN"
+systMode="DYTools::NO_SYST"
+systMode="DYTools::UNREGRESSED_ENERGY"
 
-#source evaluateESF.sh ${filename} ${debugMode} ${tnpFullRun_eval} | tee ${logDir}/out${timeStamp}-12-evaluateESF-efficiencyScaleFactors${anTag}.log
-source recalcESF.sh ${filename} ${debugMode} ${tnpFullRun_recalc} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}.log
+source evaluateESF.sh ${filename} ${debugMode} ${tnpFullRun_eval} ${systMode} | tee ${logDir}/out${timeStamp}-12-evaluateESF-efficiencyScaleFactors${anTag}.log
+source recalcESF.sh ${filename} ${debugMode} ${tnpFullRun_recalc} ${systMode} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}.log
