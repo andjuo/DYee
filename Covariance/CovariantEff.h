@@ -10,6 +10,15 @@
 
 // ---------------------------------
 
+class EtEtaIndexer_t;
+
+// ---------------------------------
+
+TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_nRows, int expect_nCols, int reportFieldError=1);
+
+// ---------------------------------
+// ---------------------------------
+
 class CovariantEffMgr_t : public BaseClass_t {
  protected:
   InputFileMgr_t FInpMgr;
@@ -17,6 +26,8 @@ class CovariantEffMgr_t : public BaseClass_t {
   TString FPUStr;
   TriggerSelection_t FTriggers;
   int FInitOk;
+  std::vector<TMatrixD*> FRhoRelSystErrs;  // what was provided by user
+  std::vector<TMatrixD*> FRhoExtraFactors;  // pseudo-exps
  public:
   CovariantEffMgr_t(); 
 
@@ -25,6 +36,10 @@ class CovariantEffMgr_t : public BaseClass_t {
 
   int initOk() const { return FInitOk; }
   int Setup(const TString &confFileName, int nExps);
+  int SetupSFsyst(const TString &confFileName, const TString &recoSystFName, const TString &idSystFName, const TString &hltSystFName, int nExps);
+
+  template<class idx_t>
+  double getExtraSF(idx_t iExp, const EtEtaIndexer_t &fidx1, const EtEtaIndexer_t &fidx2) const;
 };
 
 // ---------------------------------
@@ -116,6 +131,21 @@ class EtEtaIndexer_t //: public BaseClass_t
   }
 
 };
+
+// ---------------------------------
+// ---------------------------------
+
+template<class idx_t>
+double CovariantEffMgr_t::getExtraSF(idx_t iExp, const EtEtaIndexer_t &fidx1, const EtEtaIndexer_t &fidx2) const {
+  if (FRhoExtraFactors.size()==0) return 1.;
+  if ((unsigned int)(iExp) >= FRhoExtraFactors.size()) {
+    reportError("getExtraSF(%d): there are %d experiments prepared",(int)(iExp),(int)(FRhoExtraFactors.size()));
+    return 0.;
+  }
+  double factor1= (*FRhoExtraFactors[iExp])(fidx1.getEtBin(),fidx1.getEtaBin());
+  double factor2= (fidx2.isValid()) ? (*FRhoExtraFactors[iExp])(fidx2.getEtBin(),fidx2.getEtaBin()) : 1.;
+  return factor1*factor2;
+}
 
 // ---------------------------------
 // ---------------------------------
