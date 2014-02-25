@@ -233,31 +233,6 @@ if [ ${noError} -eq 1 ] ; then echo; echo "  -=- Resuming normal calculation -=-
 inpFile=${confInputFile}
 
 
-# Process data
-
-onData=1
-dataKind="data"
-
-if [ ${runData_Reco} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    runCalcEff "RECO"
-fi
-
-if [ ${runData_Id} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    runCalcEff "ID"
-fi
-
-if [ ${runData_Hlt} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    runCalcEff "HLT"
-fi
-
-if [ ${runData_Hlt_leg1} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    runCalcEff "HLTleg1"
-fi
-
-if [ ${runData_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
-    runCalcEff "HLTleg2"
-fi
-
 
 # Process MC
 
@@ -282,6 +257,33 @@ fi
 
 if [ ${runMC_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
   runCalcEff "HLTleg2"
+fi
+
+
+# Process data
+# Data has to be 2nd, since it requires templates from MC
+
+onData=1
+dataKind="data"
+
+if [ ${runData_Reco} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+    runCalcEff "RECO"
+fi
+
+if [ ${runData_Id} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+    runCalcEff "ID"
+fi
+
+if [ ${runData_Hlt} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+    runCalcEff "HLT"
+fi
+
+if [ ${runData_Hlt_leg1} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+    runCalcEff "HLTleg1"
+fi
+
+if [ ${runData_Hlt_leg2} -eq 1 ] && [ ${noError} -eq 1 ] ; then
+    runCalcEff "HLTleg2"
 fi
 
 
