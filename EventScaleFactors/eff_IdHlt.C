@@ -466,7 +466,12 @@ int eff_IdHlt(const TString configFile,
 	dielectron = (mithep::TDielectron*)((*dielectronArr)[i]);
 
 #ifdef DYee8TeV_reg
-	if (systMode==DYTools::UNREGRESSED_ENERGY) {
+	if ((systMode==DYTools::UNREGRESSED_ENERGY) ||
+	    (systMode==DYTools::UNREG_PU5plus) ||
+	    (systMode==DYTools::UNREG_PU5minus) ||
+	    (systMode==DYTools::UNREG_TagID) ||
+	    (systMode==DYTools::UNREG_TagPt))
+	  {
 	  unregDielectron.assign(dielectron);
 	  //std::cout << "dielectron info    : " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
 	  unregDielectron.replace2UncorrEn(0); // 0 - do replace, 1 - don't replace
@@ -531,9 +536,9 @@ int eff_IdHlt(const TString configFile,
 	bool isTag1 = false;
 	bool isTag2 = false;
 	
-	// Syst mode considers two cases:
-	//   Resolution_study: lower elePt
-	//   FSR_study: mediumID
+	// Syst mode for tag considers two cases:
+	//   Resolution_study or TAG_PT: lower elePt
+	//   FSR_study or TAG_ID: mediumID
 	// other systematics do not affect the selection, thus
 	// systMode branching for isTag() might be removed.
 	if (systMode == DYTools::NO_SYST) {
