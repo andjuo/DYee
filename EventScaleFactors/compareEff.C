@@ -276,10 +276,16 @@ void compareEff(int iBr=0, int iEta=0,
     label2="Tight, pT>20GeV";
     label3="Medium, pT>25GeV";
     fnameTag="-HLTsyst-tagLeg1--";
-    transLegendX=-0.02;
+    if (1) {
+      path1="../root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+      path2="../root_files_reg/tag_and_probe/DY_j22_19712pb_UnregTagID/";
+      path3="../root_files_reg/tag_and_probe/DY_j22_19712pb_UnregTagPt/";
+      fnameTag="-unregHLTsyst-tagLeg1--";
+    }
+    transLegendX=-0.2;
   }
 
-  if (0) { // PU-related HLT systematics
+  if (1) { // PU-related HLT systematics
     HLTcomparison=1;
     HLTsystematics=1;
     //divideBy1st=1;
@@ -294,6 +300,12 @@ void compareEff(int iBr=0, int iEta=0,
     label2="PU -5%";
     label3="PU +5%";
     fnameTag="-HLTsyst-puLeg1--";
+    if (1) { 
+      path1="../root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+      path2="../root_files_reg/tag_and_probe/DY_j22_19712pb_UnregEnPU5minus/";
+      path3="../root_files_reg/tag_and_probe/DY_j22_19712pb_UnregEnPU5plus/";
+      fnameTag="-unregHLTsyst-puLeg1--";
+    }
     transLegendX=-0.02;
   }
 
@@ -312,7 +324,7 @@ void compareEff(int iBr=0, int iEta=0,
     transLegendX=-0.02;
   }
 
-  if (1) { // RECO syst max|eta|<2.5
+  if (0) { // RECO syst max|eta|<2.5
     HLTcomparison=0;
     //divideBy1st=1;
     relRatio=1;
