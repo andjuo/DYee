@@ -13,11 +13,11 @@ int PrepareEtEtaIdx(const esfSelectEvent_t &selData, EtEtaIndexer_t &fidx1, EtEt
   int ok= (fidx1.setEtEta(selData.et_1,selData.eta_1) && 
 	   fidx2.setEtEta(selData.et_2,selData.eta_2)) ? 1:0;
   if (!ok) {
-    std::cout << "PrepareEtEtaIdx: failing at " << selData.et_1 << ", " << selData.eta_1 << "; " << selData.et_2 << ", " << selData.eta_2 << "\n";
+    //std::cout << "PrepareEtEtaIdx: failing at " << selData.et_1 << ", " << selData.eta_1 << "; " << selData.et_2 << ", " << selData.eta_2 << "\n";
     ok=1;
     if (selData.et_1 > 499.) ok=fidx1.setEtEta(499.,selData.eta_1);
     if (selData.et_2 > 499.) ok= ok && fidx2.setEtEta(499.,selData.eta_2);
-    std::cout << "Et=500GeV correction " << ((ok) ? "suceeded":"failed") << "\n";
+    //std::cout << "Et=500GeV correction " << ((ok) ? "suceeded":"failed") << "\n";
   }
   return ok;
 }
@@ -25,7 +25,7 @@ int PrepareEtEtaIdx(const esfSelectEvent_t &selData, EtEtaIndexer_t &fidx1, EtEt
 // ------------------------------------------------------
 // ------------------------------------------------------
 
-int studyEffCov_SFsyst(int debugMode) {
+int studyEffCov_SFsyst(int debugMode, TString systCode) {
   gBenchmark->Start("studyEffCov");
 
   if (( DYTools::study2D && (DYTools::nYBins[0]==1)) ||
@@ -41,21 +41,42 @@ int studyEffCov_SFsyst(int debugMode) {
   TString confFileName="../config_files/data_vilnius8TeV_egamma.conf.py";
 
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  systMode=DYTools::UNREGRESSED_ENERGY;
   CovariantEffMgr_t mgr;
 
   TString recoSystFName, idSystFName, hltSystFName;
+  TString includedSyst;
   if (1) {
-    recoSystFName="../EventScaleFactors/efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
-    idSystFName="../EventScaleFactors/efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
+    int recoOn=(systCode[0]=='1') ? 1:0;
+    int idOn  =(systCode[1]=='1') ? 1:0;
+    int hltOn =(systCode[2]=='1') ? 1:0;
+    if (recoOn) recoSystFName="../EventScaleFactors/efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
+    if (idOn) idSystFName="../EventScaleFactors/efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
+    if (hltOn) hltSystFName="../EventScaleFactors/unregHLTSystematics20140226.root";
+    if (recoOn+idOn+hltOn==3) includedSyst="-allSyst";
+    else {
+      if (recoOn) includedSyst.Append("-recoSyst");
+      if (idOn)   includedSyst.Append("-idSyst");
+      if (hltOn)  includedSyst.Append("-hltSyst");
+    }
+  }
+  if (1) {
+    std::cout << "with systematics: \n";
+    std::cout << "  - (reco) " << recoSystFName << "\n";
+    std::cout << "  - (id  ) " << idSystFName << "\n";
+    std::cout << "  - (hlt ) " << hltSystFName << "\n";
   }
 
   HERE("calling setup");
-  assert(mgr.SetupSFsyst(confFileName,recoSystFName,idSystFName,hltSystFName,nExps));
+  assert(mgr.SetupSFsyst(confFileName,recoSystFName,idSystFName,hltSystFName,nExps,systMode));
   assert(mgr.initOk());
 
   TString name_extraTag=Form("nMB%d",DYTools::nMassBins);
   name_extraTag.Append(mgr.mgr().userKeyValueAsTString("T&P_ESF_extra"));
   if (nonUniversalHLT) name_extraTag.Append("_asymHLT");
+  if (systMode==DYTools::NO_SYST) name_extraTag.Append("_regEn");
+  else name_extraTag.Append(generateSystTag(systMode));
+  name_extraTag.Append(includedSyst);
   TString name_covRhoRho=Form("covRhoRho_%s_%d",name_extraTag.Data(),nExps);
   
   std::cout << "\n\nok. Start studies\n";
@@ -65,10 +86,18 @@ int studyEffCov_SFsyst(int debugMode) {
   TString covFileName=Form("covRhoFileSF_%s_%d.root",name_extraTag.Data(),nExps);
 
   TString covFileNamePublic=
-    TString(Form("covRhoFile_el%dD_%dexps",1+DYTools::study2D,nExps)) +
-    mgr.mgr().userKeyValueAsTString("T&P_ESF_extra") +
-    TString((nonUniversalHLT) ? "_asymHLT" : "") +
+    TString(Form("covRhoFile_el%dD_%dexps_",1+DYTools::study2D,nExps)) +
+    //mgr.mgr().userKeyValueAsTString("T&P_ESF_extra") +
+    //TString((nonUniversalHLT) ? "_asymHLT" : "") +
+    name_extraTag +
     TString(".root");
+
+
+  std::cout << "\nNames of files to be produced:\n";
+  std::cout << " - " << rhoFileName << "\n";
+  std::cout << " - " << covFileName << "\n";
+  std::cout << " - " << covFileNamePublic << "\n";
+  std::cout << "\n";
 
 
   // there is a 'nMB' tag
@@ -136,27 +165,13 @@ int studyEffCov_SFsyst(int debugMode) {
     HERE("opening selectEventsFile=<%s>",selectEventsFName.Data());
     TFile *skimFile=new TFile(selectEventsFName);
     if (!skimFile || !skimFile->IsOpen()) {
-      /*
-	if (allowToIgnoreAnalysisTag) {
-	std::cout << ".... changing analysis tag in selectEventsFName\n";
-	if (DYTools::analysisTag=="2D") selectEventsFName.ReplaceAll("2D","1D");
-	else selectEventsFName.ReplaceAll("1D","2D");
-	if (skimFile) delete skimFile;
-	skimFile=new TFile(selectEventsFName);
-      }
-      */
-      if (!skimFile || !skimFile->IsOpen()) {
-	std::cout << "failed to open file <" << selectEventsFName << ">\n";
-	assert(0);
-      }
+      std::cout << "failed to open file <" << selectEventsFName << ">\n";
+      assert(0);
     }
     TTree *skimTree = (TTree*)skimFile->Get("Events");
     assert(skimTree);
     esfSelectEvent_t selData;
     selData.setBranchAddress(skimTree);
-    //EtEtaIndexer_t fidx1(etBinCount,etaBinCount);
-    //EtEtaIndexer_t fidx2(etBinCount,etaBinCount);
-    //const int maxFlatIdx=fidx1.maxFlatIdx();
         
 
     std::cout << "there are " << skimTree->GetEntries() 
@@ -208,11 +223,8 @@ int studyEffCov_SFsyst(int debugMode) {
       
       for (int iexp=0; iexp < nExps; ++iexp) {
 	double scaleFactorSmeared = findEventScaleFactorSmeared(-1, selData, iexp); // HLT formula is inside
-	//if (massBin==39) std::cout << " rndSf= " << scaleFactor << " * " << weight << "\n";
-	//if( selData.insideMassWindow(60,120) ) {
-	//	systSumEsfEvtW_ZpeakV[iexp]+=weight*scaleFactor;
-	//}
 	double extraFactor= mgr.getExtraSF(iexp, fidx1,fidx2);
+	//if ((ientry<10)&&(iexp<10)) std::cout << "ientry=" << ientry << ", iexp=" << iexp << ", extraFactor=" << extraFactor << "\n";
 	sumWeightRho_Rnd(iexp,massBin) += weight*scaleFactorSmeared*extraFactor;
 	sumWeightRhoSqr_Rnd(iexp,massBin) += weight *pow(scaleFactorSmeared*extraFactor, 2.);
       }
@@ -516,9 +528,10 @@ int studyEffCov_SFsyst(int debugMode) {
     avgRhoMean.Write("scaleFactorFlatIdxArray");
     avgRhoRMS.Write("scaleFactorErrFlatIdxArray");
     esfM.Write("scaleFactor");
-    esfMerr.Write("scaleFactorErr");
+    esfMerr.Write("scaleFactorErr_stat");
     esfMpseudo.Write("scaleFactor_pseudo");
     esfMpseudoErr.Write("scaleFactor_pseudoErr");
+    esfMpseudoErr.Write("scaleFactorErr");
     esfMFromHisto150.Write("scaleFactor_hb150");
     esfMFromHisto150err.Write("scaleFactor_hb150err");
     esfMFromHisto1500.Write("scaleFactor_hb1500");
