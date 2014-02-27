@@ -91,13 +91,17 @@ public:
   int getNPV(int isData) const {
     int npv=-100;
     if (isData) npv=pvArr->GetEntriesFast();
+    else {
 #if (defined DYee7TeV) || (defined DYee8TeV)
-    else npv=info->nPU;
+      npv=info->nPU;
 #else
 #    if (defined DYee8TeV_reg)
-       npv=int(info->nPUmean);
-#    endif
+      npv=int(info->nPUmean);
+#else
+      #error no analysis defined
 #endif
+#endif
+    }
     return npv;
   }
 
