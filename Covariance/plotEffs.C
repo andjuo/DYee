@@ -1,25 +1,20 @@
 #include "CovariantEff.h"
 
-int extractOldSF=0;
+int extractOldSF=0; // from DMDY package
 
-void plotEffs(int debugMode) {
-  TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
+void plotEffs(int debugMode, TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py", DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) {
   std::cout << "debugMode=" << debugMode << " is ignored\n";
 
-  if (extractOldSF) {
-    confFileName="../config_files/data_DMDY8TeV_oldNtuples.conf.py";
-  }
-
-  //DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   CovariantEffMgr_t mgr;
   int nExps=1;
 
   if (extractOldSF) {
+    confFileName="../config_files/data_DMDY8TeV_oldNtuples.conf.py";
     mgr.editMgr().rootFileBaseDir("../../DMDY-Ilya-20130808-my-copy/root_files/");
   }
 
   HERE("calling setup");
-  assert(mgr.Setup(confFileName,nExps));
+  assert(mgr.Setup(confFileName,nExps,systMode));
   assert(mgr.initOk());
 
   std::cout << "\n\nok. Start studies\n";
