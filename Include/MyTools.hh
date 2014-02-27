@@ -1305,6 +1305,10 @@ TH2D* LoadMatrixFields(const TString &fname, int checkBinning, const TString &fi
 
 // LoadThreeMatrices loads (value,valueErr) into h2, and (valueSystErr,value^2) into h2syst
 
+// Load one matrix. 
+// If reportFieldError=0, no msg is printed, although null ptr is returned
+TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_nRows, int expect_nCols, int reportFieldError=1);
+
 int LoadThreeMatrices(TFile &fin, TH2D **h2, TH2D **h2syst, const TString &field, const TString &fieldErr, const TString &fieldSystErr, int absoluteRapidity=1);
 
 int LoadThreeMatrices(const TString &fileName, TH2D **h2, TH2D **h2syst, const TString &field, const TString &fieldErr, const TString &fieldSystErr, int checkBinning, int absoluteRapidity=1);

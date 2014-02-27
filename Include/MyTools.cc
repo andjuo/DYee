@@ -234,6 +234,41 @@ int checkMatrixSize(const TMatrixD &m, const TString &name) {
 //--------------------------------------------------
 //--------------------------------------------------
 
+TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_nRows, int expect_nCols, int reportFieldError) {
+  TFile f(fname,"read");
+  TMatrixD *M=NULL;
+  int ok=1;
+  if (!f.IsOpen()) ok=0;
+  if (ok==1) {
+    M=(TMatrixD*)f.Get(fieldName);
+    f.Close();
+    if (!M) ok=-1;
+    else {
+      if ((M->GetNrows()!=expect_nRows) ||
+	  (M->GetNcols()!=expect_nCols)) {
+	ok=-2;
+      }
+    }
+  }
+  if (ok!=1) {
+    int report=1;
+    if ((ok==-1) && !reportFieldError) report=0;
+    if (report) {
+      std::cout << "Error in loadMatrix(fname=<" << fname << ">, fieldName=<" << fieldName << ">, nRows=" << expect_nRows << ", nCols=" << expect_nCols << "):\n";
+      if (ok==0) std::cout << " - failed to open the file\n";
+      else if (ok==-1) std::cout << " - failed to load the field\n";
+      else if (ok==-2) {
+	std::cout << " - size mistmatch. Expect " << expect_nRows << "x" << expect_nCols << ", got " << M->GetNrows() << "x" << M->GetNcols() << "\n";
+	delete M;
+	M=NULL;
+      }
+    }
+  }
+  return M;
+}
+
+//--------------------------------------------------
+
 TH2D* LoadMatrixFields(TFile &fin, const TString &field, const TString &fieldErr, int loadErr, int absoluteRapidity) {
   TMatrixD* val= NULL;
   if (field.Length()) val=(TMatrixD*)fin.Get(field);
