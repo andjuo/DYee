@@ -15,39 +15,6 @@ const TString triggerSetString="Full2011_hltEffOld";
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------
 
-TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_nRows, int expect_nCols, int reportFieldError) {
-  TFile f(fname,"read");
-  TMatrixD *M=NULL;
-  int ok=1;
-  if (!f.IsOpen()) ok=0;
-  if (ok==1) {
-    M=(TMatrixD*)f.Get(fieldName);
-    f.Close();
-    if (!M) ok=-1;
-    else {
-      if ((M->GetNrows()!=expect_nRows) ||
-	  (M->GetNcols()!=expect_nCols)) {
-	ok=-2;
-      }
-    }
-  }
-  if (ok!=1) {
-    int report=1;
-    if ((ok==-1) && !reportFieldError) report=0;
-    if (report) {
-      std::cout << "Error in loadMatrix(fname=<" << fname << ">, fieldName=<" << fieldName << ">, nRows=" << expect_nRows << ", nCols=" << expect_nCols << "):\n";
-      if (ok==0) std::cout << " - failed to open the file\n";
-      else if (ok==-1) std::cout << " - failed to load the field\n";
-      else if (ok==-2) {
-	std::cout << " - size mistmatch. Expect " << expect_nRows << "x" << expect_nCols << ", got " << M->GetNrows() << "x" << M->GetNcols() << "\n";
-	delete M;
-	M=NULL;
-      }
-    }
-  }
-  return M;
-}
-
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------
 
@@ -66,11 +33,12 @@ CovariantEffMgr_t::CovariantEffMgr_t() :
 
 // ----------------------------------------------------------------
 
-int CovariantEffMgr_t::Setup(const TString &confFileName, int nExps) {
+int CovariantEffMgr_t::Setup(const TString &confFileName, int nExps,
+			     DYTools::TSystematicsStudy_t systMode) {
 
   int res=1;
   int createDestDir=0;
-  if (!initManagers(confFileName,DYTools::NORMAL_RUN,FInpMgr,FEvtSelector,FPUStr,createDestDir)) {
+  if (!initManagers(confFileName,DYTools::NORMAL_RUN,FInpMgr,FEvtSelector,FPUStr,createDestDir,systMode)) {
     res=reportError("Setup","failed to initialize managers");
     return res;
   }
@@ -80,7 +48,6 @@ int CovariantEffMgr_t::Setup(const TString &confFileName, int nExps) {
   //assert(ro_Data_loc && ro_MC_loc);
 
   if (nExps>0) {
-    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
 
     // Read efficiency constants from ROOT files
     // This has to be done AFTER configuration file is parsed
@@ -107,11 +74,13 @@ int CovariantEffMgr_t::Setup(const TString &confFileName, int nExps) {
 // ----------------------------------------------------------------
 
 int CovariantEffMgr_t::SetupSFsyst(const TString &confFileName, 
-			     const TString &recoSystFName, 
-			     const TString &idSystFName, 
-			     const TString &hltSystFName, int nExps) {
+				   const TString &recoSystFName, 
+				   const TString &idSystFName, 
+				   const TString &hltSystFName, 
+				   int nExps,
+				   DYTools::TSystematicsStudy_t systMode) {
 
-  int res=this->Setup(confFileName,nExps);
+  int res=this->Setup(confFileName,nExps,systMode);
   if (!res) {
     res=reportError("SetupSFsyst: failed initial Setup");
     return res;
@@ -234,6 +203,7 @@ int CovariantEffMgr_t::SetupSFsyst(const TString &confFileName,
 	  }
 	}
       }
+      //std::cout << "iexp=" << i << " rhoExtraFactors: "; extra.Print();
       FRhoExtraFactors.push_back(new TMatrixD(extra));
     }
   }

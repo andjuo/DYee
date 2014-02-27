@@ -13,9 +13,6 @@
 class EtEtaIndexer_t;
 
 // ---------------------------------
-
-TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_nRows, int expect_nCols, int reportFieldError=1);
-
 // ---------------------------------
 // ---------------------------------
 
@@ -35,8 +32,8 @@ class CovariantEffMgr_t : public BaseClass_t {
   InputFileMgr_t& editMgr() { return FInpMgr; }
 
   int initOk() const { return FInitOk; }
-  int Setup(const TString &confFileName, int nExps);
-  int SetupSFsyst(const TString &confFileName, const TString &recoSystFName, const TString &idSystFName, const TString &hltSystFName, int nExps);
+  int Setup(const TString &confFileName, int nExps, DYTools::TSystematicsStudy_t systMode);
+  int SetupSFsyst(const TString &confFileName, const TString &recoSystFName, const TString &idSystFName, const TString &hltSystFName, int nExps, DYTools::TSystematicsStudy_t systMode);
 
   template<class idx_t>
   double getExtraSF(idx_t iExp, const EtEtaIndexer_t &fidx1, const EtEtaIndexer_t &fidx2) const;
