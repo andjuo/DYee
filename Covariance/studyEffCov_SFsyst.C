@@ -46,6 +46,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode) {
 
   TString recoSystFName, idSystFName, hltSystFName;
   TString includedSyst;
+  int egammaSystOnly=1;
   if (1) {
     int recoOn=(systCode[0]=='1') ? 1:0;
     int idOn  =(systCode[1]=='1') ? 1:0;
@@ -54,10 +55,14 @@ int studyEffCov_SFsyst(int debugMode, TString systCode) {
     if (idOn) idSystFName="../EventScaleFactors/efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
     if (hltOn) hltSystFName="../EventScaleFactors/unregHLTSystematics20140226.root";
     if (recoOn+idOn+hltOn==3) includedSyst="-allSyst";
+    else if (recoOn+idOn+hltOn==0) includedSyst="-noSyst";
     else {
       if (recoOn) includedSyst.Append("-recoSyst");
       if (idOn)   includedSyst.Append("-idSyst");
       if (hltOn)  includedSyst.Append("-hltSyst");
+    }
+    if ((recoOn+idOn!=0) && egammaSystOnly) {
+      includedSyst.Append("-egammaSystOnly");
     }
   }
   if (1) {
@@ -68,7 +73,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode) {
   }
 
   HERE("calling setup");
-  assert(mgr.SetupSFsyst(confFileName,recoSystFName,idSystFName,hltSystFName,nExps,systMode));
+  assert(mgr.SetupSFsyst(confFileName,recoSystFName,idSystFName,hltSystFName,nExps,systMode,egammaSystOnly));
   assert(mgr.initOk());
 
   TString name_extraTag=Form("nMB%d",DYTools::nMassBins);
