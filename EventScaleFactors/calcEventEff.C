@@ -57,6 +57,7 @@ using namespace std;
 // eff(i,trig2) is the efficiency of i'th electron in HLT_leg2,
 // the threshold for HLT_leg1 is higher than for HLT_leg2
 const int nonUniversalHLT=1;// if nonUniversalHLT=1, HLT_leg1 and HLT_leg2 are used
+int loadUniversalHLT=1-nonUniversalHLT; 
 const int NEffTypes=3 + 2*nonUniversalHLT;
 const int allowToIgnoreAnalysisTag=1; // efficiencies and selected events...
 // .... are the same for 1D and 2D
@@ -285,9 +286,12 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
 
   // Construct eventSelector, update mgr and plot directory
   TString plotsExtraTag=puStr;
-  //EventSelector_t 
+  EventSelector::TSelectionType_t set_selection=EventSelector::_selectHLTOrdered;
+#ifdef DYee8TeV_reg
+  if (systMode==DYTools::UNREGRESSED_ENERGY) set_selection=EventSelector::_selectHLTOrdered_nonRegressed;
+#endif
   if (!evtSelector.init(inpMgr,runMode,systMode,
-			"",plotsExtraTag, EventSelector::_selectHLTOrdered)) {
+			"",plotsExtraTag, set_selection)) {
     std::cout << "failed to create EventSelector_t\n";
     return 0;
   }
@@ -1733,10 +1737,15 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	const int trace=0; //(ientry==293) ? 1:0;
 	if (trace) std::cout << "tracing\n";
 
+	mithep::TDielectron *dielectron=NULL;
+#ifdef DYee8TeV_reg
+	mithep::TDielectron unregDielectron;
+#endif
+
 	// loop through dielectrons
 	//int pass=0;
 	for(Int_t i=0; i<accessInfo.dielectronCount(); i++) {
-	  mithep::TDielectron *dielectron = accessInfo.editDielectronPtr(i);
+	  dielectron = accessInfo.editDielectronPtr(i);
 	  ec.numDielectrons_inc();
 	  if (trace) std::cout << "i=" << i << "\n";
 
@@ -1759,6 +1768,16 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	    continue;
 	  }
 	  ec.numDielectronsGoodMass_inc();
+
+#ifdef DYee8TeV_reg
+	  if (systMode==DYTools::UNREGRESSED_ENERGY) {
+	    unregDielectron.assign(dielectron);
+	    //std::cout << "dielectron info    : " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
+	    unregDielectron.replace2UncorrEn(0); // 0 - do replace, 1 - don't replace
+	    dielectron= &unregDielectron;
+	    //std::cout << "dielectron info (2): " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
+	  }
+#endif
 
 	  // escale may modify dielectron! But it should not be applied here
 	  if (!evtSelector.testDielectron(dielectron,accessInfo.evtInfoPtr(),&ec)) {
@@ -1784,7 +1803,8 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	  ec.numDielectronsPass_inc();
 
 	  const int isData=0;
-	  selData.assign(accessInfo,isData,i,evWeight.totalWeight());
+	  //selData.assign(accessInfo,isData,i,evWeight.totalWeight());
+	  selData.assign(dielectron,accessInfo.genPtr(),accessInfo.getNPV(isData),evWeight.totalWeight());
 
 	  skimTree->Fill();
 	} // end loop over dielectrons
@@ -3102,7 +3122,17 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr, DYTools::TSystematic
   for (int kind=0; res && (kind<NEffTypes); ++kind) {    
     DYTools::TEtBinSet_t localEtBinning= etBinning;
     DYTools::TEfficiencyKind_t effKind=DYTools::TEfficiencyKind_t(kind);
-      //(etBinning == DYTools::ETBINS6spec) ? DYTools::ETBINS6 : etBinning;
+
+    if ((effKind==DYTools::HLT) && !loadUniversalHLT) {
+      TMatrixD zero(etBinCount,etaBinCount);
+      zero.Zero();
+      dataEff.push_back(new TMatrixD(zero));
+      dataEffErrLo.push_back(new TMatrixD(zero));
+      dataEffErrHi.push_back(new TMatrixD(zero));
+      dataEffAvgErr.push_back(new TMatrixD(zero));
+      continue;
+    }
+
     triggers.actOnData(true);
     TString dataFName=fnStart + 
       getLabel(DYTools::DATA, effKind,
@@ -3116,10 +3146,21 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr, DYTools::TSystematic
 			  dataEff, dataEffErrLo, dataEffErrHi, dataEffAvgErr,
 			  weightedCnC);
   }
+
   for (int kind=0; res && (kind<NEffTypes); ++kind) {
     DYTools::TEtBinSet_t localEtBinning= etBinning;
     DYTools::TEfficiencyKind_t effKind=DYTools::TEfficiencyKind_t(kind);
-      // (etBinning == DYTools::ETBINS6spec) ? DYTools::ETBINS6 : etBinning;
+
+    if ((effKind==DYTools::HLT) && !loadUniversalHLT) {
+      TMatrixD zero(etBinCount,etaBinCount);
+      zero.Zero();
+      mcEff.push_back(new TMatrixD(zero));
+      mcEffErrLo.push_back(new TMatrixD(zero));
+      mcEffErrHi.push_back(new TMatrixD(zero));
+      mcEffAvgErr.push_back(new TMatrixD(zero));
+      continue;
+    }
+
     triggers.actOnData(false);
     TString mcFName=fnStart + 
       getLabel(DYTools::MC, effKind,
@@ -3152,6 +3193,15 @@ int fillOneEfficiency(const TString &use_dirTag, const TString filename,
       if(f) delete f;
       f = new TFile(fullFName);
     }
+    /*
+    if (!f->IsOpen()) {
+      std::cout << "... changing EtBins6systEtaBins5 to EtBins6EtaBins5\n";
+      fullFName.ReplaceAll("2D","1D");
+      fullFName.ReplaceAll("EtBins6systEtaBins5","EtBins6EtaBins5");
+      if (f) delete f;
+      f = new TFile(fullFName);
+    }
+    */
     if (!f || !f->IsOpen()) {
       std::cout << "failed to open a file <" << fullFName << ">" << std::endl;
       assert(0);
