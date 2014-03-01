@@ -121,9 +121,7 @@ public:
     nGoodPV=_nGoodPV;
   }
 
-  void assign(const AccessOrigNtuples_t &accessInfo, int isData, int dielectronIdx, double _weight) {
-    const mithep::TDielectron *dielectron = accessInfo.dielectronPtr(dielectronIdx);
-    const mithep::TGenInfo *gen=accessInfo.genPtr();
+  void assign(const mithep::TDielectron *dielectron, const mithep::TGenInfo *gen, int _nGoodPV, double _weight) {
     genMass= gen->mass;
     genY= gen->y;
     mass= dielectron->mass;
@@ -141,9 +139,18 @@ public:
       et_2= dielectron->scEt_1;
       eta_2= dielectron->scEta_1;
     }
+    nGoodPV=_nGoodPV;
     weight=_weight;
-    nGoodPV=accessInfo.getNPV(isData);
   }
+
+  // 
+  //void assign(const AccessOrigNtuples_t &accessInfo, int isData, int dielectronIdx, double _weight) {
+  //  this->assign(accessInfo.dielectronPtr(dielectronIdx),
+  //		 accessInfo.genPtr(),
+  //		 accessInfo.getNPV(isData), 
+  //		 _weight);
+  //}
+
 
   void createBranches(TTree *tree) {
     tree->Branch("genMass",&this->genMass,"genMass/D");
