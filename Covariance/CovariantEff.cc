@@ -78,7 +78,8 @@ int CovariantEffMgr_t::SetupSFsyst(const TString &confFileName,
 				   const TString &idSystFName, 
 				   const TString &hltSystFName, 
 				   int nExps,
-				   DYTools::TSystematicsStudy_t systMode) {
+				   DYTools::TSystematicsStudy_t systMode,
+				   int egammaSystOnly) {
 
   int res=this->Setup(confFileName,nExps,systMode);
   if (!res) {
@@ -110,20 +111,22 @@ int CovariantEffMgr_t::SetupSFsyst(const TString &confFileName,
     int loc_etaBinCount=DYTools::getNEtaBins(loc_etaBinning);
     //etaBinLimits=DYTools::getEtaBinLimits(etaBinning);
     
+    TString systFieldName=(egammaSystOnly) ? "sf_syst_rel_error_egamma" : "sf_syst_rel_error";
+
     if (recoSystFName.Length()) {
-      TMatrixD *Mreco= loadMatrix(recoSystFName,"sf_syst_rel_error",loc_etBinCount,loc_etaBinCount);
+      TMatrixD *Mreco= loadMatrix(recoSystFName,systFieldName,loc_etBinCount,loc_etaBinCount);
       if (!Mreco) return 0;
       FRhoRelSystErrs.push_back(Mreco);
       err_ids.push_back(int(DYTools::RECO));
     }
     if (idSystFName.Length()) {
-      TMatrixD *Mid= loadMatrix(idSystFName,"sf_syst_rel_error",loc_etBinCount,loc_etaBinCount);
+      TMatrixD *Mid= loadMatrix(idSystFName,systFieldName,loc_etBinCount,loc_etaBinCount);
       if (!Mid) return 0;
       FRhoRelSystErrs.push_back(Mid);
       err_ids.push_back(int(DYTools::ID));
     }
     if (hltSystFName.Length()) {
-      TMatrixD* Mhlt= loadMatrix(hltSystFName,"sf_syst_rel_error",loc_etBinCount,loc_etaBinCount,0);
+      TMatrixD* Mhlt= loadMatrix(hltSystFName,systFieldName,loc_etBinCount,loc_etaBinCount,0);
       if (Mhlt) {
 	FRhoRelSystErrs.push_back(Mhlt);
 	err_ids.push_back(int(DYTools::HLT));
