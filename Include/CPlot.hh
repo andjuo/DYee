@@ -174,6 +174,8 @@ public:
   //
   // Accessors
   // 
+  TString GetName() const { return fName; }
+  TString GetTitle() const { return fTitle; }
   TLegend* GetLegend() { return fLeg; }
   THStack* GetStack()  { return fStack; }
 
