@@ -12,13 +12,15 @@ TString formNewTitle(TString inpFileName, TString canvName, TString &shortName);
 
 void extractFitPlots(TString fname, TString destDir) {
   TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
+  confFileName="../config_files/data_vilnius8TeV_regSSD_etaMax25.conf.py";
 
-  //DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  systMode=DYTools::UNREGRESSED_ENERGY;
   CovariantEffMgr_t mgr;
   int nExps=0;
 
   HERE("calling setup");
-  assert(mgr.Setup(confFileName,nExps));
+  assert(mgr.Setup(confFileName,nExps,systMode));
   assert(mgr.initOk());
 
   std::cout << "\n\nok. Start studies\n";
