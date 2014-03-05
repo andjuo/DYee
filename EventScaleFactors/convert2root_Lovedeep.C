@@ -162,15 +162,16 @@ void convert2root_Lovedeep () {
   }
   std::cout << "ID systematics: "; IDsyst.Print();
 
-  // values from 2014 Feb 25
+  // values from 2014 Mar 05
+  // Based on unregressed energy analysis
   TMatrixD IDsyst_etaMax25(6,5);
   IDsyst_etaMax25.Zero();
-  IDsyst_etaMax25(0,4)=0.034;
-  IDsyst_etaMax25(1,4)=0.034;
-  IDsyst_etaMax25(2,4)=0.034;
-  IDsyst_etaMax25(3,4)=0.027;
-  IDsyst_etaMax25(4,4)=0.02;
-  IDsyst_etaMax25(5,4)=0.02;
+  IDsyst_etaMax25(0,4)=0.025;
+  IDsyst_etaMax25(1,4)=0.019;
+  IDsyst_etaMax25(2,4)=0.005;
+  IDsyst_etaMax25(3,4)=0.005;
+  IDsyst_etaMax25(4,4)=0.005;
+  IDsyst_etaMax25(5,4)=0.005;
   std::cout << "ID systematics due to |eta|<2.5: "; IDsyst_etaMax25.Print();
 
   TMatrixD IDsyst_tot(6,5);
