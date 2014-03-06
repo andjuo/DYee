@@ -223,21 +223,21 @@ void plotSFspec(int iBr=0, int iEta=0,
   label2="stat.+syst.err.";
   label3="stat.+syst.err.+add.syst.err";
 
-  if (1) {
+  if (iBr==0) {
     fname="./egammaRECO.root";
     sfKindLongStr="sf_RECO_ETBINS6ETABINS5";
 
     saveFileTag="-cmpEgammaRECO";
-    transLegendX=-0.2;
+    transLegendX=-0.23;
     //transLegendY=-0.2;
   }
 
-  if (0) {
+  if (iBr==1) {
     fname="./mediumID.root";
     sfKindLongStr="sf_mediumID_ETBINS6ETABINS5";
 
     saveFileTag="-cmpEgammaMediumID";
-    transLegendX=-0.2;
+    transLegendX=-0.23;
     //transLegendY=-0.2;
   }
 
@@ -293,9 +293,13 @@ void plotSFspec(int iBr=0, int iEta=0,
   gr1->Print("range");
 
   TGraphAsymmErrors* gr2=getAsymGraph(etBinSet,etaBinSet,iEta,*sf,sf2ErrLo,sf2ErrHi);
+  gr2->GetXaxis()->SetMoreLogLabels();
+  gr2->GetXaxis()->SetNoExponent();
   gr2->Print("range");
 
   TGraphAsymmErrors* gr3=getAsymGraph(etBinSet,etaBinSet,iEta,*sf,sf3ErrLo,sf3ErrHi);
+  gr3->GetXaxis()->SetMoreLogLabels();
+  gr3->GetXaxis()->SetNoExponent();
   gr3->Print("range");
 
 
@@ -304,7 +308,7 @@ void plotSFspec(int iBr=0, int iEta=0,
   TString cpTitle=dataKind+ TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iEta],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iEta+1]));
 
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,"comp",cpTitle,
-		      "E_{T} [GeV]",effKind + TString(" scale factor"),"ratio");
+		      "#it{E}_{T} [GeV]",effKind + TString(" scale factor"),"ratio");
   cp.SetRefIdx(-111); // no ratio plot
   cp.SetLogx();
   cp.AddLine(10.,1.,500.,1.,kBlack,2);
@@ -314,7 +318,8 @@ void plotSFspec(int iBr=0, int iEta=0,
 
   gr1->GetYaxis()->SetTitleOffset(1.4);
 
-  cp.AddGraph(gr3,label3,"LPE",43); //kRed+3);
+  //cp.AddGraph(gr3,label3,"LPE",43); //kRed+3);
+  cp.AddGraph(gr3,label3,"LPE",kRed); //kRed+3);
   cp.AddGraph(gr2,label2,"LPE",38); //kBlue+2);
   cp.AddGraph(gr1,label1," PE",kBlack,20); //24
 
