@@ -278,6 +278,23 @@ void compareESF(int iBr=0,
     if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.93; set_ratio_y_max=1.07; }
     compSet=13;
+    swapColors=(nDim==1) ? 2 : 0;
+    setYRanges2D=enforceYRanges(1);
+  }
+
+  if (0) { // added 2014.03.01
+    path1="../Covariance/";
+    path2="../Covariance/";
+    fnameBase="covRhoFileSF";
+    esfLongStr1="_nMB41_egamma_asymHLT_Unregressed_energy-allSyst_100";
+    esfLongStr2="_nMB41_egamma_asymHLT_Unregressed_energy-allSyst_1000";
+    label1="EGamma (unreg.en.+all syst. 100)";
+    label2="EGamma (unreg.en.+all.syst. 1000)";
+    fnameTag="-egamma-unregEn-allSyst-1000";
+    saveDirTag="-egamma-unregEn--";
+    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    else { set_ratio_y_min=0.93; set_ratio_y_max=1.07; }
+    compSet=13;
     swapColors=0;
     setYRanges2D=enforceYRanges(1);
   }
@@ -502,6 +519,7 @@ void compareESF(int iBr=0,
     int color1=kBlack;
     int color2=46; // red-brown
     if (swapColors) { int icol=color1; color1=color2; color2=icol; }
+    if (swapColors==2) color1=kRed;
 
     //cp->SetRatioYRangeC(1,0.04);
     cp->SetRatioYRange(set_ratio_y_min, set_ratio_y_max);
@@ -522,12 +540,13 @@ void compareESF(int iBr=0,
   }
 
   if (cy && fnameTag.Length() && saveDirTag.Length()) {
+    TString fname=TString("fig") + saveDirTag;
+    fname.Append(Form("%dD",(DYTools::study2D) ? 2:1));
+    fname.Append(fnameTag);
+    TString locOutDir=TString("plots") + saveDirTag;
+    locOutDir.ReplaceAll("--","");
+    std::cout << "save <" << fname << "> in <" << locOutDir << ">\n";
     if (doSave) {
-      TString fname=TString("fig") + saveDirTag;
-      fname.Append(Form("%dD",(DYTools::study2D) ? 2:1));
-      fname.Append(fnameTag);
-      TString locOutDir=TString("plots") + saveDirTag;
-      locOutDir.ReplaceAll("--","");
       SaveCanvas(cy,fname,locOutDir);
     }
     else {
