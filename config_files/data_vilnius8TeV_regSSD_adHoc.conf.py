@@ -49,7 +49,7 @@ SpecTagFileUser=
 
 # Electron energy scale
 #EScaleSet=Date20130529_2012_j22_adhoc   # Name of energy scale calibrations set. See ElectronEnergyScale.hh.
-EScaleSet=UNCORRECTED
+EScaleSet=Date20140220_2012_j22_peak_position
 
 # Extension of the saved plots
 PlotExtension=png  # png,pdf,C,root, default={png,pdf,root}
