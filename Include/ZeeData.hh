@@ -1,12 +1,27 @@
 #ifndef ZEE_DATA_HH
 #define ZEE_DATA_HH
 
-//#define ZeeData_storeGoldenFlag
-
 #include <TObject.h>
+#include "../Include/DYTools.hh"
+
 #include "../Include/TEventInfo.hh"
 #include "../Include/TDielectron.hh"
 #include "../Include/EventWeight.hh"
+
+#ifdef DYee8TeV_reg
+#include <TLorentzVector.h>
+#include "../Include/TPhoton.hh"
+#endif
+
+// define what extra fields to store
+
+#define ZeeData_storeGoldenFlag 
+
+#ifdef DYee8TeV_reg
+# define ZeeData_storeUnregEn
+#endif
+
+
 
 class ZeeData_t : public TObject
 {
@@ -42,6 +57,11 @@ public:
   Double_t fewz_weight;              // fewz_weight
 #ifdef ZeeData_storeGoldenFlag
   Int_t golden_1, golden_2;    // whether electron R9>0.94 (golden electron), or <0.94 (showering electron)
+  Float_t R9_1, R9_2;
+#endif
+#ifdef ZeeData_storeUnregEn
+  Float_t ptUncorr_1, ptUncorr_2;
+  Float_t scEtUncorr_1, scEtUncorr_2;
 #endif
 
 
@@ -80,6 +100,13 @@ public:
     fewz_weight=a.fewz_weight;
 #ifdef ZeeData_storeGoldenFlag
     golden_1=a.golden_1; golden_2=a.golden_2;
+    R9_1=a.R9_1; R9_2=a.R9_2;
+#endif
+#ifdef ZeeData_storeUnregEn
+    ptUncorr_1=a.ptUncorr_1;
+    ptUncorr_2=a.ptUncorr_2;
+    scEtUncorr_1=a.scEtUncorr_1;
+    scEtUncorr_2=a.scEtUncorr_2;
 #endif
   }
 
@@ -91,7 +118,7 @@ public:
 		const Double_t set_pu_weight,
 		const Double_t set_fewz_weight
 #ifdef ZeeData_storeGoldenFlag
-	      , const Double_t R9_1, const Double_t R9_2
+	      , const Float_t setR9val_1, const Float_t setR9val_2
 #endif
 		) {
     ZeeData_t *data= this;
@@ -138,35 +165,84 @@ public:
   data->pu_weight      = set_pu_weight;
   data->fewz_weight    = set_fewz_weight;
 #ifdef ZeeData_storeGoldenFlag
-  data->golden_1 = (R9_1 > 0.94) ? 1:0;
-  if (R9_1<0) data->golden_1=-1;
-  data->golden_2 = (R9_2 > 0.94) ? 1:0;
-  if (R9_2<0) data->golden_2=-1;
+  data->golden_1 = (setR9val_1 > 0.94) ? 1:0;
+  if (setR9val_1<0) data->golden_1=-1;
+  data->golden_2 = (setR9val_2 > 0.94) ? 1:0;
+  if (setR9val_2<0) data->golden_2=-1;
+  R9_1=setR9val_1;
+  R9_2=setR9val_2;
+#endif
+#ifdef ZeeData_storeUnregEn
+  ptUncorr_1= dielectron->ptUncorr_1;
+  ptUncorr_2= dielectron->ptUncorr_2;
+  scEtUncorr_1= dielectron->scEtUncorr_1;
+  scEtUncorr_2= dielectron->scEtUncorr_2;
 #endif
   }
 
   // ----------------------
 
-  void Assign(const mithep::TEventInfo *info, const mithep::TDielectron *dielectron, 
-		const UInt_t npv, 
-		//const UInt_t njets, 
-		const EventWeight_t &ew
+  void Assign(const mithep::TEventInfo *info, 
+	      const mithep::TDielectron *dielectron, 
 #ifdef ZeeData_storeGoldenFlag
-	      , const Double_t R9_1, const Double_t R9_2
+	      const mithep::TPhoton *sc_1,
+	      const mithep::TPhoton *sc_2,
 #endif
-		) {
-      Assign(info,dielectron,
-	     npv,
-	     ew.baseWeight(),
-	     ew.puWeight(),
-	     ew.fewzWeight()
+	      const UInt_t npv, 
+	      //const UInt_t njets, 
+	      const EventWeight_t &ew
+	      ) {
+
 #ifdef ZeeData_storeGoldenFlag
-	     , R9_1,R9_2
+
+    int scIDok_1=((sc_1!=NULL) && (sc_1->scID == dielectron->scID_1)) ? 1:0;
+    int scIDok_2=((sc_2!=NULL) && (sc_2->scID == dielectron->scID_2)) ? 1:0;
+    Float_t setR9_1= (scIDok_1) ? sc_1->R9 : -1.;
+    Float_t setR9_2= (scIDok_2) ? sc_2->R9 : -1.;
+    Assign(info,dielectron,
+	   npv,
+	   ew.baseWeight(),
+	   ew.puWeight(),
+	   ew.fewzWeight(),
+	   setR9_1,
+	   setR9_2
+	   );
+
+#else
+
+    Assign(info,dielectron,
+	   npv,
+	   ew.baseWeight(),
+	   ew.puWeight(),
+	   ew.fewzWeight()
+	   );
+
 #endif
-	     );
   }
 
   // ----------------------
+
+#ifdef ZeeData_storeUnregEn
+  void replace2UncorrEn(int check=0) {
+    if (!check) {
+      pt_1=ptUncorr_1;
+      scEt_1=scEtUncorr_1;
+      pt_2=ptUncorr_2;
+      scEt_2=scEtUncorr_2;
+    }
+    TLorentzVector ele1,ele2;
+    ele1.SetPtEtaPhiM(pt_1,eta_1,phi_1,0.000511);
+    ele2.SetPtEtaPhiM(pt_2,eta_2,phi_2,0.000511);
+    TLorentzVector diEle = ele1+ele2;
+    mass= diEle.M();
+    pt  = diEle.Pt();
+    y   = diEle.Rapidity();
+    phi = diEle.Phi();
+  }
+#endif
+
+  // ----------------------
+
 
 #ifdef ZeeData_storeGoldenFlag
   ClassDef(ZeeData_t,3)
@@ -175,5 +251,9 @@ public:
 #endif
 
 };
+
+
+// -----------------------------------------------------
+
 
 #endif
