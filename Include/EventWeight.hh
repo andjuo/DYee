@@ -109,7 +109,7 @@ public:
       }
     }
     baseW*=extraFactor;
-    std::cout << " corrected by extraFactor=" << extraFactor << ". final=" << baseW << "\n";
+    std::cout << " weight corrected by extraFactor=" << extraFactor << ". final=" << baseW << "\n";
     return 1;
   }
 
