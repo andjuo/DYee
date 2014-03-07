@@ -46,6 +46,7 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case NO_SYST: name="NormalRun_noSyst"; break;
   case RESOLUTION_STUDY: name="ResolutionStudy"; break;
   case FSR_STUDY: name="FSRStudy"; break;
+  case APPLY_ESCALE: name="ApplyEscale"; break;
   case ESCALE_RESIDUAL: name="EScale_residual"; break;
   case ESCALE_STUDY: name="EScale_study"; break;
   case ESCALE_STUDY_RND: name="EScale_study_randomized"; break;
@@ -216,6 +217,7 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   if (str.Contains("NORMALRUN_NOSYST") || str.Contains("NormalRun_noSyst")) { study=NO_SYST; }
   else if (str.Contains("RESOLUTION_STUDY") || str.Contains("ResolutionStudy")) study=RESOLUTION_STUDY;
   else if (str.Contains("FSR_STUDY") || str.Contains("FSRStudy")) study=FSR_STUDY;
+  else if (str.Contains("APPLY_ESCALE") || str.Contains("ApplyEscale")) study=APPLY_ESCALE;
   else if (str.Contains("ESCALE_RESIDUAL") || str.Contains("EScale_residual")) study=ESCALE_RESIDUAL;
   else if (str.Contains("ESCALE_STUDY_RND") || str.Contains("EScale_study_randomized")) study=ESCALE_STUDY_RND;
   else if (str.Contains("ESCALE_STUDY") || str.Contains("EScale_study")) study=ESCALE_STUDY;
