@@ -8,7 +8,6 @@
 #include "../Include/MyTools.hh"
 //#include <TGraphAsymmErrors.h>
 
-
 // -------------------------------------------------------------
 
 class ComparisonPlot_t : public CPlot {
@@ -150,6 +149,12 @@ public:
     if (fYLabelSize>0.) ay->SetLabelSize(fYLabelSize);
     CPlot::AddHist1D(h,label,drawopt,color,linesty,fillsty,legendSymbolLP);
   }
+
+  void AddToStack(TH1D *h, TString label, int color) {
+    CPlot::AddToStack(h,label,color);
+    SkipInRatioPlots(h);
+  }
+
 
   void AddGraph(TGraph *gr, TString label, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1) {
     TAxis *ax=gr->GetXaxis();
@@ -393,6 +398,9 @@ public:
 	hratio->SetMarkerStyle(histo->GetMarkerStyle());
 	hratio->SetDirectory(0);
 	hratio->GetXaxis()->SetLabelOffset(0.05);
+	if (CPlot::fXmin < CPlot::fXmax) {
+	  hratio->GetXaxis()->SetRangeUser(CPlot::fXmin,CPlot::fXmax);
+	}
 	fHRatioItems.push_back(hratio);
 
 	int skip=(i==fRefIdx) ? 1:0;
@@ -507,6 +515,12 @@ public:
 	hratio->Draw(opt);
       }
 
+      double lineXmin=hRef->GetXaxis()->GetXmin();
+      double lineXmax=hRef->GetXaxis()->GetXmax();
+      if (CPlot::fXmin < CPlot::fXmax) {
+	lineXmin=CPlot::fXmin; lineXmax=CPlot::fXmax;
+      }
+
       double nominal=0;
       switch(fRatioType) {
       case _ratioPlain: nominal=1; break;
@@ -515,8 +529,7 @@ public:
 	nominal=yrC;
       }
       TLine *lineAtOne = 
-	new TLine(hRef->GetXaxis()->GetXmin(), nominal,
-		  hRef->GetXaxis()->GetXmax(), nominal);
+	new TLine(lineXmin, nominal,lineXmax, nominal);
       if ((nominal>yrMin) && (nominal<yrMax)) {
 	lineAtOne->SetLineStyle(kDashed);
 	lineAtOne->SetLineWidth(1);
@@ -524,8 +537,7 @@ public:
 	lineAtOne->Draw();
       }
       TLine *linePlus10 = 
-	new TLine(hRef->GetXaxis()->GetXmin(), nominal+0.1,
-		  hRef->GetXaxis()->GetXmax(), nominal+0.1);
+	new TLine(lineXmin, nominal+0.1, lineXmax, nominal+0.1);
       if ((nominal+0.1>yrMin) && (nominal+0.1<yrMax)) {
 	linePlus10->SetLineStyle(8);
 	linePlus10->SetLineWidth(1);
@@ -533,8 +545,7 @@ public:
 	linePlus10->Draw();
       }
       TLine *lineMinus10 = 
-	new TLine(hRef->GetXaxis()->GetXmin(), nominal-0.1,
-		  hRef->GetXaxis()->GetXmax(), nominal-0.1);
+	new TLine(lineXmin, nominal-0.1,lineXmax, nominal-0.1);
       if ((nominal-0.1>yrMin) && (nominal-0.1<yrMax)) {
 	lineMinus10->SetLineStyle(8);
 	lineMinus10->SetLineWidth(1);
@@ -546,7 +557,7 @@ public:
     }
 
     if(doSave) {
-      cout << "DEBUG: saving" << endl;
+      std::cout << "DEBUG: saving" << std::endl;
       gSystem->mkdir(sOutDir,true);
       TString outname = sOutDir+TString("/")+fName+TString(".");
       if(format.CompareTo("all",TString::kIgnoreCase)==0) {
