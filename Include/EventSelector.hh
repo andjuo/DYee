@@ -243,6 +243,12 @@ public:
 
   // -----
 
+  template<class tData_t>
+  int applyEScale(tData_t *data, int isData=0, int randomized=0) const {
+    return fEScale->applyEnergyScale(data,isData,randomized);
+  }
+  // -----
+
 
   std::ostream& printCounts(std::ostream&);
   void printCounts() { printCounts(std::cout); }
