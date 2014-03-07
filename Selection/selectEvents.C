@@ -144,7 +144,6 @@ int selectEvents(const TString conf,
   if (DYTools::processData(runMode)) {
   for(UInt_t isam=0; isam<inpMgr.sampleCount(); isam++) {        
 
-
     // Configure the object for trigger matching	
 
     const CSample_t* samp = inpMgr.sampleInfo(isam);
@@ -179,8 +178,13 @@ int selectEvents(const TString conf,
     EventCounterExt_t ecSample(samp->name);
     for(UInt_t ifile=0; ifile<samp->size(); ifile++) {
       cout << "Processing " << samp->getFName(ifile) << "... " << std::endl;
-      TFile infile(samp->getFName(ifile),"read");
-      assert(infile.IsOpen());
+      TFile *infile=new TFile(samp->getFName(ifile),"read");
+      if (!infile || !infile->IsOpen()) {
+	TString skimName=inpMgr.convertSkim2Ntuple(samp->getFName(ifile));
+	std::cout <<  "  .. failed. Trying <" << skimName << ">" << std::endl;
+	infile= new TFile(skimName,"read");
+      }
+      assert(infile->IsOpen());
     
       if (!accessInfo.prepareJson(samp->getJsonFName(ifile))) {
 	std::cout << "\nfailed at json file <" << samp->getJsonFName(ifile) << ">\n";
@@ -191,7 +195,7 @@ int selectEvents(const TString conf,
       int isSignalMC=(samp->name=="zee") ? 1:0;
       // Gen branch is activated only for signal MC:
       //int setupGenBranch=isSignalMC;
-      if (!accessInfo.setTree(infile,"Events", isSignalMC)) return retCodeError;
+      if (!accessInfo.setTree(*infile,"Events", isSignalMC)) return retCodeError;
       
       // Determine maximum number of events to consider
       // *** CASES ***
@@ -221,7 +225,7 @@ int selectEvents(const TString conf,
 
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
 	ec.numEvents_inc();
-	if (DYTools::isDebugMode(runMode) && (ientry>1000000)) break; // debug option
+	if (DYTools::isDebugMode(runMode) && (ientry>10000)) break; // debug option
 	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
 	printProgress(100000," ientry=",ientry,maxEvents);
 	
@@ -262,6 +266,7 @@ int selectEvents(const TString conf,
 	accessInfo.GetDielectrons(ientry);
 
 	// loop through dielectrons
+	UInt_t dielCount=0;
 	for(Int_t i=0; i<accessInfo.dielectronCount(); i++) {
 	  mithep::TDielectron *dielectron = accessInfo.editDielectronPtr(i);
 	  ec.numDielectrons_inc();
@@ -275,6 +280,7 @@ int selectEvents(const TString conf,
 
           /******** We have a Z candidate! HURRAY! ********/
 	  
+	  dielCount++;
 	  ec.numDielectronsPass_inc();
 	  if (ec.numDielectronsOkSameSign_inc(dielectron->q_1,dielectron->q_2)) {
 	    // same sign event
@@ -312,18 +318,20 @@ int selectEvents(const TString conf,
 #endif
 		       );
 
-	  if (0 && isDebugMode(runMode)) {
-	    std::cout << "ientry=" << ientry << ", nPU=" << accessInfo.getNPV(isData) << ", mass=" << dielectron->mass << ", weight=" << evWeight.baseWeight() << ", weightSave=" << evWeight.totalWeight() << "\n";
+	  if (1 && isDebugMode(runMode)) {
+	    //std::cout << "ientry=" << ientry << ", nPU=" << accessInfo.getNPV(isData) << ", mass=" << dielectron->mass << ", weight=" << evWeight.baseWeight() << ", weightSave=" << evWeight.totalWeight() << "\n";
+	    std::cout << "ientry=" << ientry << ", nPU=" << accessInfo.getNPV(isData) << ", mass=" << dielectron->mass << ", weightSave=" << evWeight.totalWeight() << "\n";
 	  }
 	  outTree->Fill();
 	}
+
+	if (dielCount>1) ec.numMultiDielectronsOk_inc();
       }
       ec.print();  // print info about file
       ecSample.add(ec); // accumulate event counts
 
-      //delete infile;
-      infile.Close();
-      //infile=0; 
+      infile->Close();
+      delete infile;
       //eventTree=0;
     }
     ecSample.print(); // print info about sample
