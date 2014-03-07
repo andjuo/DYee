@@ -24,6 +24,7 @@ public:
   double numDielectronsIDpassed;
   double numDielectronsGoodMass;
   double numDielectronsPass[2];
+  double numMultiDielectronsOk;
   double scale;
   int ignoreScale; // whether scale change should be allowed
  public:
@@ -41,6 +42,7 @@ public:
     numDielectronsHLTmatched(0),
     numDielectronsIDpassed(0),
     numDielectronsGoodMass(0),
+    numMultiDielectronsOk(0),
     scale(1.),
     ignoreScale(0)
   {
@@ -67,6 +69,7 @@ public:
     numDielectronsGoodMass=0;
     numDielectronsPass[0]=0.;
     numDielectronsPass[1]=0.;
+    numMultiDielectronsOk=0,
     scale=1.;
   }
 
@@ -83,6 +86,7 @@ public:
   void numDielectronsHLTmatched_inc() { numDielectronsHLTmatched+=scale; }
   void numDielectronsIDpassed_inc() { numDielectronsIDpassed+=scale; }
   void numDielectronsGoodMass_inc() { numDielectronsGoodMass+=scale; }
+  void numMultiDielectronsOk_inc() { numMultiDielectronsOk+=scale; }
 
   void numDielectronsPass_inc() { 
     numDielectronsPass[0] += scale;
@@ -109,6 +113,7 @@ public:
     numDielectronsGoodMass=e.numDielectronsGoodMass;
     numDielectronsPass[0]=e.numDielectronsPass[0];
     numDielectronsPass[1]=e.numDielectronsPass[1];
+    numMultiDielectronsOk=e.numMultiDielectronsOk;
     scale=e.scale;
   }
 
@@ -127,6 +132,7 @@ public:
     numDielectronsGoodMass+=e.numDielectronsGoodMass;
     numDielectronsPass[0]+=e.numDielectronsPass[0];
     numDielectronsPass[1]+=e.numDielectronsPass[1];
+    numMultiDielectronsOk+=e.numMultiDielectronsOk;
     if (scale!=e.scale) scale=-1;
   }
 
@@ -156,6 +162,7 @@ public:
       out << "   numDielectronsGoodMass   = " << Form(format,this->numDielectronsGoodMass) << "\n";
       out << "   numDielectronsPass       = " << Form(format,this->numDielectronsPass[0]) << " +/- " << Form(format,sqrt(this->numDielectronsPass[1])) << "\n";
     }
+    out   << "  numMultiDielectronsOk     = " << Form(format,this->numMultiDielectronsOk) << "\n";
     if (this->ignoreScale) out << "   scale ignored\n";
     else out << Form("   last scale = %9.4e\n",this->scale);
     out << line;
@@ -258,6 +265,7 @@ public:
       out << "   numDielectronsOkPosSS    = " << Form(format,this->numDielectronsOkPosSS) << "\n";
       out << "   numDielectronsOkNegSS    = " << Form(format,this->numDielectronsOkNegSS) << "\n";
     }
+    out   << "  numMultiDielectronsOk     = " << Form(format,this->numMultiDielectronsOk) << "\n";
     if (this->ignoreScale) out << "   scale ignored\n";
     else out << Form("   last scale = %9.4e\n",this->scale);
     out << line;
