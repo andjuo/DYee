@@ -31,6 +31,8 @@ public:
     Date20121003FEWZ_default, // FEWZ correction and MC backgroud were considered in derivation
     Date20121025FEWZPU_default, // FEWZ correction and PU reweighting were considered in derivation
     Date20130529_2012_j22_adhoc,  // a guess to what the calib. should be for Jan22 8 TeV data
+    Date20140220_2012_j22_peak_position, // scaling derived so that the peak in data and mc matches, another try
+                                         // for reco with momentum regression. No MC smearing.
     CalSet_File_Gauss,
     CalSet_File_BreitWigner,
     CalSet_File_Voigt
@@ -132,6 +134,53 @@ public:
   double generateMCSmearSingleEleRandomized(double eta) const;
   double generateMCSmearAnySingleEle(double eta, bool randomize) const;
 
+  // Encapsulated electron energy scaling
+
+  template<class tData_t>
+  int applyEnergyScale(tData_t *data, int isData, int randomized=0) const {
+    int res=1;
+    if (!isData) {
+      double smearCorr= this->generateMCSmearAny(data->scEta_1,data->scEta_2,randomized);
+      data->mass += smearCorr;
+    }
+    else {
+      res= this->applyDataEnergyScale(data,randomized);
+    }
+    return 1;
+  }
+
+  template<class tData_t>
+  int applyDataEnergyScale(tData_t *data, int randomized) const {
+    double corr1= getEnergyScaleCorrectionAny(data->scEta_1,randomized);
+    double corr2= getEnergyScaleCorrectionAny(data->scEta_2,randomized);
+    TLorentzVector ele1,ele2,ee;
+    ele1.SetPtEtaPhiM(data->pt_1,data->eta_1,data->phi_1,0.000511);
+    ele2.SetPtEtaPhiM(data->pt_2,data->eta_2,data->phi_2,0.000511);
+    ele1*=corr1;
+    ele2*=corr2;
+    data->pt_1 = ele1.Pt();
+    data->scEta_1 *= (ele1.Eta()/data->eta_1);
+    data->eta_1= ele1.Eta();
+    data->phi_1= ele1.Phi();
+    data->pt_2 = ele2.Pt();
+    data->scEta_2 *= (ele2.Eta()/data->eta_2);
+    data->eta_2= ele2.Eta();
+    data->phi_2= ele2.Phi();
+    ee = ele1 + ele2;
+    data->mass = ee.M();
+    data->pt   = ee.Pt();
+    data->y    = ee.Rapidity();
+    data->phi  = ee.Phi();
+    return 1;
+  }
+
+#ifdef UseZeeData
+  int applyEnergyScale_instantiate(ZeeData_t *data) const {
+    return this->applyEnergyScale(data,1,1);
+  }
+#endif
+
+  // print
   void print() const;
   void printAsTexTable(const TString &fname) const;
 
