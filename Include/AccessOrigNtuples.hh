@@ -27,6 +27,7 @@
 #include "../Include/TGenInfo.hh"
 #include "../Include/TDielectron.hh"
 #include "../Include/TVertex.hh"
+#include "../Include/TPhoton.hh"
 #include "../Include/JsonParser.hh"
 
 #include "../Include/BaseClass.hh"
@@ -44,14 +45,18 @@ protected:
   mithep::TGenInfo *gen;
   TClonesArray *dielectronArr;
   TClonesArray *pvArr;
+  TClonesArray *scArr;  // photons == SCs
 
   TBranch *infoBr;
   TBranch *genBr;
   TBranch *dielectronBr;
   TBranch *pvBr;
+  TBranch *scBr;
   int genBrIsActive;
+  int scBrIsActive;
 public:
-  AccessOrigNtuples_t() : BaseClass_t("AccessOrigNtuples_t"),
+  AccessOrigNtuples_t(int set_scBrIsActive=0) : 
+    BaseClass_t("AccessOrigNtuples_t"),
     hasJson(0),
     json(),
     tree(NULL),
@@ -59,11 +64,14 @@ public:
     gen(new mithep::TGenInfo()),
     dielectronArr(new TClonesArray("mithep::TDielectron")),
     pvArr(new TClonesArray("mithep::TVertex")),
+    scArr(NULL),
     infoBr(NULL),
     genBr(NULL),
     dielectronBr(NULL),
     pvBr(NULL),
-    genBrIsActive(0)
+    scBr(NULL),
+    genBrIsActive(0),
+    scBrIsActive(set_scBrIsActive)
   {}
 
   /* this dealoccation causes ROOT crash
@@ -87,6 +95,18 @@ public:
   const mithep::TDielectron* dielectronPtr(int i) const { return (const mithep::TDielectron*)((*dielectronArr)[i]); }
   mithep::TDielectron* editDielectronPtr(int i) { return (mithep::TDielectron*)((*dielectronArr)[i]); }
   const TClonesArray* getPVArr() const { return pvArr; }
+  const TClonesArray* getSCArr() const { return (scBrIsActive) ? scArr : NULL; }
+  const mithep::TPhoton* photonPtr(int i) const { return (const mithep::TPhoton*)((*scArr)[i]); }
+
+  int locateSCID(UInt_t scID) const {
+    if (!scBrIsActive) return -1;
+    int idx=0;
+    for ( ; idx < scArr->GetEntriesFast(); ++idx) {
+      const mithep::TPhoton *sc=(mithep::TPhoton*)((*scArr)[idx]);
+      if ( sc->scID == scID ) return idx;
+    }
+    return -1;
+  }
 
   int getNPV(int isData) const {
     int npv=-100;
@@ -112,6 +132,7 @@ public:
     genBrIsActive=0;
     dielectronBr=NULL;
     pvBr=NULL;
+    scArr=NULL;
     dielectronArr->Clear();
     pvArr->Clear();
     int ok=(tree) ? 1:0;
@@ -135,9 +156,24 @@ public:
       genBr=tree->GetBranch("Gen");
       if (!genBr) ok=0; else genBrIsActive=1;
     }
+    if (scBrIsActive) ok=activateSCBranch();
     return ok;
   }
 
+protected:
+  int activateSCBranch() {
+    scBrIsActive=1;
+    scArr=new TClonesArray("mithep::TPhoton");
+    int ok=(scArr==NULL) ? 0:1;
+    if (ok) {
+      tree->SetBranchAddress("Photon", &scArr);
+      scBr=tree->GetBranch("Photon");
+      if (!scBr) ok=0;
+    }
+    return ok;
+  }
+
+public:
   ULong_t getEntries() { 
     if (!tree) { reportError("getEntries: tree is null\n"); return 0; }
     return tree->GetEntries();
@@ -173,6 +209,15 @@ public:
     pvArr->Clear();
     pvBr->GetEntry(ientry); 
     Int_t count=pvArr->GetEntries();
+    return count;
+  }
+
+  template<class UInt_type>
+  Int_t GetPhotons(UInt_type ientry) { 
+    if (!scBrIsActive) return -1;
+    scArr->Clear();
+    scBr->GetEntry(ientry); 
+    Int_t count=scArr->GetEntries();
     return count;
   }
 
