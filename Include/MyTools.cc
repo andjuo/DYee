@@ -2,6 +2,101 @@
 
 //--------------------------------------------------
 //--------------------------------------------------
+/*
+TH2D* getRelDifferenceVA(const TH2D *baseValue, TString newName, int nVariations, TH2D* hVar1, ...) {
+  HERE("entered getRelDifference");
+  TString newTitle=baseValue->GetTitle() + TString(" rel.Diff");
+  TH2D *hRes=Clone(baseValue,newName,newTitle);
+  HERE("ok");
+
+  // remove error
+  for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
+      hRes->SetBinError(ibin,jbin, 0.);
+    }
+  }
+  HERE("start variations");
+
+  if (nVariations>=1) {
+    va_list vl;
+    va_start(vl,hVar1);
+    for (int i=0; i<nVariations; ++i) {
+      HERE("i=%d",i);
+      TH2D* hv_inp=(TH2D*)va_arg(vl,TH2D*);
+      if (!hv_inp) HERE("hv_inp is null");
+      HERE("got hv_inp");
+      //printHisto(hv_inp);
+      hv_inp->Print("range");  // crashed here!
+      TH2D* hv=(TH2D*)hv_inp->Clone(Form("var_%d",i));
+      HERE("cloned ok %d",((hv==NULL)?0:1));
+      hv->Add(baseValue,-1.);
+      HERE("added base val");
+      for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
+	  double err=hRes->GetBinError(ibin,jbin);
+	  double var=fabs(hv->GetBinError(ibin,jbin));
+	  if (var>err) hRes->SetBinError(ibin,jbin, var);
+	}
+      }
+      delete hv;
+    }
+    va_end(vl);
+  }
+  return hRes;
+}
+*/
+
+//--------------------------------------------------
+
+TH2D* getRelDifference(const TH2D *baseValue, TString newName, const TH2D* hVar1, const TH2D *hVar2, const TH2D *hVar3, const TH2D* hVar4) {
+  if (!baseValue) {
+    std::cout << "getRelDifference: base histogram is NULL" << std::endl;
+    return NULL;
+  }
+
+  TString newTitle=baseValue->GetTitle() + TString(" rel.Diff");
+  TH2D *hRes=Clone(baseValue,newName,newTitle);
+  if (!hRes) {
+    std::cout << "getRelDifference: failed to copy the histogram" << std::endl;
+    return NULL;
+  }
+
+  // remove error
+  for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
+      hRes->SetBinError(ibin,jbin, 0.);
+    }
+  }
+
+  if (!hVar1) {
+    std::cout << "\n\n\t\tERROR getRelDifference: hVar1 is null\n" << std::endl;
+    return hRes;
+  }
+
+  std::vector<const TH2D*> hV;
+  hV.reserve(4);
+  hV.push_back(hVar1);
+  if (hVar2!=NULL) hV.push_back(hVar2);
+  if (hVar3!=NULL) hV.push_back(hVar3);
+  if (hVar4!=NULL) hV.push_back(hVar4);
+
+  for (unsigned int i=0; i<hV.size(); ++i) {
+    TH2D* hd=(TH2D*)hV[i]->Clone(Form("var_%d",i));
+    hd->Add(baseValue,-1.);
+    for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
+	double err=hRes->GetBinError(ibin,jbin);
+	double var=fabs(hd->GetBinContent(ibin,jbin)); // !content
+	if (var>err) hRes->SetBinError(ibin,jbin, var);
+      }
+    }
+    delete hd;
+  }
+  return hRes;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
 
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle, const char *title) {
   if ((iyBin<=0) || (iyBin>h2->GetNbinsY())) {

@@ -683,6 +683,20 @@ inline void swapContentAndError(TH2D *h) { swapContentAndError2D(h); }
 
 //------------------------------------------------------------------------------------------------------------------------
 
+//
+// Produce a histogram that contains central values of the 'baseline' histogram
+// and put the differences in the central values as an error of this central value
+//
+
+//TH2D *getRelDifferenceVA(const TH2D *baseValue, TString newName, 
+//		       int nVariations, TH2D *hVar1, ...);
+
+TH2D *getRelDifference(const TH2D *baseValue, TString newName, 
+		       const TH2D *hVar1, const TH2D *hVar2=NULL,
+		       const TH2D *hVar3=NULL, const TH2D *hVar4=NULL);
+
+//------------------------------------------------------------------------------------------------------------------------
+
 // write flags to a file.
 // Assumes that the file is open
 inline int writeIntFlagValues(const TString &fieldName, int nFlags, int flag1, ...) {
