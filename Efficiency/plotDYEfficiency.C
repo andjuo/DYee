@@ -60,9 +60,16 @@ int plotDYEfficiency(const TString conf,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,1, DYTools::NO_SYST)) 
+    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST,
+				DYTools::FSR_5plus, DYTools::FSR_5minus,
+				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus))
       return retCodeError;
   }
+  //
+  // A note on systematics mode
+  // - PU_5plus, PU_5minus are taken care by the eventWeight, through 
+  //   the PUReweight class
+  // - FSR_5plus, FSR_5minus should be taken care here
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -80,7 +87,13 @@ int plotDYEfficiency(const TString conf,
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
+
+  int useSpecWeight=1;
+  double specWeight=1.0;
+  const double FSRmassDiff=1.0;
+  if (systMode==DYTools::FSR_5plus) { specWeight=1.05; useSpecWeight=1; }
+  else if (systMode==DYTools::FSR_5minus) { specWeight=0.95; useSpecWeight=1; }
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
@@ -112,13 +125,13 @@ int plotDYEfficiency(const TString conf,
 
   // debug distributions: 1GeV bins
   //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
-  createAnyH1Vec(hMassv,"hMass_",inpMgr.mcSampleNames(),1490,10.,1500.,"M_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hMassv,"hMass_",inpMgr.mcSampleNames(),1990,10.,2000.,"#{it}{M}_{ee} [GeV]","counts/1GeV");
   // debug distributions for current mass bin
   createBaseH1Vec(hMassBinsv,"hMassBins_",inpMgr.mcSampleNames());
   // debug: accumulate info about the selected events in the samples
   hSelEvents=createAnyTH1D("hSelEvents","hSelEvents",inpMgr.mcSampleCount(),0,inpMgr.mcSampleCount(),"sampleId","event count");
   // collect number of events in the Z-peak
-  createAnyH1Vec(hZpeakv,"hZpeak_",inpMgr.mcSampleNames(),60,60.,120.,"M_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hZpeakv,"hZpeak_",inpMgr.mcSampleNames(),60,60.,120.,"#it{M}_{ee} [GeV]","counts/1GeV");
 
   //
   // Access samples and fill histograms
@@ -146,12 +159,17 @@ int plotDYEfficiency(const TString conf,
 
     for (unsigned int ifile=0; ifile<mcSample->size(); ++ifile) {
       // Read input file
-      TFile infile(mcSample->getFName(ifile),"read");
-      assert(infile.IsOpen());
+      TFile *infile=new TFile(mcSample->getFName(ifile),"read");
+      if (!infile || !infile->IsOpen()) {
+	TString skimName=inpMgr.convertSkim2Ntuple(mcSample->getFName(ifile));
+	std::cout <<  "  .. failed. Trying <" << skimName << ">" << std::endl;
+	infile= new TFile(skimName,"read");
+      }
+      assert(infile->IsOpen());
       std::cout << " Reading file <" << mcSample->getFName(ifile) << ">\n";
 
       // Get the TTrees
-      if (!accessInfo.setTree(infile,"Events",true)) {
+      if (!accessInfo.setTree(*infile,"Events",true)) {
 	return retCodeError;
       }
 
@@ -210,9 +228,9 @@ int plotDYEfficiency(const TString conf,
 	
 	// In Unfolding and plotDYAcceptance we have FSR reweight
 	// FSR study correction for weight
-	//if (systMode==DYTools::FSR_STUDY) {
-	//  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,FSRreweight);
-	//}
+	if (useSpecWeight) {
+	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
+	}
 
 	// Adjust event weight
 	// .. here "false" = "not data"
@@ -239,6 +257,7 @@ int plotDYEfficiency(const TString conf,
 
 	// loop through dielectrons
 	//int pass=0;
+	int candCount=0;
 	for(Int_t i=0; i<accessInfo.dielectronCount(); i++) {
 	  mithep::TDielectron *dielectron = accessInfo.editDielectronPtr(i);
 	  ec.numDielectrons_inc();
@@ -257,20 +276,20 @@ int plotDYEfficiency(const TString conf,
 
 	  hPass[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
 	  hSelEvents->Fill(ifile,evWeight.totalWeight());
+	  candCount++;
 
 	} // loop over dielectrons
 	//if (!pass) {
 	//  hFail[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
 	//}
+	if (candCount>1) ec.numMultiDielectronsOk_inc();
       } // loop over events
       ec.print();  // print info about file
       ecSample.add(ec); // accumulate event counts
       ecTotal.add(ec);
       
-      //delete infile;
-      infile.Close();
-      //infile=0; 
-      //eventTree=0;
+      infile->Close();
+      delete infile;
     }
     ecSample.print(); // print info about sample
     evtSelector.printCounts();
