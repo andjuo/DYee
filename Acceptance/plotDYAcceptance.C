@@ -55,24 +55,23 @@
 
 int plotDYAcceptance(const TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
-		     double FSRreweight=1.0, double FSRmassDiff=1.)
+		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) 
 {
   gBenchmark->Start("plotDYAcceptance");
-
+  
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST, DYTools::FSR_STUDY)) 
+    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST,
+				DYTools::FSR_5plus, DYTools::FSR_5minus,
+				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus))
       return retCodeError;
   }
-
-  TString extraTag;
-  if (systMode==DYTools::FSR_STUDY) {
-    extraTag=Form("_FSR%3.2lf",FSRreweight);
-    extraTag.ReplaceAll(".","");
-    std::cout << "FSR study with extra factor=" << FSRreweight << ", if mass diff is below " << FSRmassDiff << "; extraTag=<" << extraTag << ">\n";
-  }
+  //
+  // A note on systematics mode
+  // - PU_5plus, PU_5minus are taken care by the eventWeight, through 
+  //   the PUReweight class
+  // - FSR_5plus, FSR_5minus should be taken care here
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -85,14 +84,20 @@ int plotDYAcceptance(const TString conf,
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag,extraTag,EventSelector::_selectDefault);
+			      "","",EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
   // ignore PU-reweight flag
   //evWeight.init(0,inpMgr.fewzFlag());
+
+  int useSpecWeight=1;
+  double specWeight=1.0;
+  const double FSRmassDiff=1.0;
+  if (systMode==DYTools::FSR_5plus) { specWeight=1.05; useSpecWeight=1; }
+  else if (systMode==DYTools::FSR_5minus) { specWeight=0.95; useSpecWeight=1; }
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
@@ -128,13 +133,13 @@ int plotDYAcceptance(const TString conf,
 
   // debug distributions: 1GeV bins
   //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
-  createAnyH1Vec(hMassv,"hMass_",inpMgr.mcSampleNames(),1490,10.,1500.,"M_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hMassv,"hMass_",inpMgr.mcSampleNames(),1990,10.,2000.,"#it{M}_{ee} [GeV]","counts/1GeV");
   // debug distributions for current mass bin
   createBaseH1Vec(hMassBinsv,"hMassBins_",inpMgr.mcSampleNames());
   // debug: accumulate info about the selected events in the samples
   hSelEvents=createAnyTH1D("hSelEvents","hSelEvents",inpMgr.mcSampleCount(),0,inpMgr.mcSampleCount(),"sampleId","event count");
   // collect number of events in the Z-peak
-  createAnyH1Vec(hZpeakv,"hZpeak_",inpMgr.mcSampleNames(),60,60.,120.,"M_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hZpeakv,"hZpeak_",inpMgr.mcSampleNames(),60,60.,120.,"#it{M}_{ee} [GeV]","counts/1GeV");
 
   //
   // Access samples and fill histograms
@@ -162,11 +167,17 @@ int plotDYAcceptance(const TString conf,
 
     for (unsigned int ifile=0; ifile<mcSample->size(); ++ifile) {
       // Read input file
-      TFile infile(mcSample->getFName(ifile),"read");
-      assert(infile.IsOpen());
+      TFile *infile=new TFile(mcSample->getFName(ifile),"read");
+      if (!infile || !infile->IsOpen()) {
+	TString skimName=inpMgr.convertSkim2Ntuple(mcSample->getFName(ifile));
+	std::cout <<  "  .. failed. Trying <" << skimName << ">" << std::endl;
+	infile= new TFile(skimName,"read");
+      }
+      assert(infile->IsOpen());
+      std::cout << " Reading file <" << mcSample->getFName(ifile) << ">\n";
 
       // Get the TTrees
-      if (!accessInfo.setTree(infile,"Events",true)) {
+      if (!accessInfo.setTree(*infile,"Events",true)) {
 	return retCodeError;
       }
 
@@ -219,8 +230,8 @@ int plotDYAcceptance(const TString conf,
 	accessInfo.GetInfoEntry(ientry);
 
 	// FSR study correction for weight
-	if (systMode==DYTools::FSR_STUDY) {
-	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,FSRreweight);
+	if (useSpecWeight) {
+	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
 	}
 
 	// Adjust event weight
@@ -259,10 +270,8 @@ int plotDYAcceptance(const TString conf,
       ecSample.add(ec); // accumulate event counts
       ecTotal.add(ec);
       
-      //delete infile;
-      infile.Close();
-      //infile=0; 
-      //eventTree=0;
+      infile->Close();
+      delete infile;
     }
     ecSample.print(2); // print info about sample
     evtSelector.printCounts();
