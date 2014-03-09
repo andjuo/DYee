@@ -133,6 +133,56 @@ int CSample_t::addFile(const std::string &line_orig) {
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
+InputFileMgr_t::InputFileMgr_t (const InputFileMgr_t &mgr) :
+  BaseClass_t("InputFileMgr_t"),
+  FLoadedFileName(mgr.FLoadedFileName),
+  FSelectionTag(mgr.FSelectionTag),
+  FConstTag(mgr.FConstTag),
+  FXSecTag(mgr.FXSecTag),
+  FEnergyScaleTag(mgr.FEnergyScaleTag),
+  FSpecTagDirUser(mgr.FSpecTagDirUser),
+  FSpecTagFileUser(mgr.FSpecTagFileUser),
+  FSavePlotFormat(mgr.FSavePlotFormat),
+  FTriggerTag(mgr.FTriggerTag),
+  FTotLumi(mgr.FTotLumi),
+  FSelEventsFlag(mgr.FSelEventsFlag),
+  FFewzCorrFlag(mgr.FFewzCorrFlag),
+  FPUReweightFlag(mgr.FPUReweightFlag),
+  FSampleNames(),
+  FSampleInfos(),
+  FMCSampleNames(),
+  FMCSignal(),
+  FUserKeys(mgr.FUserKeys),
+  FUserValues(mgr.FUserValues),
+  FNtupleDef(mgr.FNtupleDef),
+  FSkimDef(mgr.FSkimDef),
+  FRootFileBaseDir(mgr.FRootFileBaseDir),
+  FNtupleNameExtraTag(mgr.FNtupleNameExtraTag),
+  FDirNameExtraTag(mgr.FDirNameExtraTag),
+  FInfoSection(NULL)
+{
+  if (mgr.FSampleInfos.size()) {
+    FSampleNames=mgr.FSampleNames;
+    FSampleInfos.reserve(mgr.FSampleInfos.size());
+    for (unsigned int i=0; i<mgr.FSampleInfos.size(); ++i) {
+      FSampleInfos.push_back(new CSample_t(*mgr.FSampleInfos[i]));
+    }
+  }
+  if (mgr.FMCSignal.size()) {
+    FMCSampleNames=mgr.FMCSampleNames;
+    FMCSignal.reserve(mgr.FMCSignal.size());
+    for (unsigned int i=0; i<mgr.FMCSignal.size(); ++i) {
+      FMCSignal.push_back(new CSample_t(*mgr.FMCSignal[i]));
+    }
+  }
+  if (mgr.FInfoSection) {
+    FInfoSection=new TDescriptiveInfo_t(*mgr.FInfoSection);
+  }
+}
+
+
+// -----------------------------------------------------------
+
 void InputFileMgr_t::Clear() {
   FLoadedFileName.Clear(); 
   FSelectionTag.Clear(); FConstTag.Clear(); FXSecTag.Clear();
@@ -540,6 +590,11 @@ int InputFileMgr_t::KeepFirstAndLastSample() {
 int InputFileMgr_t::KeepOnlySample(unsigned int idx) {
   int isTail=(idx==FSampleNames.size()-1) ? 1:0;
   int isHead=(idx==0) ? 1:0;
+  if (idx==(unsigned int)(-1)) {
+    // clean entire list
+    isTail=1; 
+    idx=(unsigned int)(FSampleNames.end()-FSampleNames.begin());
+  }
   if (!isTail) FSampleNames.erase(FSampleNames.begin()+idx+1,FSampleNames.end());
   if (!isHead) FSampleNames.erase(FSampleNames.begin(),FSampleNames.begin()+idx);
   for (unsigned int i=0; i<FSampleInfos.size(); ++i) {
@@ -551,6 +606,18 @@ int InputFileMgr_t::KeepOnlySample(unsigned int idx) {
   if (!isHead) FSampleInfos.erase(FSampleInfos.begin(),FSampleInfos.begin()+idx);
   return 1;
 }
+
+// -----------------------------------------------------------
+
+void InputFileMgr_t::removeMCSampleInfo() {
+  for (unsigned int i=0; i<FMCSignal.size(); ++i) {
+    CSample_t *s=FMCSignal[i];
+    delete s;
+  }
+  FMCSampleNames.clear();
+  FMCSignal.clear();
+}
+
 
 // -----------------------------------------------------------
 

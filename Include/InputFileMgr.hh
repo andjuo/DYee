@@ -194,6 +194,9 @@ public:
     this->autosetRootDir();
   }
 
+  InputFileMgr_t(const InputFileMgr_t &mgr);
+
+
   void Clear();
 
   // Access
@@ -499,7 +502,9 @@ public:
 
   // keep only 1st and last sample (data and Zee MC)
   int KeepFirstAndLastSample();
+  // if idx=-1, the sample list is cleaned
   int KeepOnlySample(unsigned int idx);
+  void removeMCSampleInfo();
 
   void Print() const { std::cout << *this << std::endl; }
   void PrintSampleFileNames(int nameOnly) const;
