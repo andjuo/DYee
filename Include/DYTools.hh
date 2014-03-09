@@ -201,9 +201,9 @@ namespace DYTools {
   // ----------------------------
 
   // Systematics modes for unfolding and acceptance 
-  typedef enum { SYST_MODE_FAILURE=0, NO_SYST, RESOLUTION_STUDY, FSR_STUDY, APPLY_ESCALE, ESCALE_RESIDUAL, ESCALE_STUDY, ESCALE_STUDY_RND, UNREGRESSED_ENERGY, SYST_RND, TAG_ID, TAG_PT, PILEUP_5plus, PILEUP_5minus, UNREG_PU5plus, UNREG_PU5minus, UNREG_TagID, UNREG_TagPt } TSystematicsStudy_t;
+  typedef enum { SYST_MODE_FAILURE=0, NO_SYST, RESOLUTION_STUDY, FSR_STUDY, FSR_5plus, FSR_5minus, APPLY_ESCALE, ESCALE_RESIDUAL, ESCALE_STUDY, ESCALE_STUDY_RND, UNREGRESSED_ENERGY, SYST_RND, TAG_ID, TAG_PT, PU_STUDY, PILEUP_5plus, PILEUP_5minus, UNREG_PU5plus, UNREG_PU5minus, UNREG_TagID, UNREG_TagPt } TSystematicsStudy_t;
 
-  typedef enum { NORMAL_RUN, LOAD_DATA, DEBUG_RUN, DEBUG_LOAD } TRunMode_t;
+  typedef enum { NORMAL_RUN, LOAD_DATA, DEBUG_RUN, DEBUG_LOAD, NO_RUN } TRunMode_t;
 
   inline int processData(TRunMode_t mode) { return ((mode!=LOAD_DATA) && (mode!=DEBUG_LOAD)) ? 1:0; }
   inline int loadData(TRunMode_t mode) { return ((mode==LOAD_DATA) || (mode==DEBUG_LOAD)) ? 1:0; }

@@ -46,6 +46,8 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case NO_SYST: name="NormalRun_noSyst"; break;
   case RESOLUTION_STUDY: name="ResolutionStudy"; break;
   case FSR_STUDY: name="FSRStudy"; break;
+  case FSR_5plus: name="FSR_5plus"; break;
+  case FSR_5minus: name="FSR_5minus"; break;
   case APPLY_ESCALE: name="ApplyEscale"; break;
   case ESCALE_RESIDUAL: name="EScale_residual"; break;
   case ESCALE_STUDY: name="EScale_study"; break;
@@ -54,6 +56,7 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case SYST_RND: name="Syst_random"; break;
   case TAG_ID: name="TagID"; break;
   case TAG_PT: name="TagPt"; break;
+  case PU_STUDY: name="PUStudy"; break;
   case PILEUP_5plus: name="Pileup5plus"; break;
   case PILEUP_5minus: name="Pileup5minus"; break;
   case UNREG_PU5plus: name="UnregEnPU5plus"; break;
@@ -92,6 +95,18 @@ TString RunModeName(DYTools::TRunMode_t study) {
   return name;
 }
 
+// ------------------------------------------------------------------
+
+inline
+DYTools::TRunMode_t DebugInt2RunMode(int debug) {
+  using namespace DYTools;
+  TRunMode_t runMode=NO_RUN;
+  if (debug==1) runMode=DEBUG_RUN;
+  else if (debug==0) runMode=NORMAL_RUN;
+  else if (debug==-2) runMode=LOAD_DATA;
+  else if (debug== 2) runMode=DEBUG_LOAD;
+  return runMode;
+}
 
 // ------------------------------------------------------------------
 
@@ -217,12 +232,15 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   if (str.Contains("NORMALRUN_NOSYST") || str.Contains("NormalRun_noSyst")) { study=NO_SYST; }
   else if (str.Contains("RESOLUTION_STUDY") || str.Contains("ResolutionStudy")) study=RESOLUTION_STUDY;
   else if (str.Contains("FSR_STUDY") || str.Contains("FSRStudy")) study=FSR_STUDY;
+  else if (str.Contains("FSR_5PLUS") || str.Contains("FSR_5plus")) study=FSR_5plus;
+  else if (str.Contains("FSR_5MINUS") || str.Contains("FSR_5minus")) study=FSR_5minus;
   else if (str.Contains("APPLY_ESCALE") || str.Contains("ApplyEscale")) study=APPLY_ESCALE;
   else if (str.Contains("ESCALE_RESIDUAL") || str.Contains("EScale_residual")) study=ESCALE_RESIDUAL;
   else if (str.Contains("ESCALE_STUDY_RND") || str.Contains("EScale_study_randomized")) study=ESCALE_STUDY_RND;
   else if (str.Contains("ESCALE_STUDY") || str.Contains("EScale_study")) study=ESCALE_STUDY;
   else if (str.Contains("UNREGRESSED_ENERGY") || str.Contains("Unregressed_energy")) study=UNREGRESSED_ENERGY;
   else if (str.Contains("SYST_RND") || str.Contains("SYST_RANDOM") || str.Contains("Syst_random")) study=SYST_RND;
+  else if (str.Contains("PU_STUDY") || str.Contains("PUStudy")) study=PU_STUDY;
   else if (str.Contains("PILEUP_5plus") || str.Contains("PILEUP_5PLUS")) study=PILEUP_5plus;
   else if (str.Contains("PILEUP_5minus") || str.Contains("PILEUP_5MINUS")) study=PILEUP_5minus;
   else if (str.Contains("UNREG_PU5plus") || str.Contains("UnregEnPU5plus")) study=UNREG_PU5plus;
