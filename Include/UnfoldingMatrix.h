@@ -982,6 +982,7 @@ public:
 			) {
     // Plot response and inverted response matrices
     TString kName=this->ourKindName();
+    kName.Append("_"); kName.Append(this->name);
     TH2D *hResponse = new TH2D(TString("hResponse_") + kName,"",
 			       DYTools::nUnfoldingBins, -0.5, DYTools::nUnfoldingBins-0.5,
 			       DYTools::nUnfoldingBins, -0.5, DYTools::nUnfoldingBins-0.5);
