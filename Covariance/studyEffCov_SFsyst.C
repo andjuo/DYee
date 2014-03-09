@@ -25,7 +25,13 @@ int PrepareEtEtaIdx(const esfSelectEvent_t &selData, EtEtaIndexer_t &fidx1, EtEt
 // ------------------------------------------------------
 // ------------------------------------------------------
 
-int studyEffCov_SFsyst(int debugMode, TString systCode) {
+// If the scaleFactorKind is not full (-1), then syst mode should
+// be manually adjusted to reflect this fact. Namely, it is best to 
+// include only RECO systematics if, RECO SF is needed.
+// or only ID syst, for ID SF.
+
+
+int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1) {
   gBenchmark->Start("studyEffCov");
 
   if (( DYTools::study2D && (DYTools::nYBins[0]==1)) ||
@@ -46,7 +52,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode) {
 
   TString recoSystFName, idSystFName, hltSystFName;
   TString includedSyst;
-  int egammaSystOnly=1;
+  int egammaSystOnly=0;
   if (1) {
     int recoOn=(systCode[0]=='1') ? 1:0;
     int idOn  =(systCode[1]=='1') ? 1:0;
@@ -82,28 +88,57 @@ int studyEffCov_SFsyst(int debugMode, TString systCode) {
   if (systMode==DYTools::NO_SYST) name_extraTag.Append("_regEn");
   else name_extraTag.Append(generateSystTag(systMode));
   name_extraTag.Append(includedSyst);
-  TString name_covRhoRho=Form("covRhoRho_%s_%d",name_extraTag.Data(),nExps);
+  
+  TString fileKindStr="SF";
+  if (scaleFactorKind!=-1) {
+    switch(scaleFactorKind) {
+      //case 0:
+    case int(DYTools::RECO): fileKindStr.Append("_RECO"); break;
+      //case 1:
+    case int(DYTools::ID)  : fileKindStr.Append("_ID"); break;
+      //case 2:
+    case int(DYTools::HLT) : fileKindStr.Append("_HLT"); break;
+      //case 3:
+    case int(DYTools::HLT_leg1): fileKindStr.Append("_HLTleg1"); break;
+      //case 4:
+    case int(DYTools::HLT_leg2): fileKindStr.Append("_HLTleg2"); break;
+    case 11: 
+      fileKindStr.Append("_dtHLT"); 
+      if (nonUniversalHLT==0) {
+	std::cout << "double-trigger scale factor is requested, but the calcEventEff.C macro contains nonUniversalHLT=0\n";
+	return retCodeError;
+      }
+      else {
+	scaleFactorKind=int(DYTools::HLT);
+      }
+      break;
+    default:
+      std::cout << "cannot determine scaleFactorKind=" << scaleFactorKind << "\n";
+      return retCodeError;
+    }
+  }
+
+  TString name_covRhoRho=Form("covRhoRho%s_%s_%d",fileKindStr.Data(),name_extraTag.Data(),nExps);
   
   std::cout << "\n\nok. Start studies\n";
   std::cout << "The resulting cov matrix name is " << name_covRhoRho << "\n";
 
-  TString rhoFileName=Form("rhoFileSF_%s_%d.root",name_extraTag.Data(),nExps);
-  TString covFileName=Form("covRhoFileSF_%s_%d.root",name_extraTag.Data(),nExps);
+  TString rhoFileName=Form("rhoFile%s_%s_%d.root",fileKindStr.Data(),name_extraTag.Data(),nExps);
+  TString covFileName=Form("covRhoFile%s_%s_%d.root",fileKindStr.Data(),name_extraTag.Data(),nExps);
 
   TString covFileNamePublic=
-    TString(Form("covRhoFile_el%dD_%dexps_",1+DYTools::study2D,nExps)) +
+    TString(Form("covRhoFile%s",fileKindStr.Data())) +
+    TString(Form("_el%dD_%dexps_",1+DYTools::study2D,nExps)) +
     //mgr.mgr().userKeyValueAsTString("T&P_ESF_extra") +
     //TString((nonUniversalHLT) ? "_asymHLT" : "") +
     name_extraTag +
     TString(".root");
 
-
   std::cout << "\nNames of files to be produced:\n";
   std::cout << " - " << rhoFileName << "\n";
   std::cout << " - " << covFileName << "\n";
   std::cout << " - " << covFileNamePublic << "\n";
-  std::cout << "\n";
-
+  std::cout << std::endl;
 
   // there is a 'nMB' tag
   //if (DYTools::study2D) {
@@ -203,7 +238,8 @@ int studyEffCov_SFsyst(int debugMode, TString systCode) {
 
       (*etEtaPairsV[massFIdx])(fidx1.getIdx(),fidx2.getIdx()) += weight;
       if (fidx1!=fidx2) (*etEtaPairsV[massFIdx])(fidx2.getIdx(),fidx1.getIdx()) += weight;
-      double scaleFactor = findEventScaleFactor(-1, selData); // HLT formula is inside
+
+      double scaleFactor = findEventScaleFactor(scaleFactorKind, selData); // HLT formula is inside
       //if (puReweight) weight *= PUReweight.getWeightHildreth(selData.nGoodPV);
       if ( 0 || ( ientry%20000 == 0 )) std::cout << "ientry=" << ientry << ", weight=" << weight << ", scaleFactor=" << scaleFactor << "\n";
           
