@@ -1,4 +1,5 @@
 #include "plotDYAcceptance.C"
+#include "../Include/calcCorrectionSyst.h"
 
 int run_accSystematics(int debug, TString flags="-") {
   TString conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
@@ -14,11 +15,22 @@ int run_accSystematics(int debug, TString flags="-") {
   int pu5minus= (manyFlags && (flags[4]=='1')) ? 1:0;
 
   int ok=retCodeOk;
-  if ((ok==retCodeOk) && noSyst   ) ok=plotDYAcceptance(conf,runMode,DYTools::NO_SYST);
-  if ((ok==retCodeOk) && fsr5plus ) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5plus);
-  if ((ok==retCodeOk) && fsr5minus) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5minus);
-  if ((ok==retCodeOk) && pu5plus  ) ok=plotDYAcceptance(conf,runMode,DYTools::PILEUP_5plus);
-  if ((ok==retCodeOk) && pu5minus ) ok=plotDYAcceptance(conf,runMode,DYTools::PILEUP_5minus);
+  if (!DYTools::loadData(runMode)) {
+    std::cout << "creating distributions\n";
+    if ((ok==retCodeOk) && noSyst   ) ok=plotDYAcceptance(conf,runMode,DYTools::NO_SYST);
+    if ((ok==retCodeOk) && fsr5plus ) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5plus);
+    if ((ok==retCodeOk) && fsr5minus) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5minus);
+    if ((ok==retCodeOk) && pu5plus  ) ok=plotDYAcceptance(conf,runMode,DYTools::PILEUP_5plus);
+    if ((ok==retCodeOk) && pu5minus ) ok=plotDYAcceptance(conf,runMode,DYTools::PILEUP_5minus);
+    if (ok!=retCodeOk) std::cout << "error in run_accSystematics\n";
+  }
+  else {
+    std::vector<TH2D*> resHistos;
+    int printTable=1;
+    int save=1;
+    ok=calcCorrectionSyst(debug,conf,"acceptance","hAcceptance",flags,printTable,&resHistos,&save);
+  }
+
   if (ok!=retCodeOk) std::cout << "error in run_accSystematics\n";
   return ok;
 }
