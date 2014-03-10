@@ -116,7 +116,7 @@ int calcCorrectionSyst(int debug, const TString conf,
 
 
   if ((ok==retCodeOk) && resHistos && save && (*save==1)) {
-    TString systFName=inpMgr0.correctionFullFileName("effSyst",DYTools::NO_SYST,0);
+    TString systFName=inpMgr0.correctionSystFullFileName(correctionKind,DYTools::NO_SYST,0);
     TFile fout(systFName,"recreate");
       int res=fout.IsOpen();
       if (res) res=saveVec(fout,*resHistos);
