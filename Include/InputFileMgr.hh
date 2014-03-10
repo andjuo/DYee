@@ -376,6 +376,10 @@ public:
     return fullName;
   }
 
+  TString correctionSystFullFileName(const TString &correctionName, DYTools::TSystematicsStudy_t systMode, int applyNtupleExtraTag) const {
+    TString corrSystName=correctionName + TString("Syst");
+    return correctionFullFileName(corrSystName,systMode,applyNtupleExtraTag);
+  }
 
   // TnP section
   const TDescriptiveInfo_t *infoSection() const { return FInfoSection; }
