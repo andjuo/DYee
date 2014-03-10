@@ -11,13 +11,16 @@
 
 int plotUnfoldingMatrix(const TString conf,
 			DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
-			double FSRreweight=1.0, double FSRmassDiff=1.) {
+			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST
+			//, double FSRreweight=1.0, double FSRmassDiff=1.
+			) {
 //systematicsMode 0 (NORMAL) - no systematic calc
 //1 (RESOLUTION_STUDY) - systematic due to smearing, 2 (FSR_STUDY) - systematics due to FSR, reweighting
 //check mass spectra with reweightFsr = 0.95; 1.00; 1.05  
 //mass value until which do reweighting
 
+  const double FSRmassDiff=1.; // largest energy of FSR photon to consider
+  
 
   // check whether it is a calculation
   if (conf.Contains("_DebugRun_")) {
@@ -31,9 +34,10 @@ int plotUnfoldingMatrix(const TString conf,
    {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,6, 
+    if (!DYTools::checkSystMode(systMode,debug_print,7, 
 				DYTools::NO_SYST, DYTools::SYST_RND,
 				DYTools::RESOLUTION_STUDY, DYTools::FSR_STUDY,
+				DYTools::PU_STUDY,
 				DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL))
       return retCodeError;
   }
@@ -56,7 +60,7 @@ int plotUnfoldingMatrix(const TString conf,
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
   // no PU evWeight.init(0,inpMgr.fewzFlag());
 
   // Prepare output directory
@@ -65,7 +69,7 @@ int plotUnfoldingMatrix(const TString conf,
 
   //const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
   //const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
-  //const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : (seedMax-seedMin+1);
+  const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : 0; //(seedMax-seedMin+1);
 
   //std::cout << "seedMin..seedMax=" << seedMin << ".." << seedMax << "\n";
 
@@ -80,6 +84,7 @@ int plotUnfoldingMatrix(const TString conf,
 
   TRandom random;
   std::vector<ElectronEnergyScale*> escaleV;
+  std::vector<EventWeight_t*> specEWeightsV;
   std::vector<double> specReweightsV;
   std::vector<EventSelector_t*> evtSelectorV;
 
@@ -87,6 +92,33 @@ int plotUnfoldingMatrix(const TString conf,
   gRandom->SetSeed(-1);
 
   // The random seeds are needed only if we are running this script in systematics mode
+
+  if (systMode==DYTools::FSR_STUDY) {
+    specReweightsV.reserve(seedDiff);
+    specEWeightsV.reserve(seedDiff);
+    for (int i=0; i<seedDiff; ++i) {
+      double specW= 1 + 0.05*(i-1);
+      specReweightsV.push_back(specW);
+      specEWeightsV.push_back(new EventWeight_t(evWeight));
+    }
+  }
+  else if (systMode==DYTools::PU_STUDY) {
+    if (inpMgr.puReweightFlag()==0) {
+      std::cout << "systMode=PU_STUDY needs puReweightFlag=1 in the input file\n";
+      return retCodeError;
+    }
+    specEWeightsV.reserve(2);
+    for (int i=0; i<2; ++i) {
+      DYTools::TSystematicsStudy_t study=(i==0) ? DYTools::PILEUP_5plus : DYTools::PILEUP_5minus;
+      EventWeight_t *ew=new EventWeight_t();
+      if (!ew->init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),study)) {
+	std::cout << "in plotUnfoldingMatrix.C\n";
+	return retCodeError;
+      }
+      specEWeightsV.push_back(ew);
+    }
+  }
+
   /*
   if ((systMode==DYTools::SYST_RND) || (systMode==DYTools::FSR_STUDY)) {
     specReweightsV.reserve(seedDiff);
@@ -104,7 +136,7 @@ int plotUnfoldingMatrix(const TString conf,
   }
   */
   /*
-  else if (systematicsMode==DYTools::RESOLUTION_STUDY) {
+  else if (systMode==DYTools::RESOLUTION_STUDY) {
     if (randomSeedMax < seedMin) {
       printf("error: randomSeedMax=%d, seedMin=%d\n",randomSeedMax,seedMin);
       return;
@@ -121,7 +153,7 @@ int plotUnfoldingMatrix(const TString conf,
       specWeightsV.push_back(1.);
     }
   }
-  else if (systematicsMode==DYTools::ESCALE_STUDY) {
+  else if (systMode==DYTools::ESCALE_STUDY) {
     EScaleTagFileMgr_t mgr;
     assert(mgr.Load(escaleStudyDefs_FileName));
     specWeightsV.reserve(mgr.size());
@@ -142,28 +174,25 @@ int plotUnfoldingMatrix(const TString conf,
   */
 
   // prepare tools for ESCALE_RESIDUAL
-  /*
   TMatrixD *shapeWeights=NULL;
-  if (systematicsMode==DYTools::ESCALE_RESIDUAL) {
-    TString shapeFName=TString("../root_files/yields/") + dirTag + 
-      TString("/yields_bg-subtracted") + DYTools::analysisTag + TString(".root");
-    std::cout << "Obtaining shape weights from <" << shapeFName << ">\n";
-    TFile fshape(shapeFName);
-    if (!fshape.IsOpen()) {
-      std::cout << "failed to open a file <" << shapeFName << ">\n";
-      throw 2;
-    }
-    shapeWeights = (TMatrixD*)fshape.Get("ZeeMCShapeReweight");
+  if (systMode==DYTools::ESCALE_RESIDUAL) {
+    TString shapeFName=inpMgr.signalYieldFullFileName(DYTools::NO_SYST,1);
+    TString field="ShapeReweight/zeeMCShapeReweight_";
+    TString ddBkg=(1) ? "mcBkg" : "ddBkg";
+    std::cout << "Obtaining shape weights from <" << shapeFName << ">"
+	      << "(use" << ddBkg << ")\n";
+    shapeWeights=loadMatrix(shapeFName,field,DYTools::nMassBins,DYTools::nYBinsMax,1);
     if (!shapeWeights) {
       std::cout << "failed to find object \"ZeeMCShapeReweight\"\n";
       throw 2;
     }
-    dirTag += TString("_escale_residual");
-    std::cout << "changing dirTag to <" << dirTag << ">\n";
-    (*shapeWeights)(0,0)=1; (*shapeWeights)(1,0)=1; (*shapeWeights)(2,0)=1;
+    //dirTag += TString("_escale_residual");
+    //std::cout << "changing dirTag to <" << dirTag << ">\n";
+    if (0 && (DYTools::study2D==0)) {
+      (*shapeWeights)(0,0)=1; (*shapeWeights)(1,0)=1; (*shapeWeights)(2,0)=1;
+    }
     std::cout << "shapeWeights:\n"; shapeWeights->Print(); // return;
   }
-  */
 
   //  
   // Set up histograms
@@ -211,58 +240,72 @@ int plotUnfoldingMatrix(const TString conf,
   UnfoldingMatrix_t fsrDET(UnfoldingMatrix::_cFSR_DET,"fsrDET"); // only relevant indices are checked for ini,fin
   UnfoldingMatrix_t fsrDETexact(UnfoldingMatrix::_cFSR_DET,"fsrDETexact"); // all indices are checked
   // a good working version: response matrix and invResponse are modified after the inversion
-  UnfoldingMatrix_t fsrDET_good(UnfoldingMatrix::_cFSR_DET,"fsrDET_good"); 
+  UnfoldingMatrix_t fsrDET_good(UnfoldingMatrix::_cFSR_DET,"fsrDETgood"); 
 
   std::vector<UnfoldingMatrix_t*> detRespV;
   
+  if (systMode==DYTools::NO_SYST) {}
   /*
-  if (systematicsMode==DYTools::SYST_RND) {
+  if (systMode==DYTools::SYST_RND) {
     detRespV.reserve(escaleV.size());
     for (unsigned int i=0; i<escaleV.size(); ++i) {
       TString name=Form("detResponse_replica%d",i);
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix_t::_cDET_Response,name));
     }
   }
-  else if (systematicsMode==DYTools::RESOLUTION_STUDY) {
+  else if (systMode==DYTools::RESOLUTION_STUDY) {
     detRespV.reserve(escaleV.size());
     for (int i=seedMin; i<randomSeedMax; ++i) {
       TString name=Form("detResponse_seed%d",i);
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix_t::_cDET_Response,name));
     }
   }
-  else if (systematicsMode==DYTools::FSR_STUDY) {
-    detRespV.reserve(escaleV.size());
-    for (int i=0; i<3; i++) {
-      TString wStr=(i==0) ? Form("0%2.0f",specWeightsV[i]*100.) : Form("%3.0f",specWeightsV[i]*100.);
+  */
+  else if (systMode==DYTools::FSR_STUDY) {
+    detRespV.reserve(specReweightsV.size());
+    for (unsigned int i=0; i<specReweightsV.size(); i++) {
+      TString wStr=(i==0) ? Form("0%2.0f",specReweightsV[i]*100.) : Form("%3.0f",specReweightsV[i]*100.);
       TString name=TString("detResponse_") + wStr;
-      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix_t ::_cDET_Response,name));
+      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
   }
-  else if (systematicsMode==DYTools::ESCALE_STUDY) {
+  else if (systMode==DYTools::PU_STUDY) {
+    if (specEWeightsV.size()!=2) { std::cout << "expected specEWeights.size=2\n"; return retCodeError; }
+    detRespV.reserve(specEWeightsV.size());
+    for (unsigned int i=0; i<specEWeightsV.size(); i++) {
+      TString wStr=(i==0) ? "_PU5plus" : "_PU5minus";
+      TString name=TString("detResponse_") + wStr;
+      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
+    }
+  }
+  /*
+  else if (systMode==DYTools::ESCALE_STUDY) {
     detRespV.reserve(escaleV.size());
     for (unsigned int i=0; i<escaleV.size(); ++i) {
       TString name=TString("detResponse_") + escaleV[i]->calibrationSetShortName();
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix_t::_cDET_Response,name));
     }
   }
+  */
   if (detRespV.size()) {
     std::cout << "names in detRespV:\n";
     for (unsigned int i=0; i<detRespV.size(); ++i) {
       std::cout << "  - " << detRespV[i]->getName() << "\n";
     }
   }
-  */
 
   // check
   if ((systMode==DYTools::SYST_RND) ||
       (systMode==DYTools::RESOLUTION_STUDY) ||
       (systMode==DYTools::FSR_STUDY) ||
+      (systMode==DYTools::PU_STUDY) ||
       (systMode==DYTools::ESCALE_STUDY)) {
-    if ((detRespV.size() != escaleV.size()) ||
-	(detRespV.size() != specReweightsV.size())) {
+    if (//(detRespV.size() != escaleV.size()) ||
+	(detRespV.size() != specEWeightsV.size())) {
       std::cout << "error: detRespV.size=" << detRespV.size() 
-		<< ", escaleV.size=" << escaleV.size()
-		<< ", specReweightsV.size=" << specReweightsV.size()
+	//<< ", escaleV.size=" << escaleV.size()
+	//<< ", specReweightsV.size=" << specReweightsV.size()
+		<< ", specEWeightsV.size=" << specEWeightsV.size()
 		<< "\n";
       assert(0);
     }
@@ -291,11 +334,16 @@ int plotUnfoldingMatrix(const TString conf,
 
     for (unsigned int ifile=0; ifile<mcSample->size(); ++ifile) {
       // Read input file
-      TFile infile(mcSample->getFName(ifile),"read");
-      assert(infile.IsOpen());
+      TFile *infile= new TFile(mcSample->getFName(ifile),"read");
+      if (!infile || !infile->IsOpen()) {
+	TString skimName=inpMgr.convertSkim2Ntuple(mcSample->getFName(ifile));
+	std::cout <<  "  .. failed. Trying <" << skimName << ">" << std::endl;
+	infile= new TFile(skimName,"read");
+      }
+      assert(infile->IsOpen());
       
       // Get the TTrees
-      if (!accessInfo.setTree(infile,"Events",true)) {
+      if (!accessInfo.setTree(*infile,"Events",true)) {
 	return retCodeError;
       }
 
@@ -349,18 +397,28 @@ int plotUnfoldingMatrix(const TString conf,
 	// Load event info
 	accessInfo.GetInfoEntry(ientry);
 
-	// FSR study correction for weight
-	if (systMode==DYTools::FSR_STUDY) {
-	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,FSRreweight);
-	}
-
 	// Adjust event weight
 	// .. here "false" = "not data"
 	evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
 
+	// FSR study correction for weight
+	if (systMode==DYTools::FSR_STUDY) {
+	  for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
+	    specEWeightsV[iSt]->setSpecWeightValue(accessInfo,FSRmassDiff,specReweightsV[iSt]);
+	  }
+	}
+	// setup spec weights
+	// .. here "false" = "not data"
+	for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
+	  specEWeightsV[iSt]->set_PU_and_FEWZ_weights(accessInfo,false);
+	}
+
 	if (ientry<20) {
-	  evWeight.Print();
+	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(); std::cout << "\n";
 	  //printf("reweight=%4.2lf, fewz_weight=%4.2lf,dE_fsr=%+6.4lf\n",reweight,fewz_weight,(gen->mass-gen->vmass));
+	  for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
+	    std::cout << " specEWeight[" << iSt << "] = " << specEWeightsV[iSt]->totalWeight() << "\n";
+	  }
 	}
 
 	// adjust the scale in the counter to include FEWZ 
@@ -457,7 +515,8 @@ int plotUnfoldingMatrix(const TString conf,
 	  detResponse.fillIni(fiGenPostFsr, diWeight);
 	  detResponse.fillFin(fiReco      , diWeight);
 
-	  if (fiGenPostFsr.isValid() && fiReco.isValid()) {
+	  int bothFIValid=fiGenPostFsr.isValid() && fiReco.isValid();
+	  if (bothFIValid) {
 	    ec.numDielectronsGoodMass_inc();
 	    detResponse.fillMigration(fiGenPostFsr, fiReco, diWeight);
 
@@ -466,11 +525,22 @@ int plotUnfoldingMatrix(const TString conf,
 	    detResponseExact.fillMigration(fiGenPostFsr, fiReco, diWeight);
 	  }
 
+	  if (systMode==DYTools::FSR_STUDY) {
+	    for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
+	      double studyWeight=specEWeightsV[iSt]->totalWeight();
+	      detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
+	      detRespV[iSt]->fillFin( fiReco      , studyWeight );
+	      if (bothFIValid) {
+		detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco, studyWeight );
+	      }
+	    }
+	  }
+
 	  if (escaleV.size()) {
 	    dielectron->restoreEScaleModifiedValues(uncorrDielectron);
-	  /*
+	    /*
 	  for (unsigned int iESc=0; iESc<escaleV.size(); ++iESc) {
-	    double massCorr= (systematicsMode == DYTools::RESOLUTION_STUDY) ?
+	    double massCorr= (systMode == DYTools::RESOLUTION_STUDY) ?
 	      escaleV[iESc]->generateMCSmearRandomized(dielectron->scEta_1,dielectron->scEta_2) :
 	      escaleV[iESc]->generateMCSmear(dielectron->scEta_1,dielectron->scEta_2);
 	    double mRes= dielectron->mass + massCorr;
@@ -508,8 +578,8 @@ int plotUnfoldingMatrix(const TString conf,
 	} // end loop over dielectrons
 	
       } // end loop over events 
-      //delete infile;
-      //infile=0, eventTree=0;
+      infile->Close();
+      delete infile;
       std::cout << ec << "\n";
       ecTotal.add(ec);
     } // end loop over files
@@ -598,8 +668,12 @@ int plotUnfoldingMatrix(const TString conf,
       //fnameTag+=seed;
       break;
     case DYTools::FSR_STUDY:
-      fnameTag=TString("_reweight_") + DYTools::analysisTag;
+      fnameTag=TString("_fsrStudy_") + DYTools::analysisTag;
+      //fnameTag=TString("_reweight_") + DYTools::analysisTag;
       //fnameTag+= int(100*reweightFsr);
+      break;
+    case DYTools::PU_STUDY:
+      fnameTag=TString("_puStudy_") + DYTools::analysisTag;
       break;
     case DYTools::ESCALE_STUDY:
       fnameTag=DYTools::analysisTag+TString("_escale") + u;
@@ -619,7 +693,7 @@ int plotUnfoldingMatrix(const TString conf,
   if (DYTools::processData(runMode)) {
     if (//(systMode!=DYTools::NORMAL_RND) && 
 	(systMode!=DYTools::RESOLUTION_STUDY) && 
-	(systMode!=DYTools::FSR_STUDY) && 
+	//(systMode!=DYTools::FSR_STUDY) && 
 	(systMode!=DYTools::ESCALE_STUDY)) {
       detResponse.autoSaveToFile(outputDir,fnameTag);  // detResponse, reference mc arrays
       detResponseExact.autoSaveToFile(outputDir,fnameTag);
@@ -635,7 +709,7 @@ int plotUnfoldingMatrix(const TString conf,
   else {
     if (//(systMode!=DYTools::NORMAL_RND) && 
 	(systMode!=DYTools::RESOLUTION_STUDY) && 
-	(systMode!=DYTools::FSR_STUDY) &&
+	//(systMode!=DYTools::FSR_STUDY) &&
 	(systMode!=DYTools::ESCALE_STUDY)) {
       if (!detResponse.autoLoadFromFile(outputDir,fnameTag) ||
 	  !detResponseExact.autoLoadFromFile(outputDir,fnameTag) ||
