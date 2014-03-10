@@ -103,7 +103,7 @@ DYTools::TRunMode_t DebugInt2RunMode(int debug) {
   TRunMode_t runMode=NO_RUN;
   if (debug==1) runMode=DEBUG_RUN;
   else if (debug==0) runMode=NORMAL_RUN;
-  else if (debug==-2) runMode=LOAD_DATA;
+  else if ((debug==-1) || (debug==-2)) runMode=LOAD_DATA;
   else if (debug== 2) runMode=DEBUG_LOAD;
   return runMode;
 }
