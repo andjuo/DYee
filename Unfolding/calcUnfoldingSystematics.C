@@ -16,11 +16,23 @@ int unfoldDET_local(const HistoPair2D_t &iniYields,
 //TCanvas* plotHistos(
 
 
+struct TInfoLoc_t {
+public:
+  const HistoPair2D_t* hp;
+  TString slabel, label;
+public:
+  TInfoLoc_t(const HistoPair2D_t *setHP, TString setShortLabel, 
+	     TString setLongLabel) :
+    hp(setHP), slabel(setShortLabel), label(setLongLabel)
+  {}
+};
+
+
 // --------------------------------------------------
 //  Main code
 // --------------------------------------------------
 
-int calcUnfoldingSystematics(const TString conf){
+int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std::vector<const TInfoLoc_t*> *infoV=NULL) {
 
   // check whether it is a calculation
   if (conf.Contains("_DebugRun_")) {
@@ -32,7 +44,8 @@ int calcUnfoldingSystematics(const TString conf){
   // Settings 
   //========================================
   
-  DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
+  DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
+  int doCalc=processData(runMode);
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
 
   InputFileMgr_t inpMgr;
@@ -58,7 +71,9 @@ int calcUnfoldingSystematics(const TString conf){
 
   TString debugFName=Form("debug_unfSyst_%s.root",DYTools::analysisTag.Data());
   TFile *debugFile=NULL;
-  if (1) debugFile=new TFile(debugFName,"recreate");
+
+  if (doCalc) debugFile= new TFile(debugFName,"recreate");
+  else debugFile= new TFile(debugFName,"read");
 
   //---------------------------------------
   // Main analysis code 
@@ -72,7 +87,7 @@ int calcUnfoldingSystematics(const TString conf){
   const int ignoreDebugRunFlag=0;
   TString yieldsFileName= inpMgr.signalYieldFullFileName(systMode,ignoreDebugRunFlag);
   int loadYields=1;
-  if (loadYields) {
+  if (loadYields && doCalc) {
     TFile fileYields(yieldsFileName,"read");
     if (!fileYields.IsOpen()) {
       std::cout << "Failed to load yields from <" << fileYields.GetName() << ">\n";
@@ -88,16 +103,24 @@ int calcUnfoldingSystematics(const TString conf){
 
   int res=1;
 
-  if (debugFile) { debugFile->cd(); signal->Write(); }
+  if (doCalc) { 
+    if (res && debugFile) { debugFile->cd(); signal->Write(); } 
+  }
+  else { res=signal->Read(); }
 
 /////////////////////////////////
 //calculate central values
 /////////////////////////////////
 
   HistoPair2D_t unfYields("unfYields");
-  if (res) res=unfoldDET_local(*signal,unfYields,inpMgr,DYTools::NO_SYST);
+  if (doCalc) {
+    if (res) res=unfoldDET_local(*signal,unfYields,inpMgr,DYTools::NO_SYST);
 
-  if (debugFile) { debugFile->cd(); unfYields.Write(); }
+    if (res && debugFile) { debugFile->cd(); unfYields.Write(); }
+  }
+  else {
+    if (res) unfYields.Read();
+  }
 
 /////////////////////////////////
 //calculate smearing systematics 
@@ -135,44 +158,40 @@ int calcUnfoldingSystematics(const TString conf){
 //calculate Fsr systematics 
 /////////////////////////////////
 
-  HistoPair2D_t unfYieldsFsr5plus("unfYieldsFsr5plus");
-  HistoPair2D_t unfYieldsFsr5minus("unfYieldsFsr5minus");
+  HistoPair2D_t unfYieldsFsr5plus("unfYieldsFSR5plus");
+  HistoPair2D_t unfYieldsFsr5minus("unfYieldsFSR5minus");
 
-  if (res) res=unfoldDET_local(*signal,unfYieldsFsr5plus,inpMgr,DYTools::FSR_5plus);
-  if (res) res=unfoldDET_local(*signal,unfYieldsFsr5minus,inpMgr,DYTools::FSR_5minus);
-
-  HistoPair2D_t *unfYields_dev_Fsr5plus = 
-    getDiff("unfYields_dev_Fsr5plus",unfYields,unfYieldsFsr5plus,1);
-  HistoPair2D_t *unfYields_dev_Fsr5minus =
-    getDiff("unfYields_dev_Fsr5minus",unfYields,unfYieldsFsr5minus,1);
-  HistoPair2D_t *unfYields_diff_FSR=
-    getDiff("unfYields_diff_FSR",unfYieldsFsr5plus,unfYieldsFsr5minus,1);
-
-  if (debugFile) {
-    debugFile->cd();
-    unfYieldsFsr5plus.Write();
-    unfYieldsFsr5minus.Write();
-    unfYields_dev_Fsr5plus->Write();
-    unfYields_dev_Fsr5minus->Write();
-    unfYields_diff_FSR->Write();
+  if (doCalc) {
+    if (res) res=unfoldDET_local(*signal,unfYieldsFsr5plus,inpMgr,DYTools::FSR_5plus);
+    if (res) res=unfoldDET_local(*signal,unfYieldsFsr5minus,inpMgr,DYTools::FSR_5minus);
+    if (res && debugFile) {
+      debugFile->cd();
+      if (res) res= unfYieldsFsr5plus.Write(*debugFile,"details");
+      if (res) res= unfYieldsFsr5minus.Write(*debugFile,"details");
+    }
+  }
+  else {
+    if (res) res= unfYieldsFsr5plus.Read(*debugFile,"details");
+    if (res) res= unfYieldsFsr5minus.Read(*debugFile,"details");
   }
 
-  /*
-  TVectorD unfoldedYieldsFsrMax(nUnfoldingBins);
-  TVectorD unfoldedYieldsFsrMin(nUnfoldingBins);
-  TVectorD unfoldedYieldsFsrErr(nUnfoldingBins);
-  applyUnfoldingLocal(signalYields, unfoldedYieldsFsrMax, 0, 1000, 105);
-  applyUnfoldingLocal(signalYields, unfoldedYieldsFsrMin, 0, 1000, 95);
+  HistoPair2D_t *unfYields_dev_Fsr5plus = NULL;
+  HistoPair2D_t *unfYields_dev_Fsr5minus = NULL;
+  HistoPair2D_t *unfYields_diff_FSR= NULL;
 
-  TVectorD unfoldingSystPercentFsr(nUnfoldingBins); 
-
-  for(int idx = 0; idx < nUnfoldingBins; idx++) {
-    unfoldedYieldsFsrErr[idx] = 
-      fabs(unfoldedYieldsFsrMax[idx]-unfoldedYieldsFsrMin[idx]) /
-      (unfoldedYieldsFsrMax[idx]+unfoldedYieldsFsrMin[idx]);
-    unfoldingSystPercentFsr[idx] = unfoldedYieldsFsrErr[idx]*100.0;
+  if (res) {
+    unfYields_dev_Fsr5plus= getDiff("unfYields_dev_FSR5plus",unfYields,unfYieldsFsr5plus,1);
+    unfYields_dev_Fsr5minus= getDiff("unfYields_dev_FSR5minus",unfYields,unfYieldsFsr5minus,1);
+    unfYields_diff_FSR= getDiff("unfYields_diff_FSR",unfYieldsFsr5plus,unfYieldsFsr5minus,1);
+    res=(unfYields_dev_Fsr5plus && unfYields_dev_Fsr5minus && unfYields_diff_FSR) ? 1:0;
+    if (debugFile && doCalc) {
+      debugFile->cd();
+      if (res) res=unfYields_dev_Fsr5plus->Write(*debugFile,"details");
+      if (res) res=unfYields_dev_Fsr5minus->Write(*debugFile,"details");
+      if (res) res=unfYields_diff_FSR->Write();
+    }
   }
-  */
+
 
 /////////////////////////////////
 //calculate pile-up systematics 
@@ -181,23 +200,33 @@ int calcUnfoldingSystematics(const TString conf){
   HistoPair2D_t unfYieldsPU5plus("unfYieldsPU5plus");
   HistoPair2D_t unfYieldsPU5minus("unfYieldsPU5minus");
 
-  if (res) res=unfoldDET_local(*signal,unfYieldsPU5plus,inpMgr,DYTools::FSR_5plus);
-  if (res) res=unfoldDET_local(*signal,unfYieldsPU5minus,inpMgr,DYTools::FSR_5minus);
+  if (doCalc) {
+    if (res) res=unfoldDET_local(*signal,unfYieldsPU5plus,inpMgr,DYTools::FSR_5plus);
+    if (res) res=unfoldDET_local(*signal,unfYieldsPU5minus,inpMgr,DYTools::FSR_5minus);
+    if (debugFile) {
+      if (res) res= unfYieldsPU5plus.Write(*debugFile,"details");
+      if (res) res= unfYieldsPU5minus.Write(*debugFile,"details");
+    }
+  }
+  else {
+    if (res) res= unfYieldsPU5plus.Read(*debugFile,"details");
+    if (res) res= unfYieldsPU5minus.Read(*debugFile,"details");
+  }
 
-  HistoPair2D_t *unfYields_dev_PU5plus = 
-    getDiff("unfYields_dev_PU5plus",unfYields,unfYieldsPU5plus,1);
-  HistoPair2D_t *unfYields_dev_PU5minus =
-    getDiff("unfYields_dev_PU5minus",unfYields,unfYieldsPU5minus,1);
-  HistoPair2D_t *unfYields_diff_PU=
-    getDiff("unfYields_diff_PU",unfYieldsPU5plus,unfYieldsPU5minus,1);
+  HistoPair2D_t *unfYields_dev_PU5plus = NULL;
+  HistoPair2D_t *unfYields_dev_PU5minus = NULL;
+  HistoPair2D_t *unfYields_diff_PU= NULL;
 
-  if (debugFile) {
-    debugFile->cd();
-    unfYieldsPU5plus.Write();
-    unfYieldsPU5minus.Write();
-    unfYields_dev_PU5plus->Write();
-    unfYields_dev_PU5minus->Write();
-    unfYields_diff_PU->Write();
+  if (res) {
+    unfYields_dev_PU5plus = getDiff("unfYields_dev_PU5plus",unfYields,unfYieldsPU5plus,1);
+    unfYields_dev_PU5minus = getDiff("unfYields_dev_PU5minus",unfYields,unfYieldsPU5minus,1);
+    unfYields_diff_PU= getDiff("unfYields_diff_PU",unfYieldsPU5plus,unfYieldsPU5minus,1);
+    res=(unfYields_dev_PU5plus && unfYields_dev_PU5minus && unfYields_diff_PU) ? 1:0;
+    if (debugFile && doCalc) {
+      if (res) res=unfYields_dev_PU5plus->Write(*debugFile,"details");
+      if (res) res=unfYields_dev_PU5minus->Write(*debugFile,"details");
+      if (res) res=unfYields_diff_PU->Write();
+    }
   }
 
 
@@ -252,13 +281,38 @@ int calcUnfoldingSystematics(const TString conf){
   fa.Close();
 
   */
+
   if (debugFile) { 
+    if (doCalc) writeBinningArrays(*debugFile);
     debugFile->Close();
-    std::cout << "created a debug file: <" << debugFile->GetName() << ">\n";
+    if (doCalc) {
+      std::cout << "created a debug file: <" << debugFile->GetName() << ">\n";
+    }
+    else {
+      std::cout << "used a debug file: <" << debugFile->GetName() << ">\n";
+    }
     delete debugFile; 
   }
 
-  return retCodeOk;
+
+  if (res && infoV) {
+    infoV->push_back(new TInfoLoc_t(signal,"signal",(useMCbkg) ? "signal (MC bkg)" : "signal (DD bkg)"));
+    infoV->push_back(new TInfoLoc_t(&unfYields,"unfYields","unfolded signal"));
+    if (needInfo==1) {
+      infoV->push_back(new TInfoLoc_t(&unfYieldsFsr5plus,"FSR5plus","unf.signal FSR5plus"));
+      infoV->push_back(new TInfoLoc_t(&unfYieldsFsr5minus,"FSR5minus","unf.signal FSR5minus"));
+      infoV->push_back(new TInfoLoc_t( unfYields_dev_Fsr5plus,"devFSR5plus","diff.FSR5plus"));
+      infoV->push_back(new TInfoLoc_t( unfYields_dev_Fsr5minus,"devFSR5minus","diff.FSR5minus"));
+      infoV->push_back(new TInfoLoc_t( unfYields_diff_FSR,"diffFSR","diff.FSR"));
+      infoV->push_back(new TInfoLoc_t(&unfYieldsPU5plus,"PU5plus","unf.signal PU5plus"));
+      infoV->push_back(new TInfoLoc_t(&unfYieldsPU5minus,"PU5minus","unf.signal PU5minus"));
+      infoV->push_back(new TInfoLoc_t( unfYields_dev_PU5plus,"devPU5plus","diff.PU5plus"));
+      infoV->push_back(new TInfoLoc_t( unfYields_dev_PU5minus,"devPU5minus","diff.PU5minus"));
+      infoV->push_back(new TInfoLoc_t( unfYields_diff_PU,"diffPU","diff.PU"));
+    }
+  }
+
+  return (res) ? retCodeOk : retCodeError;
 }
 
 //-----------------------------------------------------------------
