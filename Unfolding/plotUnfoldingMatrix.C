@@ -651,7 +651,8 @@ int plotUnfoldingMatrix(const TString conf,
   TString outputDir=inpMgr.constDir(systMode,0);
 
   //int saveIdxMin=-1;
-  TString fnameTag="";
+  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(systMode);
+  /*
   {
     TString u="_";
     switch(systMode) {
@@ -686,6 +687,7 @@ int plotUnfoldingMatrix(const TString conf,
       assert(0);
     }
   }
+  */
   std::cout << "fnameTag=<" << fnameTag << ">\n";
   CPlot::sOutDir.Append(fnameTag);
 
