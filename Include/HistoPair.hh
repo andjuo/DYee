@@ -47,6 +47,20 @@ public:
 
   // ----------------
 
+  TH2D* createHistoWithFullError(const TString histoName) const {
+    TH2D* h=Clone(fHisto,histoName);
+    for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=h->GetNbinsY(); ++jbin) {
+	double err=h->GetBinError(ibin,jbin);
+	double systErr=fHistoSystErr->GetBinError(ibin,jbin);
+	h->SetBinError(ibin,jbin,sqrt(err*err+systErr*systErr));
+      }
+    }
+    return h;
+  }
+
+  // ----------------
+
   //double get(int idx1, int idx2) const { return fHisto->GetBinContent(idx1+1,idx2+1); }
   //double getErr(int idx1, int idx2) const { return fHisto->GetBinError(idx1+1,idx2+1); }
   //double getSystErr(int idx1, int idx2) const { return fHistoSystErr->GetBinError(idx1+1,idx2+1); }
@@ -137,6 +151,34 @@ public:
 
   // ----------------
 
+  int assign(const TH2D *hBase, const TH2D *hSystError, int resetSystErrCentralVals=1) {
+    if (!hBase && !hSystError) return this->reportError("assign(TH2D*,TH2D*): both pointers cannot be 0 at the same time");
+    const TH2D* setHBase=(hBase) ? hBase : hSystError;
+    const TH2D* setHSyst=(hSystError) ? hSystError : hBase;
+    if ((setHBase->GetNbinsX() != setHSyst->GetNbinsX()) ||
+	(setHBase->GetNbinsY() != setHSyst->GetNbinsY())) {
+      return this->reportError("assign: %s","dim mismatch in the supplied hBase and hSystError");
+    }
+    TString hname=fHisto->GetName();
+    TString hnameSystErr=fHistoSystErr->GetName();
+    fHisto=Clone(setHBase, hname);
+    fHistoSystErr=Clone(setHSyst, hnameSystErr);
+
+    if (!hBase) fHisto->Reset();
+
+    if (!hSystError) fHistoSystErr->Reset();
+    else if (resetSystErrCentralVals) {
+      for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHistoSystErr->GetNbinsY(); ++jbin) {
+	  fHistoSystErr->SetBinContent(ibin,jbin, 0.);
+	}
+      }
+    }
+    return 1;
+  }
+
+  // ----------------
+
   int assign(const TMatrixD &val, const TMatrixD &valErr, const TMatrixD &valSystErr) {
     if (!isInitialized()) { return reportError("assign(TMatrixD): object is not initialized"); }
     if ((val.GetNrows() != fHisto->GetNbinsX()) ||
@@ -156,8 +198,27 @@ public:
 
   // ----------------
 
-  Bool_t add(const TH2D* h, double weight=1.) { return fHisto->Add(h,weight); }
-  Bool_t addSystErr(const TH2D* h, double weight=1.) { return fHistoSystErr->Add(h,weight); }
+  Bool_t add(const TH2D* h, double weight=1.) { 
+    //std::cout << "\nWARN: add(TH2D*) behavior is untested\n";
+    return fHisto->Add(h,weight); 
+  }
+
+  // ----------------
+
+  Bool_t addSystErr(const TH2D* h, double weight=1.) { 
+    /*
+    for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=fHistoSystErr->GetNbinsY(); ++jbin) {
+	double err=fHistoSystErr->GetBinError(ibin,jbin);
+	double addErr= weight * h->GetBinError(ibin,jbin);
+	fHistoSystErr->SetBinError(ibin,jbin, sqrt(err*err + addErr*addErr));
+      }
+    }
+    */
+    //std::cout << "add syst err\n";
+    return fHistoSystErr->Add(h,weight);
+  }
+
   // ----------------
 
   Bool_t addSystErrPercent(const TH2D* h, double extra_weight=1.) {
@@ -354,6 +415,20 @@ public:
 
 };
 
+// ---------------------------------------------
+// ---------------------------------------------
+
+HistoPair2D_t* getDiff(const TString &nameBase, 
+		       const HistoPair2D_t &var1, 
+		       const HistoPair2D_t &var2,
+		       int resetSystError) {
+  HistoPair2D_t *diff=new HistoPair2D_t(nameBase,var1);
+  diff->add(var2,-1);
+  if (resetSystError) diff->editHistoSystErr()->Reset();
+  return diff;
+}
+
+// ---------------------------------------------
 // ---------------------------------------------
 
 
