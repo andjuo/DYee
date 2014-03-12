@@ -691,7 +691,9 @@ inline void swapContentAndError(TH2D *h) { swapContentAndError2D(h); }
 //TH2D *getRelDifferenceVA(const TH2D *baseValue, TString newName, 
 //		       int nVariations, TH2D *hVar1, ...);
 
+// if includeVariants<>0, the differences among the variants are considered
 TH2D *getRelDifference(const TH2D *baseValue, TString newName, 
+		       int includeVariants,
 		       const TH2D *hVar1, const TH2D *hVar2=NULL,
 		       const TH2D *hVar3=NULL, const TH2D *hVar4=NULL);
 
@@ -1215,13 +1217,14 @@ int loadVec(TFile &file, std::vector<tObject_t*> &vec, const TString &subDir="")
 
 template<class histo_t>
 inline
-int saveHisto(TFile &file, histo_t *h, const TString &subDir="") {
+int saveHisto(TFile &file, histo_t *h, const TString &subDir="", const TString &saveWithName="") {
   file.cd();
-  if (subDir.Length()) {
+  if (subDir.Length() && !file.cd(subDir)) {
     file.mkdir(subDir);
     file.cd(subDir);
   }
-  h->Write(h->GetName());
+  TString hname=(saveWithName.Length()) ? saveWithName.Data() : h->GetName();
+  h->Write(hname);
   return 1;
 }
 
@@ -1244,7 +1247,8 @@ int loadHisto(TFile &file, histo_t **h, const TString &subDir="") {
 
 //--------------------------------------------------
 
-TH2D* LoadHisto2D(const TString &fieldName, const TString &fname, const TString &subDir="", int checkBinning=1);
+TH2D* LoadHisto2D(TString fieldName, const TString &fname, TString subDir="", int checkBinning=1);
+TH2D* LoadHisto2D(TFile &fin, TString fieldName, TString subDir="", int checkBinning=1);
 
 //--------------------------------------------------
 //--------------------------------------------------
@@ -1265,7 +1269,7 @@ TH2D* Clone(const TH2D* histo, const TString &newName, const TString &newTitle) 
 //--------------------------------------------------
 
 inline
-TH2D* Clone(TH2D* histo, const TString &newName, int setTitle=0) {
+TH2D* Clone(const TH2D* histo, const TString &newName, int setTitle=0) {
   TH2D *h2=(TH2D*)histo->Clone(newName);
   h2->SetDirectory(0);
   //h2->Sumw2();

@@ -48,7 +48,7 @@ TH2D* getRelDifferenceVA(const TH2D *baseValue, TString newName, int nVariations
 
 //--------------------------------------------------
 
-TH2D* getRelDifference(const TH2D *baseValue, TString newName, const TH2D* hVar1, const TH2D *hVar2, const TH2D *hVar3, const TH2D* hVar4) {
+TH2D* getRelDifference(const TH2D *baseValue, TString newName, int includeVariants, const TH2D* hVar1, const TH2D *hVar2, const TH2D *hVar3, const TH2D* hVar4) {
   if (!baseValue) {
     std::cout << "getRelDifference: base histogram is NULL" << std::endl;
     return NULL;
@@ -80,17 +80,26 @@ TH2D* getRelDifference(const TH2D *baseValue, TString newName, const TH2D* hVar1
   if (hVar3!=NULL) hV.push_back(hVar3);
   if (hVar4!=NULL) hV.push_back(hVar4);
 
+  // If includeVariants is 1, then differences between all histograms are
+  // considered. The j index will run from 0 (baseValue) to 
+  // hV.size(). If j>0, the reference is the variant histogram
+  unsigned int jmax=(includeVariants) ? (hV.size()+1) : 1;
+
   for (unsigned int i=0; i<hV.size(); ++i) {
-    TH2D* hd=(TH2D*)hV[i]->Clone(Form("var_%d",i));
-    hd->Add(baseValue,-1.);
-    for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
-      for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
-	double err=hRes->GetBinError(ibin,jbin);
-	double var=fabs(hd->GetBinContent(ibin,jbin)); // !content
-	if (var>err) hRes->SetBinError(ibin,jbin, var);
+    for (unsigned int j=0; j<jmax; ++j) {
+      if ((j>0) && (i+1==j)) continue; // avoid comparing distribution to itself
+      TH2D* hd=(TH2D*)hV[i]->Clone(Form("var_%d",i));
+      const TH2D* hRef= (j==0) ? baseValue : hV[j-1];
+      hd->Add(hRef,-1.);
+      for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
+	  double err=hRes->GetBinError(ibin,jbin);
+	  double var=fabs(hd->GetBinContent(ibin,jbin)); // !content
+	  if (var>err) hRes->SetBinError(ibin,jbin, var);
+	}
       }
+      delete hd;
     }
-    delete hd;
   }
   return hRes;
 }
@@ -191,7 +200,7 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle, con
 //--------------------------------------------------
 //--------------------------------------------------
 
-TH2D* LoadHisto2D(const TString &histoName, const TString &fname, const TString &subDir, int checkBinning) {
+TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
 
   TFile fin(fname,"read");
@@ -204,12 +213,38 @@ TH2D* LoadHisto2D(const TString &histoName, const TString &fname, const TString 
     return NULL;
   }
 
-  //HERE("LoadHisto2D get histo %s",histoName.Data());
-  
-  TH2D* h2=(TH2D*)fin.Get(histoName);
-  h2->SetDirectory(0);
-  fin.Close();
+  TH2D* h2=LoadHisto2D(fin,histoName,subDir,0);
   if (!h2) std::cout << theCall << ": failed to load the histo\n";
+  else {
+    h2->SetDirectory(0);
+  }
+  fin.Close();
+  return h2;
+}
+
+//--------------------------------------------------
+
+TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinning) {
+  TString theCall=TString("LoadHisto2D(file=<") + fin.GetName() + TString(">,<") + histoName + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
+  
+  if (checkBinning && !checkBinningArrays(fin)) {
+    std::cout << theCall << ": binning test failed\n";
+    return NULL;
+  }
+
+  TString loadHistoName;
+  if (subDir.Length()) {
+    if (subDir[subDir.Length()-1]!='/') subDir.Append("/");
+    loadHistoName=subDir + histoName; 
+  }
+  else loadHistoName=histoName;
+  //std::cout << "loadHistoName=<" << loadHistoName << ">\n";
+
+  TH2D* h2=(TH2D*)fin.Get(loadHistoName);
+  if (!h2) std::cout << theCall << ": failed to load the histo\n";
+  else {
+    h2->SetDirectory(0);
+  }
   return h2;
 }
 
