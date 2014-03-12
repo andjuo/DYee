@@ -321,10 +321,12 @@ public:
   // ----------------
   
   // assume that a file is open
-  int Read() {
+  int Read(TString fieldName="", TString fieldErrName="") {
     if (!this->isInitialized()) return 0;
-    fHisto->Read(fHisto->GetName());
-    fHistoSystErr->Read(fHistoSystErr->GetName());
+    if (fieldName.Length()==0) fieldName=fHisto->GetName();
+    if (fieldErrName.Length()==0) fieldErrName=fHistoSystErr->GetName();
+    fHisto->Read(fieldName);
+    fHistoSystErr->Read(fieldErrName);
     if (!this->isInitialized()) return 0;
     fHisto->SetDirectory(0);
     fHistoSystErr->SetDirectory(0);
@@ -332,16 +334,56 @@ public:
   }
 
   // ----------------
+  // ----------------
 
-  int Load(const TString &fname, int checkBinning, const TString& subdir="") {
+  int Write(TFile &fout, TString subDir="", TString saveWithName="") const {
+    if (!this->isInitialized()) {
+      return this->reportError("Write(fout=<%s>) object is not initialized",fout.GetName());
+    }
+    int res=saveHisto(fout,fHisto,subDir,saveWithName);
+    if (saveWithName.Length()) saveWithName.Append("_Syst");
+    if (res) res=saveHisto(fout,fHistoSystErr,subDir,saveWithName);
+    return (res) ? 1 : reportError("Write(fout=<%s>",fout.GetName());
+  }
+
+  // ----------------
+
+  int Read(TFile &fin, TString subDir="", TString loadWithName="", int checkBinning=1)  {
+    if (!this->isInitialized()) {
+      return this->reportError("Read(fin=<%s>) object is not initialized",fin.GetName());      
+    }
+    TString loadHName=(loadWithName.Length()) ? loadWithName : TString(fHisto->GetName());
+    TH2D *h2    =LoadHisto2D(fin,loadHName,subDir,checkBinning);
+    TString loadHSystName=(loadWithName.Length()) ? (loadWithName + TString("_Syst")) : TString(fHistoSystErr->GetName());
+    TH2D *h2syst=LoadHisto2D(fin,loadHSystName,subDir,checkBinning);
+    int res=1;
+    if (h2 && h2syst) {
+      delete fHisto;
+      delete fHistoSystErr;
+      fHisto=h2;
+      fHistoSystErr=h2syst;
+    }
+    else res=0;
+    return (res) ? 1 : reportError("Read(fin=<%s>",fin.GetName());
+  }
+
+  // ----------------
+  // ----------------
+
+  int Load(const TString &fname, int checkBinning, TString subDir="") {
     if (!isInitialized()) return this->reportError("Load(%s): object is not initialized",fname);
     TFile file(fname,"read");
     if (!file.IsOpen()) return this->reportError("Load(%s): failed to open file");
     int res=1;
     if (res && checkBinning) res=checkBinningArrays(file);
     if (!res) this->printError("Load(%s): binning error");
-    if (res && subdir.Length()) file.cd(subdir);
-    if (res) res=this->Read();
+    TString fieldName,fieldErrName;
+    if (res && subDir.Length()) { 
+      if (subDir[subDir.Length()-1]!='/') subDir.Append("/");
+      fieldName=subDir + TString(fHisto->GetName());
+      fieldErrName=subDir + TString(fHistoSystErr->GetName());
+    }
+    if (res) res=this->Read(fieldName,fieldErrName);
     file.Close();
     return (res) ? 1 : this->reportError("Load(%s): failed to load <%s>",fname,fHisto->GetName());
   }
