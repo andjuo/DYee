@@ -182,7 +182,7 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
 	}
 	
 	ComparisonPlot_t *cpSyst=NULL;
-	cpSyst = new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,title+mRange,"","#it{M}_{ee} [GeV]",correctionKind,"ratio");
+	cpSyst = new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,title+mRange,"","|y|",correctionKind,"ratio");
 	cpSystV.push_back(cpSyst);
 	
 	//cpSyst->SetLogx();
