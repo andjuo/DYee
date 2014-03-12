@@ -1225,6 +1225,7 @@ int saveHisto(TFile &file, histo_t *h, const TString &subDir="", const TString &
   }
   TString hname=(saveWithName.Length()) ? saveWithName.Data() : h->GetName();
   h->Write(hname);
+  if (subDir.Length()) file.cd();
   return 1;
 }
 

@@ -325,8 +325,14 @@ public:
     if (!this->isInitialized()) return 0;
     if (fieldName.Length()==0) fieldName=fHisto->GetName();
     if (fieldErrName.Length()==0) fieldErrName=fHistoSystErr->GetName();
-    fHisto->Read(fieldName);
-    fHistoSystErr->Read(fieldErrName);
+    bool ok=fHisto->Read(fieldName);
+    if (ok) ok=fHistoSystErr->Read(fieldErrName);
+    if (!ok) { 
+      std::cout << "failed to load <" << fieldName << "> and <" 
+		<< fieldErrName << "> from <"
+		<< "current directory\n";
+      return 0;
+    }
     if (!this->isInitialized()) return 0;
     fHisto->SetDirectory(0);
     fHistoSystErr->SetDirectory(0);
