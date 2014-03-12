@@ -726,6 +726,50 @@ public:
       fileTag + TString(".root");
   }
 
+  static TString generateFNameTag(DYTools::TSystematicsStudy_t systMode) {
+    TString u="_";
+    TString fnameTag="UNKNOWN";
+    switch(systMode) {
+    case DYTools::NO_SYST: 
+      fnameTag=DYTools::analysisTag; 
+      break;
+    /*
+    case DYTools::SYST_RND: 
+      fnameTag=TString("_replica_") + DYTools::analysisTag; 
+      //saveIdxMin=0;
+      //fnameTag+=seed;
+      break;
+    case DYTools::RESOLUTION_STUDY: 
+      fnameTag=TString("_seed_") + DYTools::analysisTag;
+      //fnameTag+=seed;
+      break;
+    */
+    case DYTools::FSR_STUDY:
+    case DYTools::FSR_5plus:
+    case DYTools::FSR_5minus:
+      fnameTag=TString("_fsrStudy_") + DYTools::analysisTag;
+      //fnameTag=TString("_reweight_") + DYTools::analysisTag;
+      //fnameTag+= int(100*reweightFsr);
+      break;
+    case DYTools::PU_STUDY:
+    case DYTools::PILEUP_5plus:
+    case DYTools::PILEUP_5minus:
+      fnameTag=TString("_puStudy_") + DYTools::analysisTag;
+      break;
+    /*
+    case DYTools::ESCALE_STUDY:
+      fnameTag=DYTools::analysisTag+TString("_escale") + u;
+      break;
+    */
+    case DYTools::ESCALE_RESIDUAL:
+      fnameTag=DYTools::analysisTag+TString("_escaleResidual");
+      break;
+    default:
+      std::cout<<"\n\tERRORrequested mode not recognized when determining fnameTag"<<std::endl;
+    }
+    return fnameTag;
+  }
+
   void autoSaveToFile(const TString &outputDir, const TString &fileTag) const {
     TString matrixFName,yieldsFName;
     this->getFileNames(outputDir,fileTag, matrixFName,yieldsFName);
