@@ -145,12 +145,12 @@ runPlotDYUnfoldingMatrix() {
 
 
 runCalcUnfoldingSystematics() {
-  root -b -q -l  calcUnfoldingSystematics.C+\(\"${confInputFile}\"\)
-  if [ $? != 0 ] ; then noError=0;
+  root -b -q -l  calcUnfoldingSystematics.C+\(\"${confInputFile}\",${debugMode}\)
+  if [ $? != 7 ] ; then noError=0;
   else 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcUnfoldingSystematics.C+(\"${confInputFile}\")"
+     echo "DONE: calcUnfoldingSystematics.C+(\"${confInputFile}\",debugMode=${debugMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
