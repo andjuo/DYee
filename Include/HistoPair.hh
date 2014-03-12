@@ -329,8 +329,9 @@ public:
     if (ok) ok=fHistoSystErr->Read(fieldErrName);
     if (!ok) { 
       std::cout << "failed to load <" << fieldName << "> and <" 
-		<< fieldErrName << "> from <"
-		<< "current directory\n";
+		<< fieldErrName << "> from "
+		<< "current directory <"
+		<< gDirectory->GetName() << ">\n";
       return 0;
     }
     if (!this->isInitialized()) return 0;
