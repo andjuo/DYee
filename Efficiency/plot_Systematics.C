@@ -24,6 +24,9 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
   else if (correctionKind=="acceptance") {
     foutName=Form("../root_files_reg/constants/DY_j22_19712pb/acceptanceSyst_%s.root",DYTools::analysisTag.Data());
   }
+  else if (correctionKind=="unfYields") {
+    foutName=Form("../root_files_reg/constants/DY_j22_19712pb/unfYieldsSyst_%s.root",DYTools::analysisTag.Data());
+  }
   else {
     std::cout << "not ready for correctionKind=<" << correctionKind << ">\n";
     return;
