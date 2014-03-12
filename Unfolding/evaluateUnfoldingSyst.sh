@@ -174,6 +174,8 @@ if [ $? != 0 ] ; then noError=0; fi
 storeConfInputFile=${confInputFile}
 confInputFile="_DebugRun_"
 deriveSyst=$(( ${doFsrStudy} + ${doPUStudy} + ${doResolutionStudy} + ${doShapeReweight} ))
+# do debug compilation only if both codes have to be run
+if [ ${deriveSyst} -gt 0 ] && [ ${doCalcUnfoldingSyst} -gt 0 ] ; then
 if [ ${noError} -eq 1 ] && [ ${deriveSyst} -gt 0 ] ; then 
     runPlotDYUnfoldingMatrix;
     checkFile plotUnfoldingMatrix_C.so
@@ -181,6 +183,7 @@ fi
 if [ ${noError} -eq 1 ] && [ ${doCalcUnfoldingSyst} -gt 0 ] ; then 
     runCalcUnfoldingSystematics; 
     checkFile calcUnfoldingSystematics_C.so
+fi
 fi
 confInputFile=${storeConfInputFile}
 
