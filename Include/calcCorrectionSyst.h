@@ -8,6 +8,16 @@
 
 // -------------------------------------------------
 
+//void loadCorrectionSystFromFile(int debug, const TString conf,
+//				TString correctionKind, 
+//				std::vector<TH2D*> &histos,
+//				std::vector<std::string> &labels);
+
+//void loadCorrectionSystFromFile(const TString &systFName,
+//				TString correctionKind, 
+//				std::vector<TH2D*> &histos,
+//				std::vector<std::string> &labels);
+
 void printSystTable(std::ostream& out, TString correctionKind, const TH2D* hFsrSyst, const TH2D *hPUSyst, int exponent=1);
 
 inline
@@ -59,6 +69,10 @@ int calcCorrectionSyst(int debug, const TString conf,
   TString outFName0=inpMgr0.correctionFullFileName(correctionKind,DYTools::NO_SYST,0);
   TH2D *h2Base=LoadHisto2D(fieldName,outFName0);
   int ok=(h2Base!=NULL) ? 1:0;
+  if (ok) {
+    TString hBaseName=Form("h%s",correctionKind.Data());
+    h2Base->SetName(hBaseName);
+  }
     
   TH2D *h2FSR5plus=NULL, *h2FSR5minus=NULL;
   TH2D *h2PU5plus=NULL, *h2PU5minus=NULL;
@@ -78,7 +92,9 @@ int calcCorrectionSyst(int debug, const TString conf,
 	std::cout << "check 1st bin\n";
 	std::cout << "base=" << h2Base->GetBinContent(1,1) << ", h2FSR5plus="  << h2FSR5plus->GetBinContent(1,1) << ", h2FSR5minus=" << h2FSR5minus->GetBinContent(1,1) << "\n";
       }
-      h2FSRsyst= getRelDifference(h2Base,"hEff_FSRsyst",h2FSR5plus,h2FSR5minus);
+      TString hFSRsystName=Form("h%s_FSRsyst",correctionKind.Data());
+      // 1 - take the difference between the variants as well
+      h2FSRsyst= getRelDifference(h2Base,hFSRsystName,1,h2FSR5plus,h2FSR5minus);
       if (!h2FSRsyst) ok=0;
       //printHisto(h2FSRsyst);
     }
@@ -94,7 +110,9 @@ int calcCorrectionSyst(int debug, const TString conf,
       if (!h2PU5minus) ok=0;
     }
     if (ok) {
-      h2PUsyst= getRelDifference(h2Base,"hEff_PUsyst",h2PU5plus,h2PU5minus);
+      TString hPUsystName=Form("h%s_PUsyst",correctionKind.Data());
+      // 1 - take the difference between the variants as well
+      h2PUsyst= getRelDifference(h2Base,hPUsystName,1,h2PU5plus,h2PU5minus);
       if (!h2PUsyst) ok=0;
       //printHisto(h2PUsyst);
     }
@@ -120,6 +138,11 @@ int calcCorrectionSyst(int debug, const TString conf,
     TFile fout(systFName,"recreate");
       int res=fout.IsOpen();
       if (res) res=saveVec(fout,*resHistos);
+      if (res && h2FSR5plus) res=saveHisto(fout,h2FSR5plus,"details","FSR5plus");
+      if (res && h2FSR5minus) res=saveHisto(fout,h2FSR5minus,"details","FSR5minus");
+      if (res && h2PU5plus) res=saveHisto(fout,h2PU5plus,"details","PU5plus");
+      if (res && h2PU5minus) res=saveHisto(fout,h2PU5minus,"details","PU5minus");
+      writeBinningArrays(fout);
       fout.Close();
       std::cout << "systematics saved to file <" << fout.GetName() << "> with res=" << res << "\n";
       if (!res) ok=retCodeError;
@@ -128,6 +151,84 @@ int calcCorrectionSyst(int debug, const TString conf,
     
   return ok;
 }
+
+// -------------------------------------------------
+// -------------------------------------------------
+
+int loadCorrectionSystFromFile(const TString &systFName,
+			       TString correctionKind,
+			       std::vector<TH2D*> &histosV,
+			       std::vector<std::string> &labelsV) {
+
+  histosV.clear();
+  labelsV.clear();
+
+  TString hBase=Form("h%s",correctionKind.Data());
+  TString hFSRsystName=Form("h%s_FSRsyst",correctionKind.Data());
+  TString hPUsystName=Form("h%s_PUsyst",correctionKind.Data());
+
+  TFile fin(systFName,"read");
+  TH2D *h2Base=LoadHisto2D(fin,hBase,"",1);
+  if (!h2Base) {
+    fin.Close();
+    std::cout << "error in plotCorrectionSystFromFile\n";
+    return retCodeError;
+  }
+  TH2D *h2FSR=LoadHisto2D(fin,hFSRsystName,"",0);
+  TH2D *h2PU =LoadHisto2D(fin,hPUsystName,"",0);
+  TH2D *h2FSR5plus=LoadHisto2D(fin,"FSR5plus","details",0);
+  TH2D *h2FSR5minus=LoadHisto2D(fin,"FSR5minus","details",0);
+  TH2D *h2PU5plus =LoadHisto2D(fin,"PU5plus","details",0);
+  TH2D *h2PU5minus=LoadHisto2D(fin,"PU5minus","details",0);
+  fin.Close();
+
+  histosV.reserve(7);
+  histosV.push_back(h2Base);
+  histosV.push_back(h2FSR);
+  histosV.push_back(h2PU);
+  histosV.push_back(h2FSR5plus);
+  histosV.push_back(h2FSR5minus);
+  histosV.push_back(h2PU5plus);
+  histosV.push_back(h2PU5minus);
+
+  labelsV.reserve(7);
+  labelsV.push_back(correctionKind.Data());
+  labelsV.push_back("FSR syst");
+  labelsV.push_back("Pile-up syst");
+  labelsV.push_back("FSR 5% plus");
+  labelsV.push_back("FSR 5% minus");
+  labelsV.push_back("Pile-up 5% plus");
+  labelsV.push_back("Pile-up 5% minus");
+
+  return retCodeOk;
+}
+
+// -------------------------------------------------
+
+
+int loadCorrectionSystFromFile(int debug, const TString conf,
+			       TString correctionKind,
+			       std::vector<TH2D*> &histos,
+			       std::vector<std::string> &labels) {
+  DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
+  //DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+
+  InputFileMgr_t inpMgr0;
+  if (!inpMgr0.Load(conf)) return retCodeError;
+
+  // Needed as long as it modifies the inpMgr0 fields
+  EventSelector_t eventSelector(inpMgr0,runMode,DYTools::NO_SYST,
+				"","", EventSelector::_selectDefault);
+  
+  TString systFName=inpMgr0.correctionSystFullFileName(correctionKind,DYTools::NO_SYST,0);
+  
+  if (loadCorrectionSystFromFile(systFName,correctionKind,histos,labels)!=retCodeOk) {
+    std::cout << "error in loadCorrectionSystFromFile(conf,correctionKind)\n";
+    return retCodeError;
+  }
+  return retCodeOk;
+}
+
 
 // -------------------------------------------------
 // -------------------------------------------------
