@@ -82,6 +82,8 @@ public:
   double specWeight() const { return specW; }
   double totalWeight() const { return baseW * puW * fewzW * specW; }
 
+  void setBaseWeight(double w) { baseW=w; }
+  void setBaseWeight(const EventWeight_t &w) { baseW=w.baseW; }
 
   template<class TLong_t>
   int setWeight_and_adjustMaxEvents(TLong_t &maxEvents, double lumi, double xsec, double extraFactor, int doWeight) {
