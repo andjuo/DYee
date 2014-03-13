@@ -54,8 +54,8 @@ TH2D* getRelDifference(const TH2D *baseValue, TString newName, int includeVarian
     return NULL;
   }
 
-  TString newTitle=baseValue->GetTitle() + TString(" rel.Diff");
-  TH2D *hRes=Clone(baseValue,newName,newTitle);
+  // TString newTitle=baseValue->GetTitle() + TString(" rel.Diff");
+  TH2D *hRes=Clone(baseValue,newName,newName);
   if (!hRes) {
     std::cout << "getRelDifference: failed to copy the histogram" << std::endl;
     return NULL;
