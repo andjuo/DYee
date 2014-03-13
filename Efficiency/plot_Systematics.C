@@ -52,7 +52,7 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
     
   hCombiV.push_back(histos[0]);
   hCombiV.push_back(hpFSR.createHistoWithFullError("hWithFSRsyst"));
-  hCombiV.push_back(hpPU.createHistoWithFullError("hWithPUsyst"));
+  hCombiV.push_back(hpPU.createHistoWithFullError("hWithPileUpSyst"));
   hCombiV.push_back(hpTotErr.createHistoWithFullError("hWithTotSyst"));
   combiLabels.push_back(correctionKind + TString(" +stat.err"));
   combiLabels.push_back(correctionKind + TString(" +stat.err +FSR.syst."));

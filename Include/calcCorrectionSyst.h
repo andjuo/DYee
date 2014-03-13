@@ -110,7 +110,7 @@ int calcCorrectionSyst(int debug, const TString conf,
       if (!h2PU5minus) ok=0;
     }
     if (ok) {
-      TString hPUsystName=Form("h%s_PUsyst",correctionKind.Data());
+      TString hPUsystName=Form("h%s_PileUpSyst",correctionKind.Data());
       // 1 - take the difference between the variants as well
       h2PUsyst= getRelDifference(h2Base,hPUsystName,1,h2PU5plus,h2PU5minus);
       if (!h2PUsyst) ok=0;
@@ -165,7 +165,7 @@ int loadCorrectionSystFromFile(const TString &systFName,
 
   TString hBase=Form("h%s",correctionKind.Data());
   TString hFSRsystName=Form("h%s_FSRsyst",correctionKind.Data());
-  TString hPUsystName=Form("h%s_PUsyst",correctionKind.Data());
+  TString hPUsystName=Form("h%s_PileUpSyst",correctionKind.Data());
 
   TFile fin(systFName,"read");
   TH2D *h2Base=LoadHisto2D(fin,hBase,"",1);
@@ -247,9 +247,9 @@ void printSystTable(std::ostream& out, TString correctionKind, const TH2D* hFsrS
   }
 
   const TH2D *h2=(hFsrSyst!=NULL) ? hFsrSyst : hPUSyst;
-  std::string col1Name=(hFsrSyst!=NULL) ? "FSRsyst" : "PUsyst";
+  std::string col1Name=(hFsrSyst!=NULL) ? "FSRsyst" : "PileUpSyst";
   const TH2D *h2two=(hFsrSyst!=NULL) ? hPUSyst : NULL;
-  std::string col2Name= (h2two) ? "PUsyst" : "";
+  std::string col2Name= (h2two) ? "PileUpSyst" : "";
 
   const char *formatRange= " %6.1f-%6.1f  %5.1f-%5.1f  ";
   const std::string formatRaw   = (exponent) ? "  %7.2e" : " %lf";
