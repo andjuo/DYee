@@ -273,7 +273,7 @@ int plotUnfoldingMatrix(const TString conf,
     if (specEWeightsV.size()!=2) { std::cout << "expected specEWeights.size=2\n"; return retCodeError; }
     detRespV.reserve(specEWeightsV.size());
     for (unsigned int i=0; i<specEWeightsV.size(); i++) {
-      TString wStr=(i==0) ? "_PU5plus" : "_PU5minus";
+      TString wStr=(i==0) ? "PU5plus" : "PU5minus";
       TString name=TString("detResponse_") + wStr;
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
@@ -369,6 +369,9 @@ int plotUnfoldingMatrix(const TString conf,
       std::cout << "mcSample xsec=" << mcSample->getXsec(ifile) << ", nEntries=" << maxEvents << "\n";
       
       std::cout << "       -> sample base weight is " << evWeight.baseWeight() << "\n";
+      for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
+	specEWeightsV[iSt]->setBaseWeight(evWeight);
+      }
     
       // loop through events
       EventCounterExt_t ec(Form("%s_file%d",mcSample->name.Data(),ifile));
@@ -414,10 +417,10 @@ int plotUnfoldingMatrix(const TString conf,
 	}
 
 	if (ientry<20) {
-	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(); std::cout << "\n";
+	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(0); std::cout << "\n";
 	  //printf("reweight=%4.2lf, fewz_weight=%4.2lf,dE_fsr=%+6.4lf\n",reweight,fewz_weight,(gen->mass-gen->vmass));
 	  for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
-	    std::cout << " specEWeight[" << iSt << "] = " << specEWeightsV[iSt]->totalWeight() << "\n";
+	    std::cout << " specEWeight[" << iSt << "] = "; specEWeightsV[iSt]->Print(0); //std::cout << "\n";
 	  }
 	}
 
