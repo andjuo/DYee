@@ -1220,6 +1220,7 @@ inline
 int saveHisto(TFile &file, histo_t *h, const TString &subDir="", const TString &saveWithName="") {
   file.cd();
   if (subDir.Length() && !file.cd(subDir)) {
+    std::cout << " ... creating subdirectory <" << subDir << ">\n";
     file.mkdir(subDir);
     file.cd(subDir);
   }
