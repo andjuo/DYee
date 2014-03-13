@@ -12,6 +12,8 @@ for arg in $@ ; do
 	  shift # shift argument list
       fi
     debugMode=${arg:7:2}
+    # if only '--debug' was provided, assume debugMode
+    if [ ${#debugMode} -eq 0 ] ; then debugMode=1; fi
   fi
 done
 if [ ${#debugMode} -eq 0 ] ; then debugMode=0; fi
@@ -54,9 +56,13 @@ if [ ${#fullRun} -eq 6 ] ; then
   doShapeReweight=${fullRun:3:1}
   doCalcUnfoldingSyst=${fullRun:5:1}
 
-elif [ ${#fullRun} -eq 1 ] && [ ${fullRun} -eq 1 ] ; then
-    doFsrStudy=1; doPUStudy=1; doResolutionStudy=1; doShapeReweight=1;
-    doCalcUnfoldingSyst=1
+elif [ ${#fullRun} -eq 1 ] ; then
+    if [ ${fullRun} -eq 1 ] ; then
+	doFsrStudy=1; doPUStudy=1; doResolutionStudy=1; doShapeReweight=1;
+	doCalcUnfoldingSyst=1
+    elif [ ${fullRun} -eq 5 ] ; then
+	doCalcUnfoldingSyst=1
+    fi
 fi
 
 runMode=DYTools::NORMAL_RUN
