@@ -559,7 +559,9 @@ int subtractBackground(const TString conf,
   }
 
 */
-    return retCodeOk;
+
+  gBenchmark->Show("subtractBackground");
+  return retCodeOk;
 
 }
 
