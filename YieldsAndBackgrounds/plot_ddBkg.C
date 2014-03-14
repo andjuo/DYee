@@ -82,6 +82,7 @@ void plot_ddBkg(int iBr=0,
     path1="../root_files_reg/ddbkgYield/DY_j22_19712pb/";
     path2=path1;
     esfLongStr1="_20131231_1D";
+    esfLongStr1="_20140301AJ_1D";
     esfLongStr2="_20140312_1D";
     label1="2013.12.31";
     label2="2014.03.12";
