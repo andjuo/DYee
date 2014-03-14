@@ -56,52 +56,7 @@ TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_
 
 // ----------------------------------------------------------------
 
-// ------------------------------------------------------------
 
-TGraphAsymmErrors* getAsymGraph(DYTools::TEtBinSet_t etBinning_inp,
-				DYTools::TEtaBinSet_t etaBinning_inp,
-				int iEta,
-				const TMatrixD &Meff,
-				const TMatrixD &MeffLo,
-				const TMatrixD &MeffHi,
-				TH1D  **histo=NULL,
-				const char *histoName=NULL) {
-  int loc_etBinCount=DYTools::getNEtBins(etBinning_inp);
-  double *loc_etBinLimits=DYTools::getEtBinLimits(etBinning_inp);
-  //int loc_etaBinCount=DYTools::getNEtaBins(etaBinning_inp);
-  double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinning_inp);
-
-  double x[loc_etBinCount], dx[loc_etBinCount];
-  double eff[loc_etBinCount], effLo[loc_etBinCount], effHi[loc_etBinCount];
-  for (int i=0; i<loc_etBinCount; ++i) {
-    x[i] = 0.5*(loc_etBinLimits[i  ] + loc_etBinLimits[i+1]);
-    dx[i]= 0.5*(loc_etBinLimits[i+1] - loc_etBinLimits[i  ]);
-    eff[i] = Meff[i][iEta];
-    effLo[i] = MeffLo[i][iEta];
-    effHi[i] = MeffHi[i][iEta];
-  }
-
-  if ((histo!=NULL) && (histoName!=NULL)) {
-    TH1D *h=new TH1D(histoName,histoName,loc_etBinCount,loc_etBinLimits);
-    h->SetDirectory(0);
-    h->SetStats(0);
-    h->GetXaxis()->SetTitle("E_{T}");
-    h->GetYaxis()->SetTitle("efficiency");
-    for (int i=0; i<loc_etBinCount; ++i) {
-      h->SetBinContent(i+1, eff[i]);
-      h->SetBinError  (i+1, 0.5*(effLo[i]+effHi[i]));
-    }
-    *histo=h;
-  }
-  
-  //const int bufsize=30;
-  //char plotLabel[bufsize];
-  int signedEta=DYTools::signedEtaBinning(etaBinning_inp);
-  TString etaStr=Form("%s_%5.3lf_%5.3lf",(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iEta],loc_etaBinLimits[iEta+1]);
-  TGraphAsymmErrors *gr=new TGraphAsymmErrors(loc_etBinCount,x,eff,dx,dx,effLo,effHi);
-  gr->SetTitle(etaStr);
-  return gr;
-}
 
 // ------------------------------------------------------------
 
@@ -203,9 +158,10 @@ TString effDataKindString(const TString str) {
 // ------------------------------------------------------------
 // ------------------------------------------------------------
 
-void plotSFspec(int iBr=0, int iEta=0, 
+void plotSFspec(int iBr=0, int iBin=0, 
 		int doSave=0,
-		double transLegendY_user=0.) {
+		double transLegendY_user=0.,
+		int vsEt=1) {
 
 
   TString fname;
@@ -240,6 +196,8 @@ void plotSFspec(int iBr=0, int iEta=0,
     transLegendX=-0.23;
     //transLegendY=-0.2;
   }
+
+  //if (!vsEt) saveFileTag.Append("-vsEta");
 
   if (transLegendY_user!=0.) transLegendY=transLegendY_user;
 
@@ -287,30 +245,35 @@ void plotSFspec(int iBr=0, int iEta=0,
 
   HERE("create graphs");
 
-  TGraphAsymmErrors* gr1=getAsymGraph(etBinSet,etaBinSet,iEta,*sf,*sf1ErrLo,*sf1ErrHi);
+  TGraphAsymmErrors* gr1=getAsymGraph(vsEt, etBinSet,etaBinSet,iBin,*sf,*sf1ErrLo,*sf1ErrHi);
   gr1->GetXaxis()->SetMoreLogLabels();
   gr1->GetXaxis()->SetNoExponent();
   gr1->Print("range");
 
-  TGraphAsymmErrors* gr2=getAsymGraph(etBinSet,etaBinSet,iEta,*sf,sf2ErrLo,sf2ErrHi);
+  TGraphAsymmErrors* gr2=getAsymGraph(vsEt, etBinSet,etaBinSet,iBin,*sf,sf2ErrLo,sf2ErrHi);
   gr2->GetXaxis()->SetMoreLogLabels();
   gr2->GetXaxis()->SetNoExponent();
   gr2->Print("range");
 
-  TGraphAsymmErrors* gr3=getAsymGraph(etBinSet,etaBinSet,iEta,*sf,sf3ErrLo,sf3ErrHi);
+  TGraphAsymmErrors* gr3=getAsymGraph(vsEt, etBinSet,etaBinSet,iBin,*sf,sf3ErrLo,sf3ErrHi);
   gr3->GetXaxis()->SetMoreLogLabels();
   gr3->GetXaxis()->SetNoExponent();
   gr3->Print("range");
 
 
+  double *loc_etBinLimits=DYTools::getEtBinLimits(etBinSet);
   double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinSet);
   int signedEta=DYTools::signedEtaBinning(etaBinSet);
-  TString cpTitle=dataKind+ TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iEta],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iEta+1]));
+  TString binStrForTitle=(vsEt) ? TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iBin],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iBin+1])) :
+    TString(Form(" %2.0lf #leq #it{E}_{T} #leq %2.0lf GeV",loc_etBinLimits[iBin],loc_etBinLimits[iBin+1]));
+  TString cpTitle=dataKind+ binStrForTitle;
+  TString xAxisTitle="#it{E}_{T} [GeV]";
+  if (!vsEt) xAxisTitle=(signedEta) ? "#eta" : "|#eta|";
 
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,"comp",cpTitle,
-		      "#it{E}_{T} [GeV]",effKind + TString(" scale factor"),"ratio");
+		      xAxisTitle,effKind + TString(" scale factor"),"ratio");
   cp.SetRefIdx(-111); // no ratio plot
-  cp.SetLogx();
+  if (vsEt) cp.SetLogx();
   cp.AddLine(10.,1.,500.,1.,kBlack,2);
 
   TCanvas *cx=new TCanvas("cx","cx",600,600);
@@ -338,6 +301,7 @@ void plotSFspec(int iBr=0, int iEta=0,
     outfname.ReplaceAll("(#eta)","Eta");
     outfname.ReplaceAll("#eta","eta");
     outfname.ReplaceAll(".","_");
+    outfname.ReplaceAll("#it{E}_{T}","Et");
     //fname.Append(".png");
     std::cout << "outfname=" << outfname << "\n";
 
