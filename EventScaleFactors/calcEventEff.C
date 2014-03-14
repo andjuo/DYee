@@ -266,7 +266,7 @@ double *etaBinLimits=NULL;
 int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
 		 InputFileMgr_t &inpMgr, EventSelector_t &evtSelector,
 		 TString &puStr, int createDestinationDir,
-		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) 
+		 DYTools::TSystematicsStudy_t systMode) 
 {
 
   //InputFileMgr_t inpMgr;
@@ -426,7 +426,8 @@ int calcEventEff(const TString confFileName,
   TString puStr;
 
   //HERE("\n\tCalling initManagers\n");
-  if (!initManagers(confFileName,DYTools::NORMAL_RUN,inpMgr,evtSelector,puStr,1)) {
+  if (!initManagers(confFileName,DYTools::NORMAL_RUN,inpMgr,evtSelector,
+		    puStr,1, DYTools::NO_SYST)) {
     std::cout << "failed to initialize managers\n";
     return retCodeError;
   }
