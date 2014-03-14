@@ -76,13 +76,13 @@ void plotESF(int doSave=0) {
   TString fnameTag, saveDirTag="-plot-esf";
   TString label1;
 
-  if (1) { 
+  if (0) { 
     inpFName="/home/andriusj/cms/DYee-20140217-EESF/root_files_reg/constants/DY_j22_19712pb/scale_factors_ourSF_asymHLT_1D.root";
     label1="our SF";
     fnameTag="-ourSF";
   }
 
-  if (1) {
+  if (0) {
     inpFName="/home/andriusj/cms/DYee-20140217-EESF/root_files_reg/constants/DY_j22_19712pb_egamma/scale_factors_egamma_asymHLT_1D.root"; 
     label1="EGamma";
     fnameTag="-egamma";
@@ -94,8 +94,15 @@ void plotESF(int doSave=0) {
     fnameTag="-egammaV2";
   }
 
+  if (1) {
+    inpFName="../Covariance/covRhoFileSF-exact1_nMB41_egamma_asymHLT_Unregressed_energy-allSyst_100.root";
+    label1="eff1";
+    fnameTag="-allEff1";
+  }
+
   if (DYTools::study2D) {
     inpFName.ReplaceAll("1D","2D");
+    inpFName.ReplaceAll("_nMB41","_nMB7");
   }
 
   TH2D *h2esf1= loadESF(inpFName,label1);
