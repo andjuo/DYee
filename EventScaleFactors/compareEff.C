@@ -1,58 +1,13 @@
+//
+// Made on March 14, 2014
+// Enhanced version of compareEff.C. Allows plotting vs eta
+
 #include "../Include/DYTools.hh"
 #include "calcEventEffLink.h"
 #include <TGraphAsymmErrors.h>
 #include "../Include/ComparisonPlot.hh"
 
 // ------------------------------------------------------------
-
-
-// ------------------------------------------------------------
-
-TGraphAsymmErrors* getAsymGraph(DYTools::TEtBinSet_t etBinning_inp,
-				DYTools::TEtaBinSet_t etaBinning_inp,
-				int iEta,
-				const TMatrixD &Meff,
-				const TMatrixD &MeffLo,
-				const TMatrixD &MeffHi,
-				TH1D  **histo=NULL,
-				const char *histoName=NULL) {
-  int loc_etBinCount=DYTools::getNEtBins(etBinning_inp);
-  double *loc_etBinLimits=DYTools::getEtBinLimits(etBinning_inp);
-  //int loc_etaBinCount=DYTools::getNEtaBins(etaBinning_inp);
-  double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinning_inp);
-
-  double x[loc_etBinCount], dx[loc_etBinCount];
-  double eff[loc_etBinCount], effLo[loc_etBinCount], effHi[loc_etBinCount];
-  for (int i=0; i<loc_etBinCount; ++i) {
-    x[i] = 0.5*(loc_etBinLimits[i  ] + loc_etBinLimits[i+1]);
-    dx[i]= 0.5*(loc_etBinLimits[i+1] - loc_etBinLimits[i  ]);
-    eff[i] = Meff[i][iEta];
-    effLo[i] = MeffLo[i][iEta];
-    effHi[i] = MeffHi[i][iEta];
-  }
-
-  if ((histo!=NULL) && (histoName!=NULL)) {
-    TH1D *h=new TH1D(histoName,histoName,loc_etBinCount,loc_etBinLimits);
-    h->SetDirectory(0);
-    h->SetStats(0);
-    h->GetXaxis()->SetTitle("E_{T}");
-    h->GetYaxis()->SetTitle("efficiency");
-    for (int i=0; i<loc_etBinCount; ++i) {
-      h->SetBinContent(i+1, eff[i]);
-      h->SetBinError  (i+1, 0.5*(effLo[i]+effHi[i]));
-    }
-    *histo=h;
-  }
-  
-  //const int bufsize=30;
-  //char plotLabel[bufsize];
-  int signedEta=DYTools::signedEtaBinning(etaBinning_inp);
-  TString etaStr=Form("%s_%5.3lf_%5.3lf",(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iEta],loc_etaBinLimits[iEta+1]);
-  TGraphAsymmErrors *gr=new TGraphAsymmErrors(loc_etBinCount,x,eff,dx,dx,effLo,effHi);
-  gr->SetTitle(etaStr);
-  return gr;
-}
-
 
 
 // ------------------------------------------------------------
@@ -107,19 +62,6 @@ int loadEGammaEff(TString kindStr, TMatrixD **eff, TMatrixD **effLo, TMatrixD **
 }
 
 // ------------------------------------------------------------
-// does not work
-/*
-TGraphAsymmErrors* divideEffs(const TGraphAsymmErrors *gr1, const TGraphAsymmErrors *gr2) {
-  TH1F *h1=gr1->GetHistogram();
-  TH1F *h2=gr2->GetHistogram();
-  std::cout << "h1="; h1->Print("range");
-  std::cout << "h2="; h2->Print("range");
-  TGraphAsymmErrors *div=(TGraphAsymmErrors*)gr1->Clone("temp");
-  div->Divide(h1,h2,"cl=0.683 b(1,1) mode");
-  return div;
-}
-*/
-
 // ------------------------------------------------------------
 
 TString effDataKindString(const TString str) {
@@ -138,9 +80,10 @@ TString effDataKindString(const TString str) {
 // ------------------------------------------------------------
 
 
-void compareEff(int iBr=0, int iEta=0, 
-		double transLegendY_user=0.,
-		double ratioTitleOffset=0.58) {
+void compareEff(int iBr=0, int iBin=0, int vsEt=1,
+		 int doSave=0,
+		 double transLegendY_user=0.,
+		 double ratioTitleOffset=0.58) {
   TString path1, path2;
   TString effKindLongStr1,effKindLongStr2;
   TString fnameBase="efficiency_TnP_1D_Full2012_";
@@ -245,20 +188,20 @@ void compareEff(int iBr=0, int iEta=0,
     fnameTag="-checkSummer2013--";
   }
 
-  if (0) {
+  if (1) {
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
     path2="./";
-    effKindLongStr1="dataID_fit-fitEtBins6EtaBins5corr_PU";
+    effKindLongStr1="dataID_fit-fitEtBins6EtaBins5_PU";
     effKindLongStr2="EGAMMA_dataID_EtBins6EtaBins5";
     label1="DYee |#eta|<2.4";
     label2="EGamma";
-    if (1) {
+    if (0) {
       path3="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
-      effKindLongStr3="dataID_fit-fitEtBins6EtaBins5_PU";
+      effKindLongStr3="dataID_fit-fitEtBins6EtaBins5_maxEta25_PU";
       label3="DYee |#eta|<2.5";
     }
-    fnameTag="-cmpEGamma--";
-    transLegendX=-0.1;
+    fnameTag="-cmpEGamma2--";
+    transLegendX=(vsEt) ? -0.1 : -0.4;
   }
 
   if (0) { // tag-related HLT systematics
@@ -285,7 +228,7 @@ void compareEff(int iBr=0, int iEta=0,
     transLegendX=-0.2;
   }
 
-  if (1) { // PU-related HLT systematics
+  if (0) { // PU-related HLT systematics
     HLTcomparison=1;
     HLTsystematics=1;
     //divideBy1st=1;
@@ -365,6 +308,14 @@ void compareEff(int iBr=0, int iEta=0,
     else if (iBr==1) {
       effKindLongStr1.ReplaceAll("dataID_fit-fit","mcID_count-count");
       effKindLongStr2.ReplaceAll("dataID","mcID");
+    }
+    else if (iBr==2) {
+      effKindLongStr1.ReplaceAll("dataID_fit-fit","dataRECO_fit-fit");
+      effKindLongStr2.ReplaceAll("dataID","dataRECO");
+    }
+    else if (iBr==3) {
+      effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
+      effKindLongStr2.ReplaceAll("dataRECO","mcRECO");
     }
     else {
       std::cout << "iBr error\n";
@@ -488,10 +439,10 @@ void compareEff(int iBr=0, int iEta=0,
     }
   }
 
-  TGraphAsymmErrors* gr1=getAsymGraph(etBinSet1,etaBinSet1,iEta,*eff1,*eff1ErrLo,*eff1ErrHi,&histo1,histo1Name);
+  TGraphAsymmErrors* gr1=getAsymGraph(vsEt,etBinSet1,etaBinSet1,iBin,*eff1,*eff1ErrLo,*eff1ErrHi,&histo1,histo1Name);
   //std::cout << gr1->GetTitle() << ": "; gr1->Print("range");
 
-  TGraphAsymmErrors* gr2=getAsymGraph(etBinSet2,etaBinSet2,iEta,*eff2,*eff2ErrLo,*eff2ErrHi,&histo2,histo2Name);
+  TGraphAsymmErrors* gr2=getAsymGraph(vsEt,etBinSet2,etaBinSet2,iBin,*eff2,*eff2ErrLo,*eff2ErrHi,&histo2,histo2Name);
   //std::cout << gr2->GetTitle() << ": "; gr2->Print("range");
 
   TGraphAsymmErrors* div=(TGraphAsymmErrors*)gr1->Clone("div");
@@ -522,7 +473,7 @@ void compareEff(int iBr=0, int iEta=0,
     DYTools::TEtaBinSet_t etaBinSet3=DetermineEtaBinSet(effKindLongStr3);
    
     TString histo3Name="histo3";
-    gr3=getAsymGraph(etBinSet3,etaBinSet3,iEta,*eff3,*eff3ErrLo,*eff3ErrHi, &histo3,histo3Name);
+    gr3=getAsymGraph(vsEt,etBinSet3,etaBinSet3,iBin,*eff3,*eff3ErrLo,*eff3ErrHi, &histo3,histo3Name);
     //std::cout << gr3->GetTitle() << ": "; gr3->Print("range");
     delete eff3;
     delete eff3ErrLo;
@@ -552,32 +503,22 @@ void compareEff(int iBr=0, int iEta=0,
     div->SetMarkerColor(kBlue);
   }
 
+  double *loc_etBinLimits=DYTools::getEtBinLimits(etBinSet1);
   double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinSet1);
   int signedEta=DYTools::signedEtaBinning(etaBinSet1);
-  TString cpTitle=dataKind+ TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iEta],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iEta+1]));
+  TString binStrForTitle=(vsEt) ? TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iBin],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iBin+1])) :
+    TString(Form(" %2.0lf #leq E_{T} #leq %2.0lf GeV",loc_etBinLimits[iBin],loc_etBinLimits[iBin+1]));
+  TString cpTitle=dataKind+ binStrForTitle;
+  TString xAxisTitle="E_{T} [GeV]";
+  if (!vsEt) xAxisTitle=(signedEta) ? "#eta" : "|#eta|";
 
-  //CPlot cp("comp",cpTitle,"E_{T} [GeV]","efficiency");
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioRel,"comp",cpTitle,
-			  "E_{T} [GeV]","efficiency","ratio");
+		      xAxisTitle,"efficiency","ratio");
   cp.SetRefIdx(-111); // do not plot lower panel
-  cp.SetLogx();
+  if (vsEt) cp.SetLogx();
 
   if (gr3 && HLTcomparison) { // for HLT efficiency
     cp.SetYRange(0.0,1.02);
-    /*
-    if (DetermineDataKind(effKind)==DYTools::DATA) {
-      if (iEta==2) cp.SetYRange(0.3,1.01);
-      else if (iEta==1) cp.SetYRange(0.3,1.01);
-      else if (iEta==0) cp.SetYRange(0.3,1.01);
-    }
-    else {
-      if (iEta==0) cp.SetYRange(0.5,1.01);
-      else if (iEta==1) cp.SetYRange(0.5,1.01);
-      else if (iEta==2) cp.SetYRange(0.5,1.01);
-      else if (iEta==3) cp.SetYRange(0.5,1.01);
-      else if (iEta==4) cp.SetYRange(0.5,1.01);
-    }
-    */
   }
 
   TCanvas *cx=new TCanvas("cx","cx",600,700);
@@ -608,7 +549,7 @@ void compareEff(int iBr=0, int iEta=0,
   cx->cd(2);
   cx->GetPad(2)->SetLogx(cp.fLogx);
   div->SetTitle("");
-  div->GetXaxis()->SetTitle("E_{T}");
+  div->GetXaxis()->SetTitle(xAxisTitle);
   div->GetXaxis()->SetTitleSize(0.17);
   div->GetXaxis()->SetLabelSize(0.15);
   div->GetXaxis()->SetNoExponent();
@@ -632,7 +573,7 @@ void compareEff(int iBr=0, int iEta=0,
       }
       else {
 	div->GetYaxis()->SetRangeUser(0.99,1.01);
-	if (iEta==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
+	if (iBin==2) div->GetYaxis()->SetRangeUser(0.9,1.1);
       }
     }
   }
@@ -651,18 +592,27 @@ void compareEff(int iBr=0, int iEta=0,
   cx->Update();
 
   if (fnameTag.Length()) {
-    TString fname=TString("fig-eff-") + fnameTag + cpTitle;
+    TString fname=TString("fig-eff-");
+    fname.Append((vsEt) ? "vsEt-" : "vsEta-");
+    fname.Append( fnameTag + cpTitle );
     fname.ReplaceAll(" #leq "," ");
     fname.ReplaceAll(" ","_");
     fname.ReplaceAll("(#eta)","Eta");
     fname.ReplaceAll("#eta","eta");
     fname.ReplaceAll(".","_");
+    fname.ReplaceAll("_{T}","t");
     //fname.Append(".png");
     std::cout << "fname=" << fname << "\n";
 
     TString locOutDir=TString("plots") + fnameTag;
     locOutDir.ReplaceAll("--","");
-    SaveCanvas(cx,fname,locOutDir);
+    std::cout << "locOutDir=<" << locOutDir << ">\n";
+    if (doSave) {
+      SaveCanvas(cx,fname,locOutDir);
+    }
+    else {
+      std::cout << "filed not saved (as requested)\n";
+    }
   }
 
   return ;
