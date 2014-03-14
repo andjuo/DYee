@@ -44,7 +44,7 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
   // Settings 
   //========================================
   
-  int calcFSR=0;
+  int calcFSR=1;
   int calcPU=1;
 
 
@@ -61,7 +61,7 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
 
   // Construct eventSelector, update mgr and plot directory
   TString extraTag;
-  extraTag="R9";
+  //extraTag="R9";
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag, "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
@@ -184,6 +184,7 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
       if (res) res=unfoldDET_local(*signal,unfYieldsFsr5plus,inpMgr,DYTools::FSR_5plus);
       if (res) res=unfoldDET_local(*signal,unfYieldsFsr5minus,inpMgr,DYTools::FSR_5minus);
       if (res && ioFile) {
+	unfYieldsFsr5plus.print();
 	ioFile->cd();
 	if (res) res= unfYieldsFsr5plus.Write(*ioFile,"details");
 	if (res) res= unfYieldsFsr5minus.Write(*ioFile,"details");
@@ -230,7 +231,7 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
     }
   }
     
-  TString hPUsystName=Form("h%s_PUsyst",correctionKind.Data());
+  TString hPUsystName=Form("h%s_PileUpSyst",correctionKind.Data());
   TH2D* h2PUsyst= getRelDifference(unfYields.histo(),hPUsystName,1,
 				   unfYieldsPU5plus.histo(),unfYieldsPU5minus.histo());
 
@@ -366,6 +367,8 @@ int unfoldDET_local(const HistoPair2D_t &iniYields,
   TString fnameTag=UnfoldingMatrix_t::generateFNameTag(dirSystMode);
   int res=detResponse.autoLoadFromFile(constDir,fnameTag);
   //std::cout << "autoLoad of " << umName << " from " << constDir << " with fnameTag=" << fnameTag << " has res=" << res << "\n";
+  std::cout << "iniYields"; iniYields.print();
+  std::cout << "detResponse.getDetInvResponse(): "; detResponse.getDetInvResponse()->Print();
   if (!res) res=-1;
   if (res==1) res=finYields.unfold(*detResponse.getDetInvResponse(), iniYields);
 
