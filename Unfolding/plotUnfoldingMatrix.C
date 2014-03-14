@@ -478,6 +478,7 @@ int plotUnfoldingMatrix(const TString conf,
 
 	// loop through dielectrons
 	//int pass=0;
+	int candCount=0;
 	mithep::TDielectron uncorrDielectron;
 	for(Int_t i=0; i<accessInfo.dielectronCount(); i++) {
 	  mithep::TDielectron *dielectron = accessInfo.editDielectronPtr(i);
@@ -492,6 +493,7 @@ int plotUnfoldingMatrix(const TString conf,
 
           /******** We have a Z candidate! HURRAY! ********/
 	  
+	  candCount++;
 	  ec.numDielectronsPass_inc();
 	  if (ec.numDielectronsOkSameSign_inc(dielectron->q_1,dielectron->q_2)) {
 	    // same sign event
@@ -528,16 +530,16 @@ int plotUnfoldingMatrix(const TString conf,
 	    detResponseExact.fillMigration(fiGenPostFsr, fiReco, diWeight);
 	  }
 
-	  if (systMode==DYTools::FSR_STUDY) {
-	    for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
-	      double studyWeight=specEWeightsV[iSt]->totalWeight();
-	      detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
-	      detRespV[iSt]->fillFin( fiReco      , studyWeight );
-	      if (bothFIValid) {
-		detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco, studyWeight );
-	      }
+	  //if (systMode==DYTools::FSR_STUDY) {
+	  for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
+	    double studyWeight=specEWeightsV[iSt]->totalWeight();
+	    detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
+	    detRespV[iSt]->fillFin( fiReco      , studyWeight );
+	    if (bothFIValid) {
+	      detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco, studyWeight );
 	    }
 	  }
+	  //}
 
 	  if (escaleV.size()) {
 	    dielectron->restoreEScaleModifiedValues(uncorrDielectron);
@@ -579,6 +581,7 @@ int plotUnfoldingMatrix(const TString conf,
 	  */
 
 	} // end loop over dielectrons
+	if (candCount>1) ec.numMultiDielectronsOk_inc();
 	
       } // end loop over events 
       infile->Close();
