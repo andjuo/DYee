@@ -1,6 +1,7 @@
 //
 // Made on March 14, 2014
 // Enhanced version of compareEff.C. Allows plotting vs eta
+//
 
 #include "../Include/DYTools.hh"
 #include "calcEventEffLink.h"
@@ -10,6 +11,7 @@
 // ------------------------------------------------------------
 
 
+// ------------------------------------------------------------
 // ------------------------------------------------------------
 
 int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {
@@ -81,9 +83,11 @@ TString effDataKindString(const TString str) {
 
 
 void compareEff(int iBr=0, int iBin=0, int vsEt=1,
-		 int doSave=0,
-		 double transLegendY_user=0.,
-		 double ratioTitleOffset=0.58) {
+		int doSave=0,
+		double transLegendY_user=0.,
+		double ratioTitleOffset=0.58,
+		TString *outFileName_ptr=NULL,
+		TString *outDir_ptr=NULL) {
   TString path1, path2;
   TString effKindLongStr1,effKindLongStr2;
   TString fnameBase="efficiency_TnP_1D_Full2012_";
@@ -98,7 +102,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
 
   int HLTcomparison=0;
   //int divideBy1st=0;
-  int relRatio=0;
+  int relRatio=0;   // if relRatio==-1, the ratio plot is not displayed
   int HLTsystematics=0;
   double transLegendX=-0.2;
   double transLegendY=-0.4;
@@ -295,6 +299,22 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=0.0;
   }
 
+  if (1) {
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="dir-Rami/";
+    path2="dir-Rami/";
+    path3="dir-Rami/";
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins7_PU";
+    effKindLongStr3="dataRECO_fit-fitEtBins6EtaBins9_PU";
+    label1="Rami: Et6Eta5";
+    label2="Rami: Et6Eta7";
+    label3="Rami: Et6Eta9";
+    fnameTag="-Rami-vars--";
+    transLegendX=-0.4;
+  }
+
 
   // -------------------------------
   // processing
@@ -348,10 +368,12 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     else if (iBr==1) {
       effKindLongStr1.ReplaceAll("RECO","ID");
       effKindLongStr2.ReplaceAll("RECO","ID");
+      effKindLongStr3.ReplaceAll("RECO","ID");
     }
     else if (iBr==2) {
       effKindLongStr1.ReplaceAll("RECO_fit-fit","HLT_count-count");
       effKindLongStr2.ReplaceAll("RECO_fit-fit","HLT_count-count");
+      effKindLongStr3.ReplaceAll("RECO_fit-fit","HLT_count-count");
     }
     else if (iBr==3) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcRECO_count-count");
@@ -361,26 +383,32 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     else if (iBr==4) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
       effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
+      effKindLongStr3.ReplaceAll("dataRECO_fit-fit","mcID_count-count");
     }
     else if (iBr==5) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
       effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
+      effKindLongStr3.ReplaceAll("dataRECO_fit-fit","mcHLT_count-count");
     }
     else if (iBr==6) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
       effKindLongStr2.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
+      effKindLongStr3.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
     }
     else if (iBr==7) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
       effKindLongStr2.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
+      effKindLongStr3.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
     }
     else if (iBr==8) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLTleg1_count-count");
       effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLTleg1_count-count");
+      effKindLongStr3.ReplaceAll("dataRECO_fit-fit","mcHLTleg1_count-count");
     }
     else if (iBr==9) {
       effKindLongStr1.ReplaceAll("dataRECO_fit-fit","mcHLTleg2_count-count");
       effKindLongStr2.ReplaceAll("dataRECO_fit-fit","mcHLTleg2_count-count");
+      effKindLongStr3.ReplaceAll("dataRECO_fit-fit","mcHLTleg2_count-count");
     }
     else {
       std::cout << "iBr error\n";
@@ -506,14 +534,13 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   double *loc_etBinLimits=DYTools::getEtBinLimits(etBinSet1);
   double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinSet1);
   int signedEta=DYTools::signedEtaBinning(etaBinSet1);
-  TString binStrForTitle=(vsEt) ? TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iBin],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iBin+1])) :
-    TString(Form(" %2.0lf #leq E_{T} #leq %2.0lf GeV",loc_etBinLimits[iBin],loc_etBinLimits[iBin+1]));
-  TString cpTitle=dataKind+ binStrForTitle;
-  TString xAxisTitle="E_{T} [GeV]";
-  if (!vsEt) xAxisTitle=(signedEta) ? "#eta" : "|#eta|";
+  TString cpTitle;
+  if (vsEt) cpTitle= dataKind+ TString(Form(" %5.3lf #leq %s #leq %5.3lf",loc_etaBinLimits[iBin],(signedEta)?"#eta":"abs(#eta)",loc_etaBinLimits[iBin+1]));
+  else cpTitle= dataKind+ TString(Form(" %2.0lf #leq #it{E}_{T} #leq %2.0lf GeV",loc_etBinLimits[iBin],loc_etBinLimits[iBin+1]));
+  TString xaxisTitle=(vsEt) ? "#it{E}_{T}" : ((signedEta) ? "#eta" : "|#eta|");
 
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioRel,"comp",cpTitle,
-		      xAxisTitle,"efficiency","ratio");
+			  xaxisTitle,"efficiency","ratio");
   cp.SetRefIdx(-111); // do not plot lower panel
   if (vsEt) cp.SetLogx();
 
@@ -521,8 +548,10 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     cp.SetYRange(0.0,1.02);
   }
 
-  TCanvas *cx=new TCanvas("cx","cx",600,700);
-  cp.Prepare2Pads(cx);
+  // Square canvas if ratio is not plotted
+  int cxHeight=(relRatio==-1) ? 600 : 700;
+  TCanvas *cx=new TCanvas("cx","cx",600,cxHeight);
+  if (relRatio!=-1) cp.Prepare2Pads(cx);
 
   gr1->GetYaxis()->SetTitleOffset(1.4);
 
@@ -543,13 +572,17 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     div31->SetMarkerStyle(27);
     cp.AddGraph(gr3,label3," PE1",kGreen+1,27);
   }
-  cp.Draw(cx,0,"png",1);
+
+  int targetPad=(relRatio==-1) ? 0 : 1;
+  cp.Draw(cx,0,"png",targetPad);
   cp.TransLegend(transLegendX, transLegendY);
   cp.WidenLegend(0.2,0.);
+
+  if (relRatio!=-1) {
   cx->cd(2);
   cx->GetPad(2)->SetLogx(cp.fLogx);
   div->SetTitle("");
-  div->GetXaxis()->SetTitle(xAxisTitle);
+  div->GetXaxis()->SetTitle(xaxisTitle);
   div->GetXaxis()->SetTitleSize(0.17);
   div->GetXaxis()->SetLabelSize(0.15);
   div->GetXaxis()->SetNoExponent();
@@ -588,30 +621,31 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   lineAtOne->SetLineWidth(1);
   lineAtOne->SetLineColor(kBlack);
   lineAtOne->Draw();
+  }
 
   cx->Update();
 
   if (fnameTag.Length()) {
-    TString fname=TString("fig-eff-");
-    fname.Append((vsEt) ? "vsEt-" : "vsEta-");
-    fname.Append( fnameTag + cpTitle );
+    TString fname=TString("fig-eff-") + fnameTag + cpTitle;
     fname.ReplaceAll(" #leq "," ");
     fname.ReplaceAll(" ","_");
     fname.ReplaceAll("(#eta)","Eta");
     fname.ReplaceAll("#eta","eta");
     fname.ReplaceAll(".","_");
-    fname.ReplaceAll("_{T}","t");
+    fname.ReplaceAll("#it{E}_{T}","Et");
     //fname.Append(".png");
-    std::cout << "fname=" << fname << "\n";
-
     TString locOutDir=TString("plots") + fnameTag;
     locOutDir.ReplaceAll("--","");
-    std::cout << "locOutDir=<" << locOutDir << ">\n";
+
+    std::cout << "fnameBase=<" << fname << "> in <" << locOutDir << ">\n";
+    if (outFileName_ptr) *outFileName_ptr=fname;
+    if (outDir_ptr) *outDir_ptr=locOutDir;
+
     if (doSave) {
       SaveCanvas(cx,fname,locOutDir);
     }
     else {
-      std::cout << "filed not saved (as requested)\n";
+      std::cout <<  " ... not saved (as requested)\n";
     }
   }
 
