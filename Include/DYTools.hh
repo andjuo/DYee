@@ -111,7 +111,8 @@ namespace DYTools {
   typedef enum { _MassBins_Undefined, _MassBins_default, 
 		 _MassBins_2011, _MassBins_2012,
 		 _MassBins_test4, _MassBins_Zpeak,
-		 _MassBins_noUnderflow, _MassBins_withFullOverflow 
+		 _MassBins_noUnderflow, _MassBins_withFullOverflow,
+		 _MassBins_bins100GeV
   }     TMassBinning_t;
 
   // ----------------------------
@@ -183,9 +184,10 @@ namespace DYTools {
 #else
   // non standard ranges
   //#include "rangeDef_noUnderflow_inc.h"
-  #include "rangeDef_withFullOverflow_inc.h"
+  //#include "rangeDef_withFullOverflow_inc.h"
   //#include "rangeDef_massBinTest4_inc.h"
   //#include "rangeDef_ZpeakRegion_inc.h"
+  #include "rangeDef_bins100GeV_inc.h"
 
 #endif
 
