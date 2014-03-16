@@ -614,7 +614,7 @@ namespace DYTools {
     return result;
   };
 
-  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5egamma, ETABINS5Negs, ETABINS5_max25, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS8alt, ETABINS8altNegs, ETABINS14} TEtaBinSet_t;
+  typedef enum {ETABINS_UNDEFINED=-1, ETABINS1=1, ETABINS2, ETABINS2Negs, ETABINS3, ETABINS3Negs, ETABINS5, ETABINS5egamma, ETABINS5Negs, ETABINS5_max25, ETABINS4test, ETABINS4testNegs,  ETABINS4alt, ETABINS4altNegs, ETABINS5alt, ETABINS5altNegs, ETABINS7, ETABINS8alt, ETABINS8altNegs, ETABINS9, ETABINS14} TEtaBinSet_t;
   const int nEtaBins1 = 1;
   const double etaBinLimits1[nEtBins1 + 1] = 
     {0, 2.4000001};
@@ -654,12 +654,18 @@ namespace DYTools {
   const int nEtaBins5altNegs = 10;
   const double etaBinLimits5altNegs[nEtaBins5altNegs + 1 ] =
     {-2.400001, -2.2, -1.566, -1.4442, -0.8, 0, 0.8, 1.4442, 1.566, 2.2, 2.400001 };
+  const int nEtaBins7 = 7;
+  const double etaBinLimits7[nEtaBins7 + 1 ] =
+    {0, 0.5, 1.0, 1.4442, 1.566, 1.9, 2.2, 2.40001 };
   const int nEtaBins8alt = 8;
   const double etaBinLimits8alt[nEtaBins8alt + 1 ] =
     {0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.40001 };
   const int nEtaBins8altNegs = 16;
   const double etaBinLimits8altNegs[nEtaBins8altNegs + 1 ] =
     {-2.40001, -2.2, -2.0, -1.8, -1.479, -1.0, -0.8, -0.4, 0, 0.4, 0.8, 1.0, 1.479, 1.8, 2.0, 2.2, 2.4 };
+  const int nEtaBins9 = 9;
+  const double etaBinLimits9[nEtaBins9 + 1 ] =
+    {0, 0.4, 0.8, 1.2, 1.4442, 1.566, 1.8, 2.0, 2.2, 2.40001 };
   const int nEtaBins14 = 14;
   const double etaBinLimits14[nEtaBins14 + 1 ] = 
     {0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.566, 1.8, 2.0, 2.2, 2.3, 2.4, 2.500001 };
@@ -668,9 +674,16 @@ namespace DYTools {
 
   inline
   int mergeEtBins(int binning) {
-    return ((binning==ETABINS5) || (binning==ETABINS5_max25)
-	    || (binning==ETABINS5egamma)
-	    ) ? 1:0;
+    int res=0;
+    switch(binning) {
+    case ETABINS5:
+    case ETABINS5_max25:
+    case ETABINS5egamma:
+      res=1;
+      break;
+    default: ;
+    }
+    return res;
   }
 
 
@@ -693,8 +706,10 @@ namespace DYTools {
     case ETABINS4altNegs: n = nEtaBins4altNegs; break;
     case ETABINS5alt: n = nEtaBins5alt; break;
     case ETABINS5altNegs: n = nEtaBins5altNegs; break;
+    case ETABINS7: n = nEtaBins7; break;
     case ETABINS8alt: n = nEtaBins8alt; break;
     case ETABINS8altNegs: n = nEtaBins8altNegs; break;
+    case ETABINS9: n = nEtaBins9; break;
     case ETABINS14: n = nEtaBins14; break;
     default:
       printf("ERROR: unknown binning requested\n");
@@ -724,8 +739,10 @@ namespace DYTools {
     case ETABINS4altNegs: limits = etaBinLimits4altNegs; break;
     case ETABINS5alt: limits = etaBinLimits5alt; break;
     case ETABINS5altNegs: limits = etaBinLimits5altNegs; break;
+    case ETABINS7: limits = etaBinLimits7; break;
     case ETABINS8alt: limits = etaBinLimits8alt; break;
     case ETABINS8altNegs: limits = etaBinLimits8altNegs; break;
+    case ETABINS9: limits = etaBinLimits9; break;
     case ETABINS14: limits = etaBinLimits14; break;
     default:
       printf("ERROR: unknown/undefined binning requested\n");
@@ -751,7 +768,9 @@ namespace DYTools {
     case ETABINS4test:
     case ETABINS4alt:
     case ETABINS5alt:
+    case ETABINS7:
     case ETABINS8alt:
+    case ETABINS9:
     case ETABINS14: 
       yes=0;
       break;
