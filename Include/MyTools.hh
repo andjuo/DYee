@@ -1064,6 +1064,11 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
 // -------------------------------------------
 // -------------------------------------------
 
+TH1D* removeLastBin(const TH1D* hIni, TString newName, int setTitle=0, const char *newTitle=NULL);
+
+// -------------------------------------------
+// -------------------------------------------
+
 inline
 int createBaseH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase, const std::vector<TString> &sample_labels, const TString &yAxisLabel="counts", int setHistoTitle=1) {
   int res=1;

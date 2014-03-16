@@ -200,6 +200,37 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle, con
 //--------------------------------------------------
 //--------------------------------------------------
 
+TH1D* removeLastBin(const TH1D* hOrig, TString newName, int setTitle, const char *newTitle) {
+  // prepare the range info
+  int nxBins=hOrig->GetNbinsX()-1; // we will remove last bin
+  double *xv=new double[nxBins+1]; 
+  TAxis *ax=hOrig->GetXaxis();
+  for (int i=1; i<=nxBins; i++) {
+    xv[i-1] = ax->GetBinLowEdge(i);
+  }
+  xv[nxBins]=ax->GetBinLowEdge(nxBins) + ax->GetBinWidth(nxBins); // last bin  right edge
+
+  TH1D *h=new TH1D(newName,newName,nxBins,xv);
+  delete [] xv;
+
+  // copy the profile
+  h->SetDirectory(0);
+  h->SetStats(0);
+  if (setTitle) {
+    if (newTitle) h->SetTitle(newTitle);
+    else h->SetTitle(newName);
+  }
+  h->GetXaxis()->SetTitle( hOrig->GetXaxis()->GetTitle() );
+  for (int ibin=1; ibin<=nxBins; ibin++) {
+    h->SetBinContent(ibin,hOrig->GetBinContent(ibin));
+    h->SetBinError(ibin,hOrig->GetBinError(ibin));
+  }
+  return h;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
 
