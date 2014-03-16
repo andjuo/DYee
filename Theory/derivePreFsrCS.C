@@ -28,7 +28,7 @@ int derivePreFsrCS(const TString conf,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,1, DYTools::NO_SYST))
+    if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST, DYTools::NO_REWEIGHT))
       return retCodeError;
   }
 
@@ -53,6 +53,10 @@ int derivePreFsrCS(const TString conf,
 
   // Prepare output directory
   inpMgr.theoryDir(systMode,1);
+
+  TString outFileName=inpMgr.theoryFullFileName("preFsrCS",systMode,1);
+  std::cout << " constructed outFileName=<" << outFileName << ">\n";
+  //return retCodeOk;
 
   //-----------------------------------------------------
   // Main analysis code 
@@ -197,7 +201,6 @@ int derivePreFsrCS(const TString conf,
   } // if (processData)
 
 
-  TString outFileName=inpMgr.theoryFullFileName("preFsrCS",systMode,1);
   std::cout << "outFileName=<" << outFileName << ">\n";
   if (DYTools::processData(runMode)) {
     TFile file(outFileName,"recreate");
@@ -333,6 +336,11 @@ int derivePreFsrCS(const TString conf,
 	int color=inpMgr.mcInfo(ih)->colors[0];
 	std::cout << "color=" << color << "\n";
 	cp.AddToStack(h1V[ih],inpMgr.mcSampleName(ih),color);
+	if (DYTools::massBinningSet == DYTools::_MassBins_bins100GeV) {
+	  TH1D *hc=(TH1D*)h1V[ih]->Clone(Form("tmp_%d_%d",im,ih));
+	  hc->SetMarkerStyle(24);
+	  cp.AddHist1D(hc,inpMgr.mcSampleName(ih),"LPE1",color+2,1,1,-1);
+	}
       }
       hSum->SetMarkerStyle(24);
 
@@ -343,11 +351,14 @@ int derivePreFsrCS(const TString conf,
       SetSideSpaces(cx,0.0,0.3,0.,0.02);
       cp.Draw(cx,false,"png",0);
       cp.ChangeLegendPos(0.05,0.,0.05,-0.05);
+      if (DYTools::massBinningSet == DYTools::_MassBins_bins100GeV) {
+	cp.ChangeLegendPos(0.,0.,0.,-0.15);
+      }
       //cp.TransLegend(0.02,0.);
       cx->Update();
     
       TString figName="fig-" + plotTag;
-      SaveCanvas(cx,figName,"dir-test2D");
+      SaveCanvas(cx,figName);
     }
   }
      
