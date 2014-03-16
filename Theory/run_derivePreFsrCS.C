@@ -7,6 +7,7 @@ int run_derivePreFsrCS(int debug, int runCase=3,
 {
   DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST; 
+  //systMode=DYTools::NO_REWEIGHT;
   TString fname1="../config_files/data_vilnius8TeV_reg_ntuple.conf.py";
   TString fname2="../config_files/data_vilnius8TeV_reg_skim.conf.py";
   
