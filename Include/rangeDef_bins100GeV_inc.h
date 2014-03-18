@@ -18,17 +18,16 @@ const double _massBinLimits2D[_nMassBins2D+1] =
 // yRangeMax has no meaning. There is no limit in findYAbsIndex
 const double _yRangeEdge= _yRangeEdge_base;
 const double _yRangeMax = _yRangeEdge_base;
-const int _nBinsYLowMass1  = _nBinsYLowMass + 1;
-const int _nBinsYHighMass1 = _nBinsYHighMass + 1;
-const int _nYBinsMax2D = _nBinsYLowMass1;
+const int _nYBinsMax2D = _nBinsYLowMass;
 const int _nYBins2D[_nMassBins2D] = 
   { 
-    _nBinsYLowMass1, _nBinsYLowMass1, _nBinsYLowMass1, _nBinsYLowMass1, 
-    _nBinsYLowMass1, _nBinsYLowMass1, _nBinsYLowMass1, _nBinsYLowMass1, 
-    _nBinsYLowMass1, _nBinsYLowMass1, _nBinsYLowMass1, _nBinsYLowMass1, 
-    _nBinsYLowMass1, _nBinsYLowMass1, _nBinsYLowMass1,
-    _nBinsYHighMass1,
-    _nBinsYHighMass1
+    _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, 
+    _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, 
+    _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass, 
+    _nBinsYLowMass, _nBinsYLowMass, _nBinsYLowMass,
+    _nBinsYLowMass, _nBinsYLowMass
+    //_nBinsYHighMass,
+    //_nBinsYHighMass
   }; // overflow is neglected
 
 const int _nMassBins1D = _nMassBins2D;
