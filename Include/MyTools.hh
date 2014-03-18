@@ -158,6 +158,7 @@ void HERE(const char *format, const Type1_t &a, const Type2_t &b) {
 
 //--------------------------------------------------------------
 
+template<>
 inline
 void HERE(const char *format, const TString &a) {
   const char *aStr=(a.Length()) ? a.Data() : " ";
@@ -165,6 +166,7 @@ void HERE(const char *format, const TString &a) {
 }
 //--------------------------------------------------------------
 
+template<>
 inline
 void HERE(const char *format, const TString &a, const TString &b) {
   const char *aStr=(a.Length()) ? a.Data() : " ";
@@ -423,6 +425,10 @@ TH1D *extractMassDependenceSpec(const TString &name, const TString &title,
 }
 */
 
+//-----------------------------------------------------------------
+//-----------------------------------------------------------------
+
+void printMatrix(const TString &name, const TMatrixD &M, int exponent=0);
 
 //-----------------------------------------------------------------
 
@@ -1064,7 +1070,21 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
 // -------------------------------------------
 // -------------------------------------------
 
-TH1D* removeLastBin(const TH1D* hIni, TString newName, int setTitle=0, const char *newTitle=NULL);
+// For a fast switch from 41 to 40 mass bins
+
+ TH1D* removeLastBin(const TH1D* hIni, TString newName, int setTitle=0, const char *newTitle=NULL);
+
+// -------------------------------------------
+
+inline
+void eliminateSeparationSigns(TString &name) {
+  name.ReplaceAll(" ","_");
+  name.ReplaceAll("-","_");
+  name.ReplaceAll("+","_");
+  name.ReplaceAll(".","_");
+  name.ReplaceAll(",","_");
+  name.ReplaceAll(";","_");
+}
 
 // -------------------------------------------
 // -------------------------------------------
@@ -1077,6 +1097,7 @@ int createBaseH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase, c
   for (unsigned int i=0; i<sample_labels.size(); ++i) {
     TString histoName= histoNameBase + sample_labels[i];
     TString histoTitle=(setHistoTitle) ? histoName : "";
+    eliminateSeparationSigns(histoName);
     TH1D *h=createBaseH1(histoName,histoTitle,yAxisLabel);
     if (!h) { res=0; break; }
     histosV.push_back(h);
@@ -1086,6 +1107,9 @@ int createBaseH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase, c
 
 // -------------------------------------------
 
+//
+// Note that BaseH2 contains the division of (nMassBins,nYBinsMax)
+//
 inline
 int createBaseH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase, const std::vector<TString> &sample_labels, int absRapidity=1, int setHistoTitle=1) {
   int res=1;
@@ -1094,6 +1118,7 @@ int createBaseH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase, c
   for (unsigned int i=0; i<sample_labels.size(); ++i) {
     TString histoName= histoNameBase + sample_labels[i];
     TString histoTitle=(setHistoTitle) ? histoName : "";
+    eliminateSeparationSigns(histoName);
     TH2D *h=createBaseH2(histoName,histoTitle,absRapidity);
     if (!h) { res=0; break; }
     histosV.push_back(h);
@@ -1129,7 +1154,9 @@ int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase,
   for (unsigned int i=0; i<sample_labels.size(); ++i) {
     TString histoName= histoNameBase + sample_labels[i];
     TString histoTitle=(setHistoTitle) ? histoName : "";
+    eliminateSeparationSigns(histoName);
     TH1D *h=new TH1D(histoName,histoTitle,nBins,xMin,xMax);
+    std::cout << "new histo: " << h->GetName() << "\n";
     h->SetDirectory(0);
     h->SetStats(0);
     h->Sumw2();
@@ -1156,6 +1183,7 @@ int createAnyH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase,
   for (unsigned int i=0; i<sample_labels.size(); ++i) {
     TString histoName= histoNameBase + sample_labels[i];
     TString histoTitle=(setHistoTitle) ? histoName : "";
+    eliminateSeparationSigns(histoName);
     TH2D *h=new TH2D(histoName,histoTitle,
 		     nxBins,xMin,xMax,
 		     nyBins,yMin,yMax);
@@ -1190,7 +1218,9 @@ int saveVec(TFile &file, const std::vector<tObject_t*> &vec, const TString &subD
     file.cd(subDir);
   }
   for (unsigned int i=0; i<vec.size(); i++) {
-    vec[i]->Write(vec[i]->GetName());
+    TString name=vec[i]->GetName();
+    eliminateSeparationSigns(name);
+    vec[i]->Write(name);
   }
   return 1;
 }
@@ -1199,14 +1229,23 @@ int saveVec(TFile &file, const std::vector<tObject_t*> &vec, const TString &subD
 
 template<class tObject_t>
 inline
-int loadVec(TFile &file, std::vector<tObject_t*> &vec, const TString &subDir="") {
+int loadVec(TFile &file, std::vector<tObject_t*> &vec, TString subDir="") {
   file.cd();
-  if (subDir.Length()) {
-    file.cd(subDir);
+  if (vec.size()==0) { 
+    HERE("loadVec(%s,vec,%s): vec.size=0",TString(file.GetName()),subDir);
+    return 0;
   }
+  if (subDir.Length() && (subDir[subDir.Length()-1]!='/')) {
+    subDir.Append("/");
+  }
+  int isHisto=(vec[0]->InheritsFrom("TH1")) ? 1:0;
+  if (isHisto && subDir.Length()) file.cd(subDir);
   for (unsigned int i=0; i<vec.size(); i++) {
     TString name=vec[i]->GetName();
+    if (!isHisto && subDir.Length()) name.Prepend(subDir);
+    eliminateSeparationSigns(name);
     std::cout << "reading " << name << std::endl;
+
     vec[i]->Read(name);
     if (!vec[i]) {
       HERE("loaded null ptr for %s",name);
@@ -1214,6 +1253,7 @@ int loadVec(TFile &file, std::vector<tObject_t*> &vec, const TString &subDir="")
     }
     vec[i]->SetDirectory(0);
   }
+  if (subDir.Length()) file.cd();
   HERE("load ok");
   return 1;
 }
@@ -1239,16 +1279,16 @@ int saveHisto(TFile &file, histo_t *h, const TString &subDir="", const TString &
 
 template<class histo_t>
 inline
-int loadHisto(TFile &file, histo_t **h, const TString &subDir="") {
+int loadHisto(TFile &file, histo_t **h, TString subDir) {
   file.cd();
-  if (subDir.Length()) {
-    file.cd(subDir);
-  }
+  if (subDir.Length()) file.cd(subDir);
   TString name=(*h)->GetName();
+  eliminateSeparationSigns(name);
   (*h)->Read(name);
   if (*h) {
     (*h)->SetDirectory(0);
   }
+  if (subDir.Length()) file.cd();
   return 1;
 }
 

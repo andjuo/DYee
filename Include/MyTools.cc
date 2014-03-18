@@ -395,6 +395,22 @@ int checkMatrixSize(const TMatrixD &m, const TString &name) {
 //--------------------------------------------------
 //--------------------------------------------------
 
+void printMatrix(const TString &name, const TMatrixD &M, int exponent) {
+  std::cout << "Matrix " << name << "\n";
+  if (!exponent) M.Print();
+  else {
+    const char *format="%8.4e";
+    for (int ir=0; ir<M.GetNrows(); ++ir) {
+      for (int ic=0; ic<M.GetNcols(); ++ic) {
+	std::cout << " " << Form(format,M(ir,ic));
+      }
+      std::cout << "\n";
+    }
+  }
+}
+
+//--------------------------------------------------
+
 TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_nRows, int expect_nCols, int reportFieldError) {
   TFile f(fname,"read");
   TMatrixD *M=NULL;
