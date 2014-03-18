@@ -11,13 +11,16 @@
 #include <TH2D.h>
 #include <math.h>
 
-#ifdef DYee
-#include "../Include/UnfoldingTools.hh"
+#include "../Include/DYTools.hh"
 #include "../Include/MyTools.hh"
+//#include "../Include/UnfoldingMatrix.h"
+
+#ifdef DYee
+//#include "../Include/UnfoldingTools.hh"
 #include "../Include/ComparisonPlot.hh"
 #endif
 
-#include "BaseClass.hh"
+#include "../Include/BaseClass.hh"
 
 class VXSectD_t;
 class MXSectD_t;
@@ -99,7 +102,8 @@ namespace DYTools {
 
 //------------------------------------------------------------------------------------------------------------------------
 
-#ifndef UnfoldingTools_HH
+
+#if !defined(UnfoldingTools_HH) && !defined(MYTOOLS_HH)
 namespace unfolding{
 
   inline
@@ -256,6 +260,49 @@ inline
 // =====================================
 
 template<class Container_t, class objType_t>
+int LoadToContainer_implicitFile(
+    Container_t &store, objType_t &obj, int &hasSystErr,
+    const TString &objName, const TString &objErrName, 
+    const TString &objSystErrName) {
+  if (0) obj.Print(); // get rid of compiler complaints
+  hasSystErr=0;
+  if (objName.Length()) {
+    objType_t *ptr= (objType_t*) gFile->Get(objName);
+    if (!ptr) { 
+      std::cout << "failed to get <" << objName << "> from <" << gFile->GetName() << ">\n";  
+      return 0; 
+    }
+    store.EditXS() = * ptr;
+    delete ptr;
+  }
+  else store.EditXS().Zero();
+  if (objErrName.Length()) {
+    objType_t *ptr= (objType_t*) gFile->Get(objErrName);
+    if (!ptr) { 
+      std::cout << "failed to get <" << objErrName << "> from <" << gFile->GetName() << ">\n";  
+      return 0; 
+    }
+    store.EditXSerr() = *ptr;
+    delete ptr;
+  }
+  else store.EditXSerr().Zero();
+  if (objSystErrName.Length()) {
+    objType_t *ptr= (objType_t*) gFile->Get(objSystErrName);
+    if (!ptr) { 
+      std::cout << "failed to get <" << objSystErrName << "> from <" << gFile->GetName() << ">\n";  
+      return 0; 
+    }
+    store.EditXSsystErr() = * ptr;
+    delete ptr;
+    hasSystErr=1;
+  }
+  else store.EditXSsystErr().Zero();
+  return 1;
+}
+
+// =====================================
+
+template<class Container_t, class objType_t>
 int LoadToContainerFromFile(
     Container_t &store, objType_t &obj, int &hasSystErr,
     TFile &fin, 
@@ -320,6 +367,26 @@ int LoadToContainer(Container_t &store, objType_t &obj,
   fin.Close();
   return 1;
 }
+
+// ----------
+
+template<class Container_t, class objType_t>
+int SaveContainer_implicitFile(
+    const Container_t &store, const objType_t &obj,
+    const TString &objName, const TString &objErrName, 
+    const TString &objSystErrName) {
+  if (0) obj.Print(); // get rid of compiler complaints
+  if (objName.Length()) store.GetXS().Write(objName);
+  if (objErrName.Length()) store.GetXSerr().Write(objErrName);
+  if (objSystErrName.Length()) {
+    if (store.HasSystErr()==0) {
+      std::cout << "object store.FName=<" << store.GetName() << "> has no syst.Err, but the field name is provided (" << objSystErrName << ")\n";
+    }
+    store.GetXSsystErr().Write(objSystErrName);
+  }
+  return 1;
+}
+
 
 // ----------
 
@@ -498,6 +565,9 @@ public:
 
   int HasSystErr() const { return FHasSystErr; }
   void HasSystErr(int yes=1) { FHasSystErr=yes; }
+
+  void SetDirectory(void*) const {}  // a dummy
+  bool InheritsFrom(const TString &) const { return false; }
 
  // ----------
 
@@ -734,6 +804,28 @@ public:
   }
 
   // ----------
+
+  int Read(TString saveName) { 
+    TString errName=saveName+TString("Err");
+    TString errSystName=saveName+TString("SystErr");
+    int res=LoadToContainer_implicitFile(*this,xSec,FHasSystErr,
+			  saveName,errName,errSystName);
+    if (!res) printError("Read(%s)",saveName);
+    return res;
+  }
+
+  // ----------
+
+  int Write(TString saveName) const { 
+    TString errName=saveName+TString("Err");
+    TString errSystName=saveName+TString("SystErr");
+    int res=SaveContainer_implicitFile(*this,xSec,
+			  saveName,errName,errSystName);
+    if (!res) printError("Write(%s)",saveName);
+    return res;
+  }
+
+  // ----------
   // ----------
 
   int LoadTH1D(const TString &fname, const TString &hName, int loadError=1) {
@@ -799,18 +891,22 @@ public:
 
   // ----------
 
+  /*
   int Unfold(const VXSectD_t &srcVec, const TString &fnameUnf, 
 	     int unfoldXS=1, int unfoldXSecErr=1, int unfoldXSecSystErr=1) {
+#ifndef MYTOOLS_HH
+    using namespace unfolding;
+#endif
     xSec.Zero(); xSecErr.Zero(); xSecSystErr.Zero();
     int res=1;
     if (unfoldXS) {
-      res= unfolding::unfold(srcVec.xSec, xSec, fnameUnf);
+      res= unfold(srcVec.xSec, xSec, fnameUnf);
     }
     if (res && unfoldXSecErr) {
-      res= unfolding::propagateErrorThroughUnfolding(srcVec.xSecErr, xSecErr, fnameUnf);
+      res= propagateErrorThroughUnfolding(srcVec.xSecErr, xSecErr, fnameUnf);
     }
     if (res && unfoldXSecSystErr) {
-      res= unfolding::propagateErrorThroughUnfolding(srcVec.xSecSystErr, xSecSystErr, fnameUnf);
+      res= propagateErrorThroughUnfolding(srcVec.xSecSystErr, xSecSystErr, fnameUnf);
     }
     if (!res) printError("Unfold");
     return res;
@@ -843,6 +939,7 @@ public:
     }
     return 1;
   }
+  */
 
   // ----------
 
@@ -1020,6 +1117,9 @@ public:
   int HasSystErr() const { return FHasSystErr; }
   void HasSystErr(int yes=1) { FHasSystErr=yes; }
 
+  void SetDirectory(void*) const {}  // a dummy
+  bool InheritsFrom(const TString &) const { return false; }
+
  // ----------
 
   int Assign(const MXSectD_t &m) {
@@ -1051,6 +1151,18 @@ public:
     xSec   (ir,ic) += weight;
     xSecErr(ir,ic) += weight*weight;
     return 1;
+  }
+
+ // ----------
+
+  int Fill(double mass, double rapidity, double weight) {
+    int iM=DYTools::findMassBin(mass);
+    int iY=DYTools::findAbsYBin(iM, rapidity);
+    if ((iM!=-1) && (iY!=-1)) {
+      this->Accumulate(iM,iY,weight);
+      return 1;
+    }
+    return 0;
   }
 
  // ----------
@@ -1212,6 +1324,28 @@ public:
   }
 
   // ----------
+
+  int Read(TString saveName) { 
+    TString errName=saveName+TString("Err");
+    TString errSystName=saveName+TString("SystErr");
+    int res=LoadToContainer_implicitFile(*this,xSec,FHasSystErr,
+				    saveName,errName,errSystName);
+    if (!res) printError("Read(%s)",saveName);
+    return res;
+  }
+
+  // ----------
+
+  int Write(TString saveName) const { 
+    TString errName=saveName+TString("Err");
+    TString errSystName=saveName+TString("SystErr");
+    int res=SaveContainer_implicitFile(*this,xSec,
+			  saveName,errName,errSystName);
+    if (!res) printError("Write(%s)",saveName);
+    return res;
+  }
+
+  // ----------
   // ----------
 
   int LoadTH2D(const TString &fname, const TString &objName, int loadError=1) {
@@ -1240,12 +1374,15 @@ public:
   // ----------
 
   int FlattenTo(VXSectD_t &vec) const {
+#ifndef MYTOOLS_HH
+    using namespace unfolding;
+#endif
     vec.HasSystErr( this->FHasSystErr );
     int res=
-      unfolding::flattenMatrix(this->xSec, vec.EditXS()) &&
-      unfolding::flattenMatrix(this->xSecErr, vec.EditXSerr());
+      flattenMatrix(this->xSec, vec.EditXS()) &&
+      flattenMatrix(this->xSecErr, vec.EditXSerr());
     if (res && this->FHasSystErr) {
-      res=unfolding::flattenMatrix(this->xSecSystErr, vec.EditXSsystErr());
+      res=flattenMatrix(this->xSecSystErr, vec.EditXSsystErr());
     }
     if (!res) {
       this->printError("FlattenTo");
@@ -1256,12 +1393,15 @@ public:
   // ----------
 
   int DeflattenFrom(const VXSectD_t &vec) {
+#ifndef MYTOOLS_HH
+    using namespace unfolding;
+#endif
     this->FHasSystErr = vec.HasSystErr();
     int res=
-      unfolding::deflattenMatrix(vec.GetXS(), this->xSec) &&
-      unfolding::deflattenMatrix(vec.GetXSerr(), this->xSecErr);
+      deflattenMatrix(vec.GetXS(), this->xSec) &&
+      deflattenMatrix(vec.GetXSerr(), this->xSecErr);
     if (res && vec.HasSystErr()) {
-      res=unfolding::deflattenMatrix(vec.GetXSsystErr(),this->xSecSystErr);
+      res=deflattenMatrix(vec.GetXSsystErr(),this->xSecSystErr);
     }
     if (!res) {
       this->printError("DeflattenFrom");
@@ -1270,19 +1410,22 @@ public:
   }
 
   // ----------
-
+/*
   int Unfold(const MXSectD_t &yields, const TString &unfConstFName,
 	     int unfoldMatrix, int propagateStatErr, int propagateSystErr) {
+#ifndef MYTOOLS_HH
+    using namespace unfolding;
+#endif
     int dim= xSec.GetNrows() * xSec.GetNcols();
     TVectorD vim(dim), vout(dim);
     int res=1;
     FHasSystErr= (yields.FHasSystErr && propagateSystErr) ? 1:0;
     if (unfoldMatrix) { 
-      res=unfolding::unfold(yields.xSec, this->xSec, unfConstFName,
+      res=unfold(yields.xSec, this->xSec, unfConstFName,
 			    vim,vout);
     }
     if (propagateStatErr) {
-      res=unfolding::propagateErrorThroughUnfolding(
+      res=propagateErrorThroughUnfolding(
 		    yields.xSecErr, this->xSecErr,
 		    unfConstFName,
 		    vim,vout);
@@ -1295,7 +1438,7 @@ public:
 	std::cout << "warning: Unfold. propagateSystErr=1, but yields has not syst err\n";
       }
       else {
-	res=unfolding::propagateErrorThroughUnfolding(
+	res=propagateErrorThroughUnfolding(
 		    yields.xSecSystErr, this->xSecSystErr,
 		    unfConstFName,
 		    vim,vout);
@@ -1331,6 +1474,7 @@ public:
     if (!res) reportError("in UnfoldAndPropagate(MXSectD{%s},MXSectD{%s}",srcM.FName,U.FName);
     return res;
   }
+*/
 
   // ----------
 
