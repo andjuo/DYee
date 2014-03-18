@@ -224,7 +224,7 @@ int derivePreFsrCS(const TString conf,
     if (res) res=loadVec(file,hMass2DasymV,"mass_2D_asym_base");
     file.Close();
     if (!res) {
-      std::cout << "error occurred during save to file <" << outFileName << ">\n";
+      std::cout << "error occurred during load from file <" << outFileName << ">\n";
       return retCodeError;
     }
   }
@@ -307,7 +307,8 @@ int derivePreFsrCS(const TString conf,
       
       std::vector<TH1D*> h1V;
       for (unsigned int ih=0; ih<hMass2Dv.size(); ++ih) {
-	int set_nYBins=DYTools::nYBins[im];
+	//int set_nYBins=DYTools::nYBins[im];
+	int set_nYBins=DYTools::nYBinsMax;
 	TString hName=Form("h%d_im%d",ih,im);
 	TH1D *h= createProfileY(hMass2Dv[ih],im+1,hName,1,NULL, set_nYBins,0.,DYTools::yRangeMax+1e-4);
 	h1V.push_back(h);
