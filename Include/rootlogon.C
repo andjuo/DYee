@@ -23,13 +23,13 @@
   gROOT->ProcessLine(".L ../Include/TriggerSelection.hh+");
   gROOT->ProcessLine(".L ../Include/FEWZ.cc+");
   gROOT->ProcessLine(".L ../Include/PUReweight.cc+");
+  gROOT->ProcessLine(".L ../Include/AccessOrigNtuples.cc+");
   gROOT->ProcessLine(".L ../Include/EventWeight.cc+");
   gROOT->ProcessLine(".L ../Include/ZeeData.hh+");
 
   gROOT->ProcessLine(".L ../Include/MyTools.cc+");
   gROOT->ProcessLine(".L ../Include/InputFileMgr.cc+");
 
-  gROOT->ProcessLine(".L ../Include/AccessOrigNtuples.cc+");
   ////gROOT->ProcessLine(".L ../Include/EtaEtaMass.hh+");
 
   gROOT->ProcessLine(".L ../Include/ElectronEnergyScale.cc+");
