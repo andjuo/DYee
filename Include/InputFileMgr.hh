@@ -244,6 +244,8 @@ public:
   unsigned int mcSampleCount() const { return FMCSignal.size(); }
   const std::vector<TString>& mcSampleNames() const { return FMCSampleNames; }
   template<class int_type>
+  const TString& mcSampleName(int_type i) const { return FMCSampleNames[i]; }
+  template<class int_type>
   const CSample_t* mcInfo(int_type i) const { return FMCSignal[i]; }
 
   TString dyTag() const {
@@ -365,6 +367,12 @@ public:
     return dir;
   }
 
+  TString theoryDir(DYTools::TSystematicsStudy_t systMode, int createDir=0) const {
+    TString dir=resultBaseDir("theory",systMode);
+    if (createDir) CreateDir(dir,1);
+    return dir;
+  }
+
   TString convertSkim2Ntuple(TString fname) const;
 
   TString correctionFullFileName(const TString &correctionName, DYTools::TSystematicsStudy_t systMode, int applyNtupleExtraTag) const {
@@ -380,6 +388,14 @@ public:
     TString corrSystName=correctionName + TString("Syst");
     return correctionFullFileName(corrSystName,systMode,applyNtupleExtraTag);
   }
+
+  TString theoryFullFileName(const TString &fileNameBase, DYTools::TSystematicsStudy_t systMode, int applyNtupleExtraTag) const {
+    TString thDir=this->theoryDir(systMode,0);
+    TString fname=this->resultBaseFileName(fileNameBase,applyNtupleExtraTag);
+    TString fullName=thDir + fname;
+    return fullName;
+  }
+  
 
   // TnP section
   const TDescriptiveInfo_t *infoSection() const { return FInfoSection; }
