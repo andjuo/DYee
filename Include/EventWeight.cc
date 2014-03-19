@@ -17,6 +17,17 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr, DYTools::TSystematic
   if (fPUReweight) { delete fPUReweight; fPUReweight=NULL; }
   if (fFEWZ) { delete fFEWZ; fFEWZ=NULL; }
   
+  if (do_puReweight &&
+      ( (systMode==DYTools::NO_REWEIGHT) || (systMode==DYTools::NO_REWEIGHT_PU) )) {
+	std::cout << "EventWeight::init: puReweight requested but the SystMode is " << systMode << "\n";
+	do_puReweight=0;
+  }
+  if (do_fewzCorr &&
+      ( (systMode==DYTools::NO_REWEIGHT) || (systMode==DYTools::NO_REWEIGHT_FEWZ) )) {
+    std::cout << "EventWeight::init: FEWZ correction requested but the SystMode is " << systMode << "\n";
+    do_fewzCorr=0;
+  }
+
   int ok=1;
   if (do_puReweight) {
 
