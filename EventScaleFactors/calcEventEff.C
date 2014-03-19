@@ -3098,6 +3098,7 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr, DYTools::TSystematic
   TriggerSelection_t triggers(inpMgr.triggerTag(),true);
 
   TString fnStart="efficiency_TnP_"; //+ DYTools::analysisTag;
+  fnStart.Append(inpMgr.userKeyValueAsTString("T&P_eff_extra"));
   TString fnEnd=".root";
   if (puReweight) fnEnd= TString("_PU.root");
 
