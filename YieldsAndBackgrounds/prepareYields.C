@@ -103,7 +103,8 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
   // Main analysis code 
   //============================================================================================================== 
 
-  vector<TH2D*> yields;
+  vector<TH2D*> yieldsBaseH2;
+  vector<TH2D*> yields; // non-uniform rapidity grid taken into account
 
   vector<TH1D*> hMassv; // 1GeV bins
   vector<TH1D*> hMassBinsv;
@@ -113,7 +114,7 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
   vector<DielectronChargeCounter_t*> dccV; 
 
   // the main result of the macro
-  createBaseH2Vec(yields,"hYield_",inpMgr.sampleNames());
+  createBaseH2Vec(yieldsBaseH2,"hYield_",inpMgr.sampleNames());
   // debug distributions: 1GeV bins
   //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
   createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),1490,10.,1500.,"M_{ee} [GeV]","counts/1GeV");
@@ -194,7 +195,7 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
 	continue;
 
 
-      yields[isam]->Fill(data->mass,fabs(data->y), weight);
+      yieldsBaseH2[isam]->Fill(data->mass,fabs(data->y), weight);
       //if (data->q_1==data->q_2) std::cout << "same-sign event weight=" << weight << "\n";
       dccV[isam]->Fill(data,weight);
 
@@ -218,7 +219,16 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
     }
     file.Close();
   }
+
+  // Prepare the correct distribution
+  if (!convertBaseH2actualVec(yieldsBaseH2, yields,"hYield_",inpMgr.sampleNames(),1)) return retCodeError;
+
   }
+  else {
+    // to be able to load data
+    createBaseH2Vec(yields,"hYield_",inpMgr.sampleNames());
+  }
+
 
   int createDir=DYTools::processData(runMode);
   TString yieldFullName= inpMgr.yieldFullFileName(-1,systMode,createDir);
@@ -227,6 +237,7 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
     std::cout << "saving to <" << yieldFullName << ">\n";
     TFile file(yieldFullName,"recreate");
     int res=1;
+    if (res) res=saveVec(file,yieldsBaseH2,"yieldsBaseH2");
     if (res) res=saveVec(file,yields,"yields");
     if (res) res=saveVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=saveVec(file,hMassBinsv,"mass_analysis_bins");
@@ -246,6 +257,7 @@ int prepareYields(const TString conf  = "../config_files/dataT3.conf",
     TFile file(yieldFullName,"read");
     int res=1;
     if (res) res=checkBinningArrays(file);
+    if (res) res=loadVec(file,yieldsBaseH2,"yieldsBaseH2");
     if (res) res=loadVec(file,yields,"yields");
     if (res) res=loadVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=loadVec(file,hMassBinsv,"mass_analysis_bins");
