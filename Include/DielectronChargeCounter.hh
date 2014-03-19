@@ -92,6 +92,10 @@ public:
   const TString &GetName() const { return fNameBase; }
   int absRapidity() const { return FAbsRapidity; }
 
+  void SetDirectory(void*) const {}  // a dummy
+  bool InheritsFrom(const TString &) const { return false; }
+
+
   double calcIntegral(int iYbin, int the_case) const {
     TH2D* h2=NULL;
     if (the_case==1) h2=Fh2pp;
