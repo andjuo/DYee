@@ -62,15 +62,12 @@ int plotDYAcceptance(const TString conf,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST,
-				DYTools::FSR_5plus, DYTools::FSR_5minus,
-				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus))
+    if (!DYTools::checkSystMode(systMode,debug_print,3, DYTools::NO_SYST,
+				DYTools::FSR_5plus, DYTools::FSR_5minus))
       return retCodeError;
   }
   //
   // A note on systematics mode
-  // - PU_5plus, PU_5minus are taken care by the eventWeight, through 
-  //   the PUReweight class
   // - FSR_5plus, FSR_5minus should be taken care here
 
   //--------------------------------------------------------------------------------------------------------------
@@ -87,11 +84,11 @@ int plotDYAcceptance(const TString conf,
 			      "","",EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
-  // Event weight handler
+  // Acceptance is generator-level quantity and should not 
+  // depend on the pile-up. The flag is disabled.
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
-  // ignore PU-reweight flag
-  //evWeight.init(0,inpMgr.fewzFlag());
+  evWeight.init(0*inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
+  std::cout << "evWeight: "; evWeight.PrintDetails();
 
   int useSpecWeight=1;
   double specWeight=1.0;
@@ -101,6 +98,8 @@ int plotDYAcceptance(const TString conf,
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
+  TString outFileName=inpMgr.correctionFullFileName("acceptance",systMode,0);
+  std::cout << "generated outFileName=<" << outFileName << ">\n";
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -118,7 +117,7 @@ int plotDYAcceptance(const TString conf,
   std::vector<TH2D*> hvPassPreFsr, hvTotalPreFsr;
 
   // debug containters
-  std::vector<TH1D*> hMassv;//, hZMass2v, hZPtv, hZPt2v, hZyv, hZPhiv;
+  std::vector<TH1D*> hMassv;
   std::vector<TH1D*> hMassBinsv;
   std::vector<TH1D*> hZpeakv;
   TH1D *hSelEvents=NULL;
@@ -128,14 +127,13 @@ int plotDYAcceptance(const TString conf,
   createBaseH2Vec(hvTotal,"hvTotal_",inpMgr.mcSampleNames());
   createBaseH2Vec(hvFail,"hvFail_",inpMgr.mcSampleNames());
 
-  createBaseH2Vec(hvPassPreFsr ,"hvPassPreFsr_" ,inpMgr.mcSampleNames());
-  createBaseH2Vec(hvTotalPreFsr,"hvTotalPreFsr_",inpMgr.mcSampleNames());
+  //createBaseH2Vec(hvPassPreFsr ,"hvPassPreFsr_" ,inpMgr.mcSampleNames());
+  //createBaseH2Vec(hvTotalPreFsr,"hvTotalPreFsr_",inpMgr.mcSampleNames());
 
   // debug distributions: 1GeV bins
-  //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
-  createAnyH1Vec(hMassv,"hMass_",inpMgr.mcSampleNames(),1990,10.,2000.,"#it{M}_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hMassv,"hGenMass_",inpMgr.mcSampleNames(),1990,10.,2000.,"#it{M}_{ee} [GeV]","counts/1GeV");
   // debug distributions for current mass bin
-  createBaseH1Vec(hMassBinsv,"hMassBins_",inpMgr.mcSampleNames());
+  createBaseH1Vec(hMassBinsv,"hGenMassBins_",inpMgr.mcSampleNames());
   // debug: accumulate info about the selected events in the samples
   hSelEvents=createAnyTH1D("hSelEvents","hSelEvents",inpMgr.mcSampleCount(),0,inpMgr.mcSampleCount(),"sampleId","event count");
   // collect number of events in the Z-peak
@@ -244,26 +242,30 @@ int plotDYAcceptance(const TString conf,
 
 	// accumulate denominator
 	const mithep::TGenInfo *gen= accessInfo.genPtr();
-	hvTotal[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
-	hvTotalPreFsr[ifile]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
+	hMassv[isample]->Fill(gen->vmass, evWeight.totalWeight());
+	hMassBinsv[isample]->Fill(gen->vmass, evWeight.totalWeight());
+
+	hvTotal[isample]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	//hvTotalPreFsr[isample]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
 
 	int failAcc=0;
 
-	// check acceptance at Gen level
+	// check acceptance at Gen PostFSR level
 	if (!evtSelector.inAcceptance(accessInfo)) {
-	  hvFail[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	  hvFail[isample]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
 	  failAcc=1;
 	}
 
-	if (evtSelector.inAcceptancePreFsr(accessInfo)) {
-	  hvPassPreFsr[ifile]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
-	}
+	//if (evtSelector.inAcceptancePreFsr(accessInfo)) {
+	//  hvPassPreFsr[isample]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
+	//}
 	if (failAcc) continue;
 
 	ec.numEventsPassedAcceptance_inc();
 
 	// accumulate denominator
-	hvPass[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	hvPass[isample]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	hSelEvents->Fill(isample,evWeight.totalWeight());
 
       } // loop over events
       ec.print(2);  // print info about file
@@ -280,7 +282,6 @@ int plotDYAcceptance(const TString conf,
   } // if (processData)
 
 
-  TString outFileName=inpMgr.correctionFullFileName("acceptance",systMode,0);
   std::cout << "outFileName=<" << outFileName << ">\n";
   if (DYTools::processData(runMode)) {
     TFile file(outFileName,"recreate");
@@ -288,8 +289,8 @@ int plotDYAcceptance(const TString conf,
     if (res) res=saveVec(file,hvPass,"accPassDir");
     if (res) res=saveVec(file,hvTotal,"accTotalDir");
     if (res) res=saveVec(file,hvFail,"accFailDir");
-    if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
-    if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
+    //if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
+    //if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
     if (res) res=saveVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=saveVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=saveVec(file,hZpeakv,"mass_Zpeak_1GeV");
@@ -308,8 +309,8 @@ int plotDYAcceptance(const TString conf,
     if (res) res=loadVec(file,hvPass,"accPassDir");
     if (res) res=loadVec(file,hvTotal,"accTotalDir");
     if (res) res=loadVec(file,hvFail,"accFailDir");
-    if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
-    if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
+    //if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
+    //if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
     if (res) res=loadVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=loadVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=loadVec(file,hZpeakv,"mass_Zpeak_1GeV");
@@ -321,39 +322,50 @@ int plotDYAcceptance(const TString conf,
     }
   }
 
-  TH2D *hSumPass=createBaseH2("hSumPass","hSumPass",1);
-  TH2D *hSumTotal=createBaseH2("hSumTotal","hSumTotal",1);
-  TH2D *hSumFail=createBaseH2("hSumFail","hSumFail",1);
-  addHistos(hSumPass,hvPass);
-  addHistos(hSumTotal,hvTotal);
-  addHistos(hSumFail,hvFail);
+  TH2D *hSumPass_BaseH2=createBaseH2("hSumPass_baseH2","hSumPass_baseH2",1);
+  TH2D *hSumTotal_BaseH2=createBaseH2("hSumTotal_baseH2","hSumTotal_baseH2",1);
+  TH2D *hSumFail_BaseH2=createBaseH2("hSumFail_baseH2","hSumFail_baseH2",1);
+  addHistos(hSumPass_BaseH2,hvPass);
+  addHistos(hSumTotal_BaseH2,hvTotal);
+  addHistos(hSumFail_BaseH2,hvFail);
 
-  TH2D *hAcc = createBaseH2("hAcceptance","hAcc",1);
+  TH2D *hAcc_BaseH2 = createBaseH2("hAcceptance_baseH2","hAcc_baseH2",1);
   // We need the binomial error for the acceptance
   // eff=Pass/Tot, 
   // (dEff)^2= (1-eff)^2/T^2 (dPass)^2 + eff^2/T^2 (dFail)^2
   // (dFail)^2 = (dTot)^2 - (dPass)^2
+  hAcc_BaseH2->Divide(hSumPass_BaseH2,hSumTotal_BaseH2,1,1,"b");
+
+  TH2D *hSumPass=convertBaseH2actual(hSumPass_BaseH2,"hSumPass",1);
+  TH2D *hSumFail=convertBaseH2actual(hSumFail_BaseH2,"hSumFail",1);
+  TH2D *hSumTotal=convertBaseH2actual(hSumTotal_BaseH2,"hSumTotal",1);
+  TH2D *hAcc=Clone(hAcc_BaseH2,"hAcceptance","hAcc");
   hAcc->Divide(hSumPass,hSumTotal,1,1,"b");
 
-  TH2D *hSumPassPreFsr=createBaseH2("hSumPassPreFsr","hSumPassPreFsr",1);
-  TH2D *hSumTotalPreFsr=createBaseH2("hSumTotalPreFsr","hSumTotalPreFsr",1);
-  TH2D *hAccPreFsr = createBaseH2("hAccPreFsr","hAccPreFsr",1);
-  addHistos(hSumPassPreFsr,hvPassPreFsr);
-  addHistos(hSumTotalPreFsr,hvTotalPreFsr);
-  hAccPreFsr->Divide(hSumPassPreFsr,hSumTotalPreFsr,1,1,"b");
+  //TH2D *hSumPassPreFsr=createBaseH2("hSumPassPreFsr","hSumPassPreFsr",1);
+  //TH2D *hSumTotalPreFsr=createBaseH2("hSumTotalPreFsr","hSumTotalPreFsr",1);
+  //TH2D *hAccPreFsr = createBaseH2("hAccPreFsr","hAccPreFsr",1);
+  //addHistos(hSumPassPreFsr,hvPassPreFsr);
+  //addHistos(hSumTotalPreFsr,hvTotalPreFsr);
+  //hAccPreFsr->Divide(hSumPassPreFsr,hSumTotalPreFsr,1,1,"b");
 
   std::cout << dashline;
   std::cout << dashline;
+
+  printHisto(hSumPass_BaseH2);
+  printHisto(hSumTotal_BaseH2);
+  printHisto(hAcc_BaseH2);
 
   printHisto(hSumPass);
   printHisto(hSumTotal);
   printHisto(hAcc);
+
   //printHisto(hSumFail);
   std::cout << dashline;
-  printHisto(hSumPassPreFsr);
-  printHisto(hSumTotalPreFsr);
-  printHisto(hAccPreFsr);
-  std::cout << dashline;
+  //printHisto(hSumPassPreFsr);
+  //printHisto(hSumTotalPreFsr);
+  //printHisto(hAccPreFsr);
+  //std::cout << dashline;
 
   if (DYTools::processData(runMode)) {
     TFile file(outFileName,"update");
@@ -363,8 +375,8 @@ int plotDYAcceptance(const TString conf,
     if (res) res=saveHisto(file,hSumPass,"");
     if (res) res=saveHisto(file,hSumTotal,"");
     if (res) res=saveHisto(file,hSumFail,"");
-    if (res) res=saveHisto(file,hSumPassPreFsr,"");
-    if (res) res=saveHisto(file,hSumTotalPreFsr,"");
+    //if (res) res=saveHisto(file,hSumPassPreFsr,"");
+    //if (res) res=saveHisto(file,hSumTotalPreFsr,"");
     file.Close();
     if (!res) {
       std::cout << "error occurred during additional save to file <" << outFileName << ">\n";
@@ -372,18 +384,15 @@ int plotDYAcceptance(const TString conf,
     }
   }
 
-    /*
-
-
 
   //--------------------------------------------------------------------------------------------------------------
   // Make plots 
   //==============================================================================================================  
-
      
   //--------------------------------------------------------------------------------------------------------------
   // Summary print out
   //==============================================================================================================
+  /*
   cout << endl;
   cout << "*" << endl;
   cout << "* SUMMARY" << endl;
