@@ -8,11 +8,12 @@
 #include "../Include/ComparisonPlot.hh"
 #include "../Include/MitStyleRemix.hh"
 #include "../Include/RangeUser.h"
+#include "../Include/CrossSection.hh"
 
 
 //=== MAIN MACRO ========================================
 
-int derivePreFsrCS(const TString conf,
+int derivePreFsrCS2(const TString conf,
 		   DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
 		   TString extraTag="",
@@ -54,7 +55,7 @@ int derivePreFsrCS(const TString conf,
   // Prepare output directory
   inpMgr.theoryDir(systMode,1);
 
-  TString outFileName=inpMgr.theoryFullFileName("preFsrCS",systMode,1);
+  TString outFileName=inpMgr.theoryFullFileName("preFsrCS2",systMode,1);
   std::cout << " constructed outFileName=<" << outFileName << ">\n";
   //return retCodeOk;
 
@@ -72,6 +73,7 @@ int derivePreFsrCS(const TString conf,
   std::vector<TH1D*> hMass1Dv;
   std::vector<TH2D*> hMass2Dv;
   std::vector<TH2D*> hMass2DasymV;
+  std::vector<MXSectD_t*> MxMass2Dv;
   
   // distributions in 1GeV bins
   createAnyH1Vec(hMass1Dv,"hMass1D_",inpMgr.mcSampleNames(),1990,10.,2000.,"#it{M}_{ee} [GeV]","counts/1GeV");
@@ -81,6 +83,13 @@ int derivePreFsrCS(const TString conf,
   for (unsigned int i=0; i<hMass1Dv.size(); ++i) {
     std::cout << i << "  " << hMass1Dv[i]->GetName() << "\n";
   }
+
+  for (unsigned int is=0; is<inpMgr.mcSampleNames().size(); ++is) {
+    MXSectD_t *m=new MXSectD_t(inpMgr.mcSampleName(is),DYTools::nMassBins,DYTools::nYBinsMax);
+    m->HasSystErr(0);
+    MxMass2Dv.push_back(m);
+  }
+
   //return retCodeStop;
 
   //
@@ -150,6 +159,7 @@ int derivePreFsrCS(const TString conf,
 
       std::cout << "numEntries = " << accessInfo.getEntriesFast() 
 		<< ", " << maxEvents << " events will be used" << std::endl;
+      double testCount=0;
 
 
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
@@ -181,11 +191,18 @@ int derivePreFsrCS(const TString conf,
 	hMass1Dv[isample]->Fill(gen->vmass, evWeight.totalWeight());
 	hMass2Dv[isample]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
 	hMass2DasymV[isample]->Fill(gen->vmass, gen->vy, evWeight.totalWeight());
+	MxMass2Dv[isample]->Fill(gen->vmass,gen->vy, evWeight.totalWeight());
+
+	if ((gen->vmass >=1200.) && (gen->vmass <=1500.) &&
+	    (fabs(gen->vy)<=0.1)) {
+	  testCount+= evWeight.totalWeight();
+	}
 
 	ec.numEventsPassedAcceptance_inc();
 
       } // loop over events
       ec.print(2);  // print info about file
+      std::cout << "testCount=" << testCount << "\n";
       ecSample.add(ec); // accumulate event counts
       ecTotal.add(ec);
       
@@ -208,6 +225,7 @@ int derivePreFsrCS(const TString conf,
     if (res) res=saveVec(file,hMass1Dv,"mass_1D_1GeV_bins");
     if (res) res=saveVec(file,hMass2Dv,"mass_2D_base");
     if (res) res=saveVec(file,hMass2DasymV,"mass_2D_asym_base");
+    if (res) res=saveVec(file,MxMass2Dv,"matrix2D");
     if (res) writeBinningArrays(file);
     file.Close();
     if (!res) {
@@ -222,6 +240,7 @@ int derivePreFsrCS(const TString conf,
     if (res) res=loadVec(file,hMass1Dv,"mass_1D_1GeV_bins");
     if (res) res=loadVec(file,hMass2Dv,"mass_2D_base");
     if (res) res=loadVec(file,hMass2DasymV,"mass_2D_asym_base");
+    if (res) res=loadVec(file,MxMass2Dv,"matrix2D");
     file.Close();
     if (!res) {
       std::cout << "error occurred during load from file <" << outFileName << ">\n";
@@ -240,8 +259,17 @@ int derivePreFsrCS(const TString conf,
   // Make plots 
   //=====================================================
 
+  int printMxValues=1;
   int make_1D_plots=0;
   int make_2D_plots=1;
+
+  if (printMxValues) {
+    for (unsigned int iS=0; iS<MxMass2Dv.size(); ++iS) {
+      std::cout << "iS=" << iS << " " << MxMass2Dv[iS]->GetName() << "\n";
+      //MxMass2Dv[iS]->GetCenter().Print();
+      printMatrix(MxMass2Dv[iS]->GetName(),MxMass2Dv[iS]->GetCenter(), 1);
+    }
+  }
 
   if (make_1D_plots) {
     int plot_case=1;
@@ -312,7 +340,7 @@ int derivePreFsrCS(const TString conf,
 	TString hName=Form("h%d_im%d",ih,im);
 	TH1D *h= createProfileY(hMass2Dv[ih],im+1,hName,1,NULL, set_nYBins,0.,DYTools::yRangeMax+1e-4);
 	h1V.push_back(h);
-	if (1 && (ih==0) && (im==1)) {
+	if (1 && (ih==2) && (im==15)) {
 	  std::cout << mStr;
 	  std::cout << " checking :";
 	  printHisto(hMass2Dv[ih]);
