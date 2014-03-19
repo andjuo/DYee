@@ -8,7 +8,10 @@ void checkClosure() {
 #ifdef DYee8TeV
  dir="../root_files/constants/DY_j22_19789pb/";
  dir="../root_files/constants/DY_j22_19789pb_DebugRun/";
+#elif defined(DYee8TeV_reg)
+ dir="../root_files_reg/constants/DY_j22_19712pb/";
 #endif
+ DYTools::TSystematicsStudy_t dirSystMode=DYTools::NO_SYST;
  UnfoldingMatrix_t *M=NULL;
 
  UnfoldingMatrix::TUnfoldingMatrixType_t kind=UnfoldingMatrix::_cFSR;
@@ -16,8 +19,9 @@ void checkClosure() {
  //M=new UnfoldingMatrix_t(kind, "fsrGood");
  kind=UnfoldingMatrix::_cDET_Response;
  M=new UnfoldingMatrix_t(kind, "detResponseExact");
- //M=new UnfoldingMatrix_t(kind, "detResponse");
+ M=new UnfoldingMatrix_t(kind, "detResponse");
 
+ TString fnameTag=UnfoldingMatrix_t::generateFNameTag(dirSystMode);
  M->autoLoadFromFile(dir,DYTools::analysisTag);
  
  TVectorD ini= * (M->getIniVec());
@@ -81,8 +85,8 @@ void checkClosure() {
    TMatrixD chkM(iniM);
    std::cout << "\n\n" << dashline << dashline << "\n";
 
-   TMatrixD *unfTrue2Reco=UnfoldingMatrix_t::loadUnfM(M->getName(),dir,DYTools::analysisTag,0,1);
-   TMatrixD *unfReco2True=UnfoldingMatrix_t::loadUnfM(M->getName(),dir,DYTools::analysisTag,1,1);
+   TMatrixD *unfTrue2Reco=UnfoldingMatrix_t::LoadUnfM(M->getName(),dir,fnameTag,0,1);
+   TMatrixD *unfReco2True=UnfoldingMatrix_t::LoadUnfM(M->getName(),dir,fnameTag,1,1);
 
    unfold(chkM, *unfReco2True, finM);
    testMaxDiff("\n reco2true(matrix|load) ",iniM,chkM);
@@ -105,8 +109,8 @@ void checkClosure() {
    iniHP.assign(iniM,chkM,chkM);
    finHP.assign(finM,chkM,chkM);
 
-   TMatrixD *unfTrue2Reco=UnfoldingMatrix_t::loadUnfM(M->getName(),dir,DYTools::analysisTag,0,1);
-   TMatrixD *unfReco2True=UnfoldingMatrix_t::loadUnfM(M->getName(),dir,DYTools::analysisTag,1,1);
+   TMatrixD *unfTrue2Reco=UnfoldingMatrix_t::LoadUnfM(M->getName(),dir,fnameTag,0,1);
+   TMatrixD *unfReco2True=UnfoldingMatrix_t::LoadUnfM(M->getName(),dir,fnameTag,1,1);
 
    unfold(chkHP, *unfReco2True, finHP);
    TMatrixD *resMtrue=chkHP.histoAsM();
@@ -133,8 +137,8 @@ void checkClosure() {
    iniHP.assign(iniM,chkM,chkM);
    finHP.assign(finM,chkM,chkM);
 
-   TMatrixD *unfTrue2Reco=UnfoldingMatrix_t::loadUnfM(M->getName(),dir,DYTools::analysisTag,0,1);
-   TMatrixD *unfReco2True=UnfoldingMatrix_t::loadUnfM(M->getName(),dir,DYTools::analysisTag,1,1);
+   TMatrixD *unfTrue2Reco=UnfoldingMatrix_t::LoadUnfM(M->getName(),dir,fnameTag,0,1);
+   TMatrixD *unfReco2True=UnfoldingMatrix_t::LoadUnfM(M->getName(),dir,fnameTag,1,1);
 
    chkHP.unfold(*unfReco2True, finHP);
    TMatrixD *resMtrue=chkHP.histoAsM();
