@@ -64,6 +64,10 @@ public:
     specW = (gen->vmass - gen->mass <= massDiff) ? 1.0 : specWeight_val;
   }
 
+  void setFewzWeight(const AccessOrigNtuples_t &accessInfo) {
+    this->setFewzWeight(accessInfo.genPtr());
+  }
+
   int set_PU_and_FEWZ_weights(const AccessOrigNtuples_t &accessInfo, bool isData) {
     const mithep::TGenInfo* gen=accessInfo.genPtr();
     this->setFewzWeight(gen);
@@ -114,6 +118,11 @@ public:
     std::cout << " weight corrected by extraFactor=" << extraFactor << ". final=" << baseW << "\n";
     return 1;
   }
+
+  void PrintDetails() const {
+    std::cout << " baseW=" << baseW << ", specW=" << specW << ", flag_puReweight=" << fDoPUReweight << ", flag_FewzReweight=" << fFewzCorr << "\n";
+  }
+
 
   void Print(int short_output=1) const {
     if (short_output) {
