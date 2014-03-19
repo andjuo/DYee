@@ -86,8 +86,13 @@ int plotDYEfficiency(const TString conf,
   evtSelector.setTriggerActsOnData(false);
 
   // Event weight handler
-  EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
+  // We need two weight handlers because the selected events should be
+  // with the PU-reweighting, while the total event count should be
+  // without the PU-reweighting, since this number is related to the
+  // generator-level quantity
+  EventWeight_t evWeightWPU, evWeightNoPU;
+  evWeightWPU .init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
+  evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode);
 
   int useSpecWeight=1;
   double specWeight=1.0;
@@ -97,6 +102,8 @@ int plotDYEfficiency(const TString conf,
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
+  TString outFileName=inpMgr.correctionFullFileName("efficiency",systMode,0);
+  std::cout << "generated outFileName=<" << outFileName << ">\n";
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -109,7 +116,7 @@ int plotDYEfficiency(const TString conf,
   //
 
   // containers to accumulate the events
-  std::vector<TH2D*> hPass, hTotal;
+  std::vector<TH2D*> hvPass, hvTotal;
   //std::vector<TH2D*> hFail;
 
   // debug containters
@@ -119,15 +126,15 @@ int plotDYEfficiency(const TString conf,
   TH1D *hSelEvents=NULL;
   
   // the main result of the macro
-  createBaseH2Vec(hPass ,"hPass_" ,inpMgr.mcSampleNames());
-  createBaseH2Vec(hTotal,"hTotal_",inpMgr.mcSampleNames());
+  createBaseH2Vec(hvPass ,"hPass_" ,inpMgr.mcSampleNames());
+  createBaseH2Vec(hvTotal,"hTotal_",inpMgr.mcSampleNames());
   //createBaseH2Vec(hFail,"hFail_",inpMgr.mcSampleNames());
 
   // debug distributions: 1GeV bins
   //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
-  createAnyH1Vec(hMassv,"hMass_",inpMgr.mcSampleNames(),1990,10.,2000.,"#{it}{M}_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hMassv,"hGenMass_",inpMgr.mcSampleNames(),1990,10.,2000.,"#{it}{M}_{ee} [GeV]","counts/1GeV");
   // debug distributions for current mass bin
-  createBaseH1Vec(hMassBinsv,"hMassBins_",inpMgr.mcSampleNames());
+  createBaseH1Vec(hMassBinsv,"hGenMassBins_",inpMgr.mcSampleNames());
   // debug: accumulate info about the selected events in the samples
   hSelEvents=createAnyTH1D("hSelEvents","hSelEvents",inpMgr.mcSampleCount(),0,inpMgr.mcSampleCount(),"sampleId","event count");
   // collect number of events in the Z-peak
@@ -184,23 +191,24 @@ int plotDYEfficiency(const TString conf,
       }
       //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
       //const double extraWeightFactor=1.0;
-      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), mcSample->getXsec(ifile), 
+      if (! evWeightWPU.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), mcSample->getXsec(ifile), 
 						   extraWeightFactor, inpMgr.selectEventsFlag())) {
 	std::cout << "adjustMaxEvents failed\n";
 	return retCodeError;
       }
+      evWeightNoPU.setBaseWeight(evWeightWPU);
       std::cout << "mcSample xsec=" << mcSample->getXsec(ifile) << ", nEntries=" << maxEvents << "\n";
       
 
-      std::cout << "       -> sample base weight is " << evWeight.baseWeight() << "\n";
+      std::cout << "       -> sample base weight is " << evWeightWPU.baseWeight() << "\n";
     
       // loop through events
       EventCounterExt_t ec(Form("%s_file%d",mcSample->name.Data(),ifile));
       ec.setIgnoreScale(0); // 1 - count events, 0 - take weight in account
       // adjust the scale in the counter
-      // if FEWZ weight should be considered, use evWeight.totalWeight() after
+      // if FEWZ weight should be considered, use evWeightWPU.totalWeight() after
       // the FEWZ weight has been identified (see a line below)
-      ec.setScale(evWeight.baseWeight());
+      ec.setScale(evWeightWPU.baseWeight());
 
       std::cout << "numEntries = " << accessInfo.getEntriesFast() 
 		<< ", " << maxEvents << " events will be used" << std::endl;
@@ -229,25 +237,29 @@ int plotDYEfficiency(const TString conf,
 	// In Unfolding and plotDYAcceptance we have FSR reweight
 	// FSR study correction for weight
 	if (useSpecWeight) {
-	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
+	  evWeightWPU .setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
+	  evWeightNoPU.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
 	}
 
 	// Adjust event weight
 	// .. here "false" = "not data"
-	evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
+	evWeightWPU .set_PU_and_FEWZ_weights(accessInfo,false);
+	evWeightNoPU.setFewzWeight(accessInfo);
 	//std::cout << "ientry=" << ientry << ", totalWeight=" << evWeight.totalWeight() << "\n";
 
 	// adjust the scale in the counter to include FEWZ 
 	// (and possibly PU) weight
-	//ec.setScale(evWeight.totalWeight());
+	//ec.setScale(evWeightWPU.totalWeight());
 
 	// accumulate denominator
 	const mithep::TGenInfo *gen= accessInfo.genPtr();
-	hTotal[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	hvTotal[isample]->Fill(gen->mass, fabs(gen->y), evWeightNoPU.totalWeight());
+	hMassv[isample]->Fill(gen->vmass, evWeightNoPU.totalWeight());
+	hMassBinsv[isample]->Fill(gen->vmass, evWeightNoPU.totalWeight());
 
 	// check event trigger
 	if (!evtSelector.eventTriggerOk(accessInfo)) {
-	  //hFail[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	  //hFail[ifile]->Fill(gen->mass, fabs(gen->y), evWeightWPU.totalWeight());
 	  continue; // no trigger accept? Skip to next event...	
 	}
 	ec.numEventsPassedEvtTrigger_inc();
@@ -274,13 +286,13 @@ int plotDYEfficiency(const TString conf,
 	    // same sign event
 	  }
 
-	  hPass[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
-	  hSelEvents->Fill(ifile,evWeight.totalWeight());
+	  hvPass[isample]->Fill(gen->mass, fabs(gen->y), evWeightWPU.totalWeight());
+	  hSelEvents->Fill(isample,evWeightWPU.totalWeight());
 	  candCount++;
 
 	} // loop over dielectrons
 	//if (!pass) {
-	//  hFail[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	//  hFail[ifile]->Fill(gen->mass, fabs(gen->y), evWeightWPU.totalWeight());
 	//}
 	if (candCount>1) ec.numMultiDielectronsOk_inc();
       } // loop over events
@@ -298,37 +310,37 @@ int plotDYEfficiency(const TString conf,
   } // if (processData)
 
 
-  TH2D *hSumPass=createBaseH2("hSumPass","hSumPass",1);
-  TH2D *hSumTotal=createBaseH2("hSumTotal","hSumTotal",1);
-  //TH2D *hSumFail=createBaseH2("hSumFail","hSumFail",1);
-  TH2D *hEff = createBaseH2("hEfficiency","hEff",1);
+  TH2D *hSumPass_BaseH2=createBaseH2("hSumPass_baseH2","hSumPass_baseH2",1);
+  TH2D *hSumTotal_BaseH2=createBaseH2("hSumTotal_baseH2","hSumTotal_baseH2",1);
+  //TH2D *hSumFail_BaseH2=createBaseH2("hSumFail_baseH2","hSumFail_baseH2",1);
+  TH2D *hEff_BaseH2 = createBaseH2("hEfficiency_baseH2","hEff_baseH2",1);
 
-  TString outFileName=inpMgr.correctionFullFileName("efficiency",systMode,0);
+
+  HERE("xx");
   std::cout << "outFileName=<" << outFileName << ">\n";
   if (DYTools::processData(runMode)) {
-    addHistos(hSumPass,hPass);
-    addHistos(hSumTotal,hTotal);
-    //addHistos(hSumFail,hFail);
 
+    addHistos(hSumPass_BaseH2 , hvPass);
+    addHistos(hSumTotal_BaseH2, hvTotal);
     // We need the binomial error for the efficiency:
     // eff=Pass/Tot, 
     // (dEff)^2= (1-eff)^2/T^2 (dPass)^2 + eff^2/T^2 (dFail)^2
     // (dFail)^2 = (dTot)^2 - (dPass)^2
-    hEff->Divide(hSumPass,hSumTotal,1,1,"b");
+    hEff_BaseH2->Divide(hSumPass_BaseH2,hSumTotal_BaseH2,1,1,"b");
 
     // save histograms
     TFile file(outFileName,"recreate");
     int res=1;
-    if (res) res=saveVec(file,hPass,"effPassDir");
-    if (res) res=saveVec(file,hTotal,"effTotalDir");
-    //if (res) res=saveVec(file,hFail,"effFailDir");
+    if (res) res=saveVec(file,hvPass,"effPassDir");
+    if (res) res=saveVec(file,hvTotal,"effTotalDir");
+    //if (res) res=saveVec(file,hvFail,"effFailDir");
     if (res) res=saveVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=saveVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=saveVec(file,hZpeakv,"mass_Zpeak_1GeV");
     if (res) res=saveHisto(file,hSelEvents,"procFileInfo");
-    if (res) res=saveHisto(file,hSumPass,"");
-    if (res) res=saveHisto(file,hSumTotal,"");
-    if (res) res=saveHisto(file,hEff,"");
+    if (res) res=saveHisto(file,hSumPass_BaseH2,"baseH2");
+    if (res) res=saveHisto(file,hSumTotal_BaseH2,"baseH2");
+    if (res) res=saveHisto(file,hEff_BaseH2,"baseH2");
     if (res) writeBinningArrays(file);
     file.Close();
     if (!res) {
@@ -340,22 +352,51 @@ int plotDYEfficiency(const TString conf,
     TFile file(outFileName,"read");
     int res=file.IsOpen();
     if (res) res=checkBinningArrays(file);
-    if (res) res=loadVec(file,hPass,"effPassDir");
-    if (res) res=loadVec(file,hTotal,"effTotalDir");
+    if (res) res=loadVec(file,hvPass,"effPassDir");
+    if (res) res=loadVec(file,hvTotal,"effTotalDir");
     //if (res) res=loadVec(file,hFail,"effFailDir");
     if (res) res=loadVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=loadVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=loadVec(file,hZpeakv,"mass_Zpeak_1GeV");
     if (res) res=loadHisto(file,&hSelEvents,"procFileInfo");
-    if (res) res=loadHisto(file,&hSumPass,"");
-    if (res) res=loadHisto(file,&hSumTotal,"");
-    if (res) res=loadHisto(file,&hEff,"");
+    if (res) res=loadHisto(file,&hSumPass_BaseH2,"baseH2");
+    if (res) res=loadHisto(file,&hSumTotal_BaseH2,"baseH2");
+    if (res) res=loadHisto(file,&hEff_BaseH2,"baseH2");
+    //if (res) res=loadHisto(file,&hSumPass,"");
+    //if (res) res=loadHisto(file,&hSumTotal,"");
+    //if (res) res=loadHisto(file,&hEff,"");
     file.Close();
     if (!res) {
       std::cout << "error occurred during save to file <" << outFileName << ">\n";
       return retCodeError;
     }
   }
+
+  std::cout << dashline;
+  std::cout << dashline;
+
+  // calculate the real efficiency
+  TH2D *hSumPass=convertBaseH2actual(hSumPass_BaseH2,"hSumPass",1);
+  TH2D *hSumTotal=convertBaseH2actual(hSumTotal_BaseH2,"hSumTotal",1);
+  TH2D *hEff=Clone(hEff_BaseH2,"hEfficiency","hEff");
+  hEff->Divide(hSumPass,hSumTotal,1,1,"b");
+
+  // update the file, if needed
+  if (DYTools::processData(runMode)) {
+    TFile file(outFileName,"update");
+    int res=file.IsOpen();
+    std::cout << "res=" << res << "\n";
+    if (res) res=saveHisto(file,hEff,"");
+    if (res) res=saveHisto(file,hSumPass,"");
+    if (res) res=saveHisto(file,hSumTotal,"");
+    file.Close();
+    if (!res) {
+      std::cout << "error occurred during additional save to file <" << outFileName << ">\n";
+      return retCodeError;
+    }
+  }
+
+  //addHistos(hSumFail,hvFail);
 
   //--------------------------------------------------------------------------------------------------------------
   // Make plots 
