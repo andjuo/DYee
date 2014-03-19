@@ -5,27 +5,29 @@
 #include "../Include/HistoPair.hh"
 #include "../Include/MitStyleRemix.hh" // SetSideSpaces
 
-void plot_Systematics(TString correctionKind, TString flags="111", int saveCanvas=0) {
+void plot_Systematics(TString correctionKind, TString flagStr="111", int saveCanvas=0) {
   std::cout << "correctionKind=" << correctionKind << "\n";
 
-  int totSyst=1;
-  int FSRsyst=1;
-  int PUsyst=1;
-  if (flags.Length()==3) {
-    totSyst=(flags[0]=='1') ? 1:0;
-    FSRsyst=(flags[1]=='1') ? 1:0;
-    PUsyst =(flags[2]=='1') ? 1:0;
-  }
+  ApplySystFlags_t applySyst;
+  if (!applySyst.assignFlags(flagStr)) return;
+
+  //std::cout << "flags=<" << flags << ">: " << totSyst << "," << FSRsyst << "," << PUsyst << "\n";
 
   TString foutName;
   if (correctionKind=="efficiency") {
+    applySyst.adjustForEfficiency();
     foutName=Form("../root_files_reg/constants/DY_j22_19712pb/efficiencySyst_%s.root",DYTools::analysisTag.Data());
+    //foutName=Form("../root_files_reg/constants/DY_j22_19712pb/efficiencySyst_%s_DebugRun.root",DYTools::analysisTag.Data());
   }
   else if (correctionKind=="acceptance") {
+    applySyst.adjustForAcceptance();
     foutName=Form("../root_files_reg/constants/DY_j22_19712pb/acceptanceSyst_%s.root",DYTools::analysisTag.Data());
+    //foutName=Form("../root_files_reg/constants/DY_j22_19712pb/acceptanceSyst_%s_DebugRun.root",DYTools::analysisTag.Data());
   }
   else if (correctionKind=="unfYields") {
+    applySyst.adjustForUnfYields();
     foutName=Form("../root_files_reg/constants/DY_j22_19712pb/unfYieldsSyst_%s.root",DYTools::analysisTag.Data());
+    //foutName=Form("../root_files_reg/constants/DY_j22_19712pb/unfYieldsSyst_%s_DebugRun.root",DYTools::analysisTag.Data());
   }
   else {
     std::cout << "not ready for correctionKind=<" << correctionKind << ">\n";
@@ -34,7 +36,7 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
 
   std::vector<TH2D*> histos;
   std::vector<std::string> labelsV;
-  if (!loadCorrectionSystFromFile(foutName,correctionKind,histos,labelsV)) return;
+  if (!loadCorrectionSystFromFile(foutName,correctionKind,applySyst,histos,labelsV)) return;
 
   TCanvas *c1=NULL, *cFSR=NULL, *cPU=NULL;
 
@@ -44,11 +46,11 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
   HistoPair2D_t hpBase("hpBase");
   hpBase.assign(histos[0],NULL);
   HistoPair2D_t hpFSR("hpFSR",hpBase);
-  hpFSR.addSystErr(histos[1]);
+  if (histos[1]) hpFSR.addSystErr(histos[1]);
   HistoPair2D_t hpPU("hpPU",hpBase);
-  hpPU.addSystErr(histos[2]);
+  if (histos[2]) hpPU.addSystErr(histos[2]);
   HistoPair2D_t hpTotErr("hpTotErr",hpFSR);
-  hpTotErr.addSystErr(histos[2]);
+  if (histos[2]) hpTotErr.addSystErr(histos[2]);
     
   hCombiV.push_back(histos[0]);
   hCombiV.push_back(hpFSR.createHistoWithFullError("hWithFSRsyst"));
@@ -77,6 +79,7 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
 	TH1D* hProf=NULL;
 	if (histos[i]) {
 	  TString name=Form("hProfRaw_%s_%s",labelsV[i].c_str(),mStr.Data());
+	  std::cout << "Creating hProfRaw=" << name << "\n";
 	  hProf= createProfileY(histos[i],mbin,name,1,name, DYTools::nYBins[mbin-1],0.,DYTools::yRangeMax+1e-3);
 	  
 	  //hProf->GetXaxis()->SetMoreLogLabels();
@@ -108,12 +111,12 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
     // -----------------
     // Partial systematics
     // ------------------
-    if (PUsyst+FSRsyst) {
+    if ( applySyst.pu() || applySyst.fsr() ) {
       std::vector<ComparisonPlot_t*> cpFSRsyst,cpPUsyst;
     
       for (int isPU=0; isPU<2; ++isPU) {
-	if ( isPU && !PUsyst) continue;
-	if (!isPU && !FSRsyst) continue;
+	if ( isPU && !applySyst.pu()) continue;
+	if (!isPU && !applySyst.fsr()) continue;
 
 	TString canvName=(isPU) ? "cPU" : "cFSR";
 	c1 = new TCanvas(canvName,canvName, 1100,900);
@@ -163,7 +166,7 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
     // -----------------
     // Total systematics
     // ------------------
-    if (totSyst) {
+    if ( applySyst.totSyst() ) {
 
       std::vector<ComparisonPlot_t*> cpSystV;
     
@@ -185,7 +188,7 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
 	}
 	
 	ComparisonPlot_t *cpSyst=NULL;
-	cpSyst = new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,title+mRange,"","|y|",correctionKind,"ratio");
+	cpSyst = new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,"cpTotSyst",title+mRange,"|y|",correctionKind,"ratio");
 	cpSystV.push_back(cpSyst);
 	
 	//cpSyst->SetLogx();
@@ -246,12 +249,12 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
     // -----------------
     // Partial systematics
     // ------------------
-    if (PUsyst+FSRsyst) {
+    if ( applySyst.pu() || applySyst.fsr() ) {
       ComparisonPlot_t *cpFSRsyst=NULL, *cpPUsyst=NULL;
     
       for (int isPU=0; isPU<2; ++isPU) {
-	if ( isPU && !PUsyst) continue;
-	if (!isPU && !FSRsyst) continue;
+	if ( isPU && !applySyst.pu()) continue;
+	if (!isPU && !applySyst.fsr()) continue;
 	TString title=(isPU) ? "Pile-up systematics" : "FSR systematics";
 	ComparisonPlot_t *cp = new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,"cpSyst",title,"#it{M}_{ee} [GeV]",correctionKind,"ratio");
 	if (isPU) cpPUsyst=cp; else cpFSRsyst=cp;
@@ -290,7 +293,7 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
     // -----------------
     // Total systematics
     // ------------------
-    if (totSyst) {
+    if ( applySyst.totSyst() ) {
       ComparisonPlot_t *cpSyst=NULL;
     
       int noComparison=1;
@@ -328,9 +331,9 @@ void plot_Systematics(TString correctionKind, TString flags="111", int saveCanva
   TString fnameFSR=fnameBase + TString("FSRsyst");
   TString fnameTot=fnameBase + TString("total");
   std::cout << "plot file names:\n";
-  if (totSyst) std::cout << " - " << fnameTot << "\n";
-  if (FSRsyst) std::cout << " - " << fnameFSR << "\n";
-  if (PUsyst) std::cout << " - " << fnamePU << "\n";
+  if (applySyst.totSyst()) std::cout << " - " << fnameTot << "\n";
+  if (applySyst.fsr()) std::cout << " - " << fnameFSR << "\n";
+  if (applySyst.pu()) std::cout << " - " << fnamePU << "\n";
   if (!saveCanvas) { std::cout << ".. not saved (as requested)\n"; }
   else {
     if (c1) SaveCanvas(c1,fnameTot,dirName);
