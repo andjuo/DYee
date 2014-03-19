@@ -1,34 +1,32 @@
 #include "plotDYAcceptance.C"
 #include "../Include/calcCorrectionSyst.h"
 
-int run_accSystematics(int debug, TString flags="-") {
+int run_accSystematics(int debug, TString flagStr="10011") {
   TString conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
 
   DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
 
-  int manyFlags=(flags.Length()==5) ? 1:0;
-  int noSyst=1;
-  if (manyFlags) noSyst=(flags[0]=='1') ? 1:0;
-  int fsr5plus= (manyFlags && (flags[1]=='1')) ? 1:0;
-  int fsr5minus=(manyFlags && (flags[2]=='1')) ? 1:0;
-  int pu5plus=  (manyFlags && (flags[3]=='1')) ? 1:0;
-  int pu5minus= (manyFlags && (flags[4]=='1')) ? 1:0;
+  ApplySystFlags_t flagsPlus,flagsMinus;
+  if (!flagsPlus.assignFlagsOdd(flagStr) ||
+      !flagsMinus.assignFlagsEven(flagStr)) return retCodeError;
+
+  flagsPlus.adjustForAcceptance();
+  flagsMinus.adjustForAcceptance();
 
   int ok=retCodeOk;
   if (!DYTools::loadData(runMode)) {
     std::cout << "creating distributions\n";
-    if ((ok==retCodeOk) && noSyst   ) ok=plotDYAcceptance(conf,runMode,DYTools::NO_SYST);
-    if ((ok==retCodeOk) && fsr5plus ) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5plus);
-    if ((ok==retCodeOk) && fsr5minus) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5minus);
-    if ((ok==retCodeOk) && pu5plus  ) ok=plotDYAcceptance(conf,runMode,DYTools::PILEUP_5plus);
-    if ((ok==retCodeOk) && pu5minus ) ok=plotDYAcceptance(conf,runMode,DYTools::PILEUP_5minus);
+    if ((ok==retCodeOk) && flagsPlus.noSyst()   ) ok=plotDYAcceptance(conf,runMode,DYTools::NO_SYST);
+    if ((ok==retCodeOk) && flagsPlus.fsr() ) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5plus);
+    if ((ok==retCodeOk) && flagsMinus.fsr()) ok=plotDYAcceptance(conf,runMode,DYTools::FSR_5minus);
     if (ok!=retCodeOk) std::cout << "error in run_accSystematics\n";
   }
   else {
     std::vector<TH2D*> resHistos;
     int printTable=1;
     int save=1;
-    ok=calcCorrectionSyst(debug,conf,"acceptance","hAcceptance",flags,printTable,&resHistos,&save);
+
+    ok=calcCorrectionSyst(debug,conf,"acceptance","hAcceptance",flagsPlus,flagsMinus,printTable,&resHistos,&save);
   }
 
   if (ok!=retCodeOk) std::cout << "error in run_accSystematics\n";
