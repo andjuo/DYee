@@ -106,6 +106,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   int HLTsystematics=0;
   double transLegendX=-0.2;
   double transLegendY=-0.4;
+  int allowInvert12=1; // added on Mar 19, 2014
 
 
   if (0) {
@@ -192,7 +193,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     fnameTag="-checkSummer2013--";
   }
 
-  if (1) {
+  if (0) {
     path1="/home/andriusj/cms/DYee-20131024/root_files_reg/tag_and_probe/DY_j22_19712pb/"; 
     path2="./";
     effKindLongStr1="dataID_fit-fitEtBins6EtaBins5_PU";
@@ -299,7 +300,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=0.0;
   }
 
-  if (1) {
+  if (0) { // 2014.03.15
     HLTcomparison=0;
     relRatio=-1;
     path1="dir-Rami/";
@@ -312,6 +313,76 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     label2="Rami: Et6Eta7";
     label3="Rami: Et6Eta9";
     fnameTag="-Rami-vars--";
+    transLegendX=-0.4;
+  }
+
+  if (0) { // 2014.03.19
+    HLTcomparison=0;
+    allowInvert12=0;
+    relRatio=-1;
+    path1="../Covariance/dir-toys/";
+    path2=path1;
+    path3=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins2_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr3="dataRECO_fit-fitEtBins6EtaBins9_PU";
+    fnameBase="efficiency_TnP_var0-2D_Full2012_";
+    label1="Et6Eta2 v.0";
+    label2="Et6Eta5 v.0";
+    label3="Et6Eta9 v.0";
+    fnameTag="-toy-varEt6Et-var0";
+    transLegendX=-0.4;
+  }
+
+  if (0) { // 2014.03.19
+    HLTcomparison=0;
+    allowInvert12=0;
+    relRatio=-1;
+    path1="../Covariance/dir-toys/";
+    path2=path1;
+    path3=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins2_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr3="dataRECO_fit-fitEtBins6EtaBins9_PU";
+    fnameBase="efficiency_TnP_var1-2D_Full2012_";
+    label1="Et6Eta2 v.1";
+    label2="Et6Eta5 v.1";
+    label3="Et6Eta9 v.1";
+    fnameTag="-toy-varEt6Et-var1";
+    transLegendX=-0.4;
+  }
+
+  if (1) { // 2014.03.19
+    HLTcomparison=0;
+    allowInvert12=0;
+    relRatio=-1;
+    path1="../Covariance/dir-toys/";
+    path2=path1;
+    path3=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    fnameBase="efficiency_TnP_var2-2D_Full2012_";
+    label1="Et6Eta5 v.2";
+    label2="";
+    fnameTag="-toy-varEt6Et-var2";
+    transLegendX=-0.4;
+  }
+
+  if (0) { // 2014.03.19
+    HLTcomparison=0;
+    allowInvert12=0;
+    relRatio=-1;
+    path1="../Covariance/dir-toys/";
+    path2=path1;
+    path3=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins2_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    effKindLongStr3="dataRECO_fit-fitEtBins6EtaBins9_PU";
+    fnameBase="efficiency_TnP_var3-2D_Full2012_";
+    label1="Et6Eta2 v.3";
+    label2="Et6Eta5 v.3";
+    label3="Et6Eta9 v.3";
+    fnameTag="-toy-varEt6Et-var3";
     transLegendX=-0.4;
   }
 
@@ -555,7 +626,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
 
   gr1->GetYaxis()->SetTitleOffset(1.4);
 
-  if (gr3 && !HLTcomparison) {
+  if (gr3 && !HLTcomparison && allowInvert12) {
     std::cout << "\n\tInverted plotting order 2,1\n";
     gr2->GetYaxis()->SetTitleOffset(1.2);
     //gr1->SetMarkerStyle(24);
@@ -565,7 +636,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   }
   else {
     cp.AddGraph(gr1,label1,"LPE1",kBlack);
-    cp.AddGraph(gr2,label2,"LPE1",kBlue,24);
+    if (label2.Length()) cp.AddGraph(gr2,label2,"LPE1",kBlue,24);
   }
   if (gr3) {
     //gr3->SetMarkerStyle(27);

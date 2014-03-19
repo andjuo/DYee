@@ -81,7 +81,9 @@ TMatrixD* enforceYRanges(int the_case) {
 
 void compareESF(int iBr=0,
 		int nDim=1,
-		int doSave=0) {
+		int doSave=0,
+		TString *figName=NULL,
+		TString *dirName=NULL) {
 
   TString esfLongStr1="1D_Full2012_hltEffOld_PU";
   TString esfLongStr2="1D";
@@ -119,6 +121,7 @@ void compareESF(int iBr=0,
   int secondIs7TeV=0;
   double set_ratio_y_min=0.96;
   double set_ratio_y_max=1.04;
+  double transLegendX=(nDim==1) ? -0.2 : -0.42;
 
   int compSet=-1;
   int swapColors=0;
@@ -328,7 +331,7 @@ void compareESF(int iBr=0,
     swapColors=1;
   }
 
-  if (1) { // added 2014.03.08
+  if (0) { // added 2014.03.08
     path1="../Covariance/";
     path2="../Covariance/";
     path3="../Covariance/";
@@ -354,16 +357,32 @@ void compareESF(int iBr=0,
     //setYRanges2D=enforceYRanges(1);
   }
 
-
-  if (DYTools::study2D) {
-    esfLongStr1.ReplaceAll("1D","2D");
-    esfLongStr2.ReplaceAll("1D","2D");
-    esfLongStr3.ReplaceAll("1D","2D");
-    esfLongStr4.ReplaceAll("1D","2D");
-    esfLongStr1.ReplaceAll("nMB41","nMB7");
-    esfLongStr2.ReplaceAll("nMB41","nMB7");
-    esfLongStr3.ReplaceAll("nMB41","nMB7");
-    esfLongStr4.ReplaceAll("nMB41","nMB7");
+  if (1) { // added 2014.03.19
+    path1="../Covariance/";
+    path2="../Covariance/";
+    path3="../Covariance/";
+    path4="../Covariance/";
+    fnameBase1="covRhoFileSF_RECO";
+    fnameBase2="covRhoFileSF_RECO"; 
+    fnameBase3="covRhoFileSF_RECO";
+    fnameBase4="covRhoFileSF_RECO";
+    esfLongStr1="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins5_var0";
+    esfLongStr2="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins5_var1";
+    esfLongStr3="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins5_var2";
+    esfLongStr4="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins5_var3";
+    label1="EtaBins5 var.0";
+    label2="EtaBins5 var.1";
+    label3="EtaBins5 var.2";
+    label4="EtaBins5 var.3";
+    fnameTag="-etaBins5-vars";
+    saveDirTag="-toyStudy--";
+    //if (nDim==2) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
+    //else { set_ratio_y_min=0.95; set_ratio_y_max=1.15; }
+    set_ratio_y_max=set_ratio_y_min; // force auto-setup of range
+    transLegendX=-0.2;
+    compSet=15;
+    swapColors=0;
+    //setYRanges2D=enforceYRanges(1);
   }
 
   if (iBr!=0) {
@@ -410,7 +429,58 @@ void compareESF(int iBr=0,
 	fnameTag.ReplaceAll("reco","id");
       }
     }
+    else if (compSet==15) {
+      if (iBr==0) {
+	// no change
+      }
+      else {
+	fnameBase4.Clear();
+	if (iBr==1) {
+	  transLegendX=-0.4;
+	  esfLongStr1="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins2_var0";
+	  esfLongStr2="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins5_var0";
+	  esfLongStr3="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins9_var0";
+	  label1="EtaBins2 var.0";
+	  label2="EtaBins5 var.0";
+	  label3="EtaBins9 var.0";
+	  fnameTag="-varEtaBins-var0";
+	}
+	else if (iBr==2) {
+	  transLegendX=-0.4;
+	  esfLongStr1="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins2_var1";
+	  esfLongStr2="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins5_var1";
+	  esfLongStr3="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins9_var1";
+	  label1="EtaBins2 var.1";
+	  label2="EtaBins5 var.1";
+	  label3="EtaBins9 var.1";
+	  fnameTag="-varEtaBins-var1";
+	}
+	else if (iBr==3) {
+	  transLegendX=-0.2;
+	  esfLongStr1="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins2_var3";
+	  esfLongStr2="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins5_var3";
+	  esfLongStr3="_nMB41_etaMax24_asymHLT_Unregressed_energy_100-EtaBins9_var3";
+	  label1="EtaBins2 var.3";
+	  label2="EtaBins5 var.3";
+	  label3="EtaBins9 var.3";
+	  fnameTag="-varEtaBins-var3";
+	}
+      }
+    }
   }
+
+
+  if (DYTools::study2D) {
+    esfLongStr1.ReplaceAll("1D","2D");
+    esfLongStr2.ReplaceAll("1D","2D");
+    esfLongStr3.ReplaceAll("1D","2D");
+    esfLongStr4.ReplaceAll("1D","2D");
+    esfLongStr1.ReplaceAll("nMB41","nMB7");
+    esfLongStr2.ReplaceAll("nMB41","nMB7");
+    esfLongStr3.ReplaceAll("nMB41","nMB7");
+    esfLongStr4.ReplaceAll("nMB41","nMB7");
+  }
+
 
   TString fname1=path1 + fnameBase1 + esfLongStr1 + TString(".root");
   TString fname2=path2 + fnameBase2 + esfLongStr2 + TString(".root");
@@ -536,7 +606,7 @@ void compareESF(int iBr=0,
 	cpV[i]->SetPrintRatio(1);
       }
       cpV[i]->Draw6(cy,1,i+1);
-      cpV[i]->TransLegend(-0.42,-0.1);
+      cpV[i]->TransLegend(transLegendX,-0.1);
       cpV[i]->WidenLegend(0.1,0.1);
       cpV[i]->WidenLegend(0.2,0.0);
       //cpV[i]->
@@ -583,7 +653,7 @@ void compareESF(int iBr=0,
     cy=new TCanvas("cy","cy",600,700);
     cp->Prepare2Pads(cy);
     cp->Draw(cy);
-    cp->TransLegend(-0.2,-0.6);
+    cp->TransLegend(transLegendX,-0.6);
     cp->WidenLegend(0.2,0.);
     cy->Update();
   }
@@ -595,6 +665,8 @@ void compareESF(int iBr=0,
     TString locOutDir=TString("plots") + saveDirTag;
     locOutDir.ReplaceAll("--","");
     std::cout << "save <" << fname << "> in <" << locOutDir << ">\n";
+    if (figName) *figName=fname;
+    if (dirName) *dirName=locOutDir;
     if (doSave) {
       SaveCanvas(cy,fname,locOutDir);
     }
