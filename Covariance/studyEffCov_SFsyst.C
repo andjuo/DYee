@@ -31,7 +31,7 @@ int PrepareEtEtaIdx(const esfSelectEvent_t &selData, EtEtaIndexer_t &fidx1, EtEt
 // or only ID syst, for ID SF.
 
 
-int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1) {
+int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, TString variant="") {
   gBenchmark->Start("studyEffCov");
 
   if (( DYTools::study2D && (DYTools::nYBins[0]==1)) ||
@@ -43,8 +43,10 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1) 
     return retCodeError;
   }
 
-//TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
+  //TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
   TString confFileName="../config_files/data_vilnius8TeV_egamma.conf.py";
+  //TString confFileName="toy_EtaBins2_var1.conf.py";
+  if (variant.Length()) confFileName=Form("toy_%s.conf.py",variant.Data());
 
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
   systMode=DYTools::UNREGRESSED_ENERGY;
@@ -53,7 +55,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1) 
   TString recoSystFName, idSystFName, hltSystFName;
   TString includedSyst;
   int egammaSystOnly=0;
-  if (1) {
+  if (systCode.Length()>3) {
     int recoOn=(systCode[0]=='1') ? 1:0;
     int idOn  =(systCode[1]=='1') ? 1:0;
     int hltOn =(systCode[2]=='1') ? 1:0;
@@ -133,6 +135,13 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1) 
     //TString((nonUniversalHLT) ? "_asymHLT" : "") +
     name_extraTag +
     TString(".root");
+
+  if (variant.Length()) {
+    TString newEnd=Form("-%s.root",variant.Data());
+    rhoFileName.ReplaceAll(".root",newEnd);
+    covFileName.ReplaceAll(".root",newEnd);
+    covFileNamePublic.ReplaceAll(".root",newEnd);
+  }
 
   std::cout << "\nNames of files to be produced:\n";
   std::cout << " - " << rhoFileName << "\n";
