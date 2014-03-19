@@ -125,6 +125,8 @@ public:
     return npv;
   }
 
+  // ------------------
+
   int setTree(TFile &infile, const TString &treeName, int setupGenBr) {
     tree = (TTree*)infile.Get(treeName);
     infoBr=NULL;
@@ -159,6 +161,14 @@ public:
     if (scBrIsActive) ok=activateSCBranch();
     return ok;
   }
+
+  // ------------------
+
+  int setTree_withGenBranch(TFile &infile, const TString &treeName) {
+    return setTree(infile,treeName,1);
+  }
+
+  // ------------------
 
 protected:
   int activateSCBranch() {
