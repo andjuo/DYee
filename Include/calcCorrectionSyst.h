@@ -25,6 +25,7 @@ struct ApplySystFlags_t {
     FNoSyst(f.FNoSyst), FPU(f.FPU), FFSR(f.FFSR)
   {}
 
+  int totSyst() const { return FNoSyst; }
   int noSyst() const { return FNoSyst; }
   int pu() const { return FPU; }
   int fsr() const { return FFSR; }
@@ -47,14 +48,20 @@ struct ApplySystFlags_t {
     FNoSyst=1; FPU=0; FFSR=1;
   }
 
-  void adjustForAcceptance() {
-    FPU=0;
-  }
-
   void setForEfficiency() {
     FNoSyst=1; FPU=1; FFSR=1;
   }
   
+  void adjustForAcceptance() {
+    FPU=0;
+  }
+
+  void adjustForEfficiency() {
+  }
+
+  void adjustForUnfYields() {
+  }
+
   int assignFlags(const TString &str) {
     if (str.Length()!=3) {
       std::cout << "assignFlags(\"" << str << "\") size should be 3\n";
