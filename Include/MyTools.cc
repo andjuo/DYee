@@ -107,6 +107,41 @@ TH2D* getRelDifference(const TH2D *baseValue, TString newName, int includeVarian
 //--------------------------------------------------
 //--------------------------------------------------
 
+TH2D* convertBaseH2actual(const TH2D* h2, TString newHistoName, int setTitle) {
+  TH2D* newH=Clone(h2,newHistoName,newHistoName);
+  if (!setTitle) newH->SetTitle("");
+  for (int ibin=1; ibin<=h2->GetNbinsX(); ++ibin) {
+    // adjustment is needed only if the bin count is different
+    if (DYTools::nYBins[ibin-1]!=DYTools::nYBinsMax) {
+      // ready only for double spacing
+      if (2*DYTools::nYBins[ibin-1]!=DYTools::nYBinsMax) {
+	std::cout << "convertBaseH2actual is ready only for double spacing\n";
+	delete newH;
+	return NULL;
+      }
+      for (int jbin=1; jbin<=h2->GetNbinsY(); jbin+=2) {
+	double x=
+	  h2->GetBinContent(ibin,jbin  ) +
+	  h2->GetBinContent(ibin,jbin+1);
+	double e2=
+	  pow(h2->GetBinError(ibin,jbin  ),2) +
+	  pow(h2->GetBinError(ibin,jbin+1),2);
+	double e=sqrt(e2);
+	int newJbin=(jbin+1)/2;
+	newH->SetBinContent(ibin, newJbin, x);
+	newH->SetBinError  (ibin, newJbin, e);
+      }
+      for (int jbin=DYTools::nYBins[ibin-1]+1; jbin<=DYTools::nYBinsMax; ++jbin) {
+	newH->SetBinContent(ibin,jbin,  0.);
+	newH->SetBinError  (ibin,jbin,  1.e9);
+      }
+    }
+  }
+  return newH;
+}
+
+//--------------------------------------------------
+
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle, const char *title) {
   if ((iyBin<=0) || (iyBin>h2->GetNbinsY())) {
     std::cout << "\n\n\tcreateProfileX(" << h2->GetName() << ", iyBin=" << iyBin << "(bad value!!), name=" << name << ")\n\n";
