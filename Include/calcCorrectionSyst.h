@@ -6,6 +6,111 @@
 #include "../Include/InputFileMgr.hh"
 #include "../Include/EventSelector.hh"
 
+
+// -------------------------------------------------
+
+struct ApplySystFlags_t {
+  int FNoSyst, FPU, FFSR;
+  public:
+
+  ApplySystFlags_t() :
+    FNoSyst(1), FPU(0), FFSR(0)
+  {}
+
+  ApplySystFlags_t(int set_noSyst, int set_pu, int set_fsr) : 
+    FNoSyst(set_noSyst), FPU(set_pu), FFSR(set_fsr)
+  {}
+
+  ApplySystFlags_t(const ApplySystFlags_t &f) : 
+    FNoSyst(f.FNoSyst), FPU(f.FPU), FFSR(f.FFSR)
+  {}
+
+  int noSyst() const { return FNoSyst; }
+  int pu() const { return FPU; }
+  int fsr() const { return FFSR; }
+
+  TString asTString() const {
+    TString flags=Form("%d%d%d",FNoSyst,FPU,FFSR);
+    return flags;
+  }
+
+  TString asDetailedTString() const {
+    TString flags=Form("%d%d%d%d%d",FNoSyst,FPU,FPU,FFSR,FFSR);
+    return flags;
+  }
+
+  void setNoSyst(int yes) { FNoSyst=yes; }
+  void setPU(int yes) { FPU=yes; }
+  void setFSR(int yes) { FFSR=yes; }
+
+  void setForAcceptance() {
+    FNoSyst=1; FPU=0; FFSR=1;
+  }
+
+  void adjustForAcceptance() {
+    FPU=0;
+  }
+
+  void setForEfficiency() {
+    FNoSyst=1; FPU=1; FFSR=1;
+  }
+  
+  int assignFlags(const TString &str) {
+    if (str.Length()!=3) {
+      std::cout << "assignFlags(\"" << str << "\") size should be 3\n";
+      return 0;
+    }
+    FNoSyst= (str[0]=='1') ? 1:0;
+    FPU    = (str[1]=='1') ? 1:0;
+    FFSR   = (str[2]=='1') ? 1:0;
+    return 1;
+  }
+  
+  int assignFlagsOdd(const TString &str) {
+    if (str.Length()!=5) {
+      std::cout << "assignFlags(\"" << str << "\") size should be 5\n";
+      return 0;
+    }
+    FNoSyst= (str[0]=='1') ? 1:0;
+    FPU    = (str[1]=='1') ? 1:0;
+    FFSR   = (str[3]=='1') ? 1:0;
+    return 1;
+  }
+  
+  int assignFlagsEven(const TString &str) {
+    if (str.Length()!=5) {
+      std::cout << "assignFlags(\"" << str << "\") size should be 5\n";
+      return 0;
+    }
+    FNoSyst= (str[0]=='1') ? 1:0;
+    FPU    = (str[2]=='1') ? 1:0;
+    FFSR   = (str[4]=='1') ? 1:0;
+    return 1;
+  }
+
+
+  void add(const ApplySystFlags_t &f) {
+    if (f.FNoSyst) FNoSyst=1;
+    if (f.FPU) FPU=1;
+    if (f.FFSR) FFSR=1;
+  }
+  
+  static void printFlag(std::ostream &out, const char *name, int value) {
+    out << name << ":";
+    if (value==1) out << "on"; else out << "off";
+  }
+
+
+  friend std::ostream& operator<<(std::ostream& out, const ApplySystFlags_t &f) {
+    out << "useSystFlags(";
+    f.printFlag(out,"noSyst",f.FNoSyst); out << ", ";
+    f.printFlag(out,"pile-up",f.FPU); out << ", ";
+    f.printFlag(out,"FSR",f.FFSR); 
+    out << ")";
+    return out;
+  }
+};
+
 // -------------------------------------------------
 
 //void loadCorrectionSystFromFile(int debug, const TString conf,
@@ -27,19 +132,18 @@ void printSystTable(TString correctionKind, const TH2D* hFsrSyst, const TH2D *hP
 
 int calcCorrectionSyst(int debug, const TString conf, 
 		       TString correctionKind, TString fieldName, 
-		       TString flags,
+		       const ApplySystFlags_t &flagsPlus,
+		       const ApplySystFlags_t &flagsMinus,
 		       int printTable,
 		       std::vector<TH2D*> *resHistos=NULL,
 		       int *save=NULL) {
   DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
 
-  int manyFlags=(flags.Length()==5) ? 1:0;
-  int noSyst=1;
-  if (manyFlags) noSyst=(flags[0]=='1') ? 1:0;
-  int fsr5plus= (manyFlags && (flags[1]=='1')) ? 1:0;
-  int fsr5minus=(manyFlags && (flags[2]=='1')) ? 1:0;
-  int pu5plus=  (manyFlags && (flags[3]=='1')) ? 1:0;
-  int pu5minus= (manyFlags && (flags[4]=='1')) ? 1:0;
+  int fsr5plus= flagsPlus.fsr();
+  int fsr5minus=flagsMinus.fsr();
+  int pu5plus=  flagsPlus.pu();
+  int pu5minus= flagsMinus.pu();
+  std::cout << "flagsPlus=" << flagsPlus << ", and flagsMinus=" << flagsMinus << ", decoded as FSR: " << fsr5plus << "," << fsr5minus << ", PU: " << pu5plus << "," << pu5minus << "\n";
 
   InputFileMgr_t inpMgr0;
   if (!inpMgr0.Load(conf) ||
@@ -123,8 +227,8 @@ int calcCorrectionSyst(int debug, const TString conf,
     if (resHistos!=NULL) {
       resHistos->reserve(3);
       resHistos->push_back(h2Base);
-      resHistos->push_back(h2FSRsyst);
-      resHistos->push_back(h2PUsyst);
+      if (h2FSRsyst) resHistos->push_back(h2FSRsyst);
+      if (h2PUsyst) resHistos->push_back(h2PUsyst);
     }
   }
 
@@ -157,6 +261,7 @@ int calcCorrectionSyst(int debug, const TString conf,
 
 int loadCorrectionSystFromFile(const TString &systFName,
 			       TString correctionKind,
+			       const ApplySystFlags_t &flags,
 			       std::vector<TH2D*> &histosV,
 			       std::vector<std::string> &labelsV) {
 
@@ -174,12 +279,12 @@ int loadCorrectionSystFromFile(const TString &systFName,
     std::cout << "error in plotCorrectionSystFromFile\n";
     return retCodeError;
   }
-  TH2D *h2FSR=LoadHisto2D(fin,hFSRsystName,"",0);
-  TH2D *h2PU =LoadHisto2D(fin,hPUsystName,"",0);
-  TH2D *h2FSR5plus=LoadHisto2D(fin,"FSR5plus","details",0);
-  TH2D *h2FSR5minus=LoadHisto2D(fin,"FSR5minus","details",0);
-  TH2D *h2PU5plus =LoadHisto2D(fin,"PU5plus","details",0);
-  TH2D *h2PU5minus=LoadHisto2D(fin,"PU5minus","details",0);
+  TH2D *h2FSR=(flags.fsr()) ? LoadHisto2D(fin,hFSRsystName,"",0) : NULL;
+  TH2D *h2PU =(flags.pu() ) ? LoadHisto2D(fin,hPUsystName,"",0) : NULL;
+  TH2D *h2FSR5plus=(flags.fsr()) ? LoadHisto2D(fin,"FSR5plus","details",0) : NULL;
+  TH2D *h2FSR5minus=(flags.fsr()) ? LoadHisto2D(fin,"FSR5minus","details",0) : NULL;
+  TH2D *h2PU5plus =(flags.pu()) ? LoadHisto2D(fin,"PU5plus","details",0) : NULL;
+  TH2D *h2PU5minus=(flags.pu()) ? LoadHisto2D(fin,"PU5minus","details",0) : NULL;
   fin.Close();
 
   histosV.reserve(7);
@@ -208,6 +313,7 @@ int loadCorrectionSystFromFile(const TString &systFName,
 
 int loadCorrectionSystFromFile(int debug, const TString conf,
 			       TString correctionKind,
+			       const ApplySystFlags_t &flags,
 			       std::vector<TH2D*> &histos,
 			       std::vector<std::string> &labels) {
   DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
@@ -222,7 +328,7 @@ int loadCorrectionSystFromFile(int debug, const TString conf,
   
   TString systFName=inpMgr0.correctionSystFullFileName(correctionKind,DYTools::NO_SYST,0);
   
-  if (loadCorrectionSystFromFile(systFName,correctionKind,histos,labels)!=retCodeOk) {
+  if (loadCorrectionSystFromFile(systFName,correctionKind,flags,histos,labels)!=retCodeOk) {
     std::cout << "error in loadCorrectionSystFromFile(conf,correctionKind)\n";
     return retCodeError;
   }
