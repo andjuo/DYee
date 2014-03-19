@@ -266,6 +266,22 @@ TH1D* removeLastBin(const TH1D* hOrig, TString newName, int setTitle, const char
 //--------------------------------------------------
 //--------------------------------------------------
 
+int convertBaseH2actualVec(const std::vector<TH2D*> &baseV, std::vector<TH2D*> &actualV, const TString histoNameBase, const std::vector<TString> &sample_labels, int setHistoTitle) {
+  int res=1;
+  if (baseV.size()==0) return 0;
+  for (unsigned int i=0; i<baseV.size(); ++i) {
+    TString histoName= histoNameBase + sample_labels[i];
+    TH2D* h=convertBaseH2actual(baseV[i],histoName,setHistoTitle);
+    if (!h) { res=0; break; }
+    actualV.push_back(h);
+  }
+  if (!res) std::cout << "error in convertBaseH2actualVec\n";
+  return res;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
 

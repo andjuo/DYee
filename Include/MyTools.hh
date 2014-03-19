@@ -1130,6 +1130,10 @@ int createBaseH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase, c
 
 // -------------------------------------------
 
+int convertBaseH2actualVec(const std::vector<TH2D*> &baseV, std::vector<TH2D*> &actualV, const TString histoNameBase, const std::vector<TString> &sample_labels, int setHistoTitle=1);
+
+// -------------------------------------------
+
 inline
 TH1D* createAnyTH1D(const TString &hname, const TString &htitle, int nBins, double xMin, double xMax,
 		 const TString &xAxisLabel="x", const TString &yAxisLabel="y") {
