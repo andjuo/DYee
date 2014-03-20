@@ -233,6 +233,41 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle, con
 }
 
 //--------------------------------------------------
+
+int createRapidityProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::vector<TH1D*>*> &hProfV, const std::vector<TString> &labelsV, int markerStyle, double markerSize) {
+  if (h2SrcV.size()==0) {
+    std::cout << "createRapidityProfileVec: h2SrcV.size=0\n";
+    return 0;
+  }
+
+  int res=1;
+  for (int im=0; res && (im<DYTools::nMassBins); im++) {
+    std::vector<TH1D*> *hPVec = new std::vector<TH1D*>();
+    hProfV.push_back(hPVec);
+    
+    TString mStr=Form("_m%1.0f_%1.0f",DYTools::massBinLimits[im],
+		      DYTools::massBinLimits[im+1]);
+    
+    for (unsigned int i=0; res && (i<h2SrcV.size()); ++i) {
+      TH1D* hProf=NULL;
+      if (h2SrcV[i]) {
+	TString name=Form("hProf_%s_%s",labelsV[i].Data(),mStr.Data());
+	std::cout << "Creating hProfRaw=" << name << "\n";
+	hProf= createProfileY(h2SrcV[i],im+1,name,1,name, DYTools::nYBins[im],0.,DYTools::yRangeMax+1e-3);
+	if (!hProf) res=0;
+	else {
+	  hProf->SetMarkerStyle(markerStyle);
+	  hProf->SetMarkerSize(markerSize);
+	}
+      }
+      hPVec->push_back(hProf);
+    }
+  }
+  if (!res) std::cout << "error in createRapidityProfileVec\n";
+  return res;
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 TH1D* removeLastBin(const TH1D* hOrig, TString newName, int setTitle, const char *newTitle) {

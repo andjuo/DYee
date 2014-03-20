@@ -973,6 +973,9 @@ TH2D* convertBaseH2actual(const TH2D* h2, TString newHistoName, int setTitle=0);
 TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL, int set_nYbins=-1, double set_ymin=0., double set_ymax=1.);
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, const char *title=NULL);
 
+int createRapidityProfileVec(const std::vector<TH2D*> &h2V, std::vector<std::vector<TH1D*>*> &hProfV, const std::vector<TString> &labels, int markerStyle=24, double markerSize=0.8);
+//int createAllProfileXVec(const std::vector<TH2D*> &h2V, const std::vector<TString> &names, int markerStyle=24, double markerSize=0.8);
+
 /*
 inline
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, const char *title=NULL) {
