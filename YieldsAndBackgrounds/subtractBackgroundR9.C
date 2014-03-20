@@ -402,7 +402,7 @@ int subtractBackgroundR9(const TString conf,
   }
   */
 
-  if (1) {
+  if (0) {
     for (int ibackground=0; ibackground<2; ++ibackground) {
       const HistoPair2D_t *bkgTrue2e=(ibackground==0) ? &mcbkgTrue2e : &ddbkgTrue2e;
       const HistoPair2D_t *bkgFake=(ibackground==0) ? &mcbkgFake : &ddbkgFake;
@@ -578,6 +578,92 @@ int subtractBackgroundR9(const TString conf,
   }
 
 */
+
+  if (1 && (DYTools::study2D==1)) {
+    std::cout << dashline;
+    std::cout << dashline;
+
+    for (int useDDBkg=0; useDDBkg<2; ++useDDBkg) {
+
+      std::vector<TH2D*> histosV;
+      std::vector<TString> labelsV;
+      std::vector<int> colorsV;
+      if (useDDBkg) {
+	histosV.reserve(4);
+	labelsV.reserve(4);
+	colorsV.reserve(4);
+	histosV.push_back(yields[0]); // data
+	histosV.push_back(ddbkgTrue2e.histo());
+	histosV.push_back(ddbkgFake.histo());
+	histosV.push_back(yields.back()); // zeeMC
+	labelsV.push_back("data");
+	labelsV.push_back("ddbkg true2e");
+	labelsV.push_back("ddbkg fake");
+	labelsV.push_back("Zee MC");
+	colorsV.push_back(kBlack);
+	colorsV.push_back(kViolet);
+	colorsV.push_back(kMagenta);
+	colorsV.push_back(inpMgr.sampleInfos().back()->colors[0]);
+      }
+      else {
+	histosV.reserve(yields.size());
+	labelsV=inpMgr.sampleNames();
+	colorsV.reserve(inpMgr.sampleCount());
+	for (unsigned int i=0; i<inpMgr.sampleCount(); ++i) {
+	  histosV.push_back(yields[i]);
+	  colorsV.push_back(inpMgr.sampleInfo(i)->colors[0]);
+	}
+      }
+
+      std::vector<std::vector<TH1D*>*> hProfV;
+
+      if (!createRapidityProfileVec(histosV,hProfV,labelsV)) {
+	std::cout << "failed to create profiles for useDDBkg=" << useDDBkg << "\n";
+	return retCodeError;
+      }
+      std::cout << "there are " << hProfV.size() << " profiles\n";
+
+      TString canvName=(useDDBkg) ? "cDD" : "cMC";
+      TCanvas *c1=new TCanvas(canvName,canvName, 1100,900);
+      for (int im=1; im<7; ++im) {
+	
+	TString mStr=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
+	TString cpName="cp_" + mStr;
+	TString cpTitle=mStr;
+	ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|","uncorrected yield","ratio");
+	if (im==1) cp->Prepare6Pads(c1,1);
+	
+	TString hName=Form("hSumMC_%d",im);
+	TH1D *hSum=(TH1D*)(*hProfV[im])[0]->Clone(hName);
+	hSum->Reset();
+	hSum->SetDirectory(0);
+	hSum->SetTitle(hName);
+
+	for (unsigned int ih=0; ih<hProfV[im]->size(); ++ih) {
+	  TH1D* h=(*hProfV[im])[ih];
+	  if (ih==0) {
+	    h->SetMarkerStyle(20);
+	    cp->AddHist1D(h,labelsV[0],"LP",colorsV[ih]);
+	  }
+	  else {
+	    cp->AddToStack(h,labelsV[ih],colorsV[ih]);
+	    hSum->Add(h,1.);
+	  }
+	}
+	cp->AddHist1D(hSum,"simulation","LP",kRed+1,1,1,-1);
+	cp->Draw6(c1,1,im);
+	if (!useDDBkg) cp->ChangeLegendPos(0.2,0.,0.,0.);
+	c1->Update();
+
+	TString fname="fig-Yields-";
+	fname.Append((useDDBkg) ? "DDBkg" : "MCBkg");
+	SaveCanvas(c1,fname);
+      }
+      
+    }
+
+  }
+
 
   gBenchmark->Show("subtractBackgroundR9");
   return retCodeOk;
