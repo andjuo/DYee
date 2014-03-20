@@ -85,6 +85,12 @@ int subtractBackgroundR9(const TString conf,
   //std::cout <<" " << inpMgr.yieldFullName(-1,systMode,0) << "\n";
   //std::cout <<" " << inpMgr.signalYieldFullName(systMode) << "\n";
 
+  // Save background-subtracted signal yields
+  // inputDir+TString("/yields_bg-subtracted.root")
+  const int ignoreDebugRunFlag=0;
+  TString outFileName= inpMgr.signalYieldFullFileName(systMode,ignoreDebugRunFlag);
+  std::cout << "generated outFileName=<" << outFileName << ">\n";
+
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
   //============================================================================================================== 
@@ -216,6 +222,7 @@ int subtractBackgroundR9(const TString conf,
       else {
 	// Here it is added in quadrature
 	TH2D *weights=(TH2D*)yields[i]->Clone(yields[i]->GetName() + TString("_clone"));
+	removeError(weights);
 	swapContentAndError(weights);
 	mcbkgTrue2e.addSystErr(weights,1.);
 	delete weights;
@@ -234,9 +241,11 @@ int subtractBackgroundR9(const TString conf,
   }
 
   if (add_WZZZ_error_old_way) {
-    swapContentAndError(hWZZZ);
-    mcbkgTrue2e.addSystErr(hWZZZ,1.);
-    swapContentAndError(hWZZZ);
+    TH2D *weights=(TH2D*)hWZZZ->Clone(hWZZZ->GetName() + TString("_clone"));
+    removeError(weights);
+    swapContentAndError(weights);
+    mcbkgTrue2e.addSystErr(weights,1.);
+    delete weights;
   }
 
   if (0) {
@@ -263,6 +272,7 @@ int subtractBackgroundR9(const TString conf,
 
   signalYieldMCbkg.add(observedYield,1.);
   signalYieldMCbkg.add(mcbkgTotal, -1.);
+
   int negValSigMCbkg=signalYieldMCbkg.correctNegativeValues();
   std::cout << "corrected " << negValSigMCbkg << " negative entries in the signal after MCBkg\n";
 
@@ -322,10 +332,6 @@ int subtractBackgroundR9(const TString conf,
   signalYieldDDbkg.print();
   zeeMCShapeReweight_mcBkg->Print("range");
 
-  // Save background-subtracted signal yields
-  // inputDir+TString("/yields_bg-subtracted.root")
-  const int ignoreDebugRunFlag=0;
-  TString outFileName= inpMgr.signalYieldFullFileName(systMode,ignoreDebugRunFlag);
   std::cout << "outFileName=<" << outFileName << ">\n";
 
   TFile fileOut(outFileName,"recreate");
