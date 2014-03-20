@@ -48,6 +48,8 @@
 #endif
 
 
+#define calculate_PreFsrAcc
+
 
 //=== FUNCTION DECLARATIONS ======================================================================================
 
@@ -62,8 +64,9 @@ int plotDYAcceptance(const TString conf,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,3, DYTools::NO_SYST,
-				DYTools::FSR_5plus, DYTools::FSR_5minus))
+    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST,
+				DYTools::FSR_5plus, DYTools::FSR_5minus,
+				DYTools::NO_REWEIGHT, DYTools::NO_REWEIGHT_FEWZ))
       return retCodeError;
   }
   //
@@ -101,6 +104,12 @@ int plotDYAcceptance(const TString conf,
   TString outFileName=inpMgr.correctionFullFileName("acceptance",systMode,0);
   std::cout << "generated outFileName=<" << outFileName << ">\n";
 
+#ifdef calculate_PreFsrAcc
+  std::cout << dashline;
+  std::cout << "\t\tcalculate_PreFsrAcc is defined\n";
+  std::cout << dashline;
+#endif
+
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
   //==============================================================================================================
@@ -114,7 +123,10 @@ int plotDYAcceptance(const TString conf,
   // containers to accumulate the events
   std::vector<TH2D*> hvPass, hvTotal;
   std::vector<TH2D*> hvFail;
+
+#ifdef calculate_PreFsrAcc
   std::vector<TH2D*> hvPassPreFsr, hvTotalPreFsr;
+#endif
 
   // debug containters
   std::vector<TH1D*> hMassv;
@@ -127,8 +139,10 @@ int plotDYAcceptance(const TString conf,
   createBaseH2Vec(hvTotal,"hvTotal_",inpMgr.mcSampleNames());
   createBaseH2Vec(hvFail,"hvFail_",inpMgr.mcSampleNames());
 
-  //createBaseH2Vec(hvPassPreFsr ,"hvPassPreFsr_" ,inpMgr.mcSampleNames());
-  //createBaseH2Vec(hvTotalPreFsr,"hvTotalPreFsr_",inpMgr.mcSampleNames());
+#ifdef calculate_PreFsrAcc
+  createBaseH2Vec(hvPassPreFsr ,"hvPassPreFsr_" ,inpMgr.mcSampleNames());
+  createBaseH2Vec(hvTotalPreFsr,"hvTotalPreFsr_",inpMgr.mcSampleNames());
+#endif
 
   // debug distributions: 1GeV bins
   createAnyH1Vec(hMassv,"hGenMass_",inpMgr.mcSampleNames(),1990,10.,2000.,"#it{M}_{ee} [GeV]","counts/1GeV");
@@ -246,7 +260,10 @@ int plotDYAcceptance(const TString conf,
 	hMassBinsv[isample]->Fill(gen->vmass, evWeight.totalWeight());
 
 	hvTotal[isample]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
-	//hvTotalPreFsr[isample]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
+
+#ifdef calculate_PreFsrAcc
+	hvTotalPreFsr[isample]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
+#endif
 
 	int failAcc=0;
 
@@ -256,9 +273,12 @@ int plotDYAcceptance(const TString conf,
 	  failAcc=1;
 	}
 
-	//if (evtSelector.inAcceptancePreFsr(accessInfo)) {
-	//  hvPassPreFsr[isample]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
-	//}
+#ifdef calculate_PreFsrAcc
+	if (evtSelector.inAcceptancePreFsr(accessInfo)) {
+	  hvPassPreFsr[isample]->Fill(gen->vmass, fabs(gen->vy), evWeight.totalWeight());
+	}
+#endif
+
 	if (failAcc) continue;
 
 	ec.numEventsPassedAcceptance_inc();
@@ -289,8 +309,10 @@ int plotDYAcceptance(const TString conf,
     if (res) res=saveVec(file,hvPass,"accPassDir");
     if (res) res=saveVec(file,hvTotal,"accTotalDir");
     if (res) res=saveVec(file,hvFail,"accFailDir");
-    //if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
-    //if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
+#ifdef calculate_PreFsrAcc
+    if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
+    if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
+#endif
     if (res) res=saveVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=saveVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=saveVec(file,hZpeakv,"mass_Zpeak_1GeV");
@@ -309,8 +331,10 @@ int plotDYAcceptance(const TString conf,
     if (res) res=loadVec(file,hvPass,"accPassDir");
     if (res) res=loadVec(file,hvTotal,"accTotalDir");
     if (res) res=loadVec(file,hvFail,"accFailDir");
-    //if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
-    //if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
+#ifdef calculate_PreFsrAcc
+    if (res) res=saveVec(file,hvPassPreFsr,"accPassPreFsrDir");
+    if (res) res=saveVec(file,hvTotalPreFsr,"accTotalPreFsrDir");
+#endif
     if (res) res=loadVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=loadVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=loadVec(file,hZpeakv,"mass_Zpeak_1GeV");
@@ -342,12 +366,17 @@ int plotDYAcceptance(const TString conf,
   TH2D *hAcc=Clone(hAcc_BaseH2,"hAcceptance","hAcc");
   hAcc->Divide(hSumPass,hSumTotal,1,1,"b");
 
-  //TH2D *hSumPassPreFsr=createBaseH2("hSumPassPreFsr","hSumPassPreFsr",1);
-  //TH2D *hSumTotalPreFsr=createBaseH2("hSumTotalPreFsr","hSumTotalPreFsr",1);
-  //TH2D *hAccPreFsr = createBaseH2("hAccPreFsr","hAccPreFsr",1);
-  //addHistos(hSumPassPreFsr,hvPassPreFsr);
-  //addHistos(hSumTotalPreFsr,hvTotalPreFsr);
-  //hAccPreFsr->Divide(hSumPassPreFsr,hSumTotalPreFsr,1,1,"b");
+#ifdef calculate_PreFsrAcc
+  TH2D *hSumPassPreFsr_BaseH2=createBaseH2("hSumPassPreFsr_baseH2","hSumPassPreFsr_baseH2",1);
+  TH2D *hSumTotalPreFsr_BaseH2=createBaseH2("hSumTotalPreFsr_baseH2","hSumTotalPreFsr_baseH2",1);
+  addHistos(hSumPassPreFsr_BaseH2,hvPassPreFsr);
+  addHistos(hSumTotalPreFsr_BaseH2,hvTotalPreFsr);
+
+  TH2D *hSumPassPreFsr=convertBaseH2actual(hSumPassPreFsr_BaseH2,"hSumPassPreFsr",1);
+  TH2D *hSumTotalPreFsr=convertBaseH2actual(hSumTotalPreFsr_BaseH2,"hSumTotalPreFsr",1);
+  TH2D *hAccPreFsr=Clone(hSumPassPreFsr,"hAccPreFsr","hAccPreFsr");
+  hAccPreFsr->Divide(hSumPassPreFsr,hSumTotalPreFsr,1,1,"b");
+#endif
 
   std::cout << dashline;
   std::cout << dashline;
@@ -362,10 +391,14 @@ int plotDYAcceptance(const TString conf,
 
   //printHisto(hSumFail);
   std::cout << dashline;
-  //printHisto(hSumPassPreFsr);
-  //printHisto(hSumTotalPreFsr);
-  //printHisto(hAccPreFsr);
-  //std::cout << dashline;
+
+#ifdef calculate_PreFsrAcc
+  std::cout << dashline;
+  printHisto(hSumPassPreFsr);
+  printHisto(hSumTotalPreFsr);
+  printHisto(hAccPreFsr);
+  std::cout << dashline;
+#endif
 
   if (DYTools::processData(runMode)) {
     TFile file(outFileName,"update");
@@ -375,8 +408,11 @@ int plotDYAcceptance(const TString conf,
     if (res) res=saveHisto(file,hSumPass,"");
     if (res) res=saveHisto(file,hSumTotal,"");
     if (res) res=saveHisto(file,hSumFail,"");
-    //if (res) res=saveHisto(file,hSumPassPreFsr,"");
-    //if (res) res=saveHisto(file,hSumTotalPreFsr,"");
+#ifdef calculate_PreFsrAcc
+    if (res) res=saveHisto(file,hAccPreFsr,"");
+    if (res) res=saveHisto(file,hSumPassPreFsr,"");
+    if (res) res=saveHisto(file,hSumTotalPreFsr,"");
+#endif
     file.Close();
     if (!res) {
       std::cout << "error occurred during additional save to file <" << outFileName << ">\n";
