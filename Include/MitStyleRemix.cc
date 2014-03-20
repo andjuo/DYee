@@ -102,7 +102,7 @@ void SetStyle()
   MITStyle->SetPadBorderMode  (0);
   MITStyle->SetPadBottomMargin(0.13);
   MITStyle->SetPadTopMargin   (0.08);
-  MITStyle->SetPadLeftMargin  (0.15);
+  MITStyle->SetPadLeftMargin  (0.18);
   MITStyle->SetPadRightMargin (0.05);
   MITStyle->SetPadGridX       (0);
   MITStyle->SetPadGridY       (0);
