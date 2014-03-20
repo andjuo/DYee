@@ -304,6 +304,9 @@ public:
 			      &this->fHisto, &this->fHistoSystErr,
 			      field,errField,systErrField,
 			      checkBinning,absoluteRapidity);
+    if (systErrField && this->fHistoSystErr) {
+      fHistoSystErr->SetName(fHisto->GetName() + TString("Syst"));
+    }
     if (!res) this->printError("in LoadThreeMatrices");
     return res;
   }
