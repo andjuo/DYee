@@ -113,8 +113,11 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
 
   // Construct eventSelector, update mgr and plot directory
   TString extraTag="R9";
+  TString plotExtraTag;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag, "", EventSelector::_selectDefault);
+			      extraTag, plotExtraTag, EventSelector::_selectDefault);
+  // However, the plots should be saved according to the outputSystMode
+  evtSelector.SetPlotOutDir(runMode,outputSystMode,plotExtraTag,1);
 
   int createDir=DYTools::processData(runMode);
   TString yieldFullName= inpMgr.yieldFullFileName(-1,outputSystMode,createDir);
