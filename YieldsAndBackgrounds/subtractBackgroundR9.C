@@ -51,9 +51,15 @@ int subtractBackgroundR9(const TString conf,
   gBenchmark->Start("subtractBackgroundR9");
 
   {
+    using namespace DYTools;
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST, DYTools::ESCALE_STUDY, DYTools::ESCALE_STUDY_RND,DYTools::UNREGRESSED_ENERGY,DYTools::APPLY_ESCALE)) 
+    if (!DYTools::checkSystMode(systMode,debug_print,8, 
+				DYTools::NO_SYST, //DYTools::ESCALE_STUDY, 
+				//DYTools::ESCALE_STUDY_RND,
+	        DYTools::UNREGRESSED_ENERGY,DYTools::APPLY_ESCALE,
+		ESCALE_DIFF_0000, ESCALE_DIFF_0005, ESCALE_DIFF_0010, ESCALE_DIFF_0015, ESCALE_DIFF_0020
+				)) 
       return retCodeError;
   }
 
@@ -582,8 +588,11 @@ int subtractBackgroundR9(const TString conf,
 
 */
 
-  if (1 && (DYTools::study2D==1)) {
+  // Make yield distributions
+  if (1) {
     std::cout << dashline;
+    std::cout << dashline;
+    std::cout << "Make yield distributions\n";
     std::cout << dashline;
 
     for (int useDDBkg=0; useDDBkg<2; ++useDDBkg) {
@@ -619,45 +628,91 @@ int subtractBackgroundR9(const TString conf,
       }
 
       std::vector<std::vector<TH1D*>*> hProfV;
-
-      if (!createRapidityProfileVec(histosV,hProfV,labelsV)) {
-	std::cout << "failed to create profiles for useDDBkg=" << useDDBkg << "\n";
-	return retCodeError;
-      }
-      std::cout << "there are " << hProfV.size() << " profiles\n";
-
       TString canvName=(useDDBkg) ? "cDD" : "cMC";
-      TCanvas *c1=new TCanvas(canvName,canvName, 1100,900);
-      for (int im=1; im<7; ++im) {
-	
-	TString mStr=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
-	TString cpName="cp_" + mStr;
-	TString cpTitle=mStr;
-	ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|","uncorrected yield","ratio");
-	if (im==1) cp->Prepare6Pads(c1,1);
-	
-	TString hName=Form("hSumMC_%d",im);
-	TH1D *hSum=(TH1D*)(*hProfV[im])[0]->Clone(hName);
-	hSum->Reset();
-	hSum->SetDirectory(0);
-	hSum->SetTitle(hName);
+      int canvWidth=(DYTools::study2D==1) ? 1100 : 700;
+      TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,900);
 
-	for (unsigned int ih=0; ih<hProfV[im]->size(); ++ih) {
-	  TH1D* h=(*hProfV[im])[ih];
-	  if (ih==0) {
-	    h->SetMarkerStyle(20);
-	    cp->AddHist1D(h,labelsV[0],"LP",colorsV[ih]);
-	  }
-	  else {
-	    cp->AddToStack(h,labelsV[ih],colorsV[ih]);
-	    hSum->Add(h,1.);
-	  }
+      if (DYTools::study2D==1) {
+
+	if (!createRapidityProfileVec(histosV,hProfV,labelsV)) {
+	  std::cout << "failed to create profiles for useDDBkg=" << useDDBkg << "\n";
+	  return retCodeError;
 	}
-	cp->AddHist1D(hSum,"simulation","LP skip",kRed+1,1,1,-1);
-	cp->Draw6(c1,1,im);
-	if (!useDDBkg) cp->ChangeLegendPos(0.2,0.,0.,0.);
-	c1->Update();
+	std::cout << "there are " << hProfV.size() << " profiles\n";
+      
+	for (int im=1; im<7; ++im) {
+	  
+	  TString mStr=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
+	  TString cpName="cp_" + mStr;
+	  TString cpTitle=mStr;
+	  ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|","uncorrected yield","ratio");
+	  if (im==1) cp->Prepare6Pads(c1,1);
+	  
+	  TString hName=Form("hSumMC_%d",im);
+	  TH1D *hSum=(TH1D*)(*hProfV[im])[0]->Clone(hName);
+	  hSum->Reset();
+	  hSum->SetDirectory(0);
+	  hSum->SetTitle(hName);
+	  
+	  for (unsigned int ih=0; ih<hProfV[im]->size(); ++ih) {
+	    TH1D* h=(*hProfV[im])[ih];
+	    if (ih==0) {
+	      h->SetMarkerStyle(20);
+	      cp->AddHist1D(h,labelsV[0],"LP",colorsV[ih]);
+	    }
+	    else {
+	      cp->AddToStack(h,labelsV[ih],colorsV[ih]);
+	      hSum->Add(h,1.);
+	    }
+	}
+	  cp->AddHist1D(hSum,"simulation","LP skip",kRed+1,1,1,-1);
+	  cp->Draw6(c1,1,im);
+	  if (!useDDBkg) cp->ChangeLegendPos(0.2,0.,0.,0.);
+	  c1->Update();
+	  
+	}
+      }
+      else {
+	// 1D
 
+	if (!createMassProfileVec(histosV,hProfV,labelsV)) {
+	  std::cout << "failed to create profiles for useDDBkg=" << useDDBkg << "\n";
+	  return retCodeError;
+	}
+	std::cout << "there are " << hProfV.size() << " profiles\n";
+      
+	for (int iy=0; iy<DYTools::nYBinsMax; ++iy) {
+	  
+	  TString yStr=Form("iy_%d",iy);
+	  TString cpName=TString("cp_") + yStr;
+	  TString cpTitle; //=yStr;
+	  ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]","uncorrected yield","ratio");
+	  cp->SetLogx(1);
+	  if (iy==0) cp->Prepare2Pads(c1);
+	  
+	  TString hName=Form("hSumMC_%d",iy);
+	  TH1D *hSum=(TH1D*)(*hProfV[iy])[0]->Clone(hName);
+	  hSum->Reset();
+	  hSum->SetDirectory(0);
+	  hSum->SetTitle(hName);
+	  
+	  for (unsigned int ih=0; ih<hProfV[iy]->size(); ++ih) {
+	    TH1D* h=(*hProfV[iy])[ih];
+	    if (ih==0) {
+	      h->SetMarkerStyle(20);
+	      cp->AddHist1D(h,labelsV[0],"LP",colorsV[ih]);
+	    }
+	    else {
+	      cp->AddToStack(h,labelsV[ih],colorsV[ih]);
+	      hSum->Add(h,1.);
+	    }
+	  }
+	  cp->AddHist1D(hSum,"simulation","LP skip",kRed+1,1,1,-1);
+	  cp->Draw(c1);
+	  if (!useDDBkg) cp->ChangeLegendPos(0.2,0.,0.,0.);
+	  c1->Update();
+	  
+	}
       }
       
       TString fname="fig-Yields-";
