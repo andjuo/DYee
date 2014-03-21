@@ -596,12 +596,18 @@ namespace mithep
 
     ~TDielectron(){} 
 
-    void replace2UncorrEn(int check=0) {
-      if (!check) {
-	pt_1=ptUncorr_1;
+    void replace2UncorrEn(int check=0, double scale=1.0) {
+      if (!check && (scale==1.0)) {
+	pt_1  =ptUncorr_1;
 	scEt_1=scEtUncorr_1;
-	pt_2=ptUncorr_2;
+	pt_2  =ptUncorr_2;
 	scEt_2=scEtUncorr_2;
+      }
+      else {
+	pt_1  =scale*(ptUncorr_1 - pt_1) + pt_1;
+	scEt_1=scale*(scEtUncorr_1 - scEt_1 ) + scEt_1;
+	pt_2  =scale*(ptUncorr_2 - pt_2) + pt_2;
+	scEt_2=scale*(scEtUncorr_2 - scEt_2 ) + scEt_2;
       }
       TLorentzVector ele1, ele2;
       ele1.SetPtEtaPhiM(pt_1,eta_1,phi_1,0.000511);
