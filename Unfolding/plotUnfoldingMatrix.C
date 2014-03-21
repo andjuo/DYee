@@ -61,7 +61,8 @@ int plotUnfoldingMatrix(const TString conf,
   // Event weight handler
   EventWeight_t evWeight;
   evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
-  // no PU evWeight.init(0,inpMgr.fewzFlag());
+  EventWeight_t evWeightNoPU; // for FSR unfolding weights
+  evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode);
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
@@ -403,6 +404,7 @@ int plotUnfoldingMatrix(const TString conf,
 	// Adjust event weight
 	// .. here "false" = "not data"
 	evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
+	evWeightNoPU.set_PU_and_FEWZ_weights(accessInfo,false);
 
 	// FSR study correction for weight
 	if (systMode==DYTools::FSR_STUDY) {
@@ -417,11 +419,12 @@ int plotUnfoldingMatrix(const TString conf,
 	}
 
 	if (ientry<20) {
-	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(0); std::cout << "\n";
+	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(0); 
 	  //printf("reweight=%4.2lf, fewz_weight=%4.2lf,dE_fsr=%+6.4lf\n",reweight,fewz_weight,(gen->mass-gen->vmass));
 	  for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
 	    std::cout << " specEWeight[" << iSt << "] = "; specEWeightsV[iSt]->Print(0); //std::cout << "\n";
 	  }
+	  std::cout << "\n";
 	}
 
 	// adjust the scale in the counter to include FEWZ 
@@ -433,36 +436,36 @@ int plotUnfoldingMatrix(const TString conf,
 	fiGenPostFsr.setGenPostFsrIdx(accessInfo);
 
 	// begin FSR unfolding block
-	fsrGood.fillIni(fiGenPreFsr , evWeight.totalWeight());
-	fsrGood.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	fsrGood.fillIni(fiGenPreFsr , evWeightNoPU.totalWeight());
+	fsrGood.fillFin(fiGenPostFsr, evWeightNoPU.totalWeight());
 	if (fiGenPreFsr.isValid() && fiGenPostFsr.isValid()) {
-	  fsrGood.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
-	  fsrExact.fillIni(fiGenPreFsr , evWeight.totalWeight());
-	  fsrExact.fillFin(fiGenPostFsr, evWeight.totalWeight());
-	  fsrExact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
+	  fsrGood.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeightNoPU.totalWeight());
+	  fsrExact.fillIni(fiGenPreFsr , evWeightNoPU.totalWeight());
+	  fsrExact.fillFin(fiGenPostFsr, evWeightNoPU.totalWeight());
+	  fsrExact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeightNoPU.totalWeight());
 	}
  
 	int preFsrOk=0, postFsrOk=0;
 	if (evtSelector.inAcceptancePreFsr(accessInfo) && 
 	    fiGenPreFsr.isValid()) {
 	  preFsrOk=1;
-	  fsrDET     .fillIni(fiGenPreFsr, evWeight.totalWeight());
-	  fsrDET_good.fillIni(fiGenPreFsr, evWeight.totalWeight());
+	  fsrDET     .fillIni(fiGenPreFsr, evWeightNoPU.totalWeight());
+	  fsrDET_good.fillIni(fiGenPreFsr, evWeightNoPU.totalWeight());
 	}
       
 	if (evtSelector.inAcceptance(accessInfo) &&
 	    fiGenPostFsr.isValid()) {
 	  postFsrOk=1;
-	  fsrDET     .fillFin(fiGenPostFsr, evWeight.totalWeight());
-	  fsrDET_good.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	  fsrDET     .fillFin(fiGenPostFsr, evWeightNoPU.totalWeight());
+	  fsrDET_good.fillFin(fiGenPostFsr, evWeightNoPU.totalWeight());
 	}
 
 	if (preFsrOk && postFsrOk) {
-	  fsrDET.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
-	  fsrDET_good.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
-	  fsrDETexact.fillIni(fiGenPreFsr , evWeight.totalWeight());
-	  fsrDETexact.fillFin(fiGenPostFsr, evWeight.totalWeight());
-	  fsrDETexact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
+	  fsrDET.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeightNoPU.totalWeight());
+	  fsrDET_good.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeightNoPU.totalWeight());
+	  fsrDETexact.fillIni(fiGenPreFsr , evWeightNoPU.totalWeight());
+	  fsrDETexact.fillFin(fiGenPostFsr, evWeightNoPU.totalWeight());
+	  fsrDETexact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeightNoPU.totalWeight());
 	}
 	// end of FSR unfolding block
 	
