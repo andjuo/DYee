@@ -268,6 +268,55 @@ int createRapidityProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::
 }
 
 //--------------------------------------------------
+
+int createMassProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::vector<TH1D*>*> &hProfV, const std::vector<TString> &labelsV, int markerStyle, double markerSize) {
+  if (h2SrcV.size()==0) {
+    std::cout << "createMassProfileVec: h2SrcV.size=0\n";
+    return 0;
+  }
+
+  if (DYTools::study2D==1) {
+    int yCount=DYTools::nYBins[0];
+    for (int im=1; im<DYTools::nMassBins; ++im) {
+      if (yCount!=DYTools::nYBins[im]) {
+	std::cout << "createMassProfileVec: the rapidity bin count should be the same in all mass bins\n";
+	return 0;
+      }
+    }
+  }
+
+
+  TMatrixD *ybinLimits=DYTools::getYBinLimits();
+  int res=(ybinLimits) ? 1:0;
+
+  for (int iy=0; res && (iy<DYTools::nYBins[0]); iy++) {
+    std::vector<TH1D*> *hPVec = new std::vector<TH1D*>();
+    hProfV.push_back(hPVec);
+    
+    TString yStr=Form("_y%1.0f_%1.0f",(*ybinLimits)(0,iy),(*ybinLimits)(0,iy+1));
+    
+    for (unsigned int i=0; res && (i<h2SrcV.size()); ++i) {
+      TH1D* hProf=NULL;
+      if (h2SrcV[i]) {
+	TString name=Form("hProf_%s_%s",labelsV[i].Data(),yStr.Data());
+	std::cout << "Creating hProfRaw=" << name << "\n";
+	hProf= createProfileX(h2SrcV[i],iy+1,name,1,name.Data());
+	if (!hProf) res=0;
+	else {
+	  hProf->SetMarkerStyle(markerStyle);
+	  hProf->SetMarkerSize(markerSize);
+	}
+      }
+      hPVec->push_back(hProf);
+    }
+  }
+
+  if (ybinLimits) delete ybinLimits;
+  if (!res) std::cout << "error in createMassProfileVec\n";
+  return res;
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 TH1D* removeLastBin(const TH1D* hOrig, TString newName, int setTitle, const char *newTitle) {
