@@ -82,9 +82,15 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
   gBenchmark->Start("prepareYields");
 
   {
+    using namespace DYTools;
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST, DYTools::ESCALE_STUDY, DYTools::ESCALE_STUDY_RND,DYTools::UNREGRESSED_ENERGY,DYTools::APPLY_ESCALE)) 
+    if (!DYTools::checkSystMode(systMode,debug_print,8, 
+				DYTools::NO_SYST, //DYTools::ESCALE_STUDY, 
+				//DYTools::ESCALE_STUDY_RND,
+	        DYTools::UNREGRESSED_ENERGY,DYTools::APPLY_ESCALE,
+		ESCALE_DIFF_0000, ESCALE_DIFF_0005, ESCALE_DIFF_0010, ESCALE_DIFF_0015, ESCALE_DIFF_0020
+				)) 
       return retCodeError;
   }
 
@@ -96,9 +102,9 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
 #endif
     systMode=DYTools::NO_SYST;  // input files have no sytematics
   }
-  else if (systMode==DYTools::APPLY_ESCALE) {
-    systMode=DYTools::NO_SYST; // assume input files have no systematics applied
-  }
+  //else if (systMode==DYTools::APPLY_ESCALE) {
+  systMode=DYTools::NO_SYST; // assume input files have no systematics applied
+  //}
  
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
