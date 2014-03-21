@@ -3,9 +3,23 @@
 
 // --------------------------------------------------------
 
+EventWeight_t::EventWeight_t(const EventWeight_t &ev) :
+  fDoPUReweight(ev.fDoPUReweight),
+  fFewzCorr(ev.fFewzCorr),
+  fPUReweight(ev.fPUReweight),
+  fFEWZ(ev.fFEWZ),
+  fPtrOwner(0), // uses ptrs of another object
+  baseW(ev.baseW),
+  puW(ev.puW),
+  fewzW(ev.fewzW),
+  specW(ev.specW)
+{}
+
+// --------------------------------------------------------
+
 EventWeight_t::~EventWeight_t() {
-  if (fPUReweight) delete fPUReweight;
-  if (fFEWZ) delete fFEWZ;
+  if (fPtrOwner && fPUReweight) delete fPUReweight;
+  if (fPtrOwner && fFEWZ) delete fFEWZ;
 }
 
 // --------------------------------------------------------
@@ -14,8 +28,11 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr, DYTools::TSystematic
   fDoPUReweight=0;
   fFewzCorr=0;
 
-  if (fPUReweight) { delete fPUReweight; fPUReweight=NULL; }
-  if (fFEWZ) { delete fFEWZ; fFEWZ=NULL; }
+  if (fPtrOwner && fPUReweight) { delete fPUReweight; }
+  if (fPtrOwner && fFEWZ) { delete fFEWZ; }
+  fPtrOwner=1;
+  fPUReweight=NULL;
+  fFEWZ=NULL;
   
   if (do_puReweight &&
       ( (systMode==DYTools::NO_REWEIGHT) || (systMode==DYTools::NO_REWEIGHT_PU) )) {

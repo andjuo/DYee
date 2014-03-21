@@ -26,6 +26,7 @@ protected:
   
   PUReweight_t *fPUReweight;
   FEWZ_t *fFEWZ;
+  int fPtrOwner; // whether it created the pointers
 
   double baseW;
   double puW;
@@ -37,11 +38,14 @@ public:
     fFewzCorr(0),
     fPUReweight(NULL),
     fFEWZ(NULL),
+    fPtrOwner(0),
     baseW(1.),
     puW(1.),
     fewzW(1.),
     specW(1.)
   {}
+
+  EventWeight_t(const EventWeight_t &ev);
 
   ~EventWeight_t();
 
