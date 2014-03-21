@@ -53,6 +53,11 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case ESCALE_RESIDUAL: name="EScale_residual"; break;
   case ESCALE_STUDY: name="EScale_study"; break;
   case ESCALE_STUDY_RND: name="EScale_study_randomized"; break;
+  case ESCALE_DIFF_0000: name="EScaleDiff0000"; break;
+  case ESCALE_DIFF_0005: name="EScaleDiff0005"; break;
+  case ESCALE_DIFF_0010: name="EScaleDiff0010"; break;
+  case ESCALE_DIFF_0015: name="EScaleDiff0015"; break;
+  case ESCALE_DIFF_0020: name="EScaleDiff0020"; break;
   case UNREGRESSED_ENERGY: name="Unregressed_energy"; break;
   case NO_REWEIGHT: name="NoReweight"; break;
   case NO_REWEIGHT_PU: name="NoPUReweight"; break;
@@ -244,6 +249,11 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   else if (str.Contains("ESCALE_RESIDUAL") || str.Contains("EScale_residual")) study=ESCALE_RESIDUAL;
   else if (str.Contains("ESCALE_STUDY_RND") || str.Contains("EScale_study_randomized")) study=ESCALE_STUDY_RND;
   else if (str.Contains("ESCALE_STUDY") || str.Contains("EScale_study")) study=ESCALE_STUDY;
+  else if (str.Contains("ESCALE_DIFF_0000") || str.Contains("EScale0000")) study=ESCALE_DIFF_0000;
+  else if (str.Contains("ESCALE_DIFF_0005") || str.Contains("EScale0005")) study=ESCALE_DIFF_0005;
+  else if (str.Contains("ESCALE_DIFF_0010") || str.Contains("EScale0010")) study=ESCALE_DIFF_0010;
+  else if (str.Contains("ESCALE_DIFF_0015") || str.Contains("EScale0015")) study=ESCALE_DIFF_0015;
+  else if (str.Contains("ESCALE_DIFF_0020") || str.Contains("EScale0020")) study=ESCALE_DIFF_0020;
   else if (str.Contains("UNREGRESSED_ENERGY") || str.Contains("Unregressed_energy")) study=UNREGRESSED_ENERGY;
   else if (str.Contains("NO_REWEIGHT_PU") || str.Contains("NoPUReweight")) study=NO_REWEIGHT_PU;
   else if (str.Contains("NO_REWEIGHT_FEWZ") || str.Contains("NoFewzReweight")) study=NO_REWEIGHT_FEWZ;
