@@ -75,8 +75,11 @@ int subtractBackgroundR9(const TString conf,
 
   // Construct eventSelector, update inpMgr and plot directory
   TString extraTag="R9";
+  TString plotExtraTag;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag, "", EventSelector::_selectDefault);
+			      extraTag, plotExtraTag, EventSelector::_selectDefault);
+  // However, the plots should be saved according to the systMode
+  evtSelector.SetPlotOutDir(runMode,inputFileSystMode,plotExtraTag,1);
 
   // systMode correction
   // full name has to contain systMode through the directory name
@@ -650,16 +653,16 @@ int subtractBackgroundR9(const TString conf,
 	    hSum->Add(h,1.);
 	  }
 	}
-	cp->AddHist1D(hSum,"simulation","LP",kRed+1,1,1,-1);
+	cp->AddHist1D(hSum,"simulation","LP skip",kRed+1,1,1,-1);
 	cp->Draw6(c1,1,im);
 	if (!useDDBkg) cp->ChangeLegendPos(0.2,0.,0.,0.);
 	c1->Update();
 
-	TString fname="fig-Yields-";
-	fname.Append((useDDBkg) ? "DDBkg" : "MCBkg");
-	SaveCanvas(c1,fname);
       }
       
+      TString fname="fig-Yields-";
+      fname.Append((useDDBkg) ? "DDBkg" : "MCBkg");
+      SaveCanvas(c1,fname);
     }
 
   }
