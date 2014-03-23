@@ -29,6 +29,7 @@
 
 namespace EventSelector {
   typedef enum { _selectNone, _selectDefault, _selectHLTOrdered, 
+		 _selectLowerEtCut,
 #ifdef DYee8TeV_reg
 		 _selectHLTOrdered_nonRegressed, // use non-regressed values
 #endif
@@ -123,19 +124,25 @@ public:
 
   const ElectronEnergyScale *escale() const { return fEScale; }
 
+  // ----------------------------
   // auxiliary functions
 
   TString generateFullTag(DYTools::TRunMode_t runMode,
 			  DYTools::TSystematicsStudy_t systMode,
-			  const TString &externalExtraTag="") const {
+			  const TString &externalExtraTag="",
+			  int includeSystMode=0) const {
     //std::cout << "runMode=<" << RunModeName(runMode) << ">\n";
     TString tag= (runMode!=DYTools::LOAD_DATA) ? generateRunTag(runMode) : "";
-    TString tag2= generateSystTag(systMode);
-    if (tag2.Length()) tag.Append(TString("_") + tag2);
+    if (includeSystMode) {
+      TString tag2= generateSystTag(systMode);
+      //if (tag2.Length()) tag.Append(TString("_") + tag2);
+      if (tag2.Length()) tag.Append(tag2);
+    }
 
     if ((systMode==DYTools::ESCALE_STUDY) ||
-	(systMode==DYTools::ESCALE_STUDY_RND)) {
-      if (!fEScale) return this->reportError("getExtraTag: fEScale is not set");
+	(systMode==DYTools::ESCALE_STUDY_RND) ||
+	(systMode==DYTools::APPLY_ESCALE)) {
+      if (!fEScale) return this->reportError("generateBaseTag: fEScale is not set");
       tag.Append("_");
       tag.Append(fEScale->calibrationSetShortName());
     }
@@ -150,7 +157,8 @@ public:
 		     DYTools::TSystematicsStudy_t systMode,
 		     const TString &externalExtraTag="",
 		     int printOutDirName=1) const {
-    TString tag= this->generateFullTag(runMode,systMode,externalExtraTag);
+    int includeSystMode=1;
+    TString tag= this->generateFullTag(runMode,systMode,externalExtraTag,includeSystMode);
     CPlot::sOutDir= TString("plots");
     if (tag.Length()) CPlot::sOutDir.Append(TString("_") + tag);
     if (CPlot::sOutDir.Index(DYTools::analysisTag)==-1) {
@@ -166,6 +174,12 @@ public:
   bool testDielectron_default(mithep::TDielectron *dielectron, 
 			      const mithep::TEventInfo *evtInfo,
 			      EventCounter_t *ec=NULL); // evtInfo is for eleID
+
+  // dielectron may be modified by escale corrections
+  // The Et cuts are lower by 5GeV
+  bool testDielectron_lowerEtCut(mithep::TDielectron *dielectron, 
+				 const mithep::TEventInfo *evtInfo,
+				 EventCounter_t *ec=NULL); // evtInfo is for eleID
 
   // HLTordered= default, but:
   //   - the trigger matching is strict (lead,trail)
@@ -194,6 +208,7 @@ public:
     switch(fSelection) {
     case EventSelector::_selectNone: break;
     case EventSelector::_selectDefault: ok=testDielectron_default(dielectron,evtInfo,ec); break;
+    case EventSelector::_selectLowerEtCut: ok=testDielectron_lowerEtCut(dielectron,evtInfo,ec); break;
     case EventSelector::_selectHLTOrdered: ok=testDielectron_HLT_ordered(dielectron,evtInfo,ec); break;
 #ifdef DYee8TeV_reg
     case EventSelector::_selectHLTOrdered_nonRegressed: ok=testDielectron_HLT_ordered_nonRegressed(dielectron,evtInfo,ec); break;
