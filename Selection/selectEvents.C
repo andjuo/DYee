@@ -72,7 +72,7 @@ int selectEvents(const TString conf,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,3, DYTools::NO_SYST, DYTools::ESCALE_STUDY, DYTools::ESCALE_STUDY_RND)) 
+    if (!DYTools::checkSystMode(systMode,debug_print,4, DYTools::NO_SYST, DYTools::ESCALE_STUDY, DYTools::ESCALE_STUDY_RND, DYTools::LOWER_ET_CUT)) 
       return retCodeError;
   }
 
@@ -111,7 +111,7 @@ int selectEvents(const TString conf,
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag());
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
 
   // Prepare output directory
   gSystem->mkdir(inpMgr.nTupleDir(systMode),true);
@@ -158,7 +158,9 @@ int selectEvents(const TString conf,
     // Prepare ntuple file name
     //
     TString outName = inpMgr.nTupleFullFileName(isam,systMode);
-    if ((systMode!=DYTools::NO_SYST) && (isam!=0)) {
+    if ((systMode!=DYTools::NO_SYST) && 
+	(systMode!=DYTools::LOWER_ET_CUT) &&
+	(isam!=0)) {
       std::cout << "... systMode=<" << SystematicsStudyName(systMode) 
 		<< ">, skipping the non-data files\n";
       break;
