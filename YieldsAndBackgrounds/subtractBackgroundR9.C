@@ -717,6 +717,7 @@ int subtractBackgroundR9(const TString conf,
       
       TString fname="fig-Yields-";
       fname.Append((useDDBkg) ? "DDBkg" : "MCBkg");
+      fname.Append(DYTools::analysisTag);
       SaveCanvas(c1,fname);
     }
 
