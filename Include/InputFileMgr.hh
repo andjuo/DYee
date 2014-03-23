@@ -344,8 +344,8 @@ public:
   }
 
   // signalYieldFullName is based on yield dir
-  TString signalYieldFullFileName(DYTools::TSystematicsStudy_t systMode, int ignoreDebugRunFlag) const {
-    TString fname=yieldFullFileName(-1,systMode,0);
+  TString signalYieldFullFileName(DYTools::TSystematicsStudy_t systMode, int ignoreDebugRunFlag, int createDir=0) const {
+    TString fname=yieldFullFileName(-1,systMode,createDir);
     if (ignoreDebugRunFlag) fname.ReplaceAll("_DebugRun","");
     const TString target="all_yield";
     Ssiz_t pos=fname.Index(target);
