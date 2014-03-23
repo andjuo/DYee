@@ -597,13 +597,7 @@ namespace mithep
     ~TDielectron(){} 
 
     void replace2UncorrEn(int check=0, double scale=1.0) {
-      if (!check && (scale==1.0)) {
-	pt_1  =ptUncorr_1;
-	scEt_1=scEtUncorr_1;
-	pt_2  =ptUncorr_2;
-	scEt_2=scEtUncorr_2;
-      }
-      else {
+      if (!check) {
 	pt_1  =scale*(ptUncorr_1 - pt_1) + pt_1;
 	scEt_1=scale*(scEtUncorr_1 - scEt_1 ) + scEt_1;
 	pt_2  =scale*(ptUncorr_2 - pt_2) + pt_2;
