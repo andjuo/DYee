@@ -160,8 +160,13 @@ public:
     int includeSystMode=1;
     TString tag= this->generateFullTag(runMode,systMode,externalExtraTag,includeSystMode);
     CPlot::sOutDir= TString("plots");
-    if (tag.Length()) CPlot::sOutDir.Append(TString("_") + tag);
+    if (tag.Length()) {
+      if ((tag[0]!='_') && (tag[0]!='-')) tag.Prepend(TString("_"));
+      CPlot::sOutDir.Append(tag);
+    }
     if (CPlot::sOutDir.Index(DYTools::analysisTag)==-1) {
+      int len=CPlot::sOutDir.Length();
+      if (CPlot::sOutDir[len-1]!='_') CPlot::sOutDir.Append("_");
       CPlot::sOutDir.Append(DYTools::analysisTag);
     }
     if (printOutDirName) std::cout << "CPlot::sOutDir=<" << CPlot::sOutDir << ">\n";
