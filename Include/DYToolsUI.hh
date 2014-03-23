@@ -59,6 +59,7 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case ESCALE_DIFF_0015: name="EScaleDiff0015"; break;
   case ESCALE_DIFF_0020: name="EScaleDiff0020"; break;
   case UNREGRESSED_ENERGY: name="Unregressed_energy"; break;
+  case LOWER_ET_CUT: name="LowerEtCut"; break;
   case NO_REWEIGHT: name="NoReweight"; break;
   case NO_REWEIGHT_PU: name="NoPUReweight"; break;
   case NO_REWEIGHT_FEWZ: name="NoFewzReweight"; break;
@@ -255,6 +256,7 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   else if (str.Contains("ESCALE_DIFF_0015") || str.Contains("EScale0015")) study=ESCALE_DIFF_0015;
   else if (str.Contains("ESCALE_DIFF_0020") || str.Contains("EScale0020")) study=ESCALE_DIFF_0020;
   else if (str.Contains("UNREGRESSED_ENERGY") || str.Contains("Unregressed_energy")) study=UNREGRESSED_ENERGY;
+  else if (str.Contains("LOWER_ET_CUT") || str.Contains("LowerEtCut")) study=LOWER_ET_CUT;
   else if (str.Contains("NO_REWEIGHT_PU") || str.Contains("NoPUReweight")) study=NO_REWEIGHT_PU;
   else if (str.Contains("NO_REWEIGHT_FEWZ") || str.Contains("NoFewzReweight")) study=NO_REWEIGHT_FEWZ;
   else if (str.Contains("NO_REWEIGHT") || str.Contains("NoReweight")) study=NO_REWEIGHT;
