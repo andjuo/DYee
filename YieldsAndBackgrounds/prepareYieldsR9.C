@@ -88,8 +88,11 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
     if (!DYTools::checkSystMode(systMode,debug_print,8, 
 				DYTools::NO_SYST, //DYTools::ESCALE_STUDY, 
 				//DYTools::ESCALE_STUDY_RND,
-	        DYTools::UNREGRESSED_ENERGY,DYTools::APPLY_ESCALE,
+				DYTools::APPLY_ESCALE,
+#ifdef ZeeData_storeUnregEn
+	        DYTools::UNREGRESSED_ENERGY,
 		ESCALE_DIFF_0000, ESCALE_DIFF_0005, ESCALE_DIFF_0010, ESCALE_DIFF_0015, ESCALE_DIFF_0020
+#endif
 				)) 
       return retCodeError;
   }
@@ -106,6 +109,28 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
   systMode=DYTools::NO_SYST; // assume input files have no systematics applied
   //}
  
+  int applyEtEtaCut=0;
+  double mdfEnFactor=0.;
+  switch(outputSystMode) {
+  case DYTools::ESCALE_DIFF_0000:
+  case DYTools::ESCALE_DIFF_0005:
+  case DYTools::ESCALE_DIFF_0010:
+  case DYTools::ESCALE_DIFF_0015:
+  case DYTools::ESCALE_DIFF_0020:
+    systMode=DYTools::LOWER_ET_CUT;
+    applyEtEtaCut=1;
+    break;
+  default: ;
+  }
+  switch(outputSystMode) {
+  case DYTools::ESCALE_DIFF_0000: mdfEnFactor=0.000; break;
+  case DYTools::ESCALE_DIFF_0005: mdfEnFactor=0.005; break;
+  case DYTools::ESCALE_DIFF_0010: mdfEnFactor=0.010; break;
+  case DYTools::ESCALE_DIFF_0015: mdfEnFactor=0.015; break;
+  case DYTools::ESCALE_DIFF_0020: mdfEnFactor=0.020; break;
+  default: ;
+  }
+
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
@@ -229,12 +254,26 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
       printProgress(1000000," ientry=",ientry,eventTree->GetEntriesFast());
 
       eventTree->GetEntry(ientry);
-      if (outputSystMode==DYTools::UNREGRESSED_ENERGY) {
+      if (applyEtEtaCut || (outputSystMode==DYTools::UNREGRESSED_ENERGY)) {
 #ifdef ZeeData_storeUnregEn
-	data->replace2UncorrEn(0);
+	// study variations due to the regression
+	/*
+	if (0 && !((data->ptUncorr_1 > data->pt_1) &&
+		   (data->scEtUncorr_1 > data->scEt_1) &&
+		   (data->ptUncorr_2 > data->pt_2) &&
+		   (data->scEtUncorr_2 > data->scEt_2))) {
+	  std::cout << "data: uncorr set " << data->ptUncorr_1 << ", " << data->scEtUncorr_1 << "; " << data->ptUncorr_2 << ", " << data->scEtUncorr_2 << "; corr set " << data->pt_1 << ", " << data->scEt_1 << "; " << data->pt_2 << ", " << data->scEt_2 << "\n";
+	}
+	*/
+
+	data->replace2UncorrEn(0,mdfEnFactor);
 #else
 	std::cout << "outputSystMode=UNREGRESSED_ENERGY needs that the values are stored in ZeeData\n";
 #endif
+      }
+      if (applyEtEtaCut) {
+	if (!DYTools::goodEtEtaPair(data->scEt_1, data->scEta_1,
+				    data->scEt_2, data->scEta_2)) continue;
       }
       Double_t weight = data->weight;
 
