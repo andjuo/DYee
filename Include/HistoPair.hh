@@ -52,6 +52,8 @@ public:
   int getNrows() const { return fHisto->GetNbinsX(); }
   int getNcols() const { return fHisto->GetNbinsY(); }
 
+  TString GetName() const { return fHisto->GetName(); }
+
   // ----------------
 
   int changeName(TString newName, TString newTitle="") {
@@ -337,10 +339,12 @@ public:
   // ----------------
   
   // assume that a file is open
-  int Write() const {
+  int Write(TString saveAsName="") const {
     if (!this->isInitialized()) return 0;
-    fHisto->Write();
-    fHistoSystErr->Write();
+    if (saveAsName.Length()==0) saveAsName=fHisto->GetName();
+    fHisto->Write(saveAsName);
+    saveAsName.Append("Syst");
+    fHistoSystErr->Write(saveAsName);
     return 1;
   }
 
