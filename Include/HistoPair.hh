@@ -37,6 +37,13 @@ public:
 
   // ----------------
 
+  void clear() {
+    if (fHisto) delete fHisto;
+    if (fHistoSystErr) delete fHistoSystErr;
+  }
+
+  // ----------------
+
   TH2D *histo() const { return fHisto; }
   TH2D *histoSystErr() const { return fHistoSystErr; }
   TH2D *editHisto() { return fHisto; }
@@ -44,6 +51,22 @@ public:
 
   int getNrows() const { return fHisto->GetNbinsX(); }
   int getNcols() const { return fHisto->GetNbinsY(); }
+
+  // ----------------
+
+  int changeName(TString newName, TString newTitle="") {
+    int res=1;
+    if (fHisto) { 
+      fHisto->SetName(newName);
+      if (newTitle.Length()) fHisto->SetTitle(newTitle);
+    }
+    else res=0;
+    if (fHistoSystErr) {
+      fHistoSystErr->SetName(newName + TString("Syst"));
+      if (newTitle.Length()) fHistoSystErr->SetTitle(newTitle + TString("Syst"));
+    }
+    return (res) ? 1 : reportError("changeName(%s) - fHisto is null",newName);
+  }
 
   // ----------------
 
