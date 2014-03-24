@@ -1,4 +1,5 @@
 #include "../Include/MyTools.hh"
+#include "../Include/ComparisonPlot.hh"
 
 //--------------------------------------------------
 //--------------------------------------------------
@@ -742,6 +743,93 @@ TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, co
   return h2;
 }
 
+
+//--------------------------------------------------
+//--------------------------------------------------
+
+TCanvas* plotProfiles(TString canvName,
+		      const std::vector<TH2D*> &histosV,
+		      const std::vector<TString> &labelsV,
+		      std::vector<int> *colorsV,
+		      int do_removeError,
+		      std::vector<std::vector<TH1D*>*> *hProfV) {
+  if (!hProfV) hProfV= new std::vector<std::vector<TH1D*>*>();
+
+  const unsigned int colorCount=6;
+  const int autoColor[colorCount] = { kBlack, kBlue, kGreen+1, kOrange+1, kRed+1, kViolet };
+  int ourColors=0;
+  if (colorsV==NULL) {
+    ourColors=1;
+    colorsV=new std::vector<int>();
+    colorsV->reserve(histosV.size());
+    for (unsigned int i=0; i<histosV.size(); ++i) {
+      colorsV->push_back(autoColor[i%colorCount]);
+    }
+  }
+
+  int canvWidth=(DYTools::study2D==1) ? 1100 : 700;
+  TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,900);
+
+  if (DYTools::study2D==1) {
+
+    if (!createRapidityProfileVec(histosV,*hProfV,labelsV)) {
+      std::cout << "failed to create profiles\n";
+      return NULL;
+    }
+    std::cout << "there are " << hProfV->size() << " profiles\n";
+      
+    for (int im=1; im<7; ++im) {
+	  
+      TString mStr=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
+      TString cpName="cp_" + mStr;
+      TString cpTitle=mStr;
+      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|","signal yield","ratio");
+      if (im==1) cp->Prepare6Pads(c1,1);
+	  
+      for (unsigned int ih=0; ih<(*hProfV)[im]->size(); ++ih) {
+	TH1D* h=(*(*hProfV)[im])[ih];
+	if (do_removeError) removeError1D(h);
+	if (ih==0) {
+	  h->SetMarkerStyle(20);
+	}
+	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
+      }
+      cp->Draw6(c1,1,im);
+    }
+  }
+  else {
+    // 1D
+    
+    if (!createMassProfileVec(histosV,*hProfV,labelsV)) {
+      std::cout << "failed to create profiles\n";
+      return NULL;
+    }
+    std::cout << "there are " << hProfV->size() << " profiles\n";
+      
+    for (int iy=0; iy<DYTools::nYBinsMax; ++iy) {
+      
+      TString yStr=Form("iy_%d",iy);
+      TString cpName=TString("cp_") + yStr;
+      TString cpTitle; //=yStr;
+      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]","signale yield","ratio");
+      cp->SetLogx(1);
+      if (iy==0) cp->Prepare2Pads(c1);
+      
+      for (unsigned int ih=0; ih<(*hProfV)[iy]->size(); ++ih) {
+	TH1D* h=(*(*hProfV)[iy])[ih];
+	if (do_removeError) removeError1D(h);
+	if (ih==0) {
+	  h->SetMarkerStyle(20);
+	}
+	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
+      }
+      cp->Draw(c1);
+    }
+  }
+  c1->Update();
+  if (ourColors) delete colorsV;
+  return c1;
+}
 
 //--------------------------------------------------
 //--------------------------------------------------

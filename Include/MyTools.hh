@@ -687,6 +687,24 @@ inline void swapContentAndError(TH2F *h) { swapContentAndError2D(h); }
 inline void swapContentAndError(TH2D *h) { swapContentAndError2D(h); }
 
 
+//---------------------------------------------------------------
+
+inline
+int setErrorAsContent(TH2D* hDest, const TH2D* hSrc) {
+  if (!hDest || !hSrc ||
+      (hDest->GetNbinsX() != hSrc->GetNbinsX()) ||
+      (hDest->GetNbinsY() != hSrc->GetNbinsY())) {
+    std::cout << "error in setErrorAsContent\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=hDest->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hDest->GetNbinsY(); ++jbin) {
+      hDest->SetBinError(ibin,jbin, hSrc->GetBinContent(ibin,jbin));
+    }
+  }
+  return 1;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 //
@@ -1406,6 +1424,15 @@ void CreateDir(const TString &fname, int printDir=1) {
   if (printDir) std::cout << "dir=" << dir << "\n";
   gSystem->mkdir(dir,kTRUE);
 }
+
+//--------------------------------------------------
+
+TCanvas* plotProfiles(TString canvName,
+		      const std::vector<TH2D*> &histosV,
+		      const std::vector<TString> &labelsV,
+		      std::vector<int> *colorsV=NULL,
+		      int do_removeError=1,
+		      std::vector<std::vector<TH1D*>*> *hProfV=NULL);
 
 //--------------------------------------------------
 //--------------------------------------------------
