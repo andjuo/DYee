@@ -703,6 +703,11 @@ TH2D *getRelDifference(const TH2D *baseValue, TString newName,
 		       const TH2D *hVar1, const TH2D *hVar2=NULL,
 		       const TH2D *hVar3=NULL, const TH2D *hVar4=NULL);
 
+TH2D *getRelDifference(const std::vector<TH2D*> &vec, TString newName, 
+		       int includeVariants);
+TH2D *getRelDifference(const std::vector<const TH2D*> &vec, TString newName, 
+		       int includeVariants);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 // write flags to a file.
