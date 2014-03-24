@@ -11,7 +11,7 @@ int calc_escaleDiffSyst(int debug,
 
 {
 
-  std::cout << "debug=" << debug << " (ignored)\n";
+  std::cout << "debug=" << debug << " (sets 'checkTheCode')\n";
 
   if (conf==TString("default")) {
     conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
@@ -45,12 +45,17 @@ int calc_escaleDiffSyst(int debug,
   EventSelector_t evtSelector(inpMgr,runMode,DYTools::NO_SYST,
 			      extraTag, plotExtraTag, EventSelector::_selectDefault);
 
-  const int systModeCount=5;
-  const int systModeVec[systModeCount]= { DYTools::ESCALE_DIFF_0000, DYTools::ESCALE_DIFF_0005, DYTools::ESCALE_DIFF_0010, DYTools::ESCALE_DIFF_0015, DYTools::ESCALE_DIFF_0020 };
+  const int systModeCount=6;
+  const int systModeVec[systModeCount]= { DYTools::ESCALE_DIFF_0000, DYTools::ESCALE_DIFF_0005, DYTools::ESCALE_DIFF_0010, DYTools::ESCALE_DIFF_0015, DYTools::ESCALE_DIFF_0020, DYTools::NO_SYST };
   std::vector<TString> systModeNameV;
+  int checkTheCode=debug;
 
   for (int i=0; i<systModeCount; i++) {
     DYTools::TSystematicsStudy_t iSystMode=(DYTools::TSystematicsStudy_t)(systModeVec[i]);
+    if (checkTheCode) {
+      if (i==1) iSystMode=DYTools::NO_SYST;
+      else if (i>1) break;;
+    }
     TString systModeName=SystematicsStudyName(iSystMode);
     systModeNameV.push_back(systModeName);
     std::cout << "systMode=" << systModeName << "\n";
@@ -97,27 +102,25 @@ int calc_escaleDiffSyst(int debug,
     //printHisto(signalYieldMCbkgV.back()->histo());
   }
 
-  TH2D* h2RelDiffMCbkg= 
-    getRelDifference(signalYieldMCbkgV[0]->histo(),
-		     "h2RelDiffMCbkg",
-		     1,
-		     signalYieldMCbkgV[1]->histo(), 
-		     signalYieldMCbkgV[2]->histo(),
-		     signalYieldMCbkgV[3]->histo(), 
-		     signalYieldMCbkgV[4]->histo());
-  //printHisto(h2RelDiffMCbkg);
+  if (0 && (systModeVec[0]==DYTools::NO_SYST)) {
+    TH2D* h2RelDiffMCbkg_chk= getRelDifference(signalYieldMCbkgV,
+					       "h2RelDiffMCbkg_chk", 1);
+    printHisto(h2RelDiffMCbkg_chk);
+    
+    TH2D* h2RelDiffDDbkg_chk= getRelDifference(signalYieldDDbkgV,
+					       "h2RelDiffDDbkg_chk", 1);
+    printHisto(h2RelDiffDDbkg_chk);
+    return retCodeStop;
+  }
 
-  TH2D* h2RelDiffDDbkg= 
-    getRelDifference(signalYieldDDbkgV[0]->histo(),
-		     "h2RelDiffDDbkg",
-		     1,
-		     signalYieldDDbkgV[1]->histo(), 
-		     signalYieldDDbkgV[2]->histo(),
-		     signalYieldDDbkgV[3]->histo(), 
-		     signalYieldDDbkgV[4]->histo());
-  //printHisto(h2RelDiffDDbkg);
-  //printHisto(signalYieldDDbkgV[0]->histo());
+  TH2D* h2RelDiffMCbkg= getRelDifference(signalYieldMCbkgV,
+					       "h2RelDiffMCbkg", 1);
+  TH2D* h2RelDiffDDbkg= getRelDifference(signalYieldDDbkgV,
+					 "h2RelDiffDDbkg", 1);
 
+  printHisto(h2RelDiffMCbkg);
+  printHisto(h2RelDiffMCbkg);
+  
   if (1) {
     int res1=1;
     TFile fout(outFileName,"recreate");
@@ -133,7 +136,6 @@ int calc_escaleDiffSyst(int debug,
       std::cout << "\n\tError saving file <" << fout.GetName() << ">\n\n";
     }
   }
-
 
   // Prepare the plot
   if (1) {
@@ -152,6 +154,7 @@ int calc_escaleDiffSyst(int debug,
       colorsV.push_back(kGreen+1);
       colorsV.push_back(kOrange);
       colorsV.push_back(kRed+1);
+      colorsV.push_back(kViolet);
 
       std::vector<std::vector<TH1D*>*> hProfV;
       TString canvName=(useDDBkg) ? "cDD" : "cMC";
@@ -175,7 +178,9 @@ int calc_escaleDiffSyst(int debug,
 	  if (im==1) cp->Prepare6Pads(c1,1);
 	  
 	  for (unsigned int ih=0; ih<hProfV[im]->size(); ++ih) {
+	    if (!checkTheCode && (systModeVec[ih]==DYTools::NO_SYST)) continue;
 	    TH1D* h=(*hProfV[im])[ih];
+	    removeError1D(h);
 	    if (ih==0) {
 	      h->SetMarkerStyle(20);
 	    }
@@ -206,7 +211,9 @@ int calc_escaleDiffSyst(int debug,
 	  if (iy==0) cp->Prepare2Pads(c1);
 	  
 	  for (unsigned int ih=0; ih<hProfV[iy]->size(); ++ih) {
+	    if (!checkTheCode && (systModeVec[ih]==DYTools::NO_SYST)) continue;
 	    TH1D* h=(*hProfV[iy])[ih];
+	    removeError1D(h);
 	    if (ih==0) {
 	      h->SetMarkerStyle(20);
 	    }
