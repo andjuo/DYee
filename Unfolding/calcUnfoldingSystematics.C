@@ -61,7 +61,7 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
 
   // Construct eventSelector, update mgr and plot directory
   TString extraTag;
-  //extraTag="R9";
+  extraTag="R9";
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag, "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
@@ -367,8 +367,8 @@ int unfoldDET_local(const HistoPair2D_t &iniYields,
   TString fnameTag=UnfoldingMatrix_t::generateFNameTag(dirSystMode);
   int res=detResponse.autoLoadFromFile(constDir,fnameTag);
   //std::cout << "autoLoad of " << umName << " from " << constDir << " with fnameTag=" << fnameTag << " has res=" << res << "\n";
-  std::cout << "iniYields"; iniYields.print();
-  std::cout << "detResponse.getDetInvResponse(): "; detResponse.getDetInvResponse()->Print();
+  //std::cout << "iniYields"; iniYields.print();
+  //std::cout << "detResponse.getDetInvResponse(): "; detResponse.getDetInvResponse()->Print();
   if (!res) res=-1;
   if (res==1) res=finYields.unfold(*detResponse.getDetInvResponse(), iniYields);
 
