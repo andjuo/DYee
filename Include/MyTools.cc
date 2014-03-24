@@ -54,25 +54,6 @@ TH2D* getRelDifference(const TH2D *baseValue, TString newName, int includeVarian
     return NULL;
   }
 
-  // TString newTitle=baseValue->GetTitle() + TString(" rel.Diff");
-  TH2D *hRes=Clone(baseValue,newName,newName);
-  if (!hRes) {
-    std::cout << "getRelDifference: failed to copy the histogram" << std::endl;
-    return NULL;
-  }
-
-  // remove error
-  for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
-    for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
-      hRes->SetBinError(ibin,jbin, 0.);
-    }
-  }
-
-  if (!hVar1) {
-    std::cout << "\n\n\t\tERROR getRelDifference: hVar1 is null\n" << std::endl;
-    return hRes;
-  }
-
   std::vector<const TH2D*> hV;
   hV.reserve(4);
   hV.push_back(hVar1);
@@ -80,28 +61,59 @@ TH2D* getRelDifference(const TH2D *baseValue, TString newName, int includeVarian
   if (hVar3!=NULL) hV.push_back(hVar3);
   if (hVar4!=NULL) hV.push_back(hVar4);
 
+  TH2D *h2Diff=getRelDifference(hV,newName,includeVariants);
+  if (!h2Diff) std::cout << "error in getRelDifference(TH2D*,etc)\n";
+  return h2Diff;
+}
+
+//--------------------------------------------------
+
+TH2D* getRelDifference(const std::vector<const TH2D*> &var, TString newName, int includeVariants) {
+  if (var.size()==0) {
+    std::cout << "getRelDifference(vec): vector is empty" << std::endl;
+    return NULL;
+  }
+
+  TH2D *hRes=Clone(var[0],newName,newName);
+  if (!hRes) {
+    std::cout << "getRelDifference(vec): failed to copy the 1st histogram" << std::endl;
+    return NULL;
+  }
+
+  // remove error
+  removeError2D(hRes);
+
   // If includeVariants is 1, then differences between all histograms are
   // considered. The j index will run from 0 (baseValue) to 
   // hV.size(). If j>0, the reference is the variant histogram
-  unsigned int jmax=(includeVariants) ? (hV.size()+1) : 1;
+  unsigned int imax=(includeVariants) ? (var.size()+1) : 1;
 
-  for (unsigned int i=0; i<hV.size(); ++i) {
-    for (unsigned int j=0; j<jmax; ++j) {
-      if ((j>0) && (i+1==j)) continue; // avoid comparing distribution to itself
-      TH2D* hd=(TH2D*)hV[i]->Clone(Form("var_%d",i));
-      const TH2D* hRef= (j==0) ? baseValue : hV[j-1];
-      hd->Add(hRef,-1.);
+  for (unsigned int i=0; i<imax; ++i) {
+    for (unsigned int j=i+1; j<var.size(); ++j) {
       for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
 	for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
+	  // current max difference
 	  double err=hRes->GetBinError(ibin,jbin);
-	  double var=fabs(hd->GetBinContent(ibin,jbin)); // !content
-	  if (var>err) hRes->SetBinError(ibin,jbin, var);
+	  // get diff
+	  double diff=fabs(var[j]->GetBinContent(ibin,jbin) -
+			   hRes->GetBinContent(ibin,jbin));
+	  if (diff>err) hRes->SetBinError(ibin,jbin, diff);
 	}
       }
-      delete hd;
     }
   }
   return hRes;
+}
+
+//--------------------------------------------------
+
+TH2D* getRelDifference(const std::vector<TH2D*> &var, TString newName, int includeVariants) {
+  std::vector<const TH2D*> vec;
+  for (unsigned int i=0; i<var.size(); ++i) {
+    vec.push_back((const TH2D*)var[i]);
+  }
+  TH2D *diff=getRelDifference(vec,newName,includeVariants);
+  return diff;
 }
 
 //--------------------------------------------------
