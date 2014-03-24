@@ -510,5 +510,21 @@ HistoPair2D_t* getDiff(const TString &nameBase,
 // ---------------------------------------------
 // ---------------------------------------------
 
+inline 
+TH2D* getRelDifference(const std::vector<HistoPair2D_t*> &hpV, 
+		       TString newName, int includeVariants) {
+  std::vector<const TH2D*> vec;
+  for (unsigned int i=0; i<hpV.size(); ++i) {
+    if (hpV[i]) vec.push_back(hpV[i]->histo());
+    else std::cout << "getRelDifference(vec<HistoPair*>: null ptr\n";
+  }
+  TH2D* h2Diff=getRelDifference(vec,newName,includeVariants);
+  if (!h2Diff) std::cout << "error in getRelDifference(vec<HistoPair*>)\n";
+  return h2Diff;
+}
+
+// ---------------------------------------------
+// ---------------------------------------------
+
 
 #endif
