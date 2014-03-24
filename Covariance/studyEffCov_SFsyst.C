@@ -297,6 +297,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     saveVec(rhoFile,hScaleFIV_150,"esf_histos_150");
     saveVec(rhoFile,hScaleFIV_1500,"esf_histos_1500");
 
+    writeBinningArrays(rhoFile);
     rhoFile.Close();
   }
   else {
@@ -586,7 +587,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     esfMFromHisto150err.Write("scaleFactor_hb150err");
     esfMFromHisto1500.Write("scaleFactor_hb1500");
     esfMFromHisto1500err.Write("scaleFactor_hb1500err");
-    
+    writeBinningArrays(fCov);
     fCov.Close();
     std::cout << "file <" << covFileName << "> recreated\n";
 
@@ -606,6 +607,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     h2covSave->Write("covRhoRho");
     h2corrSave->Write("corrRhoRho");
     h2ScaleFactors->Write("scaleFactors");
+    writeBinningArrays(fResult);
     fResult.Close();
     std::cout << "file <" << fResult.GetName() << "> saved\n";
 
