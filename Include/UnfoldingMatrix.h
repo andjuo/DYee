@@ -402,6 +402,13 @@ public:
   const TVectorD* getFinVec() const { return yieldsFinArr; }
   // Read the note above.
 
+  int sizesMatch(const UnfoldingMatrix_t &U) const {
+    int ok=((yieldsIni->GetNrows() == U.yieldsIni->GetNrows()) &&
+	    (yieldsIni->GetNcols() == U.yieldsIni->GetNcols()) &&
+	    (yieldsIniArr->GetNoElements() == U.yieldsIniArr->GetNoElements())) ? 1:0;
+    return ok;
+  }
+
   void fillIni(int iMassBinGen, int iYBinGen, double fullWeight) {
     using namespace DYTools;
     if ((iMassBinGen==-1) || (iYBinGen==-1)) {
@@ -461,6 +468,24 @@ public:
 	(*DetMigrationErr)(i,j)=x*x;
       }
     }
+  }
+
+  int randomizeMigrationMatrix(const UnfoldingMatrix_t &U) {
+    if (!U.sizesMatch(U)) {
+      std::cout << "UnfoldingMatrix_t::randomizeMigrationMatrix(U) sizes do not match\n";
+      return 0;
+    }
+    for (int ir=0; ir<U.DetMigration->GetNrows(); ++ir) {
+      for (int ic=0; ic<U.DetMigration->GetNcols(); ++ic) {
+	(*this->DetMigration)(ir,ic) = (*U.DetMigration)(ir,ic) + 
+	  (*U.DetMigrationErr)(ir,ic) * gRandom->Gaus(0,1);
+      }
+    }
+    *DetMigrationErr= (*U.DetMigrationErr);
+    this->computeResponseMatrix();
+    this->invertResponseMatrix();
+    this->prepareFIArrays();
+    return 1;
   }
 
   // errors should be squared!
