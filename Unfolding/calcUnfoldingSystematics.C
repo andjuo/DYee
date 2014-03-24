@@ -11,7 +11,8 @@
 int unfoldDET_local(const HistoPair2D_t &iniYields, 
 		    HistoPair2D_t &finYields,
 		    const InputFileMgr_t &inpMgr,
-		    DYTools::TSystematicsStudy_t systMode);
+		    DYTools::TSystematicsStudy_t systMode,
+		    UnfoldingMatrix_t **ptrDetResponse=NULL);
 
 //TCanvas* plotHistos(
 
@@ -32,7 +33,7 @@ public:
 //  Main code
 // --------------------------------------------------
 
-int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std::vector<const TInfoLoc_t*> *infoV=NULL) {
+int calcUnfoldingSystematics(TString conf, int debug, int needInfo=0, std::vector<const TInfoLoc_t*> *infoV=NULL) {
 
   // check whether it is a calculation
   if (conf.Contains("_DebugRun_")) {
@@ -46,7 +47,11 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
   
   int calcFSR=1;
   int calcPU=1;
+  int calcRnd=1;
 
+  if (conf==TString("default")) {
+    conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
+  }
 
   DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
   int doCalc=processData(runMode);
@@ -66,13 +71,11 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
 			      extraTag, "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
-  //const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
-  //const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
-  //int seedFirst=0;
-  //int seedLast=-1;
-  //const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : 0; //(seedMax-seedMin+1);
-
-  //std::cout << "seedMin..seedMax=" << seedMin << ".." << seedMax << "\n";
+  const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
+  const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
+  int seedFirst=0;
+  int seedLast=(calcRnd) ? (seedMax-seedMin+1) : -1;
+  std::cout << "seedMin..seedMax=" << seedMin << ".." << seedMax << "; seedLast=" << seedLast << "\n";
 
   //return retCodeOk;
 
@@ -82,6 +85,8 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
 
   if (doCalc) ioFile= new TFile(ioFName,"recreate");
   else ioFile= new TFile(ioFName,"read");
+
+  UnfoldingMatrix_t *DetResponse=NULL;
 
   //---------------------------------------
   // Main analysis code 
@@ -129,7 +134,8 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
 
   HistoPair2D_t unfYields("hunfYields");
   if (doCalc) {
-    if (res) res=unfoldDET_local(*signal,unfYields,inpMgr,DYTools::NO_SYST);
+    if (res) res=unfoldDET_local(*signal,unfYields,inpMgr,DYTools::NO_SYST,
+				 (calcRnd) ? &DetResponse : NULL);
 
     if (res && ioFile) { ioFile->cd(); res=unfYields.Write(); }
   }
@@ -143,35 +149,79 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
 //calculate smearing systematics 
 /////////////////////////////////
 
-  /*
-  int nseeds = 0;
+  TH2D *h2RndSyst=NULL;
 
-  for(int i=seedFirst; i<=seedLast; i++){
-    nseeds++;
-    applyUnfoldingLocal(signalYields, unfoldedYields, 1, i, 100);
-    for(int idx = 0; idx < nUnfoldingBins; idx++){
-      unfoldedYieldsMean[idx] += unfoldedYields[idx];
-      unfoldedYieldsSquaredMean[idx] += unfoldedYields[idx]*unfoldedYields[idx];
+  if (calcRnd) {
+    std::vector<TH2D*> rndUnfVec;
+    rndUnfVec.reserve(seedLast+1);
+    rndUnfVec.push_back(Clone(unfYields.histo(),"hNonRndUnfYield","hNonRndUnfYield"));
+    h2RndSyst=Clone(unfYields.histo(),"h2RndSyst","h2RndSyst");
+    
+    int nseeds=0;
+
+    TString UrndName="detResponse_rnd";
+    UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,UrndName);
+    HistoPair2D_t rndUnfYield("rndYield");
+    TH2D *hSum = Clone(unfYields.histo(),"hRndSystSum","hRndSystSum");
+    hSum->Reset();
+    std::vector<TString> labelsV;
+
+    //seedLast=seedFirst+1;
+    for(int i=seedFirst; i<=seedLast; i++){
+      nseeds++;
+      gRandom->SetSeed(i+seedMin);
+      if (!Urnd.randomizeMigrationMatrix(*DetResponse)) {
+	std::cout << "randomization failed for iseed=" << i << "\n";
+	return retCodeError;
+      }
+      if (!rndUnfYield.unfold(*Urnd.getDetInvResponse(), *signal)) {
+	std::cout << "unfold failed for iseed=" << i << "\n";
+	return retCodeError;
+      }
+      TString newName=Form("hRndUnf_seedNo%d",i);
+      TH2D* hres=Clone(rndUnfYield.histo(),newName,newName);
+      labelsV.push_back(Form("seedNo%d",i));
+      rndUnfVec.push_back(hres);
+      
+      TH2D *hAdd=Clone(rndUnfYield.histo(),"hAdd","hAdd");
+      if (!setErrorAsContent(hAdd,rndUnfYield.histo())) {
+	std::cout << "error at iseed=" << i << "\n";
+	return retCodeError;
+      }
+      //printHisto(hAdd);
+      
+      hSum->Add(hAdd,1.);
+      delete hAdd;
+    }
+    //printHisto(hSum);
+
+    hSum->Scale(1/double(nseeds));
+    // Final calculation of the mean and RMS for randomization
+    for (int ibin=1; ibin<=hSum->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=hSum->GetNbinsY(); ++jbin) {
+	double avg=hSum->GetBinContent(ibin,jbin);
+	double sqrAvg=hSum->GetBinError(ibin,jbin);
+	double varSqr=sqrAvg*sqrAvg*nseeds - avg*avg;
+	h2RndSyst->SetBinError(ibin,jbin, sqrt(varSqr));
+      }
+    }
+
+    TCanvas *cx=plotProfiles("cRnd",rndUnfVec,labelsV,NULL,1);
+    //cx->cd(1);
+    //removeError(hSum);
+    //hSum->Draw("same");
+    SaveCanvas(cx,"fig-chkRnd");
+
+    printHisto(hSum);
+    printHisto(h2RndSyst);
+
+    if (res && ioFile) {
+      res=saveVec(*ioFile,rndUnfVec,"rndUnf");
+      if (res) res=saveHisto(*ioFile,hSum,"rndUnfSum");
+      if (res) res=saveHisto(*ioFile,h2RndSyst,"");
     }
   }
 
-
-  // Final calculation of the mean and RMS for Smearing
-  TVectorD unfoldingSystPercentSmear(nUnfoldingBins);
-  for(int idx = 0; idx < nUnfoldingBins; idx++){
-    unfoldedYieldsMean[idx] = unfoldedYieldsMean[idx]/double(nseeds);
-    unfoldedYieldsSquaredMean[idx] = 
-      unfoldedYieldsSquaredMean[idx]/double(nseeds);
-    unfoldedYieldsRMS[idx] = 
-      sqrt(unfoldedYieldsSquaredMean[idx] - 
-	   unfoldedYieldsMean[idx]*unfoldedYieldsMean[idx]);
-    unfoldingSystPercentSmear[idx] = 
-      unfoldedYieldsRMS[idx]*100.0/unfoldedYieldsMean[idx];
-  }
-  */
-
-  HERE("res=%d after smearing syst",res);
-  
 /////////////////////////////////
 //calculate Fsr systematics 
 /////////////////////////////////
@@ -333,9 +383,10 @@ int calcUnfoldingSystematics(const TString conf, int debug, int needInfo=0, std:
 //-----------------------------------------------------------------
 
 int unfoldDET_local(const HistoPair2D_t &iniYields, 
-		 HistoPair2D_t &finYields,
-		 const InputFileMgr_t &inpMgr,
-		 DYTools::TSystematicsStudy_t systMode) 
+		    HistoPair2D_t &finYields,
+		    const InputFileMgr_t &inpMgr,
+		    DYTools::TSystematicsStudy_t systMode,
+		    UnfoldingMatrix_t **ptrDetResponse) 
 {
 
   TString wStr;
@@ -370,6 +421,11 @@ int unfoldDET_local(const HistoPair2D_t &iniYields,
   //std::cout << "iniYields"; iniYields.print();
   //std::cout << "detResponse.getDetInvResponse(): "; detResponse.getDetInvResponse()->Print();
   if (!res) res=-1;
+  if ((res==1) && ptrDetResponse) {
+    TString setName=TString("detResponse_") + UnfoldingMatrix_t::generateFNameTag(systMode);
+    (*ptrDetResponse)=new UnfoldingMatrix_t(detResponse,setName);
+  }
+
   if (res==1) res=finYields.unfold(*detResponse.getDetInvResponse(), iniYields);
 
   if (res!=1) {
