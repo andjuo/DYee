@@ -4,52 +4,117 @@
 #include <TBenchmark.h>
 
 #include "../Include/DYTools.hh"
-#include "../Include/MyTools.hh"
+#include "../CrossSection/crossSectionFnc.hh"
 
-#include "../Include/EventSelector.hh"
-#include "../Include/InputFileMgr.hh"
-#include "../Include/HistoPair.hh"
-#include "../Include/UnfoldingMatrix.h"
-
-
-
-// ----------------------------------------------
-// ----------------------------------------------
-
-struct InputArgs_t {
-  InputFileMgr_t *inpMgr;
-  DYTools::TSystematicsStudy_t systMode;
-};
-
-// ----------------------------------------------
-// ----------------------------------------------
-
-
-//=== FUNCTION DECLARATIONS ======================================================================================
-
-// step 1
-int unfoldDetResolution(const InputArgs_t &ia, const HistoPair2D_t &ini, HistoPair2D_t &fin);
-// step 2
-int efficiencyCorrection(const InputArgs_t &ia, const HistoPair2D_t &ini, HistoPair2D_t &fin);
-// step 3
-int efficiencyScaleCorrection(const InputArgs_t &ia, const HistoPair2D_t &ini, HistoPair2D_t &fin);
-// step 4
-int acceptanceCorrection(const InputArgs_t &ia, const HistoPair2D_t &ini, HistoPair2D_t &fin);
-// step 5
-int fsrCorrection_det(const InputArgs_t &ia, const HistoPair2D_t &ini, HistoPair2D_t &fin);
-int fsrCorrection_fullSpace(const InputArgs_t &ia, const HistoPair2D_t &ini, HistoPair2D_t &fin);
-
-// systematics
-// of step 1
-int addSystError_DetResUnf_unfold(const InputArgs_t &ia, HistoPair2D_t &hp, HistoPair2D_t *res=NULL);
-int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, HistoPair2D_t *res=NULL);
-
-
-int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &extraTag);
 
 //=== MAIN MACRO =================================================================================================
 
 int calcCrossSection(TString conf,
+		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+		     DYTools::TCrossSectionKind_t csKind=DYTools::_cs_preFsr) {
+
+  gBenchmark->Start("calcCrossSection");
+
+  {
+    DYTools::printExecMode(runMode,systMode);
+    const int debug_print=1;
+    if (!DYTools::checkSystMode(systMode,debug_print,1, DYTools::NO_SYST)) {
+      return retCodeError;
+    }
+  }
+
+
+  //--------------------------------------------------------------------------------------------------------------
+  // Settings 
+  //==============================================================================================================
+
+  if (conf==TString("default")) {
+    conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
+  }
+
+  InputFileMgr_t inpMgr;
+  if (!inpMgr.Load(conf)) return retCodeError;
+
+  // Construct eventSelector, update mgr and plot directory
+  TString extraTag="R9"; // empty
+  TString plotExtraTag;
+
+  InputFileMgr_t inpMgrNoExtraTag(inpMgr);
+  EventSelector_t evtSelectorNoExtraTag(inpMgrNoExtraTag,runMode,systMode,
+					"",plotExtraTag,
+					EventSelector::_selectDefault);
+
+  EventSelector_t evtSelector(inpMgr,runMode,systMode,
+			      extraTag,plotExtraTag,
+			      EventSelector::_selectDefault);
+
+  // Prepare output directory
+  inpMgr.crossSectionDir(systMode,1);
+
+  InputArgs_t inpArgs(&inpMgr,systMode);
+  InputArgs_t inpArgsNET(&inpMgrNoExtraTag,systMode);
+
+  //--------------------------------------------------------------------------------------------------------------
+  // Main analysis code 
+  //==============================================================================================================
+
+  TString yieldName=(inpMgr.userKeyValueAsInt("DDBKG")==1) ?
+    "signalYieldDDbkg" : "signalYieldMCbkg";
+  HistoPair2D_t hpSignalYield(yieldName);
+
+  TString resCSName=yieldName;
+  resCSName.ReplaceAll("signal","cs");
+  HistoPair2D_t hpCS(resCSName);
+
+  CSResults_t csResult;
+  
+  // --------------------- Start work
+
+  // load yields 
+  int res=1;
+  if (res) {
+    const int loadNormalSelection=1;
+    TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode,loadNormalSelection);
+    const int load_debug_file=0;
+    if ( ! load_debug_file ) {
+      std::cout << "fnameBgSubtracted=<" << fnameBgSubtracted << ">\n";
+      res=hpSignalYield.Load(fnameBgSubtracted,1);
+    }
+    else {
+      TString tmpFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/yields/DY_7TeV_test/DY_m10+pr+a05+o03+pr_4839pb/yields_bg-subtracted1D.root";
+      std::cout << "debug fnameBgSubtracted=<" << tmpFName << ">\n";
+      TString field="YieldsSignal";
+      TString fieldErr="YieldsSignalErr";
+      TString fieldSystErr="YieldsSignalSystErr";
+      res=hpSignalYield.loadThreeMatrices(tmpFName,field,fieldErr,fieldSystErr,
+					  1,1);
+    }
+  }
+  if (res) res=saveResult(inpArgs,hpSignalYield,"raw");
+
+  // unfolding correction
+  HistoPair2D_t hpUnfoldedYield("unfYield");
+  if (res) res=unfoldDetResolution(inpArgs, hpSignalYield, hpUnfoldedYield);
+  //if (res) res=addSystError_DetResUnf_unfold(inpArgs, hpUnfoldedYield);
+  //if (res) res=addSystError_DetResUnf_escale(inpArgs, hpUnfoldedYield);
+  if (res) res=saveResult(inpArgs,hpUnfoldedYield,"unf");
+
+
+  inpArgsNET.needsDETUnfolding=0;
+  if (res) res=calculateCS(inpArgsNET,hpUnfoldedYield,csKind,hpCS,csResult);
+
+  gBenchmark->Show("calcCrossSection");
+  return (res) ? retCodeOk : retCodeError;
+}
+
+
+  //--------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------------------------------------------
+
+/*
+int calcCrossSection_simple(TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) {
 
@@ -91,13 +156,8 @@ int calcCrossSection(TString conf,
   // Prepare output directory
   inpMgr.crossSectionDir(systMode,1);
 
-  InputArgs_t inpArgs;
-  inpArgs.inpMgr = &inpMgr;
-  inpArgs.systMode=systMode;
-
-  InputArgs_t inpArgsNET;
-  inpArgsNET.inpMgr = &inpMgrNoExtraTag;
-  inpArgsNET.systMode=systMode;
+  InputArgs_t inpArgs(&inpMgr,systMode);
+  InputArgs_t inpArgsNET(&inpMgrNoExtraTag,systMode);
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -171,199 +231,7 @@ int calcCrossSection(TString conf,
   return (res) ? retCodeOk : retCodeError;
 }
 
-
-//=== FUNCTION IMPLEMENTATIONS ======================================================================================
-
-
-// ----------------------------------------------
-
-int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- unfoldDetResolution");
-  // To load the unfolding matrix we have to create variables used
-  // for the construction of
-  // the class instance as well as autoLoadFromFile
-  TString constDir= inpArg.inpMgr->constDir(inpArg.systMode,0);
-  TString fnameTag= DYTools::analysisTag;
-  TMatrixD *UnfM=NULL;
-  int inverse=1;
-  const int load_debug_file=0;
-  if ( load_debug_file ) {
-    constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
-    fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
-  }
-  UnfM=UnfoldingMatrix_t::LoadUnfM("detResponse", constDir, fnameTag, inverse);
-  if (!UnfM) return 0;
-  int res= fin.unfold(*UnfM, ini);
-  if (!res) return 0;
-  delete UnfM;
-  return 1;
-}
-
-// ----------------------------------------------
-
-int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE("fsrCorrection_det");
-  // To load the unfolding matrix we have to create variables used
-  // for the construction of
-  // the class instance as well as autoLoadFromFile
-  TString constDir= inpArg.inpMgr->constDir(inpArg.systMode,0);
-  TString fnameTag= DYTools::analysisTag;
-  TMatrixD *UnfM=NULL;
-  int inverse=1;
-  const int load_debug_file=0;
-  if ( load_debug_file ) {
-    constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
-    fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
-  }
-  UnfM=UnfoldingMatrix_t::LoadUnfM("fsrDET_good", constDir, fnameTag, inverse);
-  if (!UnfM) return 0;
-  int res= fin.unfold(*UnfM, ini);
-  if (!res) return 0;
-  delete UnfM;
-  return 1;
-}
-
-// ----------------------------------------------
-
-int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE("fsrCorrection_fullSpace");
-  // To load the unfolding matrix we have to create variables used
-  // for the construction of
-  // the class instance as well as autoLoadFromFile
-  TString constDir= inpArg.inpMgr->constDir(inpArg.systMode,0);
-  TString fnameTag= DYTools::analysisTag;
-  TMatrixD *UnfM=NULL;
-  int inverse=1;
-  const int load_debug_file=0;
-  if (load_debug_file) {
-    constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
-    fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
-  }
-  UnfM=UnfoldingMatrix_t::LoadUnfM("fsrGood", constDir, fnameTag, inverse);
-  if (!UnfM) return 0;
-  int res= fin.unfold(*UnfM, ini);
-  if (!res) return 0;
-  delete UnfM;
-  return 1;
-}
-
-// ----------------------------------------------
-
-int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- efficiencyCorrection");
-  TString effCorrFName=inpArg.inpMgr->correctionFullFileName("efficiency",inpArg.systMode,0);
-  TH2D *hEff=NULL;
-  const int load_debug_file=0;
-  if ( ! load_debug_file ) {
-    hEff=LoadHisto2D("hEfficiency",effCorrFName,"",1);
-  }
-  else {
-    effCorrFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/event_efficiency_constants1D.root";
-    hEff=LoadMatrixFields(effCorrFName,0,"efficiencyArray","efficiencyErrArray",1);
-  }
-  //std::cout << "effCorrFName=<" << effCorrFName << ">\n";
-  int res=(hEff!=NULL) ? 1:0;
-  if (res) res=fin.divide(ini,hEff);
-  if (!res) std::cout << "error in efficiencyCorrection\n";
-  return res;
-}
-// ----------------------------------------------
-
-int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- efficiencyScaleCorrection");
-  TString rhoCorrFName=inpArg.inpMgr->correctionFullFileName("scale_factors",inpArg.systMode,0);
-  TH2D *hRho=NULL;
-  const int load_debug_file=0;
-  if ( ! load_debug_file ) {
-    //hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
-    int checkBinning=0;
-    hRho=LoadMatrixFields(rhoCorrFName,checkBinning,"scaleFactor","scaleFactorErr",1);
-  }
-  else {
-    rhoCorrFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants/DY_m10+pr+a05+o03+pr_4839pb/scale_factors_1D_Full2011_hltEffOld_PU.root";
-    hRho=LoadMatrixFields(rhoCorrFName,1,"scaleFactor","scaleFactorErr",1);
-  }
-  //std::cout << "rhoCorrFName=<" << rhoCorrFName << ">\n";
-  int res=(hRho!=NULL) ? 1:0;
-  if (res) res=fin.divide(ini,hRho);
-  if (!res) std::cout << "error in efficiencyScaleCorrection\n";
-  return res;
-}
-
-// ----------------------------------------------
-
-int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- acceptanceCorrection");
-  TString accCorrFName=inpArg.inpMgr->correctionFullFileName("acceptance",inpArg.systMode,0);
-  TH2D* hAcc=NULL;
-  const int load_debug_file=0;
-  if ( ! load_debug_file ) {
-    hAcc=LoadHisto2D("hAcceptance",accCorrFName,"",1);
-  }
-  else {
-    accCorrFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/acceptance_constants_debug1D.root";
-    hAcc=LoadMatrixFields(accCorrFName,1,"acceptanceMatrix","acceptanceErrMatrix",1);
-}
-  //std::cout << "accCorrFName=<" << accCorrFName << ">\n";
-
-  int res=(hAcc!=NULL) ? 1:0;
-  if (res) res=fin.divide(ini,hAcc);
-  if (!res) std::cout << "error in acceptanceCorrection\n";
-  return res;
-}
-
-
-// ----------------------------------------------
-// Adding systematic errors
-// ----------------------------------------------
-
-int addSystError_DetResUnf_unfold(const InputArgs_t &ia, HistoPair2D_t &hp, HistoPair2D_t *resHP) {
-  /*
-  HERE(" --- addSystError_DetResUnf_unfold");
-  if (resHP==NULL) resHP=&hp; else resHP->assign(hp);
-  TString systErrDir= inpArg.inpMgr->systErrDir(inpArg.systMode,0);
-  TString fnameTag= DYTools::analysisTag;
-  if (1) {
-    systErrDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/systematics/DY_m10+pr+a05+o03+pr_4839pb/";
-  }
-  */
-  return 1;
-}
-
-// ----------------------------------------------
-
-int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, HistoPair2D_t *resHP) {
-  HERE(" --- addSystError_DetResUnf_escale");
-  if (resHP==NULL) resHP=&hp; else resHP->assign(hp);
-  int res=(resHP==NULL) ? 0:1;
-  //TString systErrDir= inpArg.inpMgr->systErrDir(inpArg.systMode,0);
-  //TString fnameTag= DYTools::analysisTag;
-  TString fname;//=inpArg.inpMgr->systematicsFullFileName("escale",inpArg.systMode,0);
-  if (1) {
-    //systErrDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/systematics/DY_m10+pr+a05+o03+pr_4839pb/";
-    fname=TString("/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/systematics/DY_m10+pr+a05+o03+pr_4839pb/escale_systematics1D_tmp.root");
-  }
-  TH2D *escaleSyst=NULL;
-  if (res) { 
-    escaleSyst=LoadMatrixFields(fname,1,"","escaleSystError",1);
-    res=(escaleSyst==NULL) ? 0:1;
-  }
-  if (res) res=resHP->addSystErrPercent(escaleSyst);
-  if (escaleSyst) delete escaleSyst;
-  if (!res) std::cout << "error in addSystError_DetResUnf_escale\n";
-  return res;
-}
-
-
-// ----------------------------------------------
-// ----------------------------------------------
-
-int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &extraTag) {
-  std::cout << "would save result with extraTag=<" << extraTag << ">\n";
-  hp.print();
-  return 1;
-}
-
+*/
 
 // ----------------------------------------------
 // ----------------------------------------------
