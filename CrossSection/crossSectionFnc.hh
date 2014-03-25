@@ -12,49 +12,77 @@
 #include "../Include/HistoPair.hh"
 #include "../Include/UnfoldingMatrix.h"
 
+extern TString codeDebugFilePath;
 
 
 // ----------------------------------------------
 // ----------------------------------------------
 
 struct InputArgs_t {
-  InputFileMgr_t *inpMgr;
-  DYTools::TSystematicsStudy_t systMode;
-  TString resNameBase;
-  int needsDETUnfolding;
+  InputFileMgr_t *fInpMgr;
+  DYTools::TSystematicsStudy_t fSystMode;
+  TString fResNameBase;
+  int fNeedsDETUnfolding;
+  int fAllNormErrorIsSyst;
 public:
   InputArgs_t(InputFileMgr_t *set_InpMgr, DYTools::TSystematicsStudy_t set_systMode,
 	      TString set_resNameBase="",
-	      int set_needsDetUnfolding=1) :
-    inpMgr(set_InpMgr), systMode(set_systMode),
-    resNameBase(set_resNameBase), 
-    needsDETUnfolding(set_needsDetUnfolding)
+	      int set_needsDetUnfolding=1,
+	      int set_allNormErrorIsSyst=0) :
+    fInpMgr(set_InpMgr), 
+    fSystMode(set_systMode),
+    fResNameBase(set_resNameBase), 
+    fNeedsDETUnfolding(set_needsDetUnfolding),
+    fAllNormErrorIsSyst(set_allNormErrorIsSyst)
   {}
 
   InputArgs_t(const InputArgs_t &ia, 
-	      TString set_resNameBase, int set_needsDetUnfolding=-1) :
-    inpMgr(ia.inpMgr), systMode(ia.systMode),
-    resNameBase(set_resNameBase),
-    needsDETUnfolding(ia.needsDETUnfolding) 
+	      TString set_resNameBase, int set_needsDetUnfolding=-1,
+	      int set_allNormErrorIsSyst=-1) :
+    fInpMgr(ia.fInpMgr), 
+    fSystMode(ia.fSystMode),
+    fResNameBase(set_resNameBase),
+    fNeedsDETUnfolding(ia.fNeedsDETUnfolding),
+    fAllNormErrorIsSyst(ia.fAllNormErrorIsSyst)
   {
-    if (set_needsDetUnfolding!=-1) needsDETUnfolding=set_needsDetUnfolding;
+    if (set_needsDetUnfolding!=-1) fNeedsDETUnfolding=set_needsDetUnfolding;
+    if (set_allNormErrorIsSyst!=-1) fAllNormErrorIsSyst=set_allNormErrorIsSyst;
   }
-    
+  
+  const InputFileMgr_t* inpMgr() const { return fInpMgr; }
+  DYTools::TSystematicsStudy_t systMode() const { return fSystMode; }
+  TString resNameBase() const { return fResNameBase; }
+
+  void needsDetUnfolding(int yes) { fNeedsDETUnfolding=yes; }
+  int  needsDetUnfolding() const { return fNeedsDETUnfolding; }
+  void allNormErrorIsSyst(int yes) { fAllNormErrorIsSyst=yes; }
+  int  allNormErrorIsSyst() const { return fAllNormErrorIsSyst; }
+
 };
 
 // ----------------------------------------------
 // ----------------------------------------------
 
 struct CSResults_t {
-  double ZXSec,ZXSecErr,ZXSecSystErr;
+  double fZXSec,fZXSecErr,fZXSecSystErr;
 public:
-  CSResults_t() : ZXSec(0.), ZXSecErr(0.), ZXSecSystErr(0.) {}
+  CSResults_t() : fZXSec(0.), fZXSecErr(0.), fZXSecSystErr(0.) {}
   
   CSResults_t(const CSResults_t &r) :
-    ZXSec(r.ZXSec), ZXSecErr(r.ZXSecErr), ZXSecSystErr(r.ZXSecSystErr) {}
+    fZXSec(r.fZXSec), fZXSecErr(r.fZXSecErr), fZXSecSystErr(r.fZXSecSystErr) {}
 
-  void assignCS(double xs, double xsErr, double xsSystErr) {
-    ZXSec=xs; ZXSecErr=xsErr; ZXSecSystErr=xsSystErr;
+  double xs() const { return fZXSec; }
+  double xsErr() const { return fZXSecErr; }
+  double xsErrSyst() const { return fZXSecSystErr; }
+  double xsSystErr() const { return fZXSecSystErr; }
+
+  void assignCS(double set_xs, double set_xsErr, double set_xsSystErr) {
+    fZXSec=set_xs; fZXSecErr=set_xsErr; fZXSecSystErr=set_xsSystErr;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, const CSResults_t &r) {
+    out << "CSResults(" << Form("%7.4lf +- %7.4lf +- %7.4lf",r.fZXSec,r.fZXSecErr,r.fZXSecSystErr) << ")";
+    return out;
   }
 };
 
