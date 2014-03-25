@@ -1,0 +1,395 @@
+#include "../Include/DYTools.hh"
+#include "../CrossSection/crossSectionFnc.hh"
+
+const double ZMass_low = 60.;
+const double ZMass_high=120.;
+
+
+//=== FUNCTION DECLARATIONS ======================================================================================
+
+// ----------------------------------------------
+/*
+int getNormalizationMBinRange(int &firstNormBin, int &lastNormBin) {
+  firstNormBin=-1;
+  lastNormBin=-1;
+
+  for (int i=0; i<=DYTools::nMassBins; i++) {
+    if (DYTools::massBinLimits[i] == ZMass_low ) firstNormBin=i;
+    if (DYTools::massBinLimits[i] == ZMass_high) lastNormBin=i;
+  }
+
+  if(firstNormBin == -1 || lastNormBin == -1){
+    printf("\nERROR: normalization limits are misaligned with mass binning!\n\n");
+    return 0;
+  }
+  printf("\nCross section normalization is to the bins %d - %d from %5.1f to %5.1f GeV\n", 
+	 firstNormBin, lastNormBin, 
+	 DYTools::massBinLimits[firstNormBin], DYTools::massBinLimits[lastNormBin+1]);
+
+  return 1;
+}
+*/
+
+// ----------------------------------------------
+
+//=== Cross-section calculation FUNCTION IMPLEMENTATIONS ======================================================================================
+
+
+// ----------------------------------------------
+
+int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
+  HERE(" -- unfoldDetResolution");
+  // To load the unfolding matrix we have to create variables used
+  // for the construction of
+  // the class instance as well as autoLoadFromFile
+  TString constDir= inpArg.inpMgr->constDir(inpArg.systMode,0);
+  TString fnameTag= DYTools::analysisTag;
+  TMatrixD *UnfM=NULL;
+  int inverse=1;
+  const int load_debug_file=0;
+  if ( load_debug_file ) {
+    constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
+    fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
+  }
+  UnfM=UnfoldingMatrix_t::LoadUnfM("detResponse", constDir, fnameTag, inverse);
+  if (!UnfM) return 0;
+  int res= fin.unfold(*UnfM, ini);
+  if (!res) return 0;
+  delete UnfM;
+  return 1;
+}
+
+// ----------------------------------------------
+
+int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
+  HERE("fsrCorrection_det");
+  // To load the unfolding matrix we have to create variables used
+  // for the construction of
+  // the class instance as well as autoLoadFromFile
+  TString constDir= inpArg.inpMgr->constDir(inpArg.systMode,0);
+  TString fnameTag= DYTools::analysisTag;
+  TMatrixD *UnfM=NULL;
+  int inverse=1;
+  const int load_debug_file=0;
+  if ( load_debug_file ) {
+    constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
+    fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
+  }
+  UnfM=UnfoldingMatrix_t::LoadUnfM("fsrDET_good", constDir, fnameTag, inverse);
+  if (!UnfM) return 0;
+  int res= fin.unfold(*UnfM, ini);
+  if (!res) return 0;
+  delete UnfM;
+  return 1;
+}
+
+// ----------------------------------------------
+
+int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
+  HERE("fsrCorrection_fullSpace");
+  // To load the unfolding matrix we have to create variables used
+  // for the construction of
+  // the class instance as well as autoLoadFromFile
+  TString constDir= inpArg.inpMgr->constDir(inpArg.systMode,0);
+  TString fnameTag= DYTools::analysisTag;
+  TMatrixD *UnfM=NULL;
+  int inverse=1;
+  const int load_debug_file=0;
+  if (load_debug_file) {
+    constDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
+    fnameTag=TString("_withFEWZ") + DYTools::analysisTag;
+  }
+  UnfM=UnfoldingMatrix_t::LoadUnfM("fsrGood", constDir, fnameTag, inverse);
+  if (!UnfM) return 0;
+  int res= fin.unfold(*UnfM, ini);
+  if (!res) return 0;
+  delete UnfM;
+  return 1;
+}
+
+// ----------------------------------------------
+
+int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
+  HERE(" -- efficiencyCorrection");
+  TString effCorrFName=inpArg.inpMgr->correctionFullFileName("efficiency",inpArg.systMode,0);
+  TH2D *hEff=NULL;
+  const int load_debug_file=0;
+  if ( ! load_debug_file ) {
+    hEff=LoadHisto2D("hEfficiency",effCorrFName,"",1);
+  }
+  else {
+    effCorrFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/event_efficiency_constants1D.root";
+    hEff=LoadMatrixFields(effCorrFName,0,"efficiencyArray","efficiencyErrArray",1);
+  }
+  //std::cout << "effCorrFName=<" << effCorrFName << ">\n";
+  int res=(hEff!=NULL) ? 1:0;
+  if (res) res=fin.divide(ini,hEff);
+  if (!res) std::cout << "error in efficiencyCorrection\n";
+  return res;
+}
+// ----------------------------------------------
+
+int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
+  HERE(" -- efficiencyScaleCorrection");
+  TString rhoCorrFName=inpArg.inpMgr->correctionFullFileName("scale_factors",inpArg.systMode,0);
+  TH2D *hRho=NULL;
+  const int load_debug_file=0;
+  if ( ! load_debug_file ) {
+    //hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
+    int checkBinning=0;
+    hRho=LoadMatrixFields(rhoCorrFName,checkBinning,"scaleFactor","scaleFactorErr",1);
+  }
+  else {
+    rhoCorrFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants/DY_m10+pr+a05+o03+pr_4839pb/scale_factors_1D_Full2011_hltEffOld_PU.root";
+    hRho=LoadMatrixFields(rhoCorrFName,1,"scaleFactor","scaleFactorErr",1);
+  }
+  //std::cout << "rhoCorrFName=<" << rhoCorrFName << ">\n";
+  int res=(hRho!=NULL) ? 1:0;
+  if (res) res=fin.divide(ini,hRho);
+  if (!res) std::cout << "error in efficiencyScaleCorrection\n";
+  return res;
+}
+
+// ----------------------------------------------
+
+int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
+  HERE(" -- acceptanceCorrection");
+  TString accCorrFName=inpArg.inpMgr->correctionFullFileName("acceptance",inpArg.systMode,0);
+  TH2D* hAcc=NULL;
+  const int load_debug_file=0;
+  if ( ! load_debug_file ) {
+    hAcc=LoadHisto2D("hAcceptance",accCorrFName,"",1);
+  }
+  else {
+    accCorrFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/acceptance_constants_debug1D.root";
+    hAcc=LoadMatrixFields(accCorrFName,1,"acceptanceMatrix","acceptanceErrMatrix",1);
+}
+  //std::cout << "accCorrFName=<" << accCorrFName << ">\n";
+
+  int res=(hAcc!=NULL) ? 1:0;
+  if (res) res=fin.divide(ini,hAcc);
+  if (!res) std::cout << "error in acceptanceCorrection\n";
+  return res;
+}
+
+
+// ----------------------------------------------
+// Adding systematic errors
+// ----------------------------------------------
+
+int addSystError_DetResUnf_unfold(const InputArgs_t &ia, HistoPair2D_t &hp, HistoPair2D_t *resHP) {
+  /*
+  HERE(" --- addSystError_DetResUnf_unfold");
+  if (resHP==NULL) resHP=&hp; else resHP->assign(hp);
+  TString systErrDir= inpArg.inpMgr->systErrDir(inpArg.systMode,0);
+  TString fnameTag= DYTools::analysisTag;
+  if (1) {
+    systErrDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/systematics/DY_m10+pr+a05+o03+pr_4839pb/";
+  }
+  */
+  return 1;
+}
+
+// ----------------------------------------------
+
+int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, HistoPair2D_t *resHP) {
+  HERE(" --- addSystError_DetResUnf_escale");
+  if (resHP==NULL) resHP=&hp; else resHP->assign(hp);
+  int res=(resHP==NULL) ? 0:1;
+  //TString systErrDir= inpArg.inpMgr->systErrDir(inpArg.systMode,0);
+  //TString fnameTag= DYTools::analysisTag;
+  TString fname;//=inpArg.inpMgr->systematicsFullFileName("escale",inpArg.systMode,0);
+  if (1) {
+    //systErrDir="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/systematics/DY_m10+pr+a05+o03+pr_4839pb/";
+    fname=TString("/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/systematics/DY_m10+pr+a05+o03+pr_4839pb/escale_systematics1D_tmp.root");
+  }
+  TH2D *escaleSyst=NULL;
+  if (res) { 
+    escaleSyst=LoadMatrixFields(fname,1,"","escaleSystError",1);
+    res=(escaleSyst==NULL) ? 0:1;
+  }
+  if (res) res=resHP->addSystErrPercent(escaleSyst);
+  if (escaleSyst) delete escaleSyst;
+  if (!res) std::cout << "error in addSystError_DetResUnf_escale\n";
+  return res;
+}
+
+
+// ----------------------------------------------
+// ----------------------------------------------
+
+int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &extraTag) {
+  std::cout << "would save result with extraTag=<" << extraTag << ">\n";
+  hp.print();
+  return 1;
+}
+
+
+// ----------------------------------------------
+// ----------------------------------------------
+//=== MAIN MACRO =================================================================================================
+
+// cross section calculation
+int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini, 
+			    DYTools::TCrossSectionKind_t csKind,
+			    HistoPair2D_t &hp_fin) {
+
+  {
+    using namespace DYTools;
+    int debugPrint=1;
+    if (!checkCSKind(csKind,debugPrint,
+		     4,
+		     _cs_preFsr, _cs_preFsrDet,
+		     _cs_postFsr,_cs_postFsrDet)) {
+      std::cout << "in calculateCSdistribution\n";
+      return 0;
+    }
+  }
+
+  //--------------------------------------------------------------------------------------------------------------
+  // Main analysis code 
+  //============================================================================================================== 
+
+  int res=1;
+
+  TString hpInpName= ia.resNameBase + TString("_inp");
+  TString hpOutName= ia.resNameBase + TString("_out");
+  HistoPair2D_t hpInp(hpInpName,hp_ini);
+  HistoPair2D_t hpOut(hpOutName);
+
+  HistoPair2D_t hpUnfoldedYield(ia.resNameBase + TString("unfYield"));
+  HistoPair2D_t hpEffCorrYield(ia.resNameBase + TString("effCorrYield"));
+  HistoPair2D_t hpEffRhoCorrYield(ia.resNameBase + TString("effRhoCorrYield"));
+
+  if (ia.needsDETUnfolding) {
+    // unfolding correction
+    if (res) res=unfoldDetResolution(ia, hpInp, hpUnfoldedYield);
+    //if (res) res=addSystError_DetResUnf_unfold(ia, hpUnfoldedYield);
+    //if (res) res=addSystError_DetResUnf_escale(ia, hpUnfoldedYield);
+    if (res) res=saveResult(ia,hpUnfoldedYield,ia.resNameBase + TString("unf"));
+  }
+  else {
+    res=hpUnfoldedYield.assign(hpInp);
+  }
+
+  // efficiency correction
+  if (res) res=efficiencyCorrection(ia, hpUnfoldedYield,hpEffCorrYield);
+  if (res) res=saveResult(ia,hpEffCorrYield,
+			  ia.resNameBase + TString("eff"));
+
+  // efficiency scale correction
+  if (res) res=efficiencyScaleCorrection(ia, hpEffCorrYield,hpEffRhoCorrYield);
+  if (res) res=saveResult(ia,hpEffRhoCorrYield,
+			  ia.resNameBase + TString("effRho"));
+
+
+  // post-FSR in detector acceptance
+  if (csKind==DYTools::_cs_postFsrDet) {
+    if (res) res=hp_fin.assign(hpEffRhoCorrYield);
+    if (!res) {
+      std::cout << "failed to produce " << CrossSectionKindName(csKind) << "\n";
+    }
+    return res;
+  }
+
+  // pre-FSR in acceptance result
+  if (csKind==DYTools::_cs_preFsrDet) {
+    HistoPair2D_t hpPreFsrDet(ia.resNameBase + TString("hpPreFsrDet"));
+    if (res) res=fsrCorrection_det(ia, hpEffRhoCorrYield, hpPreFsrDet);
+    if (res) res=saveResult(ia,hpPreFsrDet,
+			    ia.resNameBase + TString("preFsrDet"));
+    if (res) res=hp_fin.assign(hpPreFsrDet);
+    if (!res) {
+      std::cout << "failed to produce " << CrossSectionKindName(csKind) << "\n";
+    }
+    return res;
+  }
+    
+  // full space post-FSR result
+  HistoPair2D_t hpPostFsrFullSp(ia.resNameBase + TString("hpPostFsrFullSp"));
+  if (res) res=acceptanceCorrection(ia, hpEffRhoCorrYield, hpPostFsrFullSp);
+  if (res) res=saveResult(ia,hpPostFsrFullSp,
+			  ia.resNameBase + TString("postFsrFullSp"));
+
+  if (csKind==DYTools::_cs_postFsr) {
+    if (res) res=hp_fin.assign(hpPostFsrFullSp);
+    if (!res) {
+      std::cout << "failed to produce " << CrossSectionKindName(csKind) << "\n";
+    }
+    return res;
+  }
+  
+  // pre-FSR in full space result
+  HistoPair2D_t hpPreFsrFullSp(ia.resNameBase + TString("hpPreFsrFullSp"));
+  if (res) res=fsrCorrection_fullSpace(ia, hpPostFsrFullSp, hpPreFsrFullSp);
+  if (res) res=saveResult(ia,hpPreFsrFullSp,
+			  ia.resNameBase + TString("preFsrFullSp"));
+
+  if (csKind==DYTools::_cs_preFsr) {
+    if (res) res=hp_fin.assign(hpPreFsrFullSp);
+    if (!res) {
+      std::cout << "failed to produce " << CrossSectionKindName(csKind) << "\n";
+    }
+    return res;
+  }
+  
+  // all cross-section should be produced before this point
+  std::cout << "CODE ERROR: failed to produce " << CrossSectionKindName(csKind) << "\n";
+  return 0;
+}
+
+// ----------------------------------------------
+// ----------------------------------------------
+
+int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini, 
+		DYTools::TCrossSectionKind_t csKind,
+		HistoPair2D_t &hp_fin, CSResults_t &result) 
+{
+  // initial test
+  {
+    using namespace DYTools;
+    int debugPrint=1;
+    if (!checkCSKind(csKind,debugPrint,
+		     8,
+		     _cs_preFsr, _cs_preFsrDet,
+		     _cs_postFsr,_cs_postFsrDet,
+		     _cs_preFsrNorm, _cs_preFsrDetNorm,
+		     _cs_postFsrNorm,_cs_postFsrDetNorm
+		     )) {
+      std::cout << "in calculateCSdistribution\n";
+      return 0;
+    }
+  }
+
+  // do the calculation
+
+  DYTools::TCrossSectionKind_t csAbsKind=DYTools::getAbsCSKind(csKind);
+  int res=calculateCSdistribution(ia,hp_ini,csAbsKind,hp_fin);
+  if (!res) {
+    std::cout << "calculateCS could not obtain the distribution\n";
+    return 0;
+  }
+
+  //int imLow=-1, imHigh=-1;
+  //res= getNormalizationMBinRange(imLow,imHigh);
+  //if (!res) { std::cout << "in calculateCS\n"; return 0; }
+
+  double Zcs=0., ZcsErr=0.;
+  Zcs = hp_fin.ZpeakCount(&ZcsErr);
+  double ZcsSystErr= hp_fin.ZpeakCountSystErr();
+  
+  result.assignCS(Zcs,ZcsErr,ZcsSystErr);
+
+  if (DYTools::isNormalizedCS(csKind)) {
+    if (!hp_fin.divide(Zcs,ZcsErr,ZcsSystErr)) {
+      std::cout << "in calculateCS\n";
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+// ----------------------------------------------
+// ----------------------------------------------
+
