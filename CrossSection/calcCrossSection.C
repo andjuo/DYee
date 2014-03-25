@@ -76,13 +76,14 @@ int calcCrossSection(TString conf,
   if (res) {
     const int loadNormalSelection=1;
     TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode,loadNormalSelection);
-    const int load_debug_file=0;
+    const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
     if ( ! load_debug_file ) {
       std::cout << "fnameBgSubtracted=<" << fnameBgSubtracted << ">\n";
       res=hpSignalYield.Load(fnameBgSubtracted,1);
     }
     else {
-      TString tmpFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/yields/DY_7TeV_test/DY_m10+pr+a05+o03+pr_4839pb/yields_bg-subtracted1D.root";
+      TString tmpFName=codeDebugFilePath + TString(Form("yields_bg-subtracted%dD.root",DYTools::study2D+1));
+      tmpFName.ReplaceAll("constants","yields");
       std::cout << "debug fnameBgSubtracted=<" << tmpFName << ">\n";
       TString field="YieldsSignal";
       TString fieldErr="YieldsSignalErr";
@@ -101,7 +102,8 @@ int calcCrossSection(TString conf,
   if (res) res=saveResult(inpArgs,hpUnfoldedYield,"unf");
 
 
-  inpArgsNET.needsDETUnfolding=0;
+  inpArgsNET.needsDetUnfolding(0);
+  //inpArgsNET.allNormErrorIsSyst(1);
   if (res) res=calculateCS(inpArgsNET,hpUnfoldedYield,csKind,hpCS,csResult);
 
   gBenchmark->Show("calcCrossSection");
