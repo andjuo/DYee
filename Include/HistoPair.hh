@@ -54,6 +54,14 @@ public:
 
   TString GetName() const { return fHisto->GetName(); }
 
+
+  // ----------------
+
+  void swapPtrs(HistoPair2D_t &hp) {
+    TH2D* htmp=fHisto;  fHisto=hp.fHisto;  hp.fHisto=htmp;
+    htmp=fHistoSystErr; fHistoSystErr=hp.fHistoSystErr; hp.fHistoSystErr=htmp;
+  }
+
   // ----------------
 
   int changeName(TString newName, TString newTitle="") {
@@ -300,7 +308,42 @@ public:
 
   // ----------------
 
-  double ZpeakCount(double *err=NULL) { return ::ZpeakCount(fHisto,err); }
+  // if r=a/b,  (dr)^2/r^2 = (da)^2/a^2 + (db)^2/b^2
+  // if (dr)^2=(dr)_stat^2 + (dr)_syst^2
+  // and (dr)_stat= (da)_stat/b,
+  // then (dr)_syst^2 = (da)_syst^2/b^2 + (r/b)^2 (db)^2
+
+  int divide(double norm, double normErr, double normSystErr) {
+    if (norm==double(0)) {
+      return reportError("divide(norm,normErr,normSystErr): norm=0");
+    }
+    fHisto->Scale(1./norm);
+    fHistoSystErr->Scale(1./norm);
+    double eSqr=normErr*normErr + normSystErr*normSystErr;
+    if (eSqr!=double(0)) {
+      // add the extra systematic error
+      eSqr/=(norm*norm);
+      for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	  double val = fHisto->GetBinContent(ibin,jbin);
+	  double base= fHistoSystErr->GetBinError(ibin,jbin);
+	  double nErrSqr=base*base + val*val*eSqr;
+	  fHistoSystErr->SetBinError(ibin,jbin, sqrt(nErrSqr));
+	}
+      }
+    }
+    return 1;
+  }
+
+  // ----------------
+
+  double ZpeakCount(double *err=NULL) const { return ::ZpeakCount(fHisto,err); }
+
+  double ZpeakCountSystErr() const { 
+    double systErr=0.;
+    ::ZpeakCount(fHistoSystErr,&systErr);
+    return systErr;
+  }
 
   // ----------------
 
