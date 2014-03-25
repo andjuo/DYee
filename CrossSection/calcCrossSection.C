@@ -49,7 +49,7 @@ int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &ex
 
 //=== MAIN MACRO =================================================================================================
 
-int calcCrossSection(const TString conf,
+int calcCrossSection(TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) {
 
@@ -63,18 +63,30 @@ int calcCrossSection(const TString conf,
     }
   }
 
-  TString extraTag; // empty
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
 
+  if (conf==TString("default")) {
+    conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
+  }
+
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
 
   // Construct eventSelector, update mgr and plot directory
+  TString extraTag="R9"; // empty
+  TString plotExtraTag;
+
+  InputFileMgr_t inpMgrNoExtraTag(inpMgr);
+  EventSelector_t evtSelectorNoExtraTag(inpMgrNoExtraTag,runMode,systMode,
+					"",plotExtraTag,
+					EventSelector::_selectDefault);
+
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag,extraTag,EventSelector::_selectDefault);
+			      extraTag,plotExtraTag,
+			      EventSelector::_selectDefault);
 
   // Prepare output directory
   inpMgr.crossSectionDir(systMode,1);
@@ -82,6 +94,10 @@ int calcCrossSection(const TString conf,
   InputArgs_t inpArgs;
   inpArgs.inpMgr = &inpMgr;
   inpArgs.systMode=systMode;
+
+  InputArgs_t inpArgsNET;
+  inpArgsNET.inpMgr = &inpMgrNoExtraTag;
+  inpArgsNET.systMode=systMode;
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -116,18 +132,18 @@ int calcCrossSection(const TString conf,
   // unfolding correction
   HistoPair2D_t hpUnfoldedYield("unfYield");
   if (res) res=unfoldDetResolution(inpArgs, hpSignalYield, hpUnfoldedYield);
-  if (res) res=addSystError_DetResUnf_unfold(inpArgs, hpUnfoldedYield);
-  if (res) res=addSystError_DetResUnf_escale(inpArgs, hpUnfoldedYield);
+  //if (res) res=addSystError_DetResUnf_unfold(inpArgs, hpUnfoldedYield);
+  //if (res) res=addSystError_DetResUnf_escale(inpArgs, hpUnfoldedYield);
   if (res) res=saveResult(inpArgs,hpUnfoldedYield,"unf");
 
   // efficiency correction
   HistoPair2D_t hpEffCorrYield("effCorrYield");
-  if (res) res=efficiencyCorrection(inpArgs, hpUnfoldedYield,hpEffCorrYield);
+  if (res) res=efficiencyCorrection(inpArgsNET, hpUnfoldedYield,hpEffCorrYield);
   //if (res) res=saveResult(inpArgs,hpEffCorrYield,"eff");
 
   // efficiency scale correction
   HistoPair2D_t hpEffRhoCorrYield("effRhoCorrYield");
-  if (res) res=efficiencyScaleCorrection(inpArgs, hpEffCorrYield,hpEffRhoCorrYield);
+  if (res) res=efficiencyScaleCorrection(inpArgsNET, hpEffCorrYield,hpEffRhoCorrYield);
   if (res) res=saveResult(inpArgs,hpEffRhoCorrYield,"effRho");
 
   // rename the current result
@@ -137,12 +153,12 @@ int calcCrossSection(const TString conf,
 
   // full space post-FSR result
   HistoPair2D_t hpPostFsrFullSp("hpPostFsrFullSp");
-  if (res) res=acceptanceCorrection(inpArgs, hpPostFsrDet, hpPostFsrFullSp);
+  if (res) res=acceptanceCorrection(inpArgsNET, hpPostFsrDet, hpPostFsrFullSp);
   if (res) res=saveResult(inpArgs,hpPostFsrFullSp,"postFsrFullSp");
 
   // pre-FSR in full space result
   HistoPair2D_t hpPreFsrFullSp("hpPreFsrFullSp");
-  if (res) res=fsrCorrection_fullSpace(inpArgs, hpPostFsrFullSp, hpPreFsrFullSp);
+  if (res) res=fsrCorrection_fullSpace(inpArgsNET, hpPostFsrFullSp, hpPreFsrFullSp);
   if (res) res=saveResult(inpArgs,hpPreFsrFullSp,"preFsrFullSp");
 
   // pre-FSR in acceptance result
@@ -257,9 +273,11 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   HERE(" -- efficiencyScaleCorrection");
   TString rhoCorrFName=inpArg.inpMgr->correctionFullFileName("scale_factors",inpArg.systMode,0);
   TH2D *hRho=NULL;
-  const int load_debug_file=1;
+  const int load_debug_file=0;
   if ( ! load_debug_file ) {
-    hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
+    //hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
+    int checkBinning=0;
+    hRho=LoadMatrixFields(rhoCorrFName,checkBinning,"scaleFactor","scaleFactorErr",1);
   }
   else {
     rhoCorrFName="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants/DY_m10+pr+a05+o03+pr_4839pb/scale_factors_1D_Full2011_hltEffOld_PU.root";
