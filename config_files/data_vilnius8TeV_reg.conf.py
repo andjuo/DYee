@@ -62,13 +62,18 @@ FEWZ=1
 # Pile-up reweight flag
 PUReweight=1
 
-# User keys
+
+# User keys ---------
 seedMin=1001
 seedMax=1020
 Use7TeVMCWeight=1 # Whether renormalize the 1st sample weight to 1 in MC macros
 IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
+
+# Background type
+DDBkg=1
 #DDBkgVersion=20131231
 DDBkgVersion=20140312  # from Manny through Alexey
+
 
 [TAG_AND_PROBE]
 # Tag and probe options
