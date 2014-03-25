@@ -310,12 +310,54 @@ public:
 
   // if r=a/b,  (dr)^2/r^2 = (da)^2/a^2 + (db)^2/b^2
   // if (dr)^2=(dr)_stat^2 + (dr)_syst^2
-  // and (dr)_stat= (da)_stat/b,
-  // then (dr)_syst^2 = (da)_syst^2/b^2 + (r/b)^2 (db)^2
+  // Statistical and systematical errors are kept separate
+  // see also divide_allErrSyst
 
   int divide(double norm, double normErr, double normSystErr) {
     if (norm==double(0)) {
       return reportError("divide(norm,normErr,normSystErr): norm=0");
+    }
+    fHisto->Scale(1./norm);
+    fHistoSystErr->Scale(1./norm);
+    double eSqrStat=normErr*normErr;
+    double eSqrSyst=normSystErr*normSystErr;
+    if (eSqrStat!=double(0)) {
+      // add the extra systematic error
+      eSqrStat/=(norm*norm);
+      for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	  double val = fHisto->GetBinContent(ibin,jbin);
+	  double baseStat= fHisto->GetBinError(ibin,jbin);
+	  double newErrStatSqr=baseStat*baseStat + val*val*eSqrStat;
+	  fHisto->SetBinError(ibin,jbin, sqrt(newErrStatSqr));
+	}
+      }
+    }
+    if (eSqrSyst!=double(0)) {
+      // add the extra systematic error
+      eSqrSyst/=(norm*norm);
+      for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	  double val = fHisto->GetBinContent(ibin,jbin);
+	  double baseSyst= fHistoSystErr->GetBinError(ibin,jbin);
+	  double newErrSystSqr=baseSyst*baseSyst + val*val*eSqrSyst;
+	  fHistoSystErr->SetBinError(ibin,jbin, sqrt(newErrSystSqr));
+	}
+      }
+    }
+    return 1;
+  }
+
+  // ----------------
+
+  // if r=a/b,  (dr)^2/r^2 = (da)^2/a^2 + (db)^2/b^2
+  // if (dr)^2=(dr)_stat^2 + (dr)_syst^2
+  // and (dr)_stat= (da)_stat/b,
+  // then (dr)_syst^2 = (da)_syst^2/b^2 + (r/b)^2 (db)^2
+
+  int divide_allErrSyst(double norm, double normErr, double normSystErr) {
+    if (norm==double(0)) {
+      return reportError("divide_allErrSyst(norm,normErr,normSystErr): norm=0");
     }
     fHisto->Scale(1./norm);
     fHistoSystErr->Scale(1./norm);
@@ -327,8 +369,8 @@ public:
 	for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
 	  double val = fHisto->GetBinContent(ibin,jbin);
 	  double base= fHistoSystErr->GetBinError(ibin,jbin);
-	  double nErrSqr=base*base + val*val*eSqr;
-	  fHistoSystErr->SetBinError(ibin,jbin, sqrt(nErrSqr));
+	  double newErrSqr=base*base + val*val*eSqr;
+	  fHistoSystErr->SetBinError(ibin,jbin, sqrt(newErrSqr));
 	}
       }
     }
