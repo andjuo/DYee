@@ -546,6 +546,26 @@ namespace DYTools {
 };
 
 // ------------------------------------------------------------------
+
+namespace DYTools {
+  inline 
+  bool checkCSKind(DYTools::TCrossSectionKind_t kind, int debug_print, int nEntries, ...) {
+    if (debug_print) std::cout << "\n\ncheckCSKind: Syst mode = " << CrossSectionKindName(kind) << "\n";
+    bool ok=false;
+    va_list vl;
+    va_start(vl,nEntries);
+    for (int i=0; !ok && (i<nEntries); ++i) {
+      DYTools::TCrossSectionKind_t allowed= DYTools::TCrossSectionKind_t(va_arg(vl,int));
+      if (debug_print) std::cout << " allowed#" << (i+1) << " is " << CrossSectionKindName(allowed) << "\n";
+      ok=(allowed==kind) ? true : false;
+    }
+    va_end(vl);
+    if (debug_print) std::cout << "answer is " << ((ok) ? "true":"false") << "\n";
+    return ok;
+  }
+};
+
+// ------------------------------------------------------------------
 /*
 namespace DYTools {
   inline 
