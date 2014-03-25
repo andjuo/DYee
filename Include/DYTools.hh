@@ -837,6 +837,67 @@ namespace DYTools {
 		 _cs_postFsr, _cs_postFsrNorm, 
 		 _cs_postFsrDet, _cs_postFsrDetNorm } TCrossSectionKind_t;
 
+
+  // ---------------------
+
+  inline
+  TCrossSectionKind_t getAbsCSKind(TCrossSectionKind_t normCS) {
+    TCrossSectionKind_t kind = _cs_None;
+    switch(normCS) {
+    case _cs_preFsr:
+    case _cs_preFsrNorm: kind=_cs_preFsr; break;
+    case _cs_preFsrDet:
+    case _cs_preFsrDetNorm:
+    case _cs_preFsrDetErr:
+    case _cs_preFsrDetNormErr: 
+    case _cs_preFsrDetSystErr:
+    case _cs_preFsrDetNormSystErr: kind=_cs_preFsrDet; break;
+    case _cs_postFsr:
+    case _cs_postFsrNorm: kind=_cs_postFsr; break;
+    case _cs_postFsrDet:
+    case _cs_postFsrDetNorm: kind=_cs_postFsrDet; break;
+    default:
+      std::cout << "unhandled case in getAbsCSKind\n";
+    }
+    return kind;
+  }
+
+  // ---------------------
+
+  inline 
+  int isAbsoluteCS(TCrossSectionKind_t cs) {
+    int yes=0;
+    switch(cs) {
+    case _cs_preFsr:
+    case _cs_preFsrDet:
+    case _cs_postFsr:
+    case _cs_postFsrDet: 
+      yes=1; 
+      break;
+    default: ;
+    }
+    return yes;
+  }
+
+  // ---------------------
+
+  inline 
+  int isNormalizedCS(TCrossSectionKind_t cs) {
+    int yes=0;
+    switch(cs) {
+    case _cs_preFsrNorm:
+    case _cs_preFsrDetNorm:
+    case _cs_postFsrNorm:
+    case _cs_postFsrDetNorm: 
+      yes=1; 
+      break;
+    default: ;
+    }
+    return yes;
+  }
+
+  // ---------------------
+
   // 
   // Triggers vs run numbers
   //
