@@ -726,27 +726,133 @@ int accumulateForRndStudies(TH2D* hSum, const TH2D* hAdd) {
   }
   return 1;
 }
+
 //---------------------------------------------------------------
 
 inline
-int accumulateForRndStudies_finalize(TH2D* hSum, int nexps) {
-  const int unbiasedEstimate=0;
-  if (!hSum || (nexps<2-unbiasedEstimate)) {
+int accumulateForRndStudies_finalize(TH2D* hSum, int nexps, int unbiasedEstimate=1) {
+  //const int unbiasedEstimate=0;
+  if (!hSum || (nexps<1+unbiasedEstimate)) {
     std::cout << "error in accumulateForRndStudies_finalize\n";
     return 0;
   }
   double factor=(unbiasedEstimate) ? double(nexps-1) : double(nexps);
-  hSum->Scale(1/factor);
+  hSum->Scale(1/double(nexps));
   for (int ibin=1; ibin<=hSum->GetNbinsX(); ++ibin) {
     for (int jbin=1; jbin<=hSum->GetNbinsY(); ++jbin) {
       double avg=hSum->GetBinContent(ibin,jbin);
-      double sqrtXY=hSum->GetBinError(ibin,jbin);
-      // mean(xy) - mean(x)mean(y)
-      double varSqr= nexps*sqrtXY*sqrtXY - avg*avg;
+      double sqrtX2=hSum->GetBinError(ibin,jbin);
+      // mean(x^2) - mean(x)^2
+      double varSqr= nexps/factor*(nexps*sqrtX2*sqrtX2 - avg*avg);
       hSum->SetBinError(ibin,jbin, sqrt(varSqr));
     }
   }
   return 1;
+}
+
+//---------------------------------------------------------------
+// Histo_t should be a 2-dimensional object
+
+template<class histo_t>
+inline
+TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
+				   int unbiasedEstimate=1,
+				   histo_t *avgDistr=NULL) {
+  //const int unbiasedEstimate=1;
+  if (rndV.size()<(unsigned int)(1+unbiasedEstimate)) {
+    HERE("deriveCovMFromRndStudies(vec(TH2D*)) vec is empty or has 1 entry");
+    return NULL;
+  }
+  int dim=DYTools::nUnfoldingBins;
+  // container for sum(x)
+  TVectorD VSumX(dim);
+  VSumX.Zero();
+  // container for sum(x y)
+  TMatrixD *MSumXY=new TMatrixD(dim,dim);
+  if (!MSumXY) {
+    HERE("deriveCovMFromRndStudies: failed to create the container");
+    return NULL;
+  }
+  MSumXY->Zero();
+
+  // 1. Accumulate sums
+  // iterate over 1st histo
+  int rMax=rndV[0]->GetNbinsX();
+  int cMax=rndV[0]->GetNbinsY();
+  for (unsigned int i=0; i<rndV.size(); i++) {
+    const histo_t *hi=rndV[i];
+    for (int ibr1=1; ibr1<=rMax; ++ibr1) {
+      for (int ibc1=1; ibc1<=cMax; ++ibc1) {
+	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	double val1=hi->GetBinContent(ibr1,ibc1);
+	VSumX(idxFlat1) += val1;
+      }
+    }
+  }
+  
+  for (unsigned int i=0; i<rndV.size(); i++) {
+    const histo_t *hi=rndV[i];
+
+    for (int ibr1=1; ibr1<=rMax; ++ibr1) {
+      for (int ibc1=1; ibc1<=cMax; ++ibc1) {
+	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	double val1=hi->GetBinContent(ibr1,ibc1);
+
+	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
+	  for (int ibc2=ibc1; ibc2<=cMax; ++ibc2) {
+	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	    double val2=hi->GetBinContent(ibr2,ibc2);
+	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
+	    if (idxFlat1 != idxFlat2) {
+	      // due to the optimization ibr2=ibr1, we have to 
+	      // fill the mirrored term
+	      (*MSumXY)(idxFlat2,idxFlat1) += val1*val2;
+	    }
+	  }
+	}
+      }
+    }
+  }
+
+  // 2. Derive the averages and the covariances
+  double nExps=double(rndV.size());
+  double factor=(unbiasedEstimate) ? (nExps-1) : nExps;
+  double correctionFactor = nExps/factor;
+
+  VSumX    *= (1/nExps);
+  (*MSumXY)*= (1/factor);
+  for (int idxFlat1=0; idxFlat1<dim; ++idxFlat1) {
+    for (int idxFlat2=0; idxFlat2<dim; ++idxFlat2) {
+      (*MSumXY)(idxFlat1,idxFlat2) -= correctionFactor*(VSumX(idxFlat1) * VSumX(idxFlat2));
+    }
+  }
+
+  // 3. If needed fill the average container
+  if (avgDistr) {
+    avgDistr->Reset();
+    for (int ibr=1; ibr<=avgDistr->GetNbinsX(); ++ibr) {
+      for (int ibc=1; ibc<=avgDistr->GetNbinsY(); ++ibc) {
+	int idxFlat= DYTools::findIndexFlat(ibr-1,ibc-1);
+	avgDistr->SetBinContent(ibr,ibc, VSumX(idxFlat));
+	avgDistr->SetBinError  (ibr,ibc, sqrt((*MSumXY)(idxFlat,idxFlat)));
+      }
+    }
+  }
+  return MSumXY;
+}
+
+//---------------------------------------------------------------
+
+template<class histo_t>
+inline
+TMatrixD* deriveCovMFromRndStudies(const std::vector<histo_t*> &rndVinp,
+				   int unbiasedEstimate=1,
+				   histo_t *avgDistr=NULL) {
+  std::vector<const histo_t*> rndV;
+  for (unsigned int i=0; i<rndVinp.size(); ++i) {
+    rndV.push_back((const histo_t*)rndVinp[i]);
+  }
+  return deriveCovMFromRndStudies(rndV,unbiasedEstimate,avgDistr);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
