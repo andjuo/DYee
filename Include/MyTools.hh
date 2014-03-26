@@ -199,7 +199,7 @@ inline bool PosOk(const std::string &s, const T& substr) {
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-int printHisto(std::ostream& out, const TH1D* histo, int exponent=0) {
+int printHisto(std::ostream& out, const TH1D* histo, int exponent=0, int maxLines=-1) {
   if (!histo) {
     out << "printHisto: histo is null\n";
     return 0;
@@ -210,24 +210,28 @@ int printHisto(std::ostream& out, const TH1D* histo, int exponent=0) {
     " %5.2f-%5.2f    %f    %f\n";
 
   out << "values of " << histo->GetName() << "\n";
-  for(int i=1; i<=histo->GetNbinsX(); i++) {
+  int imax=histo->GetNbinsX();
+  int truncated=0;
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  for(int i=1; i<=imax; i++) {
     double x=histo->GetBinLowEdge(i);
     double w=histo->GetBinWidth(i);
     sprintf(buf,format,
 	    x,x+w,histo->GetBinContent(i),histo->GetBinError(i));
     out << buf;
   }
+  if (truncated) out << "... output truncated to " << maxLines << " lines\n";
   return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 
-inline int printHisto(const TH1D* histo, int exponent=0) { return printHisto(std::cout, histo, exponent); }
+inline int printHisto(const TH1D* histo, int exponent=0, int maxLines=-1) { return printHisto(std::cout, histo, exponent, maxLines); }
 
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr, int exponent=0) {
+int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr, int exponent=0, int maxLines=-1) {
   if (!histo || !histoSystErr) {
     out << "printHisto: histo is null\n";
     return 0;
@@ -238,24 +242,28 @@ int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr
     " %5.2f-%5.2f    %f    %f    %f\n";
 
   out << "values of " << histo->GetName() << "\n";
-  for(int i=1; i<=histo->GetNbinsX(); i++) {
+  int imax=histo->GetNbinsX();
+  int truncated=0;
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  for(int i=1; i<=imax; i++) {
     double x=histo->GetBinLowEdge(i);
     double w=histo->GetBinWidth(i);
     sprintf(buf,format,
 	    x,x+w,histo->GetBinContent(i),histo->GetBinError(i),histoSystErr->GetBinError(i));
     out << buf;
   }
+  if (truncated) out << "... output truncated to " << maxLines << " lines\n";
   return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
  
-inline int printHistoErr(const TH1D* histo, const TH1D* histoSystErr, int exponent=0) { return printHistoErr(std::cout, histo, histoSystErr, exponent); }
+inline int printHistoErr(const TH1D* histo, const TH1D* histoSystErr, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent,maxLines); }
 
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr, int exponent=0) {
+int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLines=-1) {
   if (!histo) {
     out << "printHistoErr: histo is null\n";
     return 0;
@@ -272,7 +280,10 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
   }
 
   out << "values of " << histo->GetName() << "\n";
-  for(int i=1; i<=histo->GetNbinsX(); i++) {
+  int imax=histo->GetNbinsX();
+  int truncated=0;
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  for(int i=1; i<=imax; i++) {
     double x=histo->GetBinLowEdge(i);
     double w=histo->GetBinWidth(i);
     for (int j=1; j<=histo->GetNbinsY(); ++j) {
@@ -287,14 +298,17 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
       out << buf;
     }
   }
+  if (truncated) out << "... output truncated to " << maxLines << " lines\n";
   return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
  
-inline int printHistoErr(const TH2D* histo, const TH2D* histoSystErr, int exponent=0) { return printHistoErr(std::cout, histo, histoSystErr, exponent); }
+inline int printHistoErr(const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent, maxLines); }
 
-inline int printHisto(const TH2D* histo, int exponent=0) { return printHistoErr(std::cout, histo, NULL, exponent); }
+inline int printHisto(const TH2D* histo, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, NULL, exponent, maxLines); }
+
+void printHisto(const std::vector<TH2D*> hV, int exponent=0, int maxLines=-1, int maxEntries=-1);
 
 //------------------------------------------------------------------------------------------------------------------------
 

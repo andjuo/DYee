@@ -3,6 +3,21 @@
 
 //--------------------------------------------------
 //--------------------------------------------------
+
+void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int maxEntries) {
+  unsigned int imax=hV.size();
+  if ((maxEntries>0) && (imax>(unsigned int)(maxEntries))) {
+    imax=(unsigned int)(maxEntries);
+  }
+  std::cout << "printing " << imax << " entries of a vector hV[" << hV.size() << "]\n";
+  for (unsigned int i=0; i<imax; ++i) {
+    printHisto(hV[i],exponent,maxLines);
+  }
+  return ;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
 /*
 TH2D* getRelDifferenceVA(const TH2D *baseValue, TString newName, int nVariations, TH2D* hVar1, ...) {
   HERE("entered getRelDifference");
