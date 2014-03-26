@@ -74,8 +74,8 @@ int calcCrossSection(TString conf,
   // load yields 
   int res=1;
   if (res) {
-    const int loadNormalSelection=1;
-    TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode,loadNormalSelection);
+    const int loadNormalRunSelection=1;
+    TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode,loadNormalRunSelection);
     const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
     if ( ! load_debug_file ) {
       std::cout << "fnameBgSubtracted=<" << fnameBgSubtracted << ">\n";
