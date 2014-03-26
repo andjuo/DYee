@@ -373,6 +373,23 @@ public:
     return dir;
   }
 
+  TString crossSectionFullFileName(DYTools::TSystematicsStudy_t systMode,
+				   DYTools::TCrossSectionKind_t csKind,
+				   int createDir=0,
+				   int systematicsFile=0) {
+    if (createDir) TString path= crossSectionDir(systMode,createDir);
+    TString fname=this->nTupleFullFileName(-1,systMode,0);
+    fname.ReplaceAll("/select/","/xsec/");
+    TString target="all_select";
+    TString changeTo=TString("xSec_") + CrossSectionKindName(csKind);
+    if (systematicsFile) changeTo.Append("Syst");
+    Ssiz_t pos=fname.Index(target);
+    if (pos!=-1) fname.Replace(pos,target.Length(),changeTo);
+    //fname.Prepend(path);
+    return fname;
+    
+  }
+
   TString theoryDir(DYTools::TSystematicsStudy_t systMode, int createDir=0) const {
     TString dir=resultBaseDir("theory",systMode);
     if (createDir) CreateDir(dir,1);
