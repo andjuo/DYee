@@ -167,6 +167,7 @@ int calc_escaleSyst(int debug,
     }
     if (res1) res1=saveVec(fout,signalYieldMCbkgV,"mcBkg");
     if (res1) res1=saveVec(fout,signalYieldDDbkgV,"ddBkg");
+    writeBinningArrays(fout);
     fout.Close();
     if (!res1) {
       std::cout << "\n\tError saving file <" << fout.GetName() << ">\n\n";
