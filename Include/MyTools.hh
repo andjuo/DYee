@@ -705,6 +705,50 @@ int setErrorAsContent(TH2D* hDest, const TH2D* hSrc) {
   return 1;
 }
 
+//---------------------------------------------------------------
+
+inline
+int accumulateForRndStudies(TH2D* hSum, const TH2D* hAdd) {
+  if (!hSum || !hAdd ||
+      (hSum->GetNbinsX() != hAdd->GetNbinsX()) ||
+      (hSum->GetNbinsY() != hAdd->GetNbinsY())) {
+    std::cout << "error in accumulateForRndStudies\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=hSum->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hSum->GetNbinsY(); ++jbin) {
+      double v=hSum->GetBinContent(ibin,jbin);
+      double verr=hSum->GetBinError(ibin,jbin);
+      double a=hAdd->GetBinContent(ibin,jbin);
+      hSum->SetBinContent(ibin,jbin,v+a);
+      hSum->SetBinError(ibin,jbin, sqrt(verr*verr + a*a));
+    }
+  }
+  return 1;
+}
+//---------------------------------------------------------------
+
+inline
+int accumulateForRndStudies_finalize(TH2D* hSum, int nexps) {
+  const int unbiasedEstimate=0;
+  if (!hSum || (nexps<2-unbiasedEstimate)) {
+    std::cout << "error in accumulateForRndStudies_finalize\n";
+    return 0;
+  }
+  double factor=(unbiasedEstimate) ? double(nexps-1) : double(nexps);
+  hSum->Scale(1/factor);
+  for (int ibin=1; ibin<=hSum->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hSum->GetNbinsY(); ++jbin) {
+      double avg=hSum->GetBinContent(ibin,jbin);
+      double sqrtXY=hSum->GetBinError(ibin,jbin);
+      // mean(xy) - mean(x)mean(y)
+      double varSqr= nexps*sqrtXY*sqrtXY - avg*avg;
+      hSum->SetBinError(ibin,jbin, sqrt(varSqr));
+    }
+  }
+  return 1;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 //
