@@ -45,7 +45,7 @@ int getNormalizationMBinRange(int &firstNormBin, int &lastNormBin) {
 // ----------------------------------------------
 
 int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- unfoldDetResolution");
+  if (inpArg.silentMode()<2) HERE(" -- unfoldDetResolution");
   // To load the unfolding matrix we have to create variables used
   // for the construction of
   // the class instance as well as autoLoadFromFile
@@ -69,7 +69,7 @@ int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, His
 // ----------------------------------------------
 
 int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE("fsrCorrection_det");
+  if (inpArg.silentMode()<2) HERE("fsrCorrection_det");
   // To load the unfolding matrix we have to create variables used
   // for the construction of
   // the class instance as well as autoLoadFromFile
@@ -93,7 +93,7 @@ int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Histo
 // ----------------------------------------------
 
 int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE("fsrCorrection_fullSpace");
+  if (inpArg.silentMode()<2) HERE("fsrCorrection_fullSpace");
   // To load the unfolding matrix we have to create variables used
   // for the construction of
   // the class instance as well as autoLoadFromFile
@@ -117,7 +117,7 @@ int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini,
 // ----------------------------------------------
 
 int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- efficiencyCorrection");
+  if (inpArg.silentMode()<2) HERE(" -- efficiencyCorrection");
   TString effCorrFName=inpArg.inpMgr()->correctionFullFileName("efficiency",inpArg.systMode(),0);
   TH2D *hEff=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -138,7 +138,7 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
 // ----------------------------------------------
 
 int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- efficiencyScaleCorrection");
+  if (inpArg.silentMode()<2) HERE(" -- efficiencyScaleCorrection");
   TString rhoCorrFName=inpArg.inpMgr()->correctionFullFileName("scale_factors",inpArg.systMode(),0);
   TH2D *hRho=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -162,7 +162,7 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
 // ----------------------------------------------
 
 int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
-  HERE(" -- acceptanceCorrection");
+  if (inpArg.silentMode()<2) HERE(" -- acceptanceCorrection");
   TString accCorrFName=inpArg.inpMgr()->correctionFullFileName("acceptance",inpArg.systMode(),0);
   TH2D* hAcc=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -205,7 +205,7 @@ int addSystError_DetResUnf_unfold(const InputArgs_t &ia, HistoPair2D_t &hp, Hist
 
 int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, HistoPair2D_t *resHP) {
   return 0;
-  HERE(" --- addSystError_DetResUnf_escale");
+  if (ia.silentMode()<2) HERE(" --- addSystError_DetResUnf_escale");
   if (resHP==NULL) resHP=&hp; else resHP->assign(hp);
   int res=(resHP==NULL) ? 0:1;
   //TString systErrDir= inpArg.inpMgr()->systErrDir(inpArg.systMode(),0);
@@ -231,8 +231,10 @@ int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, Hist
 // ----------------------------------------------
 
 int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &extraTag) {
-  std::cout << "would save result with extraTag=<" << extraTag << ">\n";
-  hp.print();
+  if (!ia.silentMode()) {
+    std::cout << "would save result with extraTag=<" << extraTag << ">\n";
+    hp.print();
+  }
   return 1;
 }
 
@@ -248,7 +250,7 @@ int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
 
   {
     using namespace DYTools;
-    int debugPrint=1;
+    int debugPrint=0;
     if (!checkCSKind(csKind,debugPrint,
 		     4,
 		     _cs_preFsr, _cs_preFsrDet,
@@ -360,7 +362,7 @@ int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
   // initial test
   {
     using namespace DYTools;
-    int debugPrint=1;
+    int debugPrint=0;
     if (!checkCSKind(csKind,debugPrint,
 		     8,
 		     _cs_preFsr, _cs_preFsrDet,
@@ -391,7 +393,7 @@ int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
   double ZcsSystErr= hp_fin.ZpeakCountSystErr();
 
   result.assignCS(Zcs,ZcsErr,ZcsSystErr);
-  std::cout << "normalization factors: " << result << "\n";
+  if (ia.silentMode()<2) std::cout << "normalization factors: " << result << "\n";
 
   if (res && DYTools::isNormalizedCS(csKind)) {
     if (ia.allNormErrorIsSyst()) res=hp_fin.divide_allErrSyst(Zcs,ZcsErr,ZcsSystErr);
@@ -405,6 +407,44 @@ int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
   }
 
   return 1;
+}
+
+// ----------------------------------------------
+// ----------------------------------------------
+
+int calcVecOfCSdistributions(const InputArgs_t &ia,
+			     const std::vector<TH2D*> &yieldIniV,
+			     DYTools::TCrossSectionKind_t csKind,
+			     std::vector<TH2D*> &yieldFinV)
+{
+
+  if (yieldIniV.size()==0) {
+    std::cout << "calcVecOfCSdistributions: vector is empty\n";
+    return 0;
+  }
+  yieldFinV.clear();
+  yieldFinV.reserve(yieldIniV.size());
+
+  int res=1;
+  HistoPair2D_t hpIni("hp"), hpFin("hpres");
+  CSResults_t csRes;
+  for (unsigned int i=0; res && (i<yieldIniV.size()); ++i) {
+    TH2D* hSrc=yieldIniV[i];
+    res=hpIni.changeName(TString("hpIni_") + TString(hSrc->GetName()));
+    hpIni.Reset();
+    if (res) res=hpIni.add(hSrc,1);
+    if (res) res=hpFin.changeName(TString("hpCS_") + TString(hSrc->GetName()));
+    if (res) res=calculateCS(ia,hpIni,csKind,hpFin,csRes);
+    TH2D *hRes=NULL;
+    if (res) {
+      hRes=Clone(hpFin.histo(),TString("hCS_") + TString(hSrc->GetName()));
+    }
+    if (res && !hRes) res=0;
+    if (res && hRes) yieldFinV.push_back(hRes);
+  }
+  hpIni.clear(); hpFin.clear();
+  if (!res) std::cout << "error in calcVecOfCSdistributions\n";
+  return res;
 }
 
 // ----------------------------------------------

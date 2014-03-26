@@ -24,6 +24,7 @@ struct InputArgs_t {
   TString fResNameBase;
   int fNeedsDETUnfolding;
   int fAllNormErrorIsSyst;
+  int fSilentMode;
 public:
   InputArgs_t(InputFileMgr_t *set_InpMgr, DYTools::TSystematicsStudy_t set_systMode,
 	      TString set_resNameBase="",
@@ -33,7 +34,8 @@ public:
     fSystMode(set_systMode),
     fResNameBase(set_resNameBase), 
     fNeedsDETUnfolding(set_needsDetUnfolding),
-    fAllNormErrorIsSyst(set_allNormErrorIsSyst)
+    fAllNormErrorIsSyst(set_allNormErrorIsSyst),
+    fSilentMode(0)
   {}
 
   InputArgs_t(const InputArgs_t &ia, 
@@ -43,7 +45,8 @@ public:
     fSystMode(ia.fSystMode),
     fResNameBase(set_resNameBase),
     fNeedsDETUnfolding(ia.fNeedsDETUnfolding),
-    fAllNormErrorIsSyst(ia.fAllNormErrorIsSyst)
+    fAllNormErrorIsSyst(ia.fAllNormErrorIsSyst),
+    fSilentMode(ia.fSilentMode)
   {
     if (set_needsDetUnfolding!=-1) fNeedsDETUnfolding=set_needsDetUnfolding;
     if (set_allNormErrorIsSyst!=-1) fAllNormErrorIsSyst=set_allNormErrorIsSyst;
@@ -57,6 +60,8 @@ public:
   int  needsDetUnfolding() const { return fNeedsDETUnfolding; }
   void allNormErrorIsSyst(int yes) { fAllNormErrorIsSyst=yes; }
   int  allNormErrorIsSyst() const { return fAllNormErrorIsSyst; }
+  void silentMode(int yes) { fSilentMode=yes; }
+  int  silentMode() const { return fSilentMode; }
 
 };
 
@@ -126,5 +131,10 @@ int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
 int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini, 
 		DYTools::TCrossSectionKind_t csKind,
 		HistoPair2D_t &hp_fin, CSResults_t &res);
+
+int calcVecOfCSdistributions(const InputArgs_t &ia,
+			     const std::vector<TH2D*> &yieldIniV,
+			     DYTools::TCrossSectionKind_t csKind,
+			     std::vector<TH2D*> &yieldFinV);
 
 #endif
