@@ -4,7 +4,10 @@
 #include "../Include/DYTools.hh"
 #include "../Include/MyTools.hh"
 #include "../Include/BaseClass.hh"
-
+//
+// Note that randomizeWithinErr requires that <TRandom.h> or similar
+// is included above "HistoPair.hh"
+//
 
 // ---------------------------------------------
 
@@ -112,6 +115,21 @@ public:
     if (fHisto) delete fHisto;
     fHisto=Clone(h,hname,setTitle);
     return (fHisto) ? 1:0;
+  }
+
+  // ----------------
+
+  int randomizeWithinErr(const HistoPair2D_t &hpBase, int systErr) {
+    if (!this->chkSameDim(hpBase.histo())) return reportError("randomizeWithinErr");
+    TH2D *hErr=(!systErr) ? hpBase.fHisto : hpBase.fHistoSystErr;
+    for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	double x= hpBase.fHisto->GetBinContent(ibin,jbin);
+	double e= hErr->GetBinError(ibin,jbin);
+	fHisto->SetBinContent(ibin,jbin, x + e*gRandom->Gaus(0,1.));
+      }
+    }
+    return 1;
   }
 
   // ----------------
@@ -609,6 +627,10 @@ TH2D* getRelDifference(const std::vector<HistoPair2D_t*> &hpV,
 }
 
 // ---------------------------------------------
+// ---------------------------------------------
+
+inline void printHisto(const HistoPair2D_t &hp) { hp.print(); }
+
 // ---------------------------------------------
 
 
