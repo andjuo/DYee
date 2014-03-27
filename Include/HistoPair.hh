@@ -72,6 +72,12 @@ public:
 
   // ----------------
 
+  void swapHistoPtr(TH2D **h2) {
+    TH2D* htmp=fHisto;  fHisto=*h2; (*h2)=htmp;
+  }
+
+  // ----------------
+
   int changeName(TString newName, TString newTitle="") {
     int res=1;
     if (fHisto) { 
@@ -335,7 +341,7 @@ public:
     //if (!h2) std::cout << "h2 is null" << std::endl; else std::cout << "h2 ok" << std::endl;
     //printHisto(h2);
     TH2D *h2tmp=Clone(h2,h2->GetName() + TString("tmp"),"");
-    removeError(h2tmp);
+    removeError(h2tmp); // error will be considered separately
     fHisto->Divide(p.fHisto,h2tmp);
     // evaluate systErr
     for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
