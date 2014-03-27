@@ -798,6 +798,7 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
     for (int ibr1=1; ibr1<=rMax; ++ibr1) {
       for (int ibc1=1; ibc1<=cMax; ++ibc1) {
 	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	if (idxFlat1<0) continue; // outside of considered space
 	double val1=hi->GetBinContent(ibr1,ibc1);
 	VSumX(idxFlat1) += val1;
       }
@@ -810,11 +811,13 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
     for (int ibr1=1; ibr1<=rMax; ++ibr1) {
       for (int ibc1=1; ibc1<=cMax; ++ibc1) {
 	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	if (idxFlat1<0) continue; // outside of considered space
 	double val1=hi->GetBinContent(ibr1,ibc1);
 
 	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
 	  for (int ibc2=ibc1; ibc2<=cMax; ++ibc2) {
 	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	    if (idxFlat2<0) continue; // outside of considered space
 	    double val2=hi->GetBinContent(ibr2,ibc2);
 	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
 	    if (idxFlat1 != idxFlat2) {
@@ -847,6 +850,7 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
     for (int ibr=1; ibr<=avgDistr->GetNbinsX(); ++ibr) {
       for (int ibc=1; ibc<=avgDistr->GetNbinsY(); ++ibc) {
 	int idxFlat= DYTools::findIndexFlat(ibr-1,ibc-1);
+	if (idxFlat<0) continue; // outside of considered space
 	avgDistr->SetBinContent(ibr,ibc, VSumX(idxFlat));
 	avgDistr->SetBinError  (ibr,ibc, sqrt((*MSumXY)(idxFlat,idxFlat)));
       }
