@@ -23,6 +23,10 @@ struct InputArgs_t {
   DYTools::TSystematicsStudy_t fSystMode;
   TString fResNameBase;
   int fNeedsDETUnfolding;
+  int fNeedsEffCorr;
+  int fNeedsEffScaleCorr;
+  int fNeedsAccCorr;
+  int fNeedsFsrCorr;
   int fAllNormErrorIsSyst;
   int fSilentMode;
 public:
@@ -34,6 +38,10 @@ public:
     fSystMode(set_systMode),
     fResNameBase(set_resNameBase), 
     fNeedsDETUnfolding(set_needsDetUnfolding),
+    fNeedsEffCorr(1),
+    fNeedsEffScaleCorr(1),
+    fNeedsAccCorr(1),
+    fNeedsFsrCorr(1),
     fAllNormErrorIsSyst(set_allNormErrorIsSyst),
     fSilentMode(0)
   {}
@@ -45,6 +53,10 @@ public:
     fSystMode(ia.fSystMode),
     fResNameBase(set_resNameBase),
     fNeedsDETUnfolding(ia.fNeedsDETUnfolding),
+    fNeedsEffCorr(ia.fNeedsEffCorr),
+    fNeedsEffScaleCorr(ia.fNeedsEffScaleCorr),
+    fNeedsAccCorr(ia.fNeedsAccCorr),
+    fNeedsFsrCorr(ia.fNeedsFsrCorr),
     fAllNormErrorIsSyst(ia.fAllNormErrorIsSyst),
     fSilentMode(ia.fSilentMode)
   {
@@ -58,8 +70,18 @@ public:
 
   void needsDetUnfolding(int yes) { fNeedsDETUnfolding=yes; }
   int  needsDetUnfolding() const { return fNeedsDETUnfolding; }
+  void needsEffCorr(int yes) { fNeedsEffCorr=yes; }
+  int  needsEffCorr() const { return fNeedsEffCorr; }
+  void needsEffScaleCorr(int yes) { fNeedsEffScaleCorr=yes; }
+  int  needsEffScaleCorr() const { return fNeedsEffScaleCorr; }
+  void needsAccCorr(int yes) { fNeedsAccCorr=yes; }
+  int  needsAccCorr() const { return fNeedsAccCorr; }
+  void needsFsrCorr(int yes) { fNeedsFsrCorr=yes; }
+  int  needsFsrCorr() const { return fNeedsFsrCorr; }
+
   void allNormErrorIsSyst(int yes) { fAllNormErrorIsSyst=yes; }
   int  allNormErrorIsSyst() const { return fAllNormErrorIsSyst; }
+
   void silentMode(int yes) { fSilentMode=yes; }
   int  silentMode() const { return fSilentMode; }
 
