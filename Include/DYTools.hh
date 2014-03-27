@@ -393,7 +393,7 @@ namespace DYTools {
   int findIndexFlat(int massBin, int yBin){
     
     int result = -1;
-    if( massBin < 0 || massBin > nMassBins || yBin < 0 || yBin > nYBins[massBin] )
+    if( massBin < 0 || massBin >= nMassBins || yBin < 0 || yBin >= nYBins[massBin] )
       return result;
     
     result = 0;
