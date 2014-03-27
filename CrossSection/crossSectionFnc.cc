@@ -287,14 +287,24 @@ int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
   }
 
   // efficiency correction
-  if (res) res=efficiencyCorrection(ia, hpUnfoldedYield,hpEffCorrYield);
-  if (res) res=saveResult(ia,hpEffCorrYield,
-			  ia.resNameBase() + TString("eff"));
+  if (ia.needsEffCorr()) {
+    if (res) res=efficiencyCorrection(ia, hpUnfoldedYield,hpEffCorrYield);
+    if (res) res=saveResult(ia,hpEffCorrYield,
+			    ia.resNameBase() + TString("eff"));
+  }
+  else {
+    res=hpEffCorrYield.assign(hpUnfoldedYield);
+  }
 
   // efficiency scale correction
-  if (res) res=efficiencyScaleCorrection(ia, hpEffCorrYield,hpEffRhoCorrYield);
-  if (res) res=saveResult(ia,hpEffRhoCorrYield,
-			  ia.resNameBase() + TString("effRho"));
+  if (ia.needsEffScaleCorr()) {
+    if (res) res=efficiencyScaleCorrection(ia, hpEffCorrYield,hpEffRhoCorrYield);
+    if (res) res=saveResult(ia,hpEffRhoCorrYield,
+			    ia.resNameBase() + TString("effRho"));
+  }
+  else {
+    res=hpEffRhoCorrYield.assign(hpEffCorrYield);
+  }
 
 
   // post-FSR in detector acceptance
@@ -308,22 +318,34 @@ int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
 
   // pre-FSR in acceptance result
   if (csKind==DYTools::_cs_preFsrDet) {
-    HistoPair2D_t hpPreFsrDet(ia.resNameBase() + TString("hpPreFsrDet"));
-    if (res) res=fsrCorrection_det(ia, hpEffRhoCorrYield, hpPreFsrDet);
-    if (res) res=saveResult(ia,hpPreFsrDet,
-			    ia.resNameBase() + TString("preFsrDet"));
-    if (res) res=hp_fin.assign(hpPreFsrDet);
-    if (!res) {
-      std::cout << "failed to produce " << CrossSectionKindName(csKind) << "\n";
+    if (!ia.needsFsrCorr()) {
+      std::cout << "result is preFsrDet, but the FSR correction is switched off in inpArgs\n";
+      res=0;
+    }
+    if (res) {
+      HistoPair2D_t hpPreFsrDet(ia.resNameBase() + TString("hpPreFsrDet"));
+      if (res) res=fsrCorrection_det(ia, hpEffRhoCorrYield, hpPreFsrDet);
+      if (res) res=saveResult(ia,hpPreFsrDet,
+			      ia.resNameBase() + TString("preFsrDet"));
+      if (res) res=hp_fin.assign(hpPreFsrDet);
+      if (!res) {
+	std::cout << "failed to produce " << CrossSectionKindName(csKind) << "\n";
+      }
     }
     return res;
   }
     
   // full space post-FSR result
   HistoPair2D_t hpPostFsrFullSp(ia.resNameBase() + TString("hpPostFsrFullSp"));
-  if (res) res=acceptanceCorrection(ia, hpEffRhoCorrYield, hpPostFsrFullSp);
-  if (res) res=saveResult(ia,hpPostFsrFullSp,
-			  ia.resNameBase() + TString("postFsrFullSp"));
+  if (ia.needsAccCorr()) {
+    if (res) res=acceptanceCorrection(ia, hpEffRhoCorrYield, hpPostFsrFullSp);
+    if (res) res=saveResult(ia,hpPostFsrFullSp,
+			    ia.resNameBase() + TString("postFsrFullSp"));
+  }
+  else {
+    std::cout << "result is in full space (not detector acceptance), but the acceptance correction is switched off in inpArgs\n";
+    res=0;
+  }
 
   if (csKind==DYTools::_cs_postFsr) {
     if (res) res=hp_fin.assign(hpPostFsrFullSp);
@@ -335,9 +357,15 @@ int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
   
   // pre-FSR in full space result
   HistoPair2D_t hpPreFsrFullSp(ia.resNameBase() + TString("hpPreFsrFullSp"));
-  if (res) res=fsrCorrection_fullSpace(ia, hpPostFsrFullSp, hpPreFsrFullSp);
-  if (res) res=saveResult(ia,hpPreFsrFullSp,
-			  ia.resNameBase() + TString("preFsrFullSp"));
+  if (ia.needsFsrCorr()) {
+    if (res) res=fsrCorrection_fullSpace(ia, hpPostFsrFullSp, hpPreFsrFullSp);
+    if (res) res=saveResult(ia,hpPreFsrFullSp,
+			    ia.resNameBase() + TString("preFsrFullSp"));
+  }
+  else {
+    std::cout << "result is preFsr in full space, but the FSR correction is switched off in inpArgs\n";
+    res=0;
+  }
 
   if (csKind==DYTools::_cs_preFsr) {
     if (res) res=hp_fin.assign(hpPreFsrFullSp);
@@ -346,7 +374,7 @@ int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
     }
     return res;
   }
-  
+
   // all cross-section should be produced before this point
   std::cout << "CODE ERROR: failed to produce " << CrossSectionKindName(csKind) << "\n";
   return 0;
