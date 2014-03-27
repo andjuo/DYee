@@ -470,9 +470,14 @@ public:
     }
   }
 
-  int randomizeMigrationMatrix(const UnfoldingMatrix_t &U) {
-    if (!U.sizesMatch(U)) {
+  int randomizeMigrationMatrix(const UnfoldingMatrix_t &U, 
+			       const UnfoldingMatrix_t *Uexact=NULL) {
+    if (!this->sizesMatch(U)) {
       std::cout << "UnfoldingMatrix_t::randomizeMigrationMatrix(U) sizes do not match\n";
+      return 0;
+    }
+    if (Uexact && !this->sizesMatch(*Uexact)) {
+      std::cout << "UnfoldingMatrix_t::randomizeMigrationMatrix(U,*Uexact) sizes do not match\n";
       return 0;
     }
     for (int ir=0; ir<U.DetMigration->GetNrows(); ++ir) {
@@ -484,7 +489,33 @@ public:
     *DetMigrationErr= (*U.DetMigrationErr);
     this->computeResponseMatrix();
     this->invertResponseMatrix();
+    if (Uexact) {
+      // this is a FSR matrix
+      *yieldsIni= (*U.yieldsIni);
+      *yieldsFin= (*U.yieldsFin);
+      this->modifyDETResponseMatrices(*Uexact);
+    }
     this->prepareFIArrays();
+    return 1;
+  }
+
+  // errors should be squared!
+  int setErrorOnMigrationMatrix(const UnfoldingMatrix_t &U1, const UnfoldingMatrix_t &U2) {
+    if (!this->sizesMatch(U1) || !this->sizesMatch(U2)) {
+      std::cout << "UnfoldingMatrix_t::setErrorOnMigrationMatrix sized do not match\n";
+      return 0;
+    }
+    for (int ir=0; ir<this->DetMigration->GetNrows(); ++ir) {
+      for (int ic=0; ic<this->DetMigration->GetNcols(); ++ic) {
+	double ref=(*DetMigration)(ir,ic);
+	double v1 =(*U1.DetMigration)(ir,ic);
+	double v2 =(*U2.DetMigration)(ir,ic);
+	double diff=fabs(v1-ref);
+	if (fabs(v2-ref)>diff) diff=fabs(v2-ref);
+	if (fabs(v1-v2 )>diff) diff=fabs(v1-v2);
+	(*DetMigrationErr)(ir,ic) = diff;
+      }
+    }
     return 1;
   }
 
@@ -704,6 +735,13 @@ public:
        (flattenMatrix(*exact.yieldsFin, finVexact) == 1 ) 
        ) ? 1:0;
     assert(resFlatten);
+
+    if (0) {
+      std::cout << "iniV="; iniV.Print();
+      std::cout << "finV="; finV.Print();
+      std::cout << "iniVexact="; iniVexact.Print();
+      std::cout << "finVexact="; finVexact.Print();
+    }
 
     for(int igen = 0; igen < (*DetMigration).GetNrows(); igen++){
       for(int ireco = 0; ireco < (*DetMigration).GetNcols(); ireco++){
@@ -1131,6 +1169,7 @@ int unfold(TVectorD &finVec, const TMatrixD &U, const TVectorD &iniVec) {
     std::cout << "Dim error in unfold: finVec[" << finVec.GetNoElements() << "], iniVec[" << iniVec.GetNoElements() << "]\n";
     res=0;
   }
+  finVec.Zero();
   if ( (finVec.GetNoElements() != U.GetNrows()) ||
        (finVec.GetNoElements() != U.GetNcols()) ) {
     std::cout << "Dim error in unfold: finVec[" << finVec.GetNoElements() << "], U[" << U.GetNrows() << ", " << U.GetNcols() << "]\n";
@@ -1181,6 +1220,7 @@ int unfold(TMatrixD &finM, const TMatrixD &U, const TMatrixD &iniM) {
     std::cout << "Dim error in unfold(Matrix): nUnfoldingBins=" << DYTools::nUnfoldingBins << ", U[" << U.GetNrows() << ", " << U.GetNcols() << "]\n";
     res=0;
   }
+  finM.Zero();
   if (res) {
     for (int ir=0, ini=0; ir<finM.GetNrows(); ir++) {
       if (finM.GetNcols()<DYTools::nYBins[ir]) {
@@ -1245,6 +1285,7 @@ int unfold(HistoPair2D_t &finHP, const TMatrixD &U, const HistoPair2D_t &iniHP) 
     std::cout << "Dim error in unfold(HistoPair2D): nUnfoldingBins=" << DYTools::nUnfoldingBins << ", U[" << U.GetNrows() << ", " << U.GetNcols() << "]\n";
     res=0;
   }
+  finHP.Reset();
   if (res) {
     for (int ir=0, ini=0; ir<finHP.getNrows(); ir++) {
       if (finHP.getNcols()<DYTools::nYBins[ir]) {
