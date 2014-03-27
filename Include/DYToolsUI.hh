@@ -396,6 +396,7 @@ TString CrossSectionKindName(DYTools::TCrossSectionKind_t kind) {
   TString name;
   switch(kind) {
   case _cs_None: name="none"; break;
+  case _cs_spec: name="specCS"; break;
   case _cs_preFsr: name="preFsr"; break;
   case _cs_preFsrNorm: name="preFsrNorm"; break;
   case _cs_preFsrDet: name="preFsrDet"; break;
@@ -433,6 +434,7 @@ DYTools::TCrossSectionKind_t DetermineCrossSectionKind(const TString &str) {
   else if (str.Contains("postFsrDetNorm")) kind=_cs_postFsrDetNorm;
   else if (str.Contains("postFsrDet")) kind=_cs_postFsrDet;
   else if (str.Contains("postFsr")) kind=_cs_postFsr;
+  else if (str.Contains("specCS")) kind=_cs_spec;
   else if (str.Contains("none") || str.Contains("None")) kind=_cs_None;
   else {
     std::cout << "DetermineCrossSectionKind: cannod identify <" << str << ">\n";
@@ -449,6 +451,7 @@ TString CrossSectionKindLongName(DYTools::TCrossSectionKind_t kind) {
   TString name;
   switch(kind) {
   case _cs_None: name="none"; break;
+  case _cs_spec: name="special cross-section (user-defined)"; break;
   case _cs_preFsr: name="counts in full space"; break;
   case _cs_preFsrNorm: name="normalized cross section"; break;
   case _cs_preFsrDet: name="counts in DET space"; break;
