@@ -43,12 +43,17 @@ int calcCSCov(TString conf, int nExps=100,
 
   int doCalcEffCov=(calc_EffPU + calc_EffFSR + calc_EffRnd) ? 1:0;
 
+  int calc_ESFtot=0; // wrong correlations
+  int calc_ESFtotCheck=0;
+
+  int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
+
   int calc_AccFSR=0;
   int calc_AccRnd=0;
 
   int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
 
-  int calc_FsrFSR=0;
+  int calc_FsrFSR=0; // not ready
   int calc_FsrRnd=1;
 
   int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
@@ -56,6 +61,7 @@ int calcCSCov(TString conf, int nExps=100,
   TMatrixD* covCS_fromYield=NULL;
   TMatrixD* covCS_fromUnf=NULL;
   TMatrixD* covCS_fromEff=NULL;
+  TMatrixD* covCS_fromESF=NULL;
   TMatrixD* covCS_fromAcc=NULL;
   TMatrixD* covCS_fromFSR=NULL;
 
@@ -600,6 +606,202 @@ int calcCSCov(TString conf, int nExps=100,
 
   HERE("after calculating eff cov res=%d",res);
 
+  //////////////////////////////////////////////
+  // Uncertainties in efficiency scale factors
+  //////////////////////////////////////////////
+
+  if (res && doCalcESFCov) {
+    int saveSilentMode=inpArgs.silentMode();
+    inpArgs.silentMode(2);
+    TMatrixD *covESFTot=NULL;
+
+    // "default": eff corrected yield
+    // this is almost postFSR cross section in the acceptance
+    HistoPair2D_t hpUnfEff("hpUnfEff");
+    if (res) {
+      InputArgs_t iaNoRho(inpArgs,"rhoSyst");
+      iaNoRho.needsEffScaleCorr(0);
+      res=calculateCSdistribution(iaNoRho,hpSignalYield,
+				  DYTools::_cs_postFsrDet,
+				  hpUnfEff);
+    }
+
+    printHisto(hpUnfEff,5);
+
+    for (int iSyst=0; res && (iSyst<2); ++iSyst) {
+      int run=0;
+      //DYTools::TSystematicsStudy_t runSystMode=DYTools::NO_SYST;
+      TString csCovName;
+      TString systTag;
+      switch(iSyst) {
+      case 0:
+	run=calc_ESFtot;
+	csCovName="covCS_ESFtot";
+	break;
+      case 1:
+	run=calc_ESFtotCheck;
+	csCovName="covCS_ESFtotCheck";
+	break;
+      default:
+	std::cout << "not ready for eff iSyst=" << iSyst << "\n";
+	return retCodeError;
+      }
+
+      if (!run) continue;
+      std::cout << " - will produce " << csCovName << "\n";
+
+      std::vector<TH2D*> vecRnd;
+
+      if (iSyst==0) {
+	// load the scale factors and their total errors
+	int checkBinning=0;
+	TString rhoCorrFName=inpMgr.correctionFullFileName("scale_factors",DYTools::NO_SYST,0);
+	TH2D* hRho=LoadMatrixFields(rhoCorrFName,checkBinning,"scaleFactor","scaleFactorErr",1);
+	if (!hRho) res=0;
+
+	HistoPair2D_t hpRho("hpRho");
+	if (res) {
+	  hpRho.add(hRho,1.);
+	  delete hRho;
+	}
+	else continue;
+
+	std::cout << "Loaded "; printHisto(hpRho,6);
+
+	int useSystErr=0; // randomize within statistical error
+	if (!createRandomizedVec(hpRho,useSystErr,nExps,TString("hRnd_esf")+systTag,vecRnd)) {
+	  std::cout << "failed to create randomized esemble for iSyst=" << iSyst << "\n";
+	  return retCodeError;
+	}
+	hpRho.clear();
+      }
+      else if (iSyst==1) {
+	// load the randomized vectors
+	std::vector<TString> namesV; namesV.reserve(nExps);
+	for (int iexp=0; res && (iexp<nExps); ++iexp) {
+	  TString histoName=Form("h2RndScaleFactor_%dD_%d",DYTools::study2D+1,iexp);
+	  namesV.push_back(histoName);
+	  TH2D* h2=createBaseH2(histoName,histoName,1); // absRapidity
+	  if (!h2) res=0;
+	  vecRnd.push_back(h2);
+	}
+	if (res) {
+	  TString fname=inpMgr.correctionSystFullFileName("scale_factors",DYTools::NO_SYST,0);
+	  TFile inpF(fname,"read");
+	  if (!inpF.IsOpen()) {
+	    std::cout << "failed to open a file <" << inpF.GetName() << ">\n";
+	    res=0;
+	  }
+	  if (res) res=loadVec(inpF,vecRnd,"rndSF");
+	  inpF.Close();
+	}
+	if (vecRnd.size()<21) TCanvas *cx=plotProfiles("cx",vecRnd,namesV);
+	//cx->
+      }
+      else {
+	std::cout << "not ready for the ESF systematics iSyst=" << iSyst << "\n";
+	return retCodeError;
+      }
+      if (!res) continue;
+
+      if (nExps==2) printHisto(vecRnd,0,5,2);
+
+      int unbiasedEstimate=1;
+      TH2D* avgDistr=createBaseH2(Form("hESFAvgDistr_%d",iSyst));
+      TH2D* csAvgDistr=createBaseH2(Form("hCSEsfAvgDistr_%d",iSyst));
+      TMatrixD* cov= deriveCovMFromRndStudies(vecRnd,unbiasedEstimate,avgDistr);
+      TMatrixD* csCov=NULL;
+
+      if (cov) {
+	if (!covESFTot) covESFTot=new TMatrixD(*cov);
+	else (*covESFTot) += (*cov);
+      }
+      if (!cov) res=0;
+
+      // The randomized efficiency scale values need to be applied
+      // on the unfolded vector
+      if (res) {
+	HistoPair2D_t hpUnfEffSFYield("hpUnfEffSFYield");
+	for (unsigned int i=0; res && (i<vecRnd.size()); ++i) {
+	  TH2D *rndESF=vecRnd[i];
+	  removeError(rndESF);
+	  if (res) {
+	    res=hpUnfEffSFYield.divide(hpUnfEff,rndESF);
+	    //printHisto(hpUnfEffSFYield,6);
+	  }
+	  if (res) {
+	    // swap pointers to histograms, since
+	    // vecRnd has to contain ESF-corrected yields
+	    hpUnfEffSFYield.swapHistoPtr(&vecRnd[i]);
+	    // By default, the 1st entry will have name hpUnfEffSFYield,
+	    // which is not correct.
+	    // To avoid confusion, rename the histo
+	    TString newName=Form("h2PostFsrYield_%d",i);
+	    newName+=systTag;
+	    vecRnd[i]->SetName(newName);
+	    vecRnd[i]->SetTitle(newName);
+	  }
+	}
+	hpUnfEffSFYield.clear();
+      }
+
+      //if (nExps==2) printHisto(vecRnd,0,5,2);
+
+      if (res) {
+	std::vector<TH2D*> csRndV;
+	InputArgs_t inpArgsRho(inpArgs,"rhoSyst");
+	inpArgsRho.needsDetUnfolding(0);
+	inpArgsRho.needsEffCorr(0);
+	inpArgsRho.needsEffScaleCorr(0);
+	res=calcVecOfCSdistributions(inpArgsRho,vecRnd,csKind,csRndV);
+	csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
+	if (!csCov) res=0;
+
+	if (nExps==2) printHisto(csRndV,0,5,2);
+
+	if (csCov) {
+	  if (!covCS_fromESF) covCS_fromESF=new TMatrixD(*csCov);
+	  else (*covCS_fromESF) += (*csCov);
+
+	  outFile.cd();
+	  csCov->Write(Form("covESF_iSyst_%d",iSyst));
+	}
+
+	//printHisto(csRndV,0,5,2);
+
+	ClearVec(csRndV);
+      }
+      ClearVec(vecRnd);
+
+      if (res) {
+	outFile.cd();
+	TString covName=csCovName;
+	covName.ReplaceAll("covCS","cov");
+	if (cov  ) cov->Write(covName);
+	if (csCov) csCov->Write(csCovName);
+      }
+
+      // release memory
+      if (csCov) delete csCov;
+      if (cov  ) delete cov;
+      if (csAvgDistr) delete csAvgDistr;
+      if (avgDistr  ) delete avgDistr;
+    }
+
+    if (res) {
+      outFile.cd();
+      if (covESFTot) covESFTot->Write("covESFTot");
+    }
+
+    // clean-up
+    hpUnfEff.clear();
+    if (covESFTot) delete covESFTot;
+
+    inpArgs.silentMode(saveSilentMode);
+  }
+
+  HERE("after calculating ESF cov res=%d",res);
+
   ////////////////////////////////
   // Uncertainties in MC acceptance
   ////////////////////////////////
@@ -942,6 +1144,7 @@ int calcCSCov(TString conf, int nExps=100,
     if (covCS_fromYield) covCS_fromYield->Write("covCStot_fromYield");
     if (covCS_fromUnf  ) covCS_fromUnf  ->Write("covCStot_fromUnf");
     if (covCS_fromEff  ) covCS_fromEff  ->Write("covCStot_fromEff");
+    if (covCS_fromESF  ) covCS_fromESF  ->Write("covCStot_fromESF");
     if (covCS_fromAcc  ) covCS_fromAcc  ->Write("covCStot_fromAcc");
     if (covCS_fromFSR  ) covCS_fromFSR  ->Write("covCStot_fromFSR");
   }
