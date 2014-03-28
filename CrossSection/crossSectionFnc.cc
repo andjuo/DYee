@@ -412,6 +412,10 @@ int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
     return 0;
   }
 
+  if (DYTools::study2D) {
+    hp_fin.eliminateNaNs();
+  }
+
   //int imLow=-1, imHigh=-1;
   //res= getNormalizationMBinRange(imLow,imHigh);
   //if (!res) { std::cout << "in calculateCS\n"; return 0; }
