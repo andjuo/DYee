@@ -16,6 +16,7 @@
 #include <stdlib.h> // atoi, atof
 #include "../Include/CPlot.hh"
 #include "../Include/DYTools.hh"
+#include "../Include/colorPalettes.hh"
 
 //----------------------------------------
 
@@ -815,6 +816,20 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
 	double val1=hi->GetBinContent(ibr1,ibc1);
 
 	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
+	  for (int ibc2=(ibr1==ibr2) ? ibc1 : 1; ibc2<=cMax; ++ibc2) {
+	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	    if (idxFlat2<0) continue; // outside of considered space
+	    double val2=hi->GetBinContent(ibr2,ibc2);
+	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
+	    if (idxFlat1 != idxFlat2) {
+	      // due to the optimization ibr2=ibr1, we have to
+	      // fill the mirrored term
+	      (*MSumXY)(idxFlat2,idxFlat1) += val1*val2;
+	    }
+	  }
+	}
+	/*
+	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
 	  for (int ibc2=ibc1; ibc2<=cMax; ++ibc2) {
 	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
 	    if (idxFlat2<0) continue; // outside of considered space
@@ -827,6 +842,7 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
 	    }
 	  }
 	}
+	*/
       }
     }
   }
@@ -875,7 +891,18 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<histo_t*> &rndVinp,
 
 //---------------------------------------------------------------
 
+// Calculate correlation matrix
 TMatrixD* corrFromCov(const TMatrixD &cov);
+
+// Calculate partial correlation matrix
+// assuming that cov is a part of totCov
+TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov);
+
+
+TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr,
+		    const char *histoName, const char *histoTitle,
+		    TColorRange_t centerRange, int massBins=0,
+		    double maxValUser=0.);
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -1283,7 +1310,7 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
 inline
 void eliminateSeparationSigns(TString &name) {
   name.ReplaceAll(" ","_");
-  name.ReplaceAll("-","_");
+  //name.ReplaceAll("-","_");
   name.ReplaceAll("+","_");
   name.ReplaceAll(".","_");
   name.ReplaceAll(",","_");

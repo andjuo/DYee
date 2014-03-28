@@ -32,6 +32,75 @@ TMatrixD* corrFromCov(const TMatrixD &cov) {
 }
 
 //--------------------------------------------------
+
+TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov) {
+  TMatrixD *corr= new TMatrixD(cov);
+  corr->Zero();
+  for (int ir=0; ir<cov.GetNrows(); ++ir) {
+    double eR=sqrt(totCov(ir,ir));
+    for (int ic=0; ic<cov.GetNcols(); ++ic) {
+      double eC=sqrt(totCov(ic,ic));
+      (*corr)(ir,ic) = cov(ir,ic)/(eR*eC);
+    }
+  }
+  return corr;
+}
+
+//--------------------------------------------------
+
+TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr, const char *histoName, const char *histoTitle, TColorRange_t centerRange, int massBins, double maxValUser) {
+  int nRows=M.GetNrows();
+  int nCols=M.GetNcols();
+  TH2D *h=NULL;
+
+  if (massBins) {
+#ifndef DYTools_HH
+    std::cout << "createHisto2D. Warning: massBins=1, but DYTools is not available\n";
+#endif
+    if ((nRows!=DYTools::nMassBins) || (nCols!=DYTools::nMassBins)) {
+      std::cout << "createHisto2D. Warning: massBins=1, DYTools is available, but the matrix has incorrect number of bins (" << nRows << "x" << nCols << "), instead of a square matrix of dim=" << DYTools::nMassBins << "\n";
+    }
+    else {
+      double *mbins=new double[DYTools::nMassBins+1];
+      for (int i=0; i<=DYTools::nMassBins; ++i)
+	mbins[i]=DYTools::massBinLimits[i];
+      mbins[DYTools::nMassBins] += 5e-1;
+      h= new TH2D(histoName,histoTitle,
+		  DYTools::nMassBins, mbins,
+		  DYTools::nMassBins, mbins);
+      delete mbins;
+    }
+    //h->GetXaxis()->SetTitle("mass_{ee;1}");
+    //h->GetYaxis()->SetTitle("mass_{ee;2}");
+  }
+
+  if (!h) {
+    std::cout << "createHisto2D: nRows=" << nRows << ", nCols=" << nCols << "\n";
+    h= new TH2D(histoName,histoTitle,
+		nRows,0.5,nRows+0.5,
+		nCols,0.5,nCols+0.5);
+    //h->GetXaxis()->SetTitle("idx_{1}");
+    //h->GetYaxis()->SetTitle("idx_{2}");
+  }
+  h->SetDirectory(0);
+  for (int ir=0; ir<nRows; ir++) {
+    for (int ic=0; ic<nCols; ic++) {
+      h->SetBinContent(ir+1,ic+1, M(ir,ic));
+      //std::cout << "set (" << (ir+1) << "," << (ic+1) << ")=" << M(ir,ic) << "\n";
+      if (Merr) h->SetBinError(ir+1,ic+1, (*Merr)(ir,ic));
+      else h->SetBinError(ir+1,ic+1, 0.);
+    }
+  }
+
+  if (centerRange > _colrange_none) {
+    if (!centerHistoZAxis(h,centerRange,maxValUser)) {
+      std::cout << "error in createHisto2D\n";
+    }
+  }
+
+  return h;
+}
+
 //--------------------------------------------------
 //--------------------------------------------------
 /*
