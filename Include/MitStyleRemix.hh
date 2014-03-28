@@ -14,6 +14,7 @@ void     SetStyle     ();
 
 
 
+#ifndef ColorPalettes_HH
 inline
 void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18) {
   int count=0;
@@ -26,6 +27,7 @@ void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18) {
   }
   if (count==1) c->SetRightMargin(rmargin);
 }
+#endif
 
 
 // ------------------------------------------------------------
@@ -33,6 +35,7 @@ void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18) {
 // A function to control space that histogram takes.
 // E.g. if the y-labels+title need more space call SetSideSpaces(c,0.2,0,0,0);
 
+#ifndef ColorPalettes_HH
 inline
 void SetSideSpaces(TCanvas *c, double dxLeft=0.05, double dxRight=0.02, double dyTop=0., double dyBottom=0.02) {
   int count=0;
@@ -49,6 +52,7 @@ void SetSideSpaces(TCanvas *c, double dxLeft=0.05, double dxRight=0.02, double d
     }
   }
 }
+#endif
 
 
 #endif
