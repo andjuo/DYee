@@ -17,6 +17,22 @@ void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int max
 }
 
 //--------------------------------------------------
+
+TMatrixD* corrFromCov(const TMatrixD &cov) {
+  TMatrixD *corr= new TMatrixD(cov);
+  corr->Zero();
+  for (int ir=0; ir<cov.GetNrows(); ++ir) {
+    double eR=sqrt(cov(ir,ir));
+    for (int ic=0; ic<cov.GetNcols(); ++ic) {
+      double eC=sqrt(cov(ic,ic));
+      (*corr)(ir,ic) = cov(ir,ic)/(eR*eC);
+    }
+  }
+  return corr;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
 //--------------------------------------------------
 /*
 TH2D* getRelDifferenceVA(const TH2D *baseValue, TString newName, int nVariations, TH2D* hVar1, ...) {
@@ -826,7 +842,7 @@ TCanvas* plotProfiles(TString canvName,
       TString yStr=Form("iy_%d",iy);
       TString cpName=TString("cp_") + yStr;
       TString cpTitle; //=yStr;
-      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]","signale yield","ratio");
+      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]","signal yield","ratio");
       cp->SetLogx(1);
       if (iy==0) cp->Prepare2Pads(c1);
       

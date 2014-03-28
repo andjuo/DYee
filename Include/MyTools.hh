@@ -873,6 +873,10 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<histo_t*> &rndVinp,
   return deriveCovMFromRndStudies(rndV,unbiasedEstimate,avgDistr);
 }
 
+//---------------------------------------------------------------
+
+TMatrixD* corrFromCov(const TMatrixD &cov);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 //
