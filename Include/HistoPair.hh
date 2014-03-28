@@ -78,6 +78,14 @@ public:
 
   // ----------------
 
+  int eliminateNaNs() {
+    int count1=eliminateNaNs2D(fHisto,0.,0.);
+    int count2=eliminateNaNs2D(fHistoSystErr,0.,0.);
+    return (count1+count2);
+  }
+
+  // ----------------
+
   int changeName(TString newName, TString newTitle="") {
     int res=1;
     if (fHisto) { 
