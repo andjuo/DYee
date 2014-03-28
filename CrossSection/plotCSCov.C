@@ -492,7 +492,8 @@ void plotAllCovs(TCovData_t &dt) {
 	  //explain="Correlation ";
 	}
 	else if (iCorr==2) {
-	  set_center_white_style5(21);
+	  if (DYTools::study2D) set_center_white_style(21);
+	  else set_center_white_style5(21);
 	  TMatrixD *corr= partialCorrFromCov( *totalCov, *(*covV)[i] );
 	  TString histoName=TString("hPartCorr") + histoTag;
 	  TString histoTitle=TString("Partial correlations ") + histoTag;
