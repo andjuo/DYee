@@ -282,6 +282,7 @@ int centerHistoZAxis(TH2D *h, TColorRange_t centerRange, double maxValUser=0.) {
 
 // ------------------------------------------------------------
 
+#ifndef MYTOOLS_HH
 TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr, const char *histoName, const char *histoTitle, TColorRange_t centerRange, int massBins=0, double maxValUser=0.) {
   int nRows=M.GetNrows();
   int nCols=M.GetNcols();
@@ -334,7 +335,7 @@ TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr, const char *histoNa
 
   return h;
 }
-
+#endif
  
 // ------------------------------------------------------------
 #ifndef ColorPalettes_HH
