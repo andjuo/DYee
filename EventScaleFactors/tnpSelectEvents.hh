@@ -108,7 +108,16 @@ public:
   Double_t et_1,eta_1,et_2,eta_2;
   Double_t weight;
   UInt_t nGoodPV;
+  Int_t largeFSR;
 
+  esfSelectEvent_t() : TObject(),
+		       genMass(0.), genY(0.), mass(0.), y(0.),
+		       et_1(0.), eta_1(0.), et_2(0.), eta_2(0.),
+		       weight(0.),
+		       nGoodPV(0), largeFSR(0)
+  {}
+
+  /*
   void assign(double _genMass, double _genY,
 	      double _mass, double _y1, 
 	      double _et1, double _eta1,
@@ -120,8 +129,9 @@ public:
     weight=_weight;
     nGoodPV=_nGoodPV;
   }
+  */
 
-  void assign(const mithep::TDielectron *dielectron, const mithep::TGenInfo *gen, int _nGoodPV, double _weight) {
+  void assign(const mithep::TDielectron *dielectron, const mithep::TGenInfo *gen, int _nGoodPV, double _weight, int _largeFSR=0) {
     genMass= gen->mass;
     genY= gen->y;
     mass= dielectron->mass;
@@ -141,6 +151,7 @@ public:
     }
     nGoodPV=_nGoodPV;
     weight=_weight;
+    largeFSR=_largeFSR;
   }
 
   // 
@@ -163,6 +174,7 @@ public:
     tree->Branch("eta_2",&this->eta_2,"eta_2/D");
     tree->Branch("weight",&this->weight,"weight/D");
     tree->Branch("nGoodPV",&this->nGoodPV,"nGoodPV/i");
+    tree->Branch("largeFSR",&this->largeFSR,"largeFSR/i");
   }
 
   void setBranchAddress(TTree *tree) {
@@ -176,6 +188,7 @@ public:
     tree->SetBranchAddress("eta_2",&this->eta_2);
     tree->SetBranchAddress("weight",&this->weight);
     tree->SetBranchAddress("nGoodPV",&this->nGoodPV);
+    tree->SetBranchAddress("largeFSR",&this->largeFSR);
   }
 
   bool insideMassWindow(double mass_low, double mass_high) const {
@@ -183,7 +196,7 @@ public:
   }
 
 #ifdef esfSelectEventsIsObject
-  ClassDef(esfSelectEvent_t,1)
+  ClassDef(esfSelectEvent_t,2)
 #endif
 };
 
