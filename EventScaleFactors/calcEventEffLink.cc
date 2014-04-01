@@ -103,3 +103,33 @@ TGraphAsymmErrors* getAsymGraph_vsEta(DYTools::TEtBinSet_t etBinning_inp,
 
 
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+
+int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {
+  std::cout  << "loading <" << fname << ">\n";
+  TFile file1(fname,"read");
+  if (!file1.IsOpen()) { std::cout << "failed to open file <" << file1.GetName() << ">\n"; return 0; }
+  TString field="effArray2D";
+  TString fieldErrLo="effArrayErrLow2D";
+  TString fieldErrHi="effArrayErrHigh2D";
+  if (weighted) {
+    field.Append("Weighted");
+    fieldErrLo.Append("Weighted");
+    fieldErrHi.Append("Weighted");
+  }
+  TMatrixD *eff1= (TMatrixD*)file1.Get(field);
+  TMatrixD *eff1ErrLo= (TMatrixD*)file1.Get(fieldErrLo);
+  TMatrixD *eff1ErrHi= (TMatrixD*)file1.Get(fieldErrHi);
+  file1.Close();
+  if (!eff1 || !eff1ErrLo || !eff1ErrHi) {
+    std::cout << "failed to get fields from <" << file1.GetName() << ">\n"; 
+    return 0;
+  }
+  *eff=eff1;
+  *effLo=eff1ErrLo;
+  *effHi=eff1ErrHi;
+  return 1;
+}
+
+// ------------------------------------------------------------
+// ------------------------------------------------------------
