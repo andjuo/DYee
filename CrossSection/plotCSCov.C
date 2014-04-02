@@ -7,9 +7,9 @@
 
 int calc_YieldStat=1;
 int calc_YieldSyst=1;
-int calc_YieldUnregEn=1;
+int calc_YieldUnregEn=0; // EScale includes all escale uncertainty
 int calc_YieldEScale=1;
-int calc_YieldApplyEScale=1;
+int calc_YieldApplyEScale=0; // EScale include all escale uncertainty
 
 int doCalcYieldCov=(calc_YieldStat + calc_YieldSyst + calc_YieldUnregEn +
 		    calc_YieldEScale + calc_YieldApplyEScale) ? 1:0;
@@ -36,7 +36,7 @@ int calc_AccRnd=1 * (1-DYTools::study2D);
 
 int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
 
-int calc_FsrFSR=1; // not ready!
+int calc_FsrFSR=0; // not ready!
 int calc_FsrRnd=1;
 
 int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
@@ -526,12 +526,14 @@ void plotAllCovs(TCovData_t &dt) {
 
 void plotTotCov(TCovData_t &dt) {
   TMatrixD *totalCov=dt.calcTotalCov();
-  for (int iCorr=0; iCorr<2; ++iCorr) {
+  for (int iCorr=0; iCorr<4; ++iCorr) {
+    if (iCorr==2) continue; // not ready
     TString covStr;
     switch(iCorr) {
     case 0: covStr="Cov_"; break;
     case 1: covStr="Corr_"; break;
     case 2: covStr="partCorr_"; break;
+    case 3: covStr="RelCov_"; break;
     default:
       std::cout << "plotAllCovs: unknown iCorr=" << iCorr << "\n";
       return;
@@ -542,7 +544,8 @@ void plotTotCov(TCovData_t &dt) {
     TString explain;
 
     if (iCorr==0) {
-      set_nice_style(51);
+      //set_nice_style(51);
+      gStyle->SetPalette(1);
       totalCov->Draw("COLZ");
       explain="Total covariance ";
     }
@@ -551,10 +554,60 @@ void plotTotCov(TCovData_t &dt) {
       TMatrixD *corr= corrFromCov( *totalCov );
       TString histoName=TString("hCorr");
       TString histoTitle=TString("Total correlations");
-      TH2D* h2=createHisto2D(*corr,NULL,histoName,histoTitle,_colrange_center,0,1.0001);
-      h2->Draw("COLZ");
+      if (0) {
+	TH2D* h2=createHisto2D(*corr,NULL,histoName,histoTitle,_colrange_center,0,1.0001);
+	h2->Draw("COLZ");
+      }
+      else {
+	corr->Draw("COLZ");
+      }
       delete corr;
       //explain="Correlation ";
+    }
+    else if (iCorr==3) {
+      TString csFileName="../root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1DpreFsrFullSp.root";
+      TString fieldName="hpPreFsrFullSp";
+      if (DYTools::study2D) {
+	csFileName="../root_files_reg/xsec/DY_j22_19712pb/xSec_preFsrDet_2DpreFsrDet.root";
+	fieldName="hpPreFsrDet";
+      }
+      TFile fin(csFileName,"read");
+      if (!fin.IsOpen()) {
+	std::cout << "failed to open the cross-section file <"
+		  << fin.GetName() << ">\n";
+	return;
+      }
+      TH2D *h2=LoadHisto2D(fin,fieldName,"",1);
+      fin.Close();
+      if (!h2) return;
+      TMatrixD *csValAsM=createMatrixD(h2,0);
+      if (!csValAsM) return;
+      TVectorD csV(DYTools::nUnfoldingBins);
+      if (!flattenMatrix(*csValAsM,csV)) return;
+      if (DYTools::study2D==0) {
+	std::cout << "changing last value\n";
+	csV(39)*=10;
+	csV(40)=70;
+      }
+      TMatrixD *covDivCS=relativeCov(csV,*totalCov);
+      if (!covDivCS) return;
+      covDivCS->Draw("COLZ");
+      if (0) { // check
+	std::cout << "check the numbers\n";
+	printHisto(h2);
+	std::cout << "same histo as matrix\n";
+	printMatrix("cs",*csValAsM,0);
+	std::cout << "same histo as vector\n";
+	csV.Print();
+	std::cout << "total covariance\n";
+	printMatrix("totalCov",*totalCov,1);
+	std::cout << "relative covariance\n";
+	printMatrix("covDivCS",*covDivCS,1);
+      }
+      delete covDivCS;
+      delete csValAsM;
+      delete h2;
+      explain="Partial covariance\n";
     }
     if (explain.Length()) {
       TText *txt=new TText();
