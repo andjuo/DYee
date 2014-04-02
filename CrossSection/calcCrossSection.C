@@ -19,7 +19,9 @@ int calcCrossSection(TString conf,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,1, DYTools::NO_SYST)) {
+    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST,
+				DYTools::FSR_5plus, DYTools::FSR_5minus,
+			DYTools::PILEUP_5plus, DYTools::PILEUP_5minus)) {
       return retCodeError;
     }
   }
@@ -52,8 +54,9 @@ int calcCrossSection(TString conf,
   // Prepare output directory
   inpMgr.crossSectionDir(systMode,1);
 
-  InputArgs_t inpArgs(&inpMgr,systMode);
-  InputArgs_t inpArgsNET(&inpMgrNoExtraTag,systMode);
+  InputArgs_t inpArgs("default",&inpMgr,systMode,csKind);
+  InputArgs_t inpArgsNET("noExtraTag",&inpMgrNoExtraTag,systMode,csKind);
+  //inpArgsNET.includeCorrError(0);
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
