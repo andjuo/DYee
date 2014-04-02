@@ -19,8 +19,10 @@ extern TString codeDebugFilePath;
 // ----------------------------------------------
 
 struct InputArgs_t {
+  TString fName;
   InputFileMgr_t *fInpMgr;
   DYTools::TSystematicsStudy_t fSystMode;
+  DYTools::TCrossSectionKind_t fCSKind;
   TString fResNameBase;
   int fNeedsDETUnfolding;
   int fNeedsEffCorr;
@@ -28,14 +30,22 @@ struct InputArgs_t {
   int fNeedsAccCorr;
   int fNeedsFsrCorr;
   int fAllNormErrorIsSyst;
+  int fIncludeCorrError; // whether add the error of each correction
   int fSilentMode;
+  int fNoSave;
 public:
-  InputArgs_t(InputFileMgr_t *set_InpMgr, DYTools::TSystematicsStudy_t set_systMode,
+  InputArgs_t(TString set_name,
+	      InputFileMgr_t *set_InpMgr,
+	      DYTools::TSystematicsStudy_t set_systMode,
+	      DYTools::TCrossSectionKind_t set_csKind,
 	      TString set_resNameBase="",
 	      int set_needsDetUnfolding=1,
-	      int set_allNormErrorIsSyst=0) :
+	      int set_allNormErrorIsSyst=0,
+	      int set_includeCorrErr=1) :
+    fName(set_name),
     fInpMgr(set_InpMgr), 
     fSystMode(set_systMode),
+    fCSKind(set_csKind),
     fResNameBase(set_resNameBase), 
     fNeedsDETUnfolding(set_needsDetUnfolding),
     fNeedsEffCorr(1),
@@ -43,14 +53,20 @@ public:
     fNeedsAccCorr(1),
     fNeedsFsrCorr(1),
     fAllNormErrorIsSyst(set_allNormErrorIsSyst),
-    fSilentMode(0)
+    fIncludeCorrError(set_includeCorrErr),
+    fSilentMode(0),
+    fNoSave(0)
   {}
 
-  InputArgs_t(const InputArgs_t &ia, 
+  InputArgs_t(TString set_name,
+	      const InputArgs_t &ia,
 	      TString set_resNameBase, int set_needsDetUnfolding=-1,
-	      int set_allNormErrorIsSyst=-1) :
+	      int set_allNormErrorIsSyst=-1,
+	      int set_includeCorrError=-1) :
+    fName(set_name),
     fInpMgr(ia.fInpMgr), 
     fSystMode(ia.fSystMode),
+    fCSKind(ia.fCSKind),
     fResNameBase(set_resNameBase),
     fNeedsDETUnfolding(ia.fNeedsDETUnfolding),
     fNeedsEffCorr(ia.fNeedsEffCorr),
@@ -58,14 +74,24 @@ public:
     fNeedsAccCorr(ia.fNeedsAccCorr),
     fNeedsFsrCorr(ia.fNeedsFsrCorr),
     fAllNormErrorIsSyst(ia.fAllNormErrorIsSyst),
-    fSilentMode(ia.fSilentMode)
+    fIncludeCorrError(ia.fIncludeCorrError),
+    fSilentMode(ia.fSilentMode),
+    fNoSave(ia.fNoSave)
   {
     if (set_needsDetUnfolding!=-1) fNeedsDETUnfolding=set_needsDetUnfolding;
     if (set_allNormErrorIsSyst!=-1) fAllNormErrorIsSyst=set_allNormErrorIsSyst;
+    if (set_includeCorrError!=-1) fIncludeCorrError=set_includeCorrError;
   }
   
+  TString name() const { return fName; }
+  TString GetName() const { return fName; }
+  void name(const TString &new_name) { fName=new_name; }
+  void SetName(const TString &new_name) { fName=new_name; }
+
   const InputFileMgr_t* inpMgr() const { return fInpMgr; }
   DYTools::TSystematicsStudy_t systMode() const { return fSystMode; }
+  DYTools::TCrossSectionKind_t csKind() const { return fCSKind; }
+  void csKind(DYTools::TCrossSectionKind_t set_csKind) { fCSKind=set_csKind; }
   TString resNameBase() const { return fResNameBase; }
 
   void needsDetUnfolding(int yes) { fNeedsDETUnfolding=yes; }
@@ -81,9 +107,31 @@ public:
 
   void allNormErrorIsSyst(int yes) { fAllNormErrorIsSyst=yes; }
   int  allNormErrorIsSyst() const { return fAllNormErrorIsSyst; }
+  void includeCorrError(int yes) { fIncludeCorrError=yes; }
+  int  includeCorrError() const { return fIncludeCorrError; }
 
   void silentMode(int yes) { fSilentMode=yes; }
   int  silentMode() const { return fSilentMode; }
+  void noSave(int yes) { fNoSave=yes; }
+  int  noSave() const { return fNoSave; }
+
+  friend std::ostream& operator<<(std::ostream &out, const InputArgs_t &ia) {
+    out << "InputArgs(name=" << ia.fName << "):\n";
+    out << "  inpMgr.loadedFileName=<" << ia.fInpMgr->loadedFileName() << ">\n";
+    out << "  systMode=" << SystematicsStudyName(ia.fSystMode)
+	<< ", csKind=" << CrossSectionKindName(ia.fCSKind) << "\n";
+    out << "  resNameBase=" << ia.fResNameBase << "\n";
+    out << "  - needsUnfolding=" << ia.fNeedsDETUnfolding << "\n";
+    out << "  - needsEffCorr  =" << ia.fNeedsEffCorr << "\n";
+    out << "  - needsRhoCorr  =" << ia.fNeedsEffScaleCorr << "\n";
+    out << "  - needsAccCorr  =" << ia.fNeedsAccCorr << "\n";
+    out << "  - needsFsrCorr  =" << ia.fNeedsFsrCorr << "\n";
+    out << "  allNormErrorIsSyst=" << ia.fAllNormErrorIsSyst << "\n";
+    out << "  includeCorrError=" << ia.fIncludeCorrError << "\n";
+    out << "  silentMode=" << ia.fSilentMode << "\n";
+    out << "  noSave    =" << ia.fNoSave << "\n";
+    return out;
+  }
 
 };
 
@@ -142,7 +190,8 @@ int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, Hist
 
 
 // saving the result
-int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &extraTag);
+int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp,
+	       TString extraTag);
 
 
 

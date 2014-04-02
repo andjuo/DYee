@@ -60,6 +60,7 @@ int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, His
   }
   UnfM=UnfoldingMatrix_t::LoadUnfM("detResponse", constDir, fnameTag, inverse);
   if (!UnfM) return 0;
+  // unfolding does not include additional error of the unfolding matrix
   int res= fin.unfold(*UnfM, ini);
   if (!res) return 0;
   delete UnfM;
@@ -84,6 +85,7 @@ int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Histo
   }
   UnfM=UnfoldingMatrix_t::LoadUnfM("fsrDET_good", constDir, fnameTag, inverse);
   if (!UnfM) return 0;
+  // unfolding does not include additional error of the unfolding matrix
   int res= fin.unfold(*UnfM, ini);
   if (!res) return 0;
   delete UnfM;
@@ -108,6 +110,7 @@ int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini,
   }
   UnfM=UnfoldingMatrix_t::LoadUnfM("fsrGood", constDir, fnameTag, inverse);
   if (!UnfM) return 0;
+  // unfolding does not include additional error of the unfolding matrix
   int res= fin.unfold(*UnfM, ini);
   if (!res) return 0;
   delete UnfM;
@@ -131,7 +134,7 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
   }
   //std::cout << "effCorrFName=<" << effCorrFName << ">\n";
   int res=(hEff!=NULL) ? 1:0;
-  if (res) res=fin.divide(ini,hEff);
+  if (res) res=fin.divide(ini,hEff,!inpArg.includeCorrError());
   if (!res) std::cout << "error in efficiencyCorrection\n";
   return res;
 }
@@ -154,7 +157,7 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   }
   //std::cout << "rhoCorrFName=<" << rhoCorrFName << ">\n";
   int res=(hRho!=NULL) ? 1:0;
-  if (res) res=fin.divide(ini,hRho);
+  if (res) res=fin.divide(ini,hRho,!inpArg.includeCorrError());
   if (!res) std::cout << "error in efficiencyScaleCorrection\n";
   return res;
 }
@@ -177,7 +180,7 @@ int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
   //std::cout << "accCorrFName=<" << accCorrFName << ">\n";
 
   int res=(hAcc!=NULL) ? 1:0;
-  if (res) res=fin.divide(ini,hAcc);
+  if (res) res=fin.divide(ini,hAcc,!inpArg.includeCorrError());
   if (!res) std::cout << "error in acceptanceCorrection\n";
   return res;
 }
@@ -230,10 +233,30 @@ int addSystError_DetResUnf_escale(const InputArgs_t &ia, HistoPair2D_t &hp, Hist
 // ----------------------------------------------
 // ----------------------------------------------
 
-int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, const TString &extraTag) {
+int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp, 
+	       TString extraTag) {
   if (!ia.silentMode()) {
-    std::cout << "would save result with extraTag=<" << extraTag << ">\n";
+    std::cout << "would save result with extraTag_inp=<" << extraTag << ">\n";
+    TString fname=ia.inpMgr()->crossSectionFullFileName(ia.systMode(),
+							ia.csKind(),
+							1,0);
+    if (!ia.includeCorrError()) extraTag.Append("_noCorrErr");
+    if (extraTag.Length()) fname.ReplaceAll(".root",extraTag+TString(".root"));
+    if (ia.resNameBase().Length()) {
+      Ssiz_t index=fname.Last('/');
+      if (index==-1) fname.Prepend(ia.resNameBase());
+      else fname.Insert(index,ia.resNameBase());
+    }
+    std::cout << "output fname would be <" << fname << ">\n";
+
     hp.print();
+    if (!ia.noSave()) {
+      TFile fout(fname,"recreate");
+      if (!hp.Write(fout)) return 0;
+      writeBinningArrays(fout);
+      fout.Close();
+      std::cout << "saved to file <" << fout.GetName() << ">\n";
+    }
   }
   return 1;
 }
