@@ -345,20 +345,25 @@ public:
   //             = ( (dB_syst)^2 + A^2 (dC_tot)^2 ) /C^2
   //
 
-  int divide(const HistoPair2D_t &p, const TH2D *h2) {
+  int divide(const HistoPair2D_t &p, const TH2D *h2, int excludeH2Error=0) {
     //if (!h2) std::cout << "h2 is null" << std::endl; else std::cout << "h2 ok" << std::endl;
     //printHisto(h2);
     TH2D *h2tmp=Clone(h2,h2->GetName() + TString("tmp"),"");
     removeError(h2tmp); // error will be considered separately
     fHisto->Divide(p.fHisto,h2tmp);
     // evaluate systErr
-    for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
-      for (int jbin=1; jbin<=fHistoSystErr->GetNbinsY(); ++jbin) {
-	const double term1= p.fHistoSystErr->GetBinError(ibin,jbin);
-	const double term2= this->fHisto->GetBinContent(ibin,jbin) * h2->GetBinError(ibin,jbin);
-	const double division=h2->GetBinContent(ibin,jbin);
-	fHistoSystErr->SetBinContent(ibin,jbin, 0.);
-	fHistoSystErr->SetBinError(ibin,jbin, sqrt( term1*term1 + term2*term2 )/division );
+    if (excludeH2Error) {
+      fHistoSystErr->Divide(p.fHistoSystErr,h2tmp);
+    }
+    else {
+      for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHistoSystErr->GetNbinsY(); ++jbin) {
+	  const double term1= p.fHistoSystErr->GetBinError(ibin,jbin);
+	  const double term2= this->fHisto->GetBinContent(ibin,jbin) * h2->GetBinError(ibin,jbin);
+	  const double division=h2->GetBinContent(ibin,jbin);
+	  fHistoSystErr->SetBinContent(ibin,jbin, 0.);
+	  fHistoSystErr->SetBinError(ibin,jbin, sqrt( term1*term1 + term2*term2 )/division );
+	}
       }
     }
     return 1;
