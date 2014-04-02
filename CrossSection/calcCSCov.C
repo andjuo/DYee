@@ -90,7 +90,7 @@ int calcCSCov(TString conf, int nExps=100,
   // Prepare output directory
   inpMgr.crossSectionDir(systMode,1);
 
-  InputArgs_t inpArgs(&inpMgr,systMode);
+  InputArgs_t inpArgs("default",&inpMgr,systMode,csKind);
 
   int systFileFlag=1;
   TString outFileName=inpMgr.crossSectionFullFileName(systMode,
@@ -400,7 +400,7 @@ int calcCSCov(TString conf, int nExps=100,
       else {
 	std::vector<TH2D*> csRndV;
 	int needsUnf=0;
-	InputArgs_t iaUnf(inpArgs,"unfSyst",needsUnf);
+	InputArgs_t iaUnf("iaUnfSyst",inpArgs,"unfSyst",needsUnf);
 	res=calcVecOfCSdistributions(iaUnf,vecUnfRnd,csKind,csRndV);
 	csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
 	if (!csCov) res=0;
@@ -559,7 +559,7 @@ int calcCSCov(TString conf, int nExps=100,
 
       if (res) {
 	std::vector<TH2D*> csRndV;
-	InputArgs_t inpArgsEff(inpArgs,"effSyst");
+	InputArgs_t inpArgsEff("iaEffSyst",inpArgs,"effSyst");
 	inpArgsEff.needsDetUnfolding(0);
 	inpArgsEff.needsEffCorr(0);
 	res=calcVecOfCSdistributions(inpArgsEff,vecRnd,csKind,csRndV);
@@ -619,7 +619,7 @@ int calcCSCov(TString conf, int nExps=100,
     // this is almost postFSR cross section in the acceptance
     HistoPair2D_t hpUnfEff("hpUnfEff");
     if (res) {
-      InputArgs_t iaNoRho(inpArgs,"rhoSyst");
+      InputArgs_t iaNoRho("iaRhoSyst",inpArgs,"rhoSyst");
       iaNoRho.needsEffScaleCorr(0);
       res=calculateCSdistribution(iaNoRho,hpSignalYield,
 				  DYTools::_cs_postFsrDet,
@@ -749,7 +749,7 @@ int calcCSCov(TString conf, int nExps=100,
 
       if (res) {
 	std::vector<TH2D*> csRndV;
-	InputArgs_t inpArgsRho(inpArgs,"rhoSyst");
+	InputArgs_t inpArgsRho("iaRhoSyst",inpArgs,"rhoSyst");
 	inpArgsRho.needsDetUnfolding(0);
 	inpArgsRho.needsEffCorr(0);
 	inpArgsRho.needsEffScaleCorr(0);
