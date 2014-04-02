@@ -376,7 +376,7 @@ public:
   TString crossSectionFullFileName(DYTools::TSystematicsStudy_t systMode,
 				   DYTools::TCrossSectionKind_t csKind,
 				   int createDir=0,
-				   int systematicsFile=0) {
+				   int systematicsFile=0) const {
     if (createDir) TString path= crossSectionDir(systMode,createDir);
     TString fname=this->nTupleFullFileName(-1,systMode,0);
     fname.ReplaceAll("/select/","/xsec/");
