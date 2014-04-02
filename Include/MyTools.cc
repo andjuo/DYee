@@ -20,6 +20,10 @@ void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int max
 
 TMatrixD* corrFromCov(const TMatrixD &cov) {
   TMatrixD *corr= new TMatrixD(cov);
+  if (!corr) {
+    std::cout << "corrFromCov: failed to create a new matrix\n";
+    return NULL;
+  }
   corr->Zero();
   for (int ir=0; ir<cov.GetNrows(); ++ir) {
     double eR=sqrt(cov(ir,ir));
@@ -35,6 +39,10 @@ TMatrixD* corrFromCov(const TMatrixD &cov) {
 
 TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov) {
   TMatrixD *corr= new TMatrixD(cov);
+  if (!corr) {
+    std::cout << "partialCorrFromCov: failed to create a new matrix\n";
+    return NULL;
+  }
   corr->Zero();
   for (int ir=0; ir<cov.GetNrows(); ++ir) {
     double eR=sqrt(totCov(ir,ir));
@@ -44,6 +52,25 @@ TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov) {
     }
   }
   return corr;
+}
+
+//--------------------------------------------------
+
+TMatrixD *relativeCov(const TVectorD &centralValue, const TMatrixD &cov) {
+  TMatrixD *M = new TMatrixD(cov);
+  if (!M) {
+    std::cout << "relativeCov: failed to create a new matrix\n";
+    return NULL;
+  }
+  M->Zero();
+  for (int ir=0; ir<cov.GetNrows(); ++ir) {
+    double cR=centralValue(ir);
+    for (int ic=0; ic<cov.GetNcols(); ++ic) {
+      double cC=centralValue(ic);
+      (*M)(ir,ic) = cov(ir,ic)/(cR*cC);
+    }
+  }
+  return M;
 }
 
 //--------------------------------------------------
@@ -99,6 +126,28 @@ TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr, const char *histoNa
   }
 
   return h;
+}
+
+//--------------------------------------------------
+
+TMatrixD* createMatrixD(const TH2D* h2, int useErr) {
+  int nRows=h2->GetNbinsX();
+  int nCols=h2->GetNbinsY();
+  TMatrixD *M=new TMatrixD(nRows,nCols);
+  if (!M) {
+    std::cout << "createMatrixD: failed to create a new matrix\n";
+    return NULL;
+  }
+  M->Zero();
+
+  for (int ir=0; ir<nRows; ir++) {
+    for (int ic=0; ic<nCols; ic++) {
+      double val=(useErr) ?
+	h2->GetBinError(ir+1,ic+1) : h2->GetBinContent(ir+1,ic+1);
+      (*M)(ir,ic)=val;
+    }
+  }
+  return M;
 }
 
 //--------------------------------------------------

@@ -898,11 +898,15 @@ TMatrixD* corrFromCov(const TMatrixD &cov);
 // assuming that cov is a part of totCov
 TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov);
 
+// Calculate relative covariance matrix
+TMatrixD* relativeCov(const TVectorD &centralValue, const TMatrixD &cov);
 
 TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr,
 		    const char *histoName, const char *histoTitle,
 		    TColorRange_t centerRange, int massBins=0,
 		    double maxValUser=0.);
+
+TMatrixD* createMatrixD(const TH2D *h2, int useErr=0);
 
 //------------------------------------------------------------------------------------------------------------------------
 
