@@ -87,6 +87,8 @@ int loadSF(TString fname, TString label,
 
 
 // ------------------------------------------------------------
+/*
+// Moved to calcEventEffLink.h
 
 int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {
   std::cout  << "loading <" << fname << ">\n";
@@ -113,6 +115,7 @@ int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo
   *effHi=eff1ErrHi;
   return 1;
 }
+*/
 
 // ------------------------------------------------------------
 

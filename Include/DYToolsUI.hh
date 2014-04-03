@@ -396,6 +396,7 @@ TString CrossSectionKindName(DYTools::TCrossSectionKind_t kind) {
   TString name;
   switch(kind) {
   case _cs_None: name="none"; break;
+  case _cs_spec: name="specCS"; break;
   case _cs_preFsr: name="preFsr"; break;
   case _cs_preFsrNorm: name="preFsrNorm"; break;
   case _cs_preFsrDet: name="preFsrDet"; break;
@@ -433,6 +434,7 @@ DYTools::TCrossSectionKind_t DetermineCrossSectionKind(const TString &str) {
   else if (str.Contains("postFsrDetNorm")) kind=_cs_postFsrDetNorm;
   else if (str.Contains("postFsrDet")) kind=_cs_postFsrDet;
   else if (str.Contains("postFsr")) kind=_cs_postFsr;
+  else if (str.Contains("specCS")) kind=_cs_spec;
   else if (str.Contains("none") || str.Contains("None")) kind=_cs_None;
   else {
     std::cout << "DetermineCrossSectionKind: cannod identify <" << str << ">\n";
@@ -449,6 +451,7 @@ TString CrossSectionKindLongName(DYTools::TCrossSectionKind_t kind) {
   TString name;
   switch(kind) {
   case _cs_None: name="none"; break;
+  case _cs_spec: name="special cross-section (user-defined)"; break;
   case _cs_preFsr: name="counts in full space"; break;
   case _cs_preFsrNorm: name="normalized cross section"; break;
   case _cs_preFsrDet: name="counts in DET space"; break;
@@ -538,6 +541,26 @@ namespace DYTools {
       DYTools::TSystematicsStudy_t allowed= DYTools::TSystematicsStudy_t(va_arg(vl,int));
       if (debug_print) std::cout << " allowed#" << (i+1) << " is " << SystematicsStudyName(allowed) << "\n";
       ok=(allowed==mode) ? true : false;
+    }
+    va_end(vl);
+    if (debug_print) std::cout << "answer is " << ((ok) ? "true":"false") << "\n";
+    return ok;
+  }
+};
+
+// ------------------------------------------------------------------
+
+namespace DYTools {
+  inline 
+  bool checkCSKind(DYTools::TCrossSectionKind_t kind, int debug_print, int nEntries, ...) {
+    if (debug_print) std::cout << "\n\ncheckCSKind: Syst mode = " << CrossSectionKindName(kind) << "\n";
+    bool ok=false;
+    va_list vl;
+    va_start(vl,nEntries);
+    for (int i=0; !ok && (i<nEntries); ++i) {
+      DYTools::TCrossSectionKind_t allowed= DYTools::TCrossSectionKind_t(va_arg(vl,int));
+      if (debug_print) std::cout << " allowed#" << (i+1) << " is " << CrossSectionKindName(allowed) << "\n";
+      ok=(allowed==kind) ? true : false;
     }
     va_end(vl);
     if (debug_print) std::cout << "answer is " << ((ok) ? "true":"false") << "\n";

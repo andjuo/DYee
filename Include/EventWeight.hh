@@ -63,9 +63,12 @@ public:
   void setPUWeightValue(double val) { puW=val; }
   void setSpecWeightValue(double val) { specW=val; }
 
-  void setSpecWeightValue(const AccessOrigNtuples_t &accessInfo, double massDiff, double specWeight_val) {
+  int setSpecWeightValue(const AccessOrigNtuples_t &accessInfo, double massDiff, double specWeight_val) {
     const mithep::TGenInfo* gen=accessInfo.genPtr();
-    specW = (gen->vmass - gen->mass <= massDiff) ? 1.0 : specWeight_val;
+    //specW = (gen->vmass - gen->mass <= massDiff) ? 1.0 : specWeight_val;
+    int largeFSR=(gen->vmass - gen->mass > massDiff) ? 1:0;
+    specW= (largeFSR) ? specWeight_val : 1.0;
+    return largeFSR;
   }
 
   void setFewzWeight(const AccessOrigNtuples_t &accessInfo) {

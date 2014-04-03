@@ -92,4 +92,12 @@ TGraphAsymmErrors* getAsymGraph(int vsEt,
     getAsymGraph_vsEta(etBinning_inp,etaBinning_inp,iBin,Meff,MeffLo,MeffHi,histo,histoName);
 }
 
+// ---------------------------------------
+
+// load efficiency as matrix
+// if the method is count-count, load it as weighted
+int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi);
+
+// ---------------------------------------
+
 #endif

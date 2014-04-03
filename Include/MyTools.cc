@@ -1,4 +1,154 @@
 #include "../Include/MyTools.hh"
+#include "../Include/ComparisonPlot.hh"
+
+//--------------------------------------------------
+//--------------------------------------------------
+
+void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int maxEntries) {
+  unsigned int imax=hV.size();
+  if ((maxEntries>0) && (imax>(unsigned int)(maxEntries))) {
+    imax=(unsigned int)(maxEntries);
+  }
+  std::cout << "printing " << imax << " entries of a vector hV[" << hV.size() << "]\n";
+  for (unsigned int i=0; i<imax; ++i) {
+    printHisto(hV[i],exponent,maxLines);
+  }
+  return ;
+}
+
+//--------------------------------------------------
+
+TMatrixD* corrFromCov(const TMatrixD &cov) {
+  TMatrixD *corr= new TMatrixD(cov);
+  if (!corr) {
+    std::cout << "corrFromCov: failed to create a new matrix\n";
+    return NULL;
+  }
+  corr->Zero();
+  for (int ir=0; ir<cov.GetNrows(); ++ir) {
+    double eR=sqrt(cov(ir,ir));
+    for (int ic=0; ic<cov.GetNcols(); ++ic) {
+      double eC=sqrt(cov(ic,ic));
+      (*corr)(ir,ic) = cov(ir,ic)/(eR*eC);
+    }
+  }
+  return corr;
+}
+
+//--------------------------------------------------
+
+TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov) {
+  TMatrixD *corr= new TMatrixD(cov);
+  if (!corr) {
+    std::cout << "partialCorrFromCov: failed to create a new matrix\n";
+    return NULL;
+  }
+  corr->Zero();
+  for (int ir=0; ir<cov.GetNrows(); ++ir) {
+    double eR=sqrt(totCov(ir,ir));
+    for (int ic=0; ic<cov.GetNcols(); ++ic) {
+      double eC=sqrt(totCov(ic,ic));
+      (*corr)(ir,ic) = cov(ir,ic)/(eR*eC);
+    }
+  }
+  return corr;
+}
+
+//--------------------------------------------------
+
+TMatrixD *relativeCov(const TVectorD &centralValue, const TMatrixD &cov) {
+  TMatrixD *M = new TMatrixD(cov);
+  if (!M) {
+    std::cout << "relativeCov: failed to create a new matrix\n";
+    return NULL;
+  }
+  M->Zero();
+  for (int ir=0; ir<cov.GetNrows(); ++ir) {
+    double cR=centralValue(ir);
+    for (int ic=0; ic<cov.GetNcols(); ++ic) {
+      double cC=centralValue(ic);
+      (*M)(ir,ic) = cov(ir,ic)/(cR*cC);
+    }
+  }
+  return M;
+}
+
+//--------------------------------------------------
+
+TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr, const char *histoName, const char *histoTitle, TColorRange_t centerRange, int massBins, double maxValUser) {
+  int nRows=M.GetNrows();
+  int nCols=M.GetNcols();
+  TH2D *h=NULL;
+
+  if (massBins) {
+#ifndef DYTools_HH
+    std::cout << "createHisto2D. Warning: massBins=1, but DYTools is not available\n";
+#endif
+    if ((nRows!=DYTools::nMassBins) || (nCols!=DYTools::nMassBins)) {
+      std::cout << "createHisto2D. Warning: massBins=1, DYTools is available, but the matrix has incorrect number of bins (" << nRows << "x" << nCols << "), instead of a square matrix of dim=" << DYTools::nMassBins << "\n";
+    }
+    else {
+      double *mbins=new double[DYTools::nMassBins+1];
+      for (int i=0; i<=DYTools::nMassBins; ++i)
+	mbins[i]=DYTools::massBinLimits[i];
+      mbins[DYTools::nMassBins] += 5e-1;
+      h= new TH2D(histoName,histoTitle,
+		  DYTools::nMassBins, mbins,
+		  DYTools::nMassBins, mbins);
+      delete mbins;
+    }
+    //h->GetXaxis()->SetTitle("mass_{ee;1}");
+    //h->GetYaxis()->SetTitle("mass_{ee;2}");
+  }
+
+  if (!h) {
+    std::cout << "createHisto2D: nRows=" << nRows << ", nCols=" << nCols << "\n";
+    h= new TH2D(histoName,histoTitle,
+		nRows,0.5,nRows+0.5,
+		nCols,0.5,nCols+0.5);
+    //h->GetXaxis()->SetTitle("idx_{1}");
+    //h->GetYaxis()->SetTitle("idx_{2}");
+  }
+  h->SetDirectory(0);
+  for (int ir=0; ir<nRows; ir++) {
+    for (int ic=0; ic<nCols; ic++) {
+      h->SetBinContent(ir+1,ic+1, M(ir,ic));
+      //std::cout << "set (" << (ir+1) << "," << (ic+1) << ")=" << M(ir,ic) << "\n";
+      if (Merr) h->SetBinError(ir+1,ic+1, (*Merr)(ir,ic));
+      else h->SetBinError(ir+1,ic+1, 0.);
+    }
+  }
+
+  if (centerRange > _colrange_none) {
+    if (!centerHistoZAxis(h,centerRange,maxValUser)) {
+      std::cout << "error in createHisto2D\n";
+    }
+  }
+
+  return h;
+}
+
+//--------------------------------------------------
+
+TMatrixD* createMatrixD(const TH2D* h2, int useErr) {
+  int nRows=h2->GetNbinsX();
+  int nCols=h2->GetNbinsY();
+  TMatrixD *M=new TMatrixD(nRows,nCols);
+  if (!M) {
+    std::cout << "createMatrixD: failed to create a new matrix\n";
+    return NULL;
+  }
+  M->Zero();
+
+  for (int ir=0; ir<nRows; ir++) {
+    for (int ic=0; ic<nCols; ic++) {
+      double val=(useErr) ?
+	h2->GetBinError(ir+1,ic+1) : h2->GetBinContent(ir+1,ic+1);
+      (*M)(ir,ic)=val;
+    }
+  }
+  return M;
+}
 
 //--------------------------------------------------
 //--------------------------------------------------
@@ -54,25 +204,6 @@ TH2D* getRelDifference(const TH2D *baseValue, TString newName, int includeVarian
     return NULL;
   }
 
-  // TString newTitle=baseValue->GetTitle() + TString(" rel.Diff");
-  TH2D *hRes=Clone(baseValue,newName,newName);
-  if (!hRes) {
-    std::cout << "getRelDifference: failed to copy the histogram" << std::endl;
-    return NULL;
-  }
-
-  // remove error
-  for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
-    for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
-      hRes->SetBinError(ibin,jbin, 0.);
-    }
-  }
-
-  if (!hVar1) {
-    std::cout << "\n\n\t\tERROR getRelDifference: hVar1 is null\n" << std::endl;
-    return hRes;
-  }
-
   std::vector<const TH2D*> hV;
   hV.reserve(4);
   hV.push_back(hVar1);
@@ -80,28 +211,59 @@ TH2D* getRelDifference(const TH2D *baseValue, TString newName, int includeVarian
   if (hVar3!=NULL) hV.push_back(hVar3);
   if (hVar4!=NULL) hV.push_back(hVar4);
 
+  TH2D *h2Diff=getRelDifference(hV,newName,includeVariants);
+  if (!h2Diff) std::cout << "error in getRelDifference(TH2D*,etc)\n";
+  return h2Diff;
+}
+
+//--------------------------------------------------
+
+TH2D* getRelDifference(const std::vector<const TH2D*> &var, TString newName, int includeVariants) {
+  if (var.size()==0) {
+    std::cout << "getRelDifference(vec): vector is empty" << std::endl;
+    return NULL;
+  }
+
+  TH2D *hRes=Clone(var[0],newName,newName);
+  if (!hRes) {
+    std::cout << "getRelDifference(vec): failed to copy the 1st histogram" << std::endl;
+    return NULL;
+  }
+
+  // remove error
+  removeError2D(hRes);
+
   // If includeVariants is 1, then differences between all histograms are
   // considered. The j index will run from 0 (baseValue) to 
   // hV.size(). If j>0, the reference is the variant histogram
-  unsigned int jmax=(includeVariants) ? (hV.size()+1) : 1;
+  unsigned int imax=(includeVariants) ? (var.size()+1) : 1;
 
-  for (unsigned int i=0; i<hV.size(); ++i) {
-    for (unsigned int j=0; j<jmax; ++j) {
-      if ((j>0) && (i+1==j)) continue; // avoid comparing distribution to itself
-      TH2D* hd=(TH2D*)hV[i]->Clone(Form("var_%d",i));
-      const TH2D* hRef= (j==0) ? baseValue : hV[j-1];
-      hd->Add(hRef,-1.);
+  for (unsigned int i=0; i<imax; ++i) {
+    for (unsigned int j=i+1; j<var.size(); ++j) {
       for (int ibin=1; ibin<=hRes->GetNbinsX(); ++ibin) {
 	for (int jbin=1; jbin<=hRes->GetNbinsY(); ++jbin) {
+	  // current max difference
 	  double err=hRes->GetBinError(ibin,jbin);
-	  double var=fabs(hd->GetBinContent(ibin,jbin)); // !content
-	  if (var>err) hRes->SetBinError(ibin,jbin, var);
+	  // get diff
+	  double diff=fabs(var[j]->GetBinContent(ibin,jbin) -
+			   hRes->GetBinContent(ibin,jbin));
+	  if (diff>err) hRes->SetBinError(ibin,jbin, diff);
 	}
       }
-      delete hd;
     }
   }
   return hRes;
+}
+
+//--------------------------------------------------
+
+TH2D* getRelDifference(const std::vector<TH2D*> &var, TString newName, int includeVariants) {
+  std::vector<const TH2D*> vec;
+  for (unsigned int i=0; i<var.size(); ++i) {
+    vec.push_back((const TH2D*)var[i]);
+  }
+  TH2D *diff=getRelDifference(vec,newName,includeVariants);
+  return diff;
 }
 
 //--------------------------------------------------
@@ -730,6 +892,93 @@ TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, co
   return h2;
 }
 
+
+//--------------------------------------------------
+//--------------------------------------------------
+
+TCanvas* plotProfiles(TString canvName,
+		      const std::vector<TH2D*> &histosV,
+		      const std::vector<TString> &labelsV,
+		      std::vector<int> *colorsV,
+		      int do_removeError,
+		      std::vector<std::vector<TH1D*>*> *hProfV) {
+  if (!hProfV) hProfV= new std::vector<std::vector<TH1D*>*>();
+
+  const unsigned int colorCount=6;
+  const int autoColor[colorCount] = { kBlack, kBlue, kGreen+1, kOrange+1, kRed+1, kViolet };
+  int ourColors=0;
+  if (colorsV==NULL) {
+    ourColors=1;
+    colorsV=new std::vector<int>();
+    colorsV->reserve(histosV.size());
+    for (unsigned int i=0; i<histosV.size(); ++i) {
+      colorsV->push_back(autoColor[i%colorCount]);
+    }
+  }
+
+  int canvWidth=(DYTools::study2D==1) ? 1100 : 700;
+  TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,900);
+
+  if (DYTools::study2D==1) {
+
+    if (!createRapidityProfileVec(histosV,*hProfV,labelsV)) {
+      std::cout << "failed to create profiles\n";
+      return NULL;
+    }
+    std::cout << "there are " << hProfV->size() << " profiles\n";
+      
+    for (int im=1; im<7; ++im) {
+	  
+      TString mStr=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
+      TString cpName="cp_" + mStr;
+      TString cpTitle=mStr;
+      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|","signal yield","ratio");
+      if (im==1) cp->Prepare6Pads(c1,1);
+	  
+      for (unsigned int ih=0; ih<(*hProfV)[im]->size(); ++ih) {
+	TH1D* h=(*(*hProfV)[im])[ih];
+	if (do_removeError) removeError1D(h);
+	if (ih==0) {
+	  h->SetMarkerStyle(20);
+	}
+	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
+      }
+      cp->Draw6(c1,1,im);
+    }
+  }
+  else {
+    // 1D
+    
+    if (!createMassProfileVec(histosV,*hProfV,labelsV)) {
+      std::cout << "failed to create profiles\n";
+      return NULL;
+    }
+    std::cout << "there are " << hProfV->size() << " profiles\n";
+      
+    for (int iy=0; iy<DYTools::nYBinsMax; ++iy) {
+      
+      TString yStr=Form("iy_%d",iy);
+      TString cpName=TString("cp_") + yStr;
+      TString cpTitle; //=yStr;
+      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]","signal yield","ratio");
+      cp->SetLogx(1);
+      if (iy==0) cp->Prepare2Pads(c1);
+      
+      for (unsigned int ih=0; ih<(*hProfV)[iy]->size(); ++ih) {
+	TH1D* h=(*(*hProfV)[iy])[ih];
+	if (do_removeError) removeError1D(h);
+	if (ih==0) {
+	  h->SetMarkerStyle(20);
+	}
+	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
+      }
+      cp->Draw(c1);
+    }
+  }
+  c1->Update();
+  if (ourColors) delete colorsV;
+  return c1;
+}
 
 //--------------------------------------------------
 //--------------------------------------------------

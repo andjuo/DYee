@@ -27,6 +27,7 @@ void plot_Systematics(TString correctionKind, TString flagStr="111", int saveCan
   else if (correctionKind=="unfYields") {
     applySyst.adjustForUnfYields();
     foutName=Form("../root_files_reg/constants/DY_j22_19712pb/unfYieldsSyst_%s.root",DYTools::analysisTag.Data());
+    foutName=Form("../root_files_reg/constants/DY_j22_19712pb/unfYieldsSyst_%s__R9.root",DYTools::analysisTag.Data());
     //foutName=Form("../root_files_reg/constants/DY_j22_19712pb/unfYieldsSyst_%s_DebugRun.root",DYTools::analysisTag.Data());
   }
   else {

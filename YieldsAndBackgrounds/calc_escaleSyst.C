@@ -1,3 +1,6 @@
+// Enhanced macro of calc_escaleDiffSyst.C
+// works with a greater number of systematics
+
 #include "../Include/DYTools.hh"
 #include "../Include/MyTools.hh"
 #include "../Include/InputFileMgr.hh"
@@ -5,22 +8,29 @@
 #include "../Include/HistoPair.hh"
 #include "../Include/ComparisonPlot.hh"
 
-int calc_escaleDiffSyst(int debug, 
-			TString conf,
-			DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN) 
+int calc_escaleSyst(int debug, 
+		    TString conf,
+		    DYTools::TSystematicsStudy_t systMode=DYTools::ESCALE_STUDY) 
 
 {
 
   std::cout << "debug=" << debug << " (sets 'checkTheCode')\n";
+  DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
 
   if (conf==TString("default")) {
     conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
   }
 
-  DYTools::TSystematicsStudy_t systMode=DYTools::ESCALE_STUDY;
   {
     using namespace DYTools;
     DYTools::printExecMode(runMode,systMode);
+
+    const int debug_print=1;
+    if (!DYTools::checkSystMode(systMode,debug_print,3,
+				DYTools::ESCALE_STUDY,
+				DYTools::UNREGRESSED_ENERGY,
+				DYTools::APPLY_ESCALE))
+      return retCodeError;
   }
  
   //--------------------------------------------------------------------------------------------------------------
@@ -45,12 +55,37 @@ int calc_escaleDiffSyst(int debug,
   EventSelector_t evtSelector(inpMgr,runMode,DYTools::NO_SYST,
 			      extraTag, plotExtraTag, EventSelector::_selectDefault);
 
-  const int systModeCount=6;
-  const int systModeVec[systModeCount]= { DYTools::ESCALE_DIFF_0000, DYTools::ESCALE_DIFF_0005, DYTools::ESCALE_DIFF_0010, DYTools::ESCALE_DIFF_0015, DYTools::ESCALE_DIFF_0020, DYTools::NO_SYST };
+  std::vector<DYTools::TSystematicsStudy_t> systModeVec;
   std::vector<TString> systModeNameV;
-  int checkTheCode=debug;
 
-  for (int i=0; i<systModeCount; i++) {
+  switch(systMode) {
+  case DYTools::ESCALE_STUDY: {
+    systModeVec.push_back(DYTools::ESCALE_DIFF_0000);
+    systModeVec.push_back(DYTools::ESCALE_DIFF_0005);
+    systModeVec.push_back(DYTools::ESCALE_DIFF_0010);
+    systModeVec.push_back(DYTools::ESCALE_DIFF_0015);
+    systModeVec.push_back(DYTools::ESCALE_DIFF_0020);
+    systModeVec.push_back(DYTools::NO_SYST );
+  }
+    break;
+  case DYTools::UNREGRESSED_ENERGY: {
+    systModeVec.push_back(DYTools::UNREGRESSED_ENERGY);
+    systModeVec.push_back(DYTools::NO_SYST);
+  }
+    break;
+  case DYTools::APPLY_ESCALE: {
+    systModeVec.push_back(DYTools::APPLY_ESCALE);
+    systModeVec.push_back(DYTools::NO_SYST);
+  }
+    break;
+  default:
+    std::cout << "calc_escaleSyst: not ready for " << SystematicsStudyName(systMode) << "\n";
+    return retCodeError;
+  }
+  int checkTheCode=debug;
+  int skipNoSystInPlot=(!checkTheCode && (systMode==DYTools::ESCALE_STUDY)) ? 1:0;
+
+  for (unsigned int i=0; i<systModeVec.size(); i++) {
     DYTools::TSystematicsStudy_t iSystMode=(DYTools::TSystematicsStudy_t)(systModeVec[i]);
     if (checkTheCode) {
       if (i==1) iSystMode=DYTools::NO_SYST;
@@ -75,7 +110,8 @@ int calc_escaleDiffSyst(int debug,
   // inputDir+TString("/yields_bg-subtracted.root")
   const int ignoreDebugRunFlag=0;
   const int createDir=1;
-  TString outFileName= inpMgr.signalYieldFullFileName(systMode,ignoreDebugRunFlag,createDir);
+  const int systematics=1;
+  TString outFileName= inpMgr.signalYieldFullFileName(systMode,ignoreDebugRunFlag,createDir,systematics);
   std::cout << "generated outFileName=<" << outFileName << ">\n";
 
   //--------------------------------------------------------------------------------------------------------------
@@ -131,6 +167,7 @@ int calc_escaleDiffSyst(int debug,
     }
     if (res1) res1=saveVec(fout,signalYieldMCbkgV,"mcBkg");
     if (res1) res1=saveVec(fout,signalYieldDDbkgV,"ddBkg");
+    writeBinningArrays(fout);
     fout.Close();
     if (!res1) {
       std::cout << "\n\tError saving file <" << fout.GetName() << ">\n\n";
@@ -178,7 +215,7 @@ int calc_escaleDiffSyst(int debug,
 	  if (im==1) cp->Prepare6Pads(c1,1);
 	  
 	  for (unsigned int ih=0; ih<hProfV[im]->size(); ++ih) {
-	    if (!checkTheCode && (systModeVec[ih]==DYTools::NO_SYST)) continue;
+	    if (skipNoSystInPlot && (systModeVec[ih]==DYTools::NO_SYST)) continue;
 	    TH1D* h=(*hProfV[im])[ih];
 	    removeError1D(h);
 	    if (ih==0) {
@@ -211,7 +248,7 @@ int calc_escaleDiffSyst(int debug,
 	  if (iy==0) cp->Prepare2Pads(c1);
 	  
 	  for (unsigned int ih=0; ih<hProfV[iy]->size(); ++ih) {
-	    if (!checkTheCode && (systModeVec[ih]==DYTools::NO_SYST)) continue;
+	    if (skipNoSystInPlot && (systModeVec[ih]==DYTools::NO_SYST)) continue;
 	    TH1D* h=(*hProfV[iy])[ih];
 	    removeError1D(h);
 	    if (ih==0) {
@@ -226,10 +263,12 @@ int calc_escaleDiffSyst(int debug,
 	}
       }
       
-      TString fname="fig-escaleDiffSyst-";
-      fname.Append((useDDBkg) ? "DDBkg-" : "MCBkg-");
+      TString fname="fig-";
+      fname.Append(SystematicsStudyName(systMode));
+      fname.Append((useDDBkg) ? "-DDBkg-" : "-MCBkg-");
       fname.Append(DYTools::analysisTag);
-      SaveCanvas(c1,fname);
+      TString outDir="plots-escaleSyst";
+      SaveCanvas(c1,fname,outDir);
     }
       
   }

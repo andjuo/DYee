@@ -55,13 +55,17 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
   TString recoSystFName, idSystFName, hltSystFName;
   TString includedSyst;
   int egammaSystOnly=0;
-  if (systCode.Length()>3) {
+  if (systCode.Length()>=3) {
     int recoOn=(systCode[0]=='1') ? 1:0;
     int idOn  =(systCode[1]=='1') ? 1:0;
     int hltOn =(systCode[2]=='1') ? 1:0;
-    if (recoOn) recoSystFName="../EventScaleFactors/efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
-    if (idOn) idSystFName="../EventScaleFactors/efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
-    if (hltOn) hltSystFName="../EventScaleFactors/unregHLTSystematics20140226.root";
+    if (recoOn) recoSystFName="../root_files_reg/tag_and_probe/DY_j22_19712pb_egamma_Unregressed_energy/efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
+    if (idOn) idSystFName="../root_files_reg/tag_and_probe/DY_j22_19712pb_egamma_Unregressed_energy/efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
+    if (hltOn) {
+      //hltSystFName="../EventScaleFactors/unregHLTSystematics20140226.root";
+      std::cout << "\n\thlt systematics is switched off\n\n";
+      return retCodeStop;
+    }
     if (recoOn+idOn+hltOn==3) includedSyst="-allSyst";
     else if (recoOn+idOn+hltOn==0) includedSyst="-noSyst";
     else {
@@ -297,6 +301,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     saveVec(rhoFile,hScaleFIV_150,"esf_histos_150");
     saveVec(rhoFile,hScaleFIV_1500,"esf_histos_1500");
 
+    writeBinningArrays(rhoFile);
     rhoFile.Close();
   }
   else {
@@ -586,7 +591,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     esfMFromHisto150err.Write("scaleFactor_hb150err");
     esfMFromHisto1500.Write("scaleFactor_hb1500");
     esfMFromHisto1500err.Write("scaleFactor_hb1500err");
-    
+    writeBinningArrays(fCov);
     fCov.Close();
     std::cout << "file <" << covFileName << "> recreated\n";
 
@@ -606,6 +611,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     h2covSave->Write("covRhoRho");
     h2corrSave->Write("corrRhoRho");
     h2ScaleFactors->Write("scaleFactors");
+    writeBinningArrays(fResult);
     fResult.Close();
     std::cout << "file <" << fResult.GetName() << "> saved\n";
 
@@ -613,13 +619,25 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
       h2covSave->Print("range");
     }
 
-    if (1) { 
+    if (0) {
       TCanvas *ctest=new TCanvas("ctest","ctest",1200,600);
       ctest->Divide(2,1);
       AdjustFor2DplotWithHeight(ctest);
       ctest->cd(1); h2covSave->Draw("COLZ");
       ctest->cd(2); h2corrSave->Draw("COLZ");
       ctest->Update();
+    }
+
+    if (1) {  // for Alexey
+      gStyle->SetPalette(1);
+      TCanvas *ccov=new TCanvas("ccov","ccov",800,800);
+      AdjustFor2DplotWithHeight(ccov);
+      h2covSave->Draw("COLZ");
+      ccov->Update();
+      TCanvas *ccorr=new TCanvas("ccorr","ccorr",800,800);
+      AdjustFor2DplotWithHeight(ccorr);
+      h2corrSave->Draw("COLZ");
+      ccorr->Update();
     }
   }
 

@@ -16,6 +16,7 @@
 #include <stdlib.h> // atoi, atof
 #include "../Include/CPlot.hh"
 #include "../Include/DYTools.hh"
+#include "../Include/colorPalettes.hh"
 
 //----------------------------------------
 
@@ -199,7 +200,7 @@ inline bool PosOk(const std::string &s, const T& substr) {
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-int printHisto(std::ostream& out, const TH1D* histo, int exponent=0) {
+int printHisto(std::ostream& out, const TH1D* histo, int exponent=0, int maxLines=-1) {
   if (!histo) {
     out << "printHisto: histo is null\n";
     return 0;
@@ -210,24 +211,28 @@ int printHisto(std::ostream& out, const TH1D* histo, int exponent=0) {
     " %5.2f-%5.2f    %f    %f\n";
 
   out << "values of " << histo->GetName() << "\n";
-  for(int i=1; i<=histo->GetNbinsX(); i++) {
+  int imax=histo->GetNbinsX();
+  int truncated=0;
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  for(int i=1; i<=imax; i++) {
     double x=histo->GetBinLowEdge(i);
     double w=histo->GetBinWidth(i);
     sprintf(buf,format,
 	    x,x+w,histo->GetBinContent(i),histo->GetBinError(i));
     out << buf;
   }
+  if (truncated) out << "... output truncated to " << maxLines << " lines\n";
   return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 
-inline int printHisto(const TH1D* histo, int exponent=0) { return printHisto(std::cout, histo, exponent); }
+inline int printHisto(const TH1D* histo, int exponent=0, int maxLines=-1) { return printHisto(std::cout, histo, exponent, maxLines); }
 
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr, int exponent=0) {
+int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr, int exponent=0, int maxLines=-1) {
   if (!histo || !histoSystErr) {
     out << "printHisto: histo is null\n";
     return 0;
@@ -238,24 +243,28 @@ int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr
     " %5.2f-%5.2f    %f    %f    %f\n";
 
   out << "values of " << histo->GetName() << "\n";
-  for(int i=1; i<=histo->GetNbinsX(); i++) {
+  int imax=histo->GetNbinsX();
+  int truncated=0;
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  for(int i=1; i<=imax; i++) {
     double x=histo->GetBinLowEdge(i);
     double w=histo->GetBinWidth(i);
     sprintf(buf,format,
 	    x,x+w,histo->GetBinContent(i),histo->GetBinError(i),histoSystErr->GetBinError(i));
     out << buf;
   }
+  if (truncated) out << "... output truncated to " << maxLines << " lines\n";
   return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
  
-inline int printHistoErr(const TH1D* histo, const TH1D* histoSystErr, int exponent=0) { return printHistoErr(std::cout, histo, histoSystErr, exponent); }
+inline int printHistoErr(const TH1D* histo, const TH1D* histoSystErr, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent,maxLines); }
 
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr, int exponent=0) {
+int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLines=-1) {
   if (!histo) {
     out << "printHistoErr: histo is null\n";
     return 0;
@@ -272,7 +281,10 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
   }
 
   out << "values of " << histo->GetName() << "\n";
-  for(int i=1; i<=histo->GetNbinsX(); i++) {
+  int imax=histo->GetNbinsX();
+  int truncated=0;
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  for(int i=1; i<=imax; i++) {
     double x=histo->GetBinLowEdge(i);
     double w=histo->GetBinWidth(i);
     for (int j=1; j<=histo->GetNbinsY(); ++j) {
@@ -287,14 +299,17 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
       out << buf;
     }
   }
+  if (truncated) out << "... output truncated to " << maxLines << " lines\n";
   return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
  
-inline int printHistoErr(const TH2D* histo, const TH2D* histoSystErr, int exponent=0) { return printHistoErr(std::cout, histo, histoSystErr, exponent); }
+inline int printHistoErr(const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent, maxLines); }
 
-inline int printHisto(const TH2D* histo, int exponent=0) { return printHistoErr(std::cout, histo, NULL, exponent); }
+inline int printHisto(const TH2D* histo, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, NULL, exponent, maxLines); }
+
+void printHisto(const std::vector<TH2D*> hV, int exponent=0, int maxLines=-1, int maxEntries=-1);
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -687,6 +702,212 @@ inline void swapContentAndError(TH2F *h) { swapContentAndError2D(h); }
 inline void swapContentAndError(TH2D *h) { swapContentAndError2D(h); }
 
 
+//---------------------------------------------------------------
+
+inline
+int setErrorAsContent(TH2D* hDest, const TH2D* hSrc) {
+  if (!hDest || !hSrc ||
+      (hDest->GetNbinsX() != hSrc->GetNbinsX()) ||
+      (hDest->GetNbinsY() != hSrc->GetNbinsY())) {
+    std::cout << "error in setErrorAsContent\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=hDest->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hDest->GetNbinsY(); ++jbin) {
+      hDest->SetBinError(ibin,jbin, hSrc->GetBinContent(ibin,jbin));
+    }
+  }
+  return 1;
+}
+
+//---------------------------------------------------------------
+
+inline
+int accumulateForRndStudies(TH2D* hSum, const TH2D* hAdd) {
+  if (!hSum || !hAdd ||
+      (hSum->GetNbinsX() != hAdd->GetNbinsX()) ||
+      (hSum->GetNbinsY() != hAdd->GetNbinsY())) {
+    std::cout << "error in accumulateForRndStudies\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=hSum->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hSum->GetNbinsY(); ++jbin) {
+      double v=hSum->GetBinContent(ibin,jbin);
+      double verr=hSum->GetBinError(ibin,jbin);
+      double a=hAdd->GetBinContent(ibin,jbin);
+      hSum->SetBinContent(ibin,jbin,v+a);
+      hSum->SetBinError(ibin,jbin, sqrt(verr*verr + a*a));
+    }
+  }
+  return 1;
+}
+
+//---------------------------------------------------------------
+
+inline
+int accumulateForRndStudies_finalize(TH2D* hSum, int nexps, int unbiasedEstimate=1) {
+  //const int unbiasedEstimate=0;
+  if (!hSum || (nexps<1+unbiasedEstimate)) {
+    std::cout << "error in accumulateForRndStudies_finalize\n";
+    return 0;
+  }
+  double factor=(unbiasedEstimate) ? double(nexps-1) : double(nexps);
+  hSum->Scale(1/double(nexps));
+  for (int ibin=1; ibin<=hSum->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hSum->GetNbinsY(); ++jbin) {
+      double avg=hSum->GetBinContent(ibin,jbin);
+      double sqrtX2=hSum->GetBinError(ibin,jbin);
+      // mean(x^2) - mean(x)^2
+      double varSqr= nexps/factor*(nexps*sqrtX2*sqrtX2 - avg*avg);
+      hSum->SetBinError(ibin,jbin, sqrt(varSqr));
+    }
+  }
+  return 1;
+}
+
+//---------------------------------------------------------------
+// Histo_t should be a 2-dimensional object
+
+template<class histo_t>
+inline
+TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
+				   int unbiasedEstimate=1,
+				   histo_t *avgDistr=NULL) {
+  //const int unbiasedEstimate=1;
+  if (rndV.size()<(unsigned int)(1+unbiasedEstimate)) {
+    HERE("deriveCovMFromRndStudies(vec(TH2D*)) vec is empty or has 1 entry");
+    return NULL;
+  }
+  int dim=DYTools::nUnfoldingBins;
+  // container for sum(x)
+  TVectorD VSumX(dim);
+  VSumX.Zero();
+  // container for sum(x y)
+  TMatrixD *MSumXY=new TMatrixD(dim,dim);
+  if (!MSumXY) {
+    HERE("deriveCovMFromRndStudies: failed to create the container");
+    return NULL;
+  }
+  MSumXY->Zero();
+
+  // 1. Accumulate sums
+  // iterate over 1st histo
+  int rMax=rndV[0]->GetNbinsX();
+  int cMax=rndV[0]->GetNbinsY();
+  for (unsigned int i=0; i<rndV.size(); i++) {
+    const histo_t *hi=rndV[i];
+    for (int ibr1=1; ibr1<=rMax; ++ibr1) {
+      for (int ibc1=1; ibc1<=cMax; ++ibc1) {
+	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	if (idxFlat1<0) continue; // outside of considered space
+	double val1=hi->GetBinContent(ibr1,ibc1);
+	VSumX(idxFlat1) += val1;
+      }
+    }
+  }
+  
+  for (unsigned int i=0; i<rndV.size(); i++) {
+    const histo_t *hi=rndV[i];
+
+    for (int ibr1=1; ibr1<=rMax; ++ibr1) {
+      for (int ibc1=1; ibc1<=cMax; ++ibc1) {
+	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	if (idxFlat1<0) continue; // outside of considered space
+	double val1=hi->GetBinContent(ibr1,ibc1);
+
+	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
+	  for (int ibc2=(ibr1==ibr2) ? ibc1 : 1; ibc2<=cMax; ++ibc2) {
+	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	    if (idxFlat2<0) continue; // outside of considered space
+	    double val2=hi->GetBinContent(ibr2,ibc2);
+	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
+	    if (idxFlat1 != idxFlat2) {
+	      // due to the optimization ibr2=ibr1, we have to
+	      // fill the mirrored term
+	      (*MSumXY)(idxFlat2,idxFlat1) += val1*val2;
+	    }
+	  }
+	}
+	/*
+	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
+	  for (int ibc2=ibc1; ibc2<=cMax; ++ibc2) {
+	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	    if (idxFlat2<0) continue; // outside of considered space
+	    double val2=hi->GetBinContent(ibr2,ibc2);
+	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
+	    if (idxFlat1 != idxFlat2) {
+	      // due to the optimization ibr2=ibr1, we have to 
+	      // fill the mirrored term
+	      (*MSumXY)(idxFlat2,idxFlat1) += val1*val2;
+	    }
+	  }
+	}
+	*/
+      }
+    }
+  }
+
+  // 2. Derive the averages and the covariances
+  double nExps=double(rndV.size());
+  double factor=(unbiasedEstimate) ? (nExps-1) : nExps;
+  double correctionFactor = nExps/factor;
+
+  VSumX    *= (1/nExps);
+  (*MSumXY)*= (1/factor);
+  for (int idxFlat1=0; idxFlat1<dim; ++idxFlat1) {
+    for (int idxFlat2=0; idxFlat2<dim; ++idxFlat2) {
+      (*MSumXY)(idxFlat1,idxFlat2) -= correctionFactor*(VSumX(idxFlat1) * VSumX(idxFlat2));
+    }
+  }
+
+  // 3. If needed fill the average container
+  if (avgDistr) {
+    avgDistr->Reset();
+    for (int ibr=1; ibr<=avgDistr->GetNbinsX(); ++ibr) {
+      for (int ibc=1; ibc<=avgDistr->GetNbinsY(); ++ibc) {
+	int idxFlat= DYTools::findIndexFlat(ibr-1,ibc-1);
+	if (idxFlat<0) continue; // outside of considered space
+	avgDistr->SetBinContent(ibr,ibc, VSumX(idxFlat));
+	avgDistr->SetBinError  (ibr,ibc, sqrt((*MSumXY)(idxFlat,idxFlat)));
+      }
+    }
+  }
+  return MSumXY;
+}
+
+//---------------------------------------------------------------
+
+template<class histo_t>
+inline
+TMatrixD* deriveCovMFromRndStudies(const std::vector<histo_t*> &rndVinp,
+				   int unbiasedEstimate=1,
+				   histo_t *avgDistr=NULL) {
+  std::vector<const histo_t*> rndV;
+  for (unsigned int i=0; i<rndVinp.size(); ++i) {
+    rndV.push_back((const histo_t*)rndVinp[i]);
+  }
+  return deriveCovMFromRndStudies(rndV,unbiasedEstimate,avgDistr);
+}
+
+//---------------------------------------------------------------
+
+// Calculate correlation matrix
+TMatrixD* corrFromCov(const TMatrixD &cov);
+
+// Calculate partial correlation matrix
+// assuming that cov is a part of totCov
+TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov);
+
+// Calculate relative covariance matrix
+TMatrixD* relativeCov(const TVectorD &centralValue, const TMatrixD &cov);
+
+TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr,
+		    const char *histoName, const char *histoTitle,
+		    TColorRange_t centerRange, int massBins=0,
+		    double maxValUser=0.);
+
+TMatrixD* createMatrixD(const TH2D *h2, int useErr=0);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 //
@@ -702,6 +923,11 @@ TH2D *getRelDifference(const TH2D *baseValue, TString newName,
 		       int includeVariants,
 		       const TH2D *hVar1, const TH2D *hVar2=NULL,
 		       const TH2D *hVar3=NULL, const TH2D *hVar4=NULL);
+
+TH2D *getRelDifference(const std::vector<TH2D*> &vec, TString newName, 
+		       int includeVariants);
+TH2D *getRelDifference(const std::vector<const TH2D*> &vec, TString newName, 
+		       int includeVariants);
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -1086,11 +1312,11 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
 // -------------------------------------------
 
 inline
-void eliminateSeparationSigns(TString &name) {
+void eliminateSeparationSigns(TString &name, int noDashForDot=0) {
   name.ReplaceAll(" ","_");
-  name.ReplaceAll("-","_");
+  //name.ReplaceAll("-","_");
   name.ReplaceAll("+","_");
-  name.ReplaceAll(".","_");
+  if (noDashForDot) name.ReplaceAll(".",""); else name.ReplaceAll(".","_");
   name.ReplaceAll(",","_");
   name.ReplaceAll(";","_");
 }
@@ -1401,6 +1627,15 @@ void CreateDir(const TString &fname, int printDir=1) {
   if (printDir) std::cout << "dir=" << dir << "\n";
   gSystem->mkdir(dir,kTRUE);
 }
+
+//--------------------------------------------------
+
+TCanvas* plotProfiles(TString canvName,
+		      const std::vector<TH2D*> &histosV,
+		      const std::vector<TString> &labelsV,
+		      std::vector<int> *colorsV=NULL,
+		      int do_removeError=1,
+		      std::vector<std::vector<TH1D*>*> *hProfV=NULL);
 
 //--------------------------------------------------
 //--------------------------------------------------

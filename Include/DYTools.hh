@@ -393,7 +393,7 @@ namespace DYTools {
   int findIndexFlat(int massBin, int yBin){
     
     int result = -1;
-    if( massBin < 0 || massBin > nMassBins || yBin < 0 || yBin > nYBins[massBin] )
+    if( massBin < 0 || massBin >= nMassBins || yBin < 0 || yBin >= nYBins[massBin] )
       return result;
     
     result = 0;
@@ -830,12 +830,118 @@ namespace DYTools {
   // 
   // Cross section types
   //
-  typedef enum { _cs_None=0, _cs_preFsr, _cs_preFsrNorm, 
+  typedef enum { _cs_None=0, _cs_spec,
+		 _cs_preFsr, _cs_preFsrNorm,
 		 _cs_preFsrDet, _cs_preFsrDetNorm,
 		 _cs_preFsrDetErr, _cs_preFsrDetNormErr,
 		 _cs_preFsrDetSystErr, _cs_preFsrDetNormSystErr,
 		 _cs_postFsr, _cs_postFsrNorm, 
 		 _cs_postFsrDet, _cs_postFsrDetNorm } TCrossSectionKind_t;
+
+
+  // ---------------------
+
+  inline
+  TCrossSectionKind_t getAbsCSKind(TCrossSectionKind_t normCS) {
+    TCrossSectionKind_t kind = _cs_None;
+    switch(normCS) {
+    case _cs_spec: kind=_cs_spec; break;
+    case _cs_preFsr:
+    case _cs_preFsrNorm: kind=_cs_preFsr; break;
+    case _cs_preFsrDet:
+    case _cs_preFsrDetNorm:
+    case _cs_preFsrDetErr:
+    case _cs_preFsrDetNormErr: 
+    case _cs_preFsrDetSystErr:
+    case _cs_preFsrDetNormSystErr: kind=_cs_preFsrDet; break;
+    case _cs_postFsr:
+    case _cs_postFsrNorm: kind=_cs_postFsr; break;
+    case _cs_postFsrDet:
+    case _cs_postFsrDetNorm: kind=_cs_postFsrDet; break;
+    default:
+      std::cout << "unhandled case in getAbsCSKind\n";
+    }
+    return kind;
+  }
+
+  // ---------------------
+
+  inline 
+  int isAbsoluteCS(TCrossSectionKind_t cs) {
+    int yes=0;
+    switch(cs) {
+    case _cs_spec:
+    case _cs_preFsr:
+    case _cs_preFsrDet:
+    case _cs_postFsr:
+    case _cs_postFsrDet: 
+      yes=1; 
+      break;
+    default: ;
+    }
+    return yes;
+  }
+
+  // ---------------------
+
+  inline 
+  int isNormalizedCS(TCrossSectionKind_t cs) {
+    int yes=0;
+    switch(cs) {
+    case _cs_preFsrNorm:
+    case _cs_preFsrDetNorm:
+    case _cs_postFsrNorm:
+    case _cs_postFsrDetNorm: 
+      yes=1; 
+      break;
+    default: ;
+    }
+    return yes;
+  }
+
+  // ---------------------
+
+  inline 
+  int isFullSpaceCS(TCrossSectionKind_t cs) {
+    int yes=0;
+    switch(cs) {
+    case _cs_preFsr:
+    case _cs_preFsrNorm:
+    case _cs_postFsr:
+    case _cs_postFsrNorm:
+      yes=1; 
+      break;
+    default: ;
+    }
+    return yes;
+  }
+
+  // ---------------------
+
+  inline
+  int isPreFsrCS(TCrossSectionKind_t cs) {
+    int yes=0;
+    switch(cs) {
+    case _cs_spec: yes=-1; break;
+    case _cs_preFsr:
+    case _cs_preFsrNorm: 
+    case _cs_preFsrDet:
+    case _cs_preFsrDetNorm:
+    case _cs_preFsrDetErr:
+    case _cs_preFsrDetNormErr:
+    case _cs_preFsrDetSystErr:
+    case _cs_preFsrDetNormSystErr: yes=1; break;
+    case _cs_postFsr:
+    case _cs_postFsrNorm:
+    case _cs_postFsrDet:
+    case _cs_postFsrDetNorm: yes=0; break;
+    default:
+      std::cout << "unhandled case in isPreFsrCS\n";
+    }
+    return yes;
+  }
+
+  // ---------------------
 
   // 
   // Triggers vs run numbers

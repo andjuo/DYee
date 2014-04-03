@@ -403,8 +403,10 @@ int calcEventEff(const TString confFileName,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST,
-				DYTools::UNREGRESSED_ENERGY))
+    if (!DYTools::checkSystMode(systMode,debug_print,6, DYTools::NO_SYST,
+				DYTools::UNREGRESSED_ENERGY,
+				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
+				DYTools::FSR_5plus, DYTools::FSR_5minus))
       return retCodeError;
   }
 
@@ -426,6 +428,7 @@ int calcEventEff(const TString confFileName,
   TString puStr;
 
   //HERE("\n\tCalling initManagers\n");
+  std::cout << "initManagers is called insisting NO_SYST\n";
   if (!initManagers(confFileName,DYTools::NORMAL_RUN,inpMgr,evtSelector,
 		    puStr,1, DYTools::NO_SYST)) {
     std::cout << "failed to initialize managers\n";
@@ -1579,6 +1582,10 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
   EventWeight_t evWeight;
   evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
 
+  double specWeight=1.;
+  if (systMode==DYTools::FSR_5plus) specWeight=1.05;
+  else if (systMode==DYTools::FSR_5minus) specWeight=0.95;
+
 #ifdef esfSelectEventsIsObject
   esfSelectEvent_t::Class()->IgnoreTObjectStreamer();
 #endif
@@ -1711,6 +1718,9 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	  evWeight.setPUWeight(countGoodVertices(accessInfo.getPVArr()));
 	}
 
+	// just save the info
+	int eventWithLargeFSR=evWeight.setSpecWeightValue(accessInfo,1.,specWeight);
+
 	//std::cout << "ientry=" << ientry << ", totalWeight=" << evWeight.totalWeight() << "\n";
 	/*
 	if (0 || (ientry%20000==0)) {
@@ -1805,7 +1815,9 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 
 	  const int isData=0;
 	  //selData.assign(accessInfo,isData,i,evWeight.totalWeight());
-	  selData.assign(dielectron,accessInfo.genPtr(),accessInfo.getNPV(isData),evWeight.totalWeight());
+	  selData.assign(dielectron,accessInfo.genPtr(),
+			 accessInfo.getNPV(isData),evWeight.totalWeight(), 
+			 eventWithLargeFSR);
 
 	  skimTree->Fill();
 	} // end loop over dielectrons

@@ -4,7 +4,10 @@
 #include "../Include/DYTools.hh"
 #include "../Include/MyTools.hh"
 #include "../Include/BaseClass.hh"
-
+//
+// Note that randomizeWithinErr requires that <TRandom.h> or similar
+// is included above "HistoPair.hh"
+//
 
 // ---------------------------------------------
 
@@ -52,7 +55,34 @@ public:
   int getNrows() const { return fHisto->GetNbinsX(); }
   int getNcols() const { return fHisto->GetNbinsY(); }
 
+  // for compatibility with TH2D*
+  int GetNbinsX() const { return fHisto->GetNbinsX(); }
+  int GetNbinsY() const { return fHisto->GetNbinsY(); }
+  void Reset() { fHisto->Reset(); fHistoSystErr->Reset(); }
+
   TString GetName() const { return fHisto->GetName(); }
+
+
+  // ----------------
+
+  void swapPtrs(HistoPair2D_t &hp) {
+    TH2D* htmp=fHisto;  fHisto=hp.fHisto;  hp.fHisto=htmp;
+    htmp=fHistoSystErr; fHistoSystErr=hp.fHistoSystErr; hp.fHistoSystErr=htmp;
+  }
+
+  // ----------------
+
+  void swapHistoPtr(TH2D **h2) {
+    TH2D* htmp=fHisto;  fHisto=*h2; (*h2)=htmp;
+  }
+
+  // ----------------
+
+  int eliminateNaNs() {
+    int count1=eliminateNaNs2D(fHisto,0.,0.);
+    int count2=eliminateNaNs2D(fHistoSystErr,0.,0.);
+    return (count1+count2);
+  }
 
   // ----------------
 
@@ -97,6 +127,12 @@ public:
   void setBinError(int ibin1, int ibin2, double value) { fHisto->SetBinError(ibin1,ibin2, value); }
   void setBinSystError(int ibin1, int ibin2, double value) { fHistoSystErr->SetBinError(ibin1,ibin2, value); }
 
+  // for compatibility with TH2D*
+  double GetBinContent(int bin1, int bin2) const { return fHisto->GetBinContent(bin1,bin2); }
+  double GetBinError  (int bin1, int bin2) const { return fHisto->GetBinError(bin1,bin2); }
+  void SetBinContent(int bin1, int bin2, double x) { fHisto->SetBinContent(bin1,bin2,x); }
+  void SetBinError(int bin1, int bin2, double xerr) { fHisto->SetBinError(bin1,bin2,xerr); }
+
   // ----------------
 
   int cloneHisto(TH2D* h, int setTitle=1) {
@@ -104,6 +140,37 @@ public:
     if (fHisto) delete fHisto;
     fHisto=Clone(h,hname,setTitle);
     return (fHisto) ? 1:0;
+  }
+
+  // ----------------
+
+  int randomizeWithinErr(const HistoPair2D_t &hpBase, int systErr) {
+    if (!this->chkSameDim(hpBase.histo())) return reportError("randomizeWithinErr");
+    const TH2D *hErr=(!systErr) ? hpBase.fHisto : hpBase.fHistoSystErr;
+    for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	double x= hpBase.fHisto->GetBinContent(ibin,jbin);
+	double e= hErr->GetBinError(ibin,jbin);
+	fHisto->SetBinContent(ibin,jbin, gRandom->Gaus(x,e));
+      }
+    }
+    return 1;
+  }
+
+  // ----------------
+
+  TH2D* randomizedWithinErr(int systErr, TString newName) const {
+    TH2D *hRnd= Clone(fHisto,newName,newName);
+    hRnd->Reset();
+    const TH2D *hErr=(!systErr) ? fHisto : fHistoSystErr;
+    for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	double x= fHisto->GetBinContent(ibin,jbin);
+	double e= hErr->GetBinError(ibin,jbin);
+        hRnd->SetBinContent(ibin,jbin, gRandom->Gaus(x,e));
+      }
+    }
+    return hRnd;
   }
 
   // ----------------
@@ -278,20 +345,25 @@ public:
   //             = ( (dB_syst)^2 + A^2 (dC_tot)^2 ) /C^2
   //
 
-  int divide(const HistoPair2D_t &p, const TH2D *h2) {
+  int divide(const HistoPair2D_t &p, const TH2D *h2, int excludeH2Error=0) {
     //if (!h2) std::cout << "h2 is null" << std::endl; else std::cout << "h2 ok" << std::endl;
     //printHisto(h2);
     TH2D *h2tmp=Clone(h2,h2->GetName() + TString("tmp"),"");
-    removeError(h2tmp);
+    removeError(h2tmp); // error will be considered separately
     fHisto->Divide(p.fHisto,h2tmp);
     // evaluate systErr
-    for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
-      for (int jbin=1; jbin<=fHistoSystErr->GetNbinsY(); ++jbin) {
-	const double term1= p.fHistoSystErr->GetBinError(ibin,jbin);
-	const double term2= this->fHisto->GetBinContent(ibin,jbin) * h2->GetBinError(ibin,jbin);
-	const double division=h2->GetBinContent(ibin,jbin);
-	fHistoSystErr->SetBinContent(ibin,jbin, 0.);
-	fHistoSystErr->SetBinError(ibin,jbin, sqrt( term1*term1 + term2*term2 )/division );
+    if (excludeH2Error) {
+      fHistoSystErr->Divide(p.fHistoSystErr,h2tmp);
+    }
+    else {
+      for (int ibin=1; ibin<=fHistoSystErr->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHistoSystErr->GetNbinsY(); ++jbin) {
+	  const double term1= p.fHistoSystErr->GetBinError(ibin,jbin);
+	  const double term2= this->fHisto->GetBinContent(ibin,jbin) * h2->GetBinError(ibin,jbin);
+	  const double division=h2->GetBinContent(ibin,jbin);
+	  fHistoSystErr->SetBinContent(ibin,jbin, 0.);
+	  fHistoSystErr->SetBinError(ibin,jbin, sqrt( term1*term1 + term2*term2 )/division );
+	}
       }
     }
     return 1;
@@ -300,7 +372,84 @@ public:
 
   // ----------------
 
-  double ZpeakCount(double *err=NULL) { return ::ZpeakCount(fHisto,err); }
+  // if r=a/b,  (dr)^2/r^2 = (da)^2/a^2 + (db)^2/b^2
+  // if (dr)^2=(dr)_stat^2 + (dr)_syst^2
+  // Statistical and systematical errors are kept separate
+  // see also divide_allErrSyst
+
+  int divide(double norm, double normErr, double normSystErr) {
+    if (norm==double(0)) {
+      return reportError("divide(norm,normErr,normSystErr): norm=0");
+    }
+    fHisto->Scale(1./norm);
+    fHistoSystErr->Scale(1./norm);
+    double eSqrStat=normErr*normErr;
+    double eSqrSyst=normSystErr*normSystErr;
+    if (eSqrStat!=double(0)) {
+      // add the extra systematic error
+      eSqrStat/=(norm*norm);
+      for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	  double val = fHisto->GetBinContent(ibin,jbin);
+	  double baseStat= fHisto->GetBinError(ibin,jbin);
+	  double newErrStatSqr=baseStat*baseStat + val*val*eSqrStat;
+	  fHisto->SetBinError(ibin,jbin, sqrt(newErrStatSqr));
+	}
+      }
+    }
+    if (eSqrSyst!=double(0)) {
+      // add the extra systematic error
+      eSqrSyst/=(norm*norm);
+      for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	  double val = fHisto->GetBinContent(ibin,jbin);
+	  double baseSyst= fHistoSystErr->GetBinError(ibin,jbin);
+	  double newErrSystSqr=baseSyst*baseSyst + val*val*eSqrSyst;
+	  fHistoSystErr->SetBinError(ibin,jbin, sqrt(newErrSystSqr));
+	}
+      }
+    }
+    return 1;
+  }
+
+  // ----------------
+
+  // if r=a/b,  (dr)^2/r^2 = (da)^2/a^2 + (db)^2/b^2
+  // if (dr)^2=(dr)_stat^2 + (dr)_syst^2
+  // and (dr)_stat= (da)_stat/b,
+  // then (dr)_syst^2 = (da)_syst^2/b^2 + (r/b)^2 (db)^2
+
+  int divide_allErrSyst(double norm, double normErr, double normSystErr) {
+    if (norm==double(0)) {
+      return reportError("divide_allErrSyst(norm,normErr,normSystErr): norm=0");
+    }
+    fHisto->Scale(1./norm);
+    fHistoSystErr->Scale(1./norm);
+    double eSqr=normErr*normErr + normSystErr*normSystErr;
+    if (eSqr!=double(0)) {
+      // add the extra systematic error
+      eSqr/=(norm*norm);
+      for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	  double val = fHisto->GetBinContent(ibin,jbin);
+	  double base= fHistoSystErr->GetBinError(ibin,jbin);
+	  double newErrSqr=base*base + val*val*eSqr;
+	  fHistoSystErr->SetBinError(ibin,jbin, sqrt(newErrSqr));
+	}
+      }
+    }
+    return 1;
+  }
+
+  // ----------------
+
+  double ZpeakCount(double *err=NULL) const { return ::ZpeakCount(fHisto,err); }
+
+  double ZpeakCountSystErr() const { 
+    double systErr=0.;
+    ::ZpeakCount(fHistoSystErr,&systErr);
+    return systErr;
+  }
 
   // ----------------
 
@@ -486,8 +635,9 @@ public:
 
   // ----------------
 
-  void print() const {
-    printHistoErr(this->fHisto, this->fHistoSystErr);
+  void print(int maxLines=-1) const {
+    int exponent=0;
+    printHistoErr(this->fHisto, this->fHistoSystErr, exponent, maxLines);
   }
 
   // ----------------
@@ -508,6 +658,41 @@ HistoPair2D_t* getDiff(const TString &nameBase,
 }
 
 // ---------------------------------------------
+// ---------------------------------------------
+
+inline 
+TH2D* getRelDifference(const std::vector<HistoPair2D_t*> &hpV, 
+		       TString newName, int includeVariants) {
+  std::vector<const TH2D*> vec;
+  for (unsigned int i=0; i<hpV.size(); ++i) {
+    if (hpV[i]) vec.push_back(hpV[i]->histo());
+    else std::cout << "getRelDifference(vec<HistoPair*>: null ptr\n";
+  }
+  TH2D* h2Diff=getRelDifference(vec,newName,includeVariants);
+  if (!h2Diff) std::cout << "error in getRelDifference(vec<HistoPair*>)\n";
+  return h2Diff;
+}
+
+// ---------------------------------------------
+// ---------------------------------------------
+
+inline void printHisto(const HistoPair2D_t &hp, int maxLines=-1) { hp.print(maxLines); }
+
+// ---------------------------------------------
+// ---------------------------------------------
+
+inline
+int createRandomizedVec(const HistoPair2D_t &hp, int iSyst, int nExps, TString nameBase, std::vector<TH2D*> &vecRnd) {
+  vecRnd.clear();
+  const char *str=(iSyst) ? "syst" : "stat";
+  for (int iexp=0; iexp<nExps; ++iexp) {
+    TString newName=Form("%s%s_%d",nameBase.Data(),str,iexp);
+    TH2D *hRnd=hp.randomizedWithinErr(iSyst,newName);
+    vecRnd.push_back( hRnd );
+  }
+  return 1;
+}
+
 // ---------------------------------------------
 
 

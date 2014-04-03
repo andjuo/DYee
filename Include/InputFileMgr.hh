@@ -344,14 +344,20 @@ public:
   }
 
   // signalYieldFullName is based on yield dir
-  TString signalYieldFullFileName(DYTools::TSystematicsStudy_t systMode, int ignoreDebugRunFlag, int createDir=0) const {
+  TString signalYieldFullFileName(DYTools::TSystematicsStudy_t systMode, 
+				  int ignoreDebugRunFlag, int createDir=0, 
+				  int systematicsFile=0) const {
     TString fname=yieldFullFileName(-1,systMode,createDir);
     if (ignoreDebugRunFlag) fname.ReplaceAll("_DebugRun","");
     const TString target="all_yield";
     Ssiz_t pos=fname.Index(target);
     if (fname.Index(target,pos+1)!=-1) pos=fname.Index(target,pos+1);
     if (pos==-1) { reportError("signalYieldFullName: failed to form a file name"); fname="error.root"; }
-    else fname.Replace(pos,target.Length(),"bg-subtracted_yield");
+    else {
+      TString changeTo="bg-subtracted_yield";
+      if (systematicsFile) changeTo.Append("Syst");
+      fname.Replace(pos,target.Length(),changeTo);
+    }
     return fname;
   }
 
@@ -365,6 +371,23 @@ public:
     TString dir=resultBaseDir("xsec",systMode);
     if (createDir) CreateDir(dir,1);
     return dir;
+  }
+
+  TString crossSectionFullFileName(DYTools::TSystematicsStudy_t systMode,
+				   DYTools::TCrossSectionKind_t csKind,
+				   int createDir=0,
+				   int systematicsFile=0) const {
+    if (createDir) TString path= crossSectionDir(systMode,createDir);
+    TString fname=this->nTupleFullFileName(-1,systMode,0);
+    fname.ReplaceAll("/select/","/xsec/");
+    TString target="all_select";
+    TString changeTo=TString("xSec_") + CrossSectionKindName(csKind);
+    if (systematicsFile) changeTo.Append("Syst");
+    Ssiz_t pos=fname.Index(target);
+    if (pos!=-1) fname.Replace(pos,target.Length(),changeTo);
+    //fname.Prepend(path);
+    return fname;
+    
   }
 
   TString theoryDir(DYTools::TSystematicsStudy_t systMode, int createDir=0) const {
