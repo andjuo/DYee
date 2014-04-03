@@ -8,14 +8,26 @@
 void plotEtEtaPairs(int idx) {
   TString fname="rhoFileSF_nMB41_RamiUnregEn_100.root";
   TString etEtaString="EtBins6EtaBins5";
+  TString mbIdx;
+
   if (DYTools::study2D==1) {
     fname.ReplaceAll("nMB41","nMB7");
+    int im=idx/24;
+    int iy=idx-im*24;
+    double dy=(im==6) ? 0.2 : 0.1;
+    mbIdx=Form("etEtaPairs_Mlo_%1.0lf_ylo_%3.1lf",
+	       DYTools::_massBinLimits2D[im], iy*dy);
   }
+  else {
+    mbIdx=Form("etEtaPairs_M_%1.0lf_%1.0lf",DYTools::_massBinLimits2012[idx],
+	       DYTools::_massBinLimits2012[idx+1]);
+  }
+  std::cout << "idx=" << idx << ", mbIdx=" << mbIdx << "\n";
 
-  TString mbIdx=Form("etEtaPairs_mfidx_%d",idx);
 
   TFile fin(fname,"read");
-  TMatrixD *M=(TMatrixD*)fin.Get(mbIdx);
+  TString field=Form("etEtaPairs_mfidx_%d",idx);
+  TMatrixD *M=(TMatrixD*)fin.Get(field);
   fin.Close();
   if (!M) {
     std::cout << "Failed to load " << mbIdx << "\n";
@@ -81,6 +93,7 @@ void plotEtEtaPairs(int idx) {
   h2trail->Draw("COLZ");
   cx2->Update();
 
+  eliminateSeparationSigns(mbIdx,1);
   TString cfname =TString("fig-sum-") + mbIdx;
   TString cfname1=TString("fig-lead-") + mbIdx;
   TString cfname2=TString("fig-trail-") + mbIdx;
