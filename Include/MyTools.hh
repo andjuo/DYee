@@ -1570,8 +1570,26 @@ TH2D* Clone(const TH2D* histo, const TString &newName, int setTitle=0) {
 //   If the axes are divided at integers (e.g. indices are used), the option
 // resetAxis=1 might be useful. It ignores
 // the actual values of the original axes.
-TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle=0, int resetAxis=0); 
+TH2D* extractSubArea(const TH2D *histoSrc,
+		     int xbin1, int xbin2, int ybin1, int ybin2,
+		     const TString &newName, int setTitle=0, int resetAxis=0);
 
+//--------------------------------------------------
+
+inline
+TH2D* clipToAnalysisUnfBins(const TH2D *histoSrc, TString newName,
+			    TString histoTitle, int resetAxis=0) {
+  int rangeMin=(DYTools::study2D) ? (DYTools::_nBinsYLowMass+1)  : 1;
+  int rangeMax=
+    (DYTools::study2D) ? DYTools::nUnfoldingBins : DYTools::nMassBins;
+  TH2D* h2=extractSubArea(histoSrc,rangeMin,rangeMax,rangeMin,rangeMax,
+			  newName,0,resetAxis);
+  if (histoTitle.Length()) h2->SetTitle(histoTitle);
+  if (!h2) std::cout << "error in clipToAnalysisUnfBins\n";
+  return h2;
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 inline

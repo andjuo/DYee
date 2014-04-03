@@ -833,7 +833,9 @@ int LoadThreeMatrices(const TString &fileName, TH2D **h2, TH2D **h2syst, const T
 
 
 inline
-TH2D* extractSubArea(TH2D *histo, int xbin1, int xbin2, int ybin1, int ybin2, const TString &newName, int setTitle, int resetAxis) {
+TH2D* extractSubArea(const TH2D *histo,
+		     int xbin1, int xbin2, int ybin1, int ybin2,
+		     const TString &newName, int setTitle, int resetAxis) {
   int nXBins=histo->GetNbinsX();
   int nYBins=histo->GetNbinsY();
   if ((xbin1==0) || (ybin1==0) ||
