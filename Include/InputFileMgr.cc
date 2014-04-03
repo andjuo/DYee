@@ -3,6 +3,9 @@
 #include <sstream>
 #include "../Include/InputFileMgr.hh"
 //#include "../Include/DYTools.hh"
+
+// a file with a function returning the default configuration file names
+#include "../Include/InputFileMgr_defaultFiles.hh"
  
 // -----------------------------------------------------------
 // -----------------------------------------------------------
@@ -240,7 +243,7 @@ std::string InputFileMgr_t::userKeyValue(const std::string &key_input) const {
 
 // -----------------------------------------------------------
 
-int InputFileMgr_t::Load(const TString &inputfname, 
+int InputFileMgr_t::Load(const TString &inputfname_inp,
 			 TDescriptiveInfo_t *TnPSection) {
   const int c_Start=0;
   const int c_Defs=c_Start+1;
@@ -249,6 +252,11 @@ int InputFileMgr_t::Load(const TString &inputfname,
   const int c_Data=c_TnP+1;
   const int c_Bkg=c_Data+1;
   const int c_MCfiles=c_Bkg+1;
+
+  TString inputfname=inputfname_inp;
+#ifdef InputFileMgr_defaultFile_HH
+  inputfname=getDefaultFileName(inputfname_inp);
+#endif
 
   std::ifstream ifs;
   ifs.open(inputfname.Data());
