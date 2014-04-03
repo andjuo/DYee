@@ -1312,11 +1312,11 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
 // -------------------------------------------
 
 inline
-void eliminateSeparationSigns(TString &name) {
+void eliminateSeparationSigns(TString &name, int noDashForDot=0) {
   name.ReplaceAll(" ","_");
   //name.ReplaceAll("-","_");
   name.ReplaceAll("+","_");
-  name.ReplaceAll(".","_");
+  if (noDashForDot) name.ReplaceAll(".",""); else name.ReplaceAll(".","_");
   name.ReplaceAll(",","_");
   name.ReplaceAll(";","_");
 }
