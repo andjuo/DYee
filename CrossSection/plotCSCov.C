@@ -542,27 +542,23 @@ void plotTotCov(TCovData_t &dt) {
     TCanvas *cx= new TCanvas(cName,cName, 750,700);
     AdjustFor2DplotWithHeight(cx);
     TString explain;
+    TMatrixD *plotMatrix=NULL;
+    int removePlotMatrix=0;
+    TString histoName,histoTitle;
 
     if (iCorr==0) {
       //set_nice_style(51);
       gStyle->SetPalette(1);
-      totalCov->Draw("COLZ");
-      explain="Total covariance ";
+      plotMatrix=totalCov; removePlotMatrix=0;
+      histoName="hCov";
+      histoTitle="Total covariance";
     }
     else if (iCorr==1) {
       gStyle->SetPalette(1);
-      TMatrixD *corr= corrFromCov( *totalCov );
-      TString histoName=TString("hCorr");
-      TString histoTitle=TString("Total correlations");
-      if (0) {
-	TH2D* h2=createHisto2D(*corr,NULL,histoName,histoTitle,_colrange_center,0,1.0001);
-	h2->Draw("COLZ");
-      }
-      else {
-	corr->Draw("COLZ");
-      }
-      delete corr;
-      //explain="Correlation ";
+      plotMatrix= corrFromCov( *totalCov );
+      removePlotMatrix=1;
+      histoName=TString("hCorr");
+      histoTitle=TString("Total correlations");
     }
     else if (iCorr==3) {
       TString csFileName="../root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1DpreFsrFullSp.root";
@@ -589,9 +585,9 @@ void plotTotCov(TCovData_t &dt) {
 	csV(39)*=10;
 	csV(40)=70;
       }
-      TMatrixD *covDivCS=relativeCov(csV,*totalCov);
-      if (!covDivCS) return;
-      covDivCS->Draw("COLZ");
+      plotMatrix=relativeCov(csV,*totalCov);
+      removePlotMatrix=1;
+      if (!plotMatrix) return;
       if (0) { // check
 	std::cout << "check the numbers\n";
 	printHisto(h2);
@@ -602,13 +598,28 @@ void plotTotCov(TCovData_t &dt) {
 	std::cout << "total covariance\n";
 	printMatrix("totalCov",*totalCov,1);
 	std::cout << "relative covariance\n";
-	printMatrix("covDivCS",*covDivCS,1);
+	printMatrix("covDivCS",*plotMatrix,1);
       }
-      delete covDivCS;
       delete csValAsM;
       delete h2;
-      explain="Partial covariance\n";
+      histoName="hPartCov";
+      histoTitle="Partial covariance";
     }
+
+    TH2D* h2=createHisto2D(*plotMatrix,NULL,
+			   histoName+TString("_base"),
+			   histoTitle+TString("_base"),
+			   _colrange_none,0,1.0001);
+
+    TH2D* h2save=clipToAnalysisUnfBins(h2,histoName,histoTitle,1); // reset axis!
+    /*
+    int rangeMin=(DYTools::study2D) ? 25  : 1;
+    int rangeMax=(DYTools::study2D) ? 156 : DYTools::nMassBins;
+    TH2D *h2save=extractSubArea(h2,rangeMin,rangeMax,rangeMin,rangeMax,histoName,0,1); // reset axis!
+    h2save->SetTitle(histoTitle);
+    */
+    h2save->Draw("COLZ");
+
     if (explain.Length()) {
       TText *txt=new TText();
       txt->DrawTextNDC(0.25,0.93,explain);
