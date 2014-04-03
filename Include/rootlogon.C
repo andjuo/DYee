@@ -1,4 +1,6 @@
-{  
+{
+
+  gROOT->ProcessLine(".L ../Include/DYTools.cc+");
 
   // Load "MIT Style" plotting
   gROOT->Macro("../Include/MitStyleRemix.cc+");
@@ -17,9 +19,6 @@
   gROOT->ProcessLine(".L ../Include/EleIDCuts.hh+");
   gROOT->ProcessLine(".L ../Include/JsonParser.cc+");
 
-  gROOT->ProcessLine(".L ../Include/DYTools.hh+");
-  gROOT->ProcessLine(".L ../Include/DYToolsUI.hh+");
-
   gROOT->ProcessLine(".L ../Include/TriggerSelection.hh+");
   gROOT->ProcessLine(".L ../Include/FEWZ.cc+");
   gROOT->ProcessLine(".L ../Include/PUReweight.cc+");
@@ -30,19 +29,7 @@
   gROOT->ProcessLine(".L ../Include/MyTools.cc+");
   gROOT->ProcessLine(".L ../Include/InputFileMgr.cc+");
 
-  ////gROOT->ProcessLine(".L ../Include/EtaEtaMass.hh+");
-
   gROOT->ProcessLine(".L ../Include/ElectronEnergyScale.cc+");
   gROOT->ProcessLine(".L ../Include/EventSelector.cc+");
-  /*
-  */
-  /*
-
-  gROOT->ProcessLine(".L ../Unfolding/UnfoldingTools.C+");
-  gROOT->ProcessLine(".L ../Include/plotFunctions.cc+");
-  gROOT->ProcessLine(".L ../Include/latexPrintouts.cc+");
-  */
-
-  //gROOT->ProcessLine(".L ../YieldsAndBackgrounds/plotFunctionsPrepareYields.C+");
 
 }

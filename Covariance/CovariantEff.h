@@ -1,7 +1,6 @@
 #ifndef CovariantEff_H
 #define CovariantEff_H
 
-#include "../Include/DYToolsUI.hh"
 #include "../EventScaleFactors/calcEventEff.C"
 #include "CovariantMatrix.hh"
 

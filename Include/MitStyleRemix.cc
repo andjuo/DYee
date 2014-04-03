@@ -78,7 +78,7 @@ void InitHist(TH1 *hist, const char *xtit, const char *ytit, EColor color)
   // Strangely enough this cannot be set anywhere else??
   hist->GetYaxis()->SetTitleFont(42);
   hist->GetXaxis()->SetTitleFont(42);
-  hist->SetTitle("");  
+  hist->SetTitle("");
   return;
 }
 

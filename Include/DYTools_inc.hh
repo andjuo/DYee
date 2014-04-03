@@ -1,15 +1,14 @@
 #ifndef DYToolsUI_HH
 #define DYToolsUI_HH
 
-#include "../Include/DYTools.hh"
-#include <stdarg.h>
-
+//#include "../Include/DYTools.hh"
+//#include <stdarg.h>
 
 // ------------------------------------------------------------------
 //   Names and recognition
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString MassBinningName(DYTools::TMassBinning_t set) {
   using namespace DYTools;
   TString name;
@@ -30,7 +29,7 @@ TString MassBinningName(DYTools::TMassBinning_t set) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString CurrentMassBinningName() {
   return MassBinningName(DYTools::massBinningSet);
 }
@@ -38,7 +37,7 @@ TString CurrentMassBinningName() {
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   using namespace DYTools;
   TString name;
@@ -80,18 +79,18 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
 
 // ------------------------------------------------------------------
 
-inline
-TString generateSystTag(DYTools::TSystematicsStudy_t systMode) { 
+//inline
+TString generateSystTag(DYTools::TSystematicsStudy_t systMode) {
   TString tag;
   if (systMode!=DYTools::NO_SYST) {
     tag=TString("_") + SystematicsStudyName(systMode);
   }
-  return tag; 
+  return tag;
 }
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString RunModeName(DYTools::TRunMode_t study) {
   using namespace DYTools;
   TString name;
@@ -107,7 +106,7 @@ TString RunModeName(DYTools::TRunMode_t study) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TRunMode_t DebugInt2RunMode(int debug) {
   using namespace DYTools;
   TRunMode_t runMode=NO_RUN;
@@ -120,16 +119,16 @@ DYTools::TRunMode_t DebugInt2RunMode(int debug) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString generateRunTag(DYTools::TRunMode_t runMode) {
   TString tag= (runMode==DYTools::NORMAL_RUN) ? "" : RunModeName(runMode);
-  return tag; 
+  return tag;
 }
 
 // ------------------------------------------------------------------
 
-inline
-TString TnPMethodName(DYTools::TTnPMethod_t method) { 
+//inline
+TString TnPMethodName(DYTools::TTnPMethod_t method) {
   using namespace DYTools;
   TString name;
   switch(method) {
@@ -143,7 +142,7 @@ TString TnPMethodName(DYTools::TTnPMethod_t method) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString EfficiencyKindName(DYTools::TEfficiencyKind_t kind) {
   using namespace DYTools;
   TString name;
@@ -161,7 +160,7 @@ TString EfficiencyKindName(DYTools::TEfficiencyKind_t kind) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString EtBinSetName(DYTools::TEtBinSet_t set) {
   using namespace DYTools;
   TString name;
@@ -187,7 +186,7 @@ TString EtBinSetName(DYTools::TEtBinSet_t set) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString EtaBinSetName(DYTools::TEtaBinSet_t set) {
   using namespace DYTools;
   TString name;
@@ -222,7 +221,7 @@ TString EtaBinSetName(DYTools::TEtaBinSet_t set) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString DataKindName(DYTools::TDataKind_t kind) {
   using namespace DYTools;
   TString name;
@@ -237,7 +236,7 @@ TString DataKindName(DYTools::TDataKind_t kind) {
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   using namespace DYTools;
   DYTools::TSystematicsStudy_t study=NO_SYST;
@@ -279,7 +278,7 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TTnPMethod_t DetermineTnPMethod(const TString &str) {
   using namespace DYTools;
   DYTools::TTnPMethod_t method=COUNTnCOUNT;
@@ -295,7 +294,7 @@ DYTools::TTnPMethod_t DetermineTnPMethod(const TString &str) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TEfficiencyKind_t DetermineEfficiencyKind(const TString &str) {
   using namespace DYTools;
   DYTools::TEfficiencyKind_t kind=RECO;
@@ -316,7 +315,7 @@ DYTools::TEfficiencyKind_t DetermineEfficiencyKind(const TString &str) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TEtBinSet_t DetermineEtBinSet(const TString& str) {
   using namespace DYTools;
   DYTools::TEtBinSet_t kind=ETBINS1;
@@ -340,7 +339,7 @@ DYTools::TEtBinSet_t DetermineEtBinSet(const TString& str) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TEtaBinSet_t DetermineEtaBinSet(const TString& str) {
   using namespace DYTools;
   DYTools::TEtaBinSet_t kind=ETABINS1;
@@ -372,7 +371,7 @@ DYTools::TEtaBinSet_t DetermineEtaBinSet(const TString& str) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TDataKind_t DetermineDataKind(const TString &str) {
   using namespace DYTools;
   DYTools::TDataKind_t kind=DATA;
@@ -390,7 +389,7 @@ DYTools::TDataKind_t DetermineDataKind(const TString &str) {
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString CrossSectionKindName(DYTools::TCrossSectionKind_t kind) {
   using namespace DYTools;
   TString name;
@@ -418,7 +417,7 @@ TString CrossSectionKindName(DYTools::TCrossSectionKind_t kind) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 DYTools::TCrossSectionKind_t DetermineCrossSectionKind(const TString &str) {
   using namespace DYTools;
   DYTools::TCrossSectionKind_t kind = _cs_None;
@@ -445,7 +444,7 @@ DYTools::TCrossSectionKind_t DetermineCrossSectionKind(const TString &str) {
 
 // ------------------------------------------------------------------
 
-inline
+//inline
 TString CrossSectionKindLongName(DYTools::TCrossSectionKind_t kind) {
   using namespace DYTools;
   TString name;
@@ -476,7 +475,7 @@ TString CrossSectionKindLongName(DYTools::TCrossSectionKind_t kind) {
 // ------------------------------------------------------------------
 //     Printing
 // ------------------------------------------------------------------
-
+/*
 inline std::ostream& operator<<(std::ostream& out, DYTools::TMassBinning_t massBinning) { out << MassBinningName(massBinning); return out; }
 inline std::ostream& operator<<(std::ostream& out, DYTools::TSystematicsStudy_t study) { out << SystematicsStudyName(study); return out; }
 inline std::ostream& operator<<(std::ostream& out, DYTools::TRunMode_t mode) { out << RunModeName(mode); return out; }
@@ -486,13 +485,13 @@ inline std::ostream& operator<<(std::ostream& out, DYTools::TEtBinSet_t set) { o
 inline std::ostream& operator<<(std::ostream& out, DYTools::TEtaBinSet_t set) { out << EtaBinSetName(set); return out; }
 inline std::ostream& operator<<(std::ostream& out, DYTools::TDataKind_t kind) { out << DataKindName(kind); return out; }
 inline std::ostream& operator<<(std::ostream& out, DYTools::TCrossSectionKind_t kind) { out << CrossSectionKindName(kind); return out; }
-
+*/
 
 // ------------------------------------------------------------------
 // ------------------------------------------------------------------
 
 namespace DYTools {
-  inline 
+  //inline
   void printRunMode(TRunMode_t mode) {
     std::cout << "\nRun Mode: ";
     switch(mode) {
@@ -510,7 +509,7 @@ namespace DYTools {
 // ------------------------------------------------------------------
 
 namespace DYTools {
-  inline 
+  //inline
   void printSystMode(TSystematicsStudy_t study) {
     std::cout << "Sytematics: " << SystematicsStudyName(study) << "\n";
     return;
@@ -520,7 +519,7 @@ namespace DYTools {
 // ------------------------------------------------------------------
 
 namespace DYTools {
-  inline 
+  //inline
   void printExecMode(TRunMode_t mode, TSystematicsStudy_t study) {
     printRunMode(mode);
     printSystMode(study);
@@ -531,7 +530,7 @@ namespace DYTools {
 // ------------------------------------------------------------------
 
 namespace DYTools {
-  inline 
+  //inline
   bool checkSystMode(DYTools::TSystematicsStudy_t mode, int debug_print, int nEntries, ...) {
     if (debug_print) std::cout << "\n\ncheckSystMode: Syst mode = " << SystematicsStudyName(mode) << "\n";
     bool ok=false;
@@ -551,7 +550,7 @@ namespace DYTools {
 // ------------------------------------------------------------------
 
 namespace DYTools {
-  inline 
+  //inline
   bool checkCSKind(DYTools::TCrossSectionKind_t kind, int debug_print, int nEntries, ...) {
     if (debug_print) std::cout << "\n\ncheckCSKind: Syst mode = " << CrossSectionKindName(kind) << "\n";
     bool ok=false;
@@ -571,11 +570,11 @@ namespace DYTools {
 // ------------------------------------------------------------------
 /*
 namespace DYTools {
-  inline 
+  //inline
   bool checkSystMode(DYTools::TSystematicsStudy_t mode, int nEntries, const DYTools::TSystematicsStudy_t *allowedModes, int print) {
     if (print) std::cout << "\n\ncheckSystMode: Syst mode = " << SystematicsStudyName(mode) << "\n";
     bool ok=false;
-    for (int i=0; !ok && (i<nEntries); ++i) 
+    for (int i=0; !ok && (i<nEntries); ++i)
       ok=(allowedModes[i]==mode) ? true : false;
     return ok;
   }
@@ -584,11 +583,11 @@ namespace DYTools {
 // ------------------------------------------------------------------
 
 namespace DYTools {
-  inline 
+  //inline
   bool checkSystMode(DYTools::TSystematicsStudy_t mode, const std::vector<DYTools::TSystematicsStudy_t> &allowedModes, int print) {
     if (print) std::cout << "\n\ncheckSystMode: Syst mode = " << SystematicsStudyName(mode) << "\n";
     bool ok=false;
-    for (unsigned int i=0; !ok && (i<allowedModes.size()); ++i) 
+    for (unsigned int i=0; !ok && (i<allowedModes.size()); ++i)
       ok=(allowedModes[i]==mode) ? true : false;
     return ok;
   }

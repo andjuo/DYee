@@ -35,7 +35,6 @@ using namespace std;
 #include "../Include/MitStyleRemix.hh"  // style settings for drawing
 #include "../Include/MyTools.hh"        // miscellaneous helper functions
 #include "../Include/DYTools.hh"
-#include "../Include/DYToolsUI.hh"
 #include "../Include/TriggerSelection.hh"
 
 // define structures to read in ntuple

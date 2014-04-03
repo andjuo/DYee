@@ -8,12 +8,9 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-//#include "../Include/DYToolsUI.hh"
 #include "../Include/BaseClass.hh"
 #include "../Include/MyTools.hh"
 #include "../Include/DYTools.hh"
-#include "../Include/DYToolsUI.hh"
-//#include "../Include/CPlot.hh"
 
 // --------------------------------------------------------
 // --------------------------------------------------------
@@ -511,7 +508,7 @@ public:
     std::string ver=this->userKeyValue("DDBkgVersion");
     if (ver.size()) fnameBase.Append(TString("_") + TString(ver.c_str()));
     TString fname=dir + fnameBase + 
-      TString(Form("_%s.root",DYTools::study2Dstr.Data()));
+      TString(Form("_%dD.root",DYTools::study2D+1));
     return fname;
   }
 

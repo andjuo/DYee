@@ -37,17 +37,8 @@
 #include "../Include/ZeeData.hh"
 
 #include "../Include/ElectronEnergyScale.hh"        // energy scale correction
-
 #include "../Include/DYTools.hh"
-#include "../Include/DYToolsUI.hh"
-//#include "../Include/plotFunctions.hh"
-//#include "../Include/PUReweight.hh"
-//#include "../Include/UnfoldingTools.hh"
 #include "../Include/ComparisonPlot.hh"
-
-//#include "colorPalettes.hh"
-
-//#include "../Include/TriggerSelection.hh"
 #include "../Include/EventSelector.hh"
 #include "../Include/InputFileMgr.hh"
 #include "../Include/DielectronChargeCounter.hh"
