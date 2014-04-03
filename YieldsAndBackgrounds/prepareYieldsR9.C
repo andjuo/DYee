@@ -163,6 +163,7 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
 
   vector<TH2D*> yieldsBaseH2;
   vector<TH2D*> yields; // non-uniform rapidity grid taken into account
+  vector<TH2D*> yieldsSameEvent; // multi-dielectron events
 
   vector<TH1D*> hMassv; // 1GeV bins
   vector<TH1D*> hMassR9ggBBv, hMassR9ggEEv, hMassR9ggBEv; // 1GeV bins
@@ -178,6 +179,8 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
 
   // the main result of the macro
   createBaseH2Vec(yieldsBaseH2,"hYield_BaseH2_",inpMgr.sampleNames());
+  // create distribution of the same-event candidates
+  createBaseH2Vec(yieldsSameEvent,"hYieldsSameEvent_BaseH2_",inpMgr.sampleNames());
   // debug distributions: 1GeV bins
   //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
   createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),1490,10.,1500.,"M_{ee} [GeV]","counts/1GeV");
@@ -249,6 +252,14 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
 
     std::cout << "here are " << eventTree->GetEntries() << " entries in " << inpMgr.sampleName(isam) << " sample\n";
 
+    // keep track of multi-dielectron events
+    UInt_t mdePrevRunNum=(UInt_t)(-1);
+    UInt_t mdePrevEvtNum=mdePrevRunNum;
+    double mdeOldMass=-1;
+    double mdeOldY=-1;
+    double mdeOldWeight=-1;
+    int mdeFirstEncounter=0;
+
     for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
       if ((runMode==DYTools::DEBUG_RUN) && (ientry>100000)) break;
       printProgress(1000000," ientry=",ientry,eventTree->GetEntriesFast());
@@ -295,6 +306,20 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
       if ((massBin==-1) || (yBin==-1)) // out of range
 	continue;
 
+      if ((mdePrevRunNum==data->runNum) &&
+	  (mdePrevEvtNum==data->evtNum)) {
+	if (mdeFirstEncounter) {
+	  yieldsSameEvent[isam]->Fill(mdeOldMass,mdeOldY, mdeOldWeight);
+	  mdeFirstEncounter=0;
+	}
+	yieldsSameEvent[isam]->Fill(data->mass,fabs(data->y), weight);
+      }
+      else mdeFirstEncounter=1;
+      mdePrevRunNum=data->runNum;
+      mdePrevEvtNum=data->evtNum;
+      mdeOldMass=data->mass;
+      mdeOldY=fabs(data->y);
+      mdeOldWeight=weight;
 
       yieldsBaseH2[isam]->Fill(data->mass,fabs(data->y), weight);
       //if (data->q_1==data->q_2) std::cout << "same-sign event weight=" << weight << "\n";
@@ -373,6 +398,7 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
     int res=1;
     if (res) res=saveVec(file,yieldsBaseH2,"yieldsBaseH2");
     if (res) res=saveVec(file,yields,"yields");
+    if (res) res=saveVec(file,yieldsSameEvent,"yieldsSameEvent");
     if (res) res=saveVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=saveVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=saveHisto(file,hSelEvents,"");
@@ -404,6 +430,7 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
     if (res) res=checkBinningArrays(file);
     if (res) res=loadVec(file,yieldsBaseH2,"yieldsBaseH2");
     if (res) res=loadVec(file,yields,"yields");
+    if (res) res=loadVec(file,yieldsSameEvent,"yieldsSameEvent");
     if (res) res=loadVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=loadVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=loadHisto(file,&hSelEvents,"");
@@ -701,7 +728,7 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
   // Print R9 plots in categories
   //==============================================================================================================
 
-  if (1) {
+  if (0) {
     double ymin=1.,ymax=1e6;
     TString titleBase="Reg.En., ";
     TString fileBase="fig-RegEn--";
