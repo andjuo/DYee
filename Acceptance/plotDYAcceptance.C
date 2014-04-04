@@ -30,7 +30,7 @@
 #include "../Include/EWKAnaDefs.hh"
 #include "../Include/TEventInfo.hh"
 #include "../Include/TGenInfo.hh"
-#include "../Include/TDielectron.hh"   
+#include "../Include/TDielectron.hh"
 #include "../Include/TriggerSelection.hh"
 #include "../Include/TVertex.hh"
 
@@ -58,10 +58,10 @@
 int plotDYAcceptance(int analysisIs2D,
 		     const TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) 
+		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {
   gBenchmark->Start("plotDYAcceptance");
-  
+
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
@@ -81,9 +81,9 @@ int plotDYAcceptance(int analysisIs2D,
 
 
   //--------------------------------------------------------------------------------------------------------------
-  // Settings 
+  // Settings
   //==============================================================================================================
-  
+
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
   // no energy correction for this evaluation
@@ -94,7 +94,7 @@ int plotDYAcceptance(int analysisIs2D,
 			      "","",EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
-  // Acceptance is generator-level quantity and should not 
+  // Acceptance is generator-level quantity and should not
   // depend on the pile-up. The flag is disabled.
   EventWeight_t evWeight;
   evWeight.init(0*inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
@@ -118,12 +118,12 @@ int plotDYAcceptance(int analysisIs2D,
 #endif
 
   //--------------------------------------------------------------------------------------------------------------
-  // Main analysis code 
+  // Main analysis code
   //==============================================================================================================
 
   std::cout << mainpart;
-  
-  //  
+
+  //
   // Set up histograms
   //
 
@@ -140,7 +140,7 @@ int plotDYAcceptance(int analysisIs2D,
   std::vector<TH1D*> hMassBinsv;
   std::vector<TH1D*> hZpeakv;
   TH1D *hSelEvents=NULL;
-  
+
   // the main result of the macro
   createBaseH2Vec(hvPass ,"hvPass_" ,inpMgr.mcSampleNames());
   createBaseH2Vec(hvTotal,"hvTotal_",inpMgr.mcSampleNames());
@@ -164,7 +164,7 @@ int plotDYAcceptance(int analysisIs2D,
   // Access samples and fill histograms
   //
   AccessOrigNtuples_t accessInfo;
-  
+
   //
   // loop over samples
   //
@@ -204,22 +204,22 @@ int plotDYAcceptance(int analysisIs2D,
     // The first file in the list comes with weight 1*extraWeightFactor,
     // all subsequent ones are normalized to xsection and luminosity
       ULong_t maxEvents = accessInfo.getEntries();
-      // to match old version package (DYee 7TeV paper), 
+      // to match old version package (DYee 7TeV paper),
       if ((inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT")==1) && (isample==0) && (ifile==0)) {
 	extraWeightFactor=maxEvents / (inpMgr.totalLumi() * inpMgr.mcSampleInfo(0)->getXsec(ifile));
       }
       //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
       //const double extraWeightFactor=1.0;
-      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), mcSample->getXsec(ifile), 
+      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), mcSample->getXsec(ifile),
 						   extraWeightFactor, inpMgr.selectEventsFlag())) {
 	std::cout << "adjustMaxEvents failed\n";
 	return retCodeError;
       }
       std::cout << "mcSample xsec=" << mcSample->getXsec(ifile) << ", nEntries=" << maxEvents << "\n";
-      
+
 
       std::cout << "       -> sample base weight is " << evWeight.baseWeight() << "\n";
-    
+
       // loop through events
       EventCounterExt_t ec(Form("%s_file%d",mcSample->name.Data(),ifile));
       ec.setIgnoreScale(0); // 1 - count events, 0 - take weight in account
@@ -228,7 +228,7 @@ int plotDYAcceptance(int analysisIs2D,
       // the FEWZ weight has been identified (see a line below)
       ec.setScale(evWeight.baseWeight());
 
-      std::cout << "numEntries = " << accessInfo.getEntriesFast() 
+      std::cout << "numEntries = " << accessInfo.getEntriesFast()
 		<< ", " << maxEvents << " events will be used" << std::endl;
 
 
@@ -257,7 +257,7 @@ int plotDYAcceptance(int analysisIs2D,
 	// .. here "false" = "not data"
 	evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
 
-	// adjust the scale in the counter to include FEWZ 
+	// adjust the scale in the counter to include FEWZ
 	// (and possibly PU) weight
 	//ec.setScale(evWeight.totalWeight());
 
@@ -298,7 +298,7 @@ int plotDYAcceptance(int analysisIs2D,
       ec.print(2);  // print info about file
       ecSample.add(ec); // accumulate event counts
       ecTotal.add(ec);
-      
+
       infile->Close();
       delete infile;
     }
@@ -362,7 +362,7 @@ int plotDYAcceptance(int analysisIs2D,
 
   TH2D *hAcc_BaseH2 = createBaseH2("hAcceptance_baseH2","hAcc_baseH2",1);
   // We need the binomial error for the acceptance
-  // eff=Pass/Tot, 
+  // eff=Pass/Tot,
   // (dEff)^2= (1-eff)^2/T^2 (dPass)^2 + eff^2/T^2 (dFail)^2
   // (dFail)^2 = (dTot)^2 - (dPass)^2
   hAcc_BaseH2->Divide(hSumPass_BaseH2,hSumTotal_BaseH2,1,1,"b");
@@ -429,9 +429,9 @@ int plotDYAcceptance(int analysisIs2D,
 
 
   //--------------------------------------------------------------------------------------------------------------
-  // Make plots 
-  //==============================================================================================================  
-     
+  // Make plots
+  //==============================================================================================================
+
   //--------------------------------------------------------------------------------------------------------------
   // Summary print out
   //==============================================================================================================
@@ -440,8 +440,8 @@ int plotDYAcceptance(int analysisIs2D,
   cout << "*" << endl;
   cout << "* SUMMARY" << endl;
   cout << "*--------------------------------------------------" << endl;
-  cout << endl; 
-    */  
+  cout << endl;
+    */
 
   //gBenchmark->Show("plotDYAcceptance");
   ShowBenchmarkTime("plotDYAcceptance");
