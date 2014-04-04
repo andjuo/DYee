@@ -185,6 +185,10 @@ namespace DYTools {
 
 namespace DYTools {
   int setup(int analysisIs2D) {
+    if (analysisIs2D==-111) {
+      std::cout << "DYTools::setup(-111) is called. Nothing changed\n";
+      return 1;
+    }
     study2D=analysisIs2D;
     if (!assignMassRapidityValues()) {
       std::cout << "error in DYTools::setup(analysisIs2D=" << analysisIs2D << ")\n";
