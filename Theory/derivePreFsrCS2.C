@@ -13,7 +13,8 @@
 
 //=== MAIN MACRO ========================================
 
-int derivePreFsrCS2(const TString conf,
+int derivePreFsrCS2(int analysisIs2D,
+		    const TString conf,
 		   DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
 		   TString extraTag="",
@@ -31,6 +32,11 @@ int derivePreFsrCS2(const TString conf,
     const int debug_print=1;
     if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST, DYTools::NO_REWEIGHT))
       return retCodeError;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
   }
 
   //-----------------------------------------------------
@@ -396,7 +402,8 @@ int derivePreFsrCS2(const TString conf,
   //=====================================================
   std::cout << std::endl;
 
-  gBenchmark->Show("derivePreFsrCS");
+  //gBenchmark->Show("derivePreFsrCS");
+  ShowBenchmarkTime("derivePreFsrCS");
   return retCodeOk;
 }
 

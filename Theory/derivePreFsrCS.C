@@ -12,7 +12,8 @@
 
 //=== MAIN MACRO ========================================
 
-int derivePreFsrCS(const TString conf,
+int derivePreFsrCS(int analysisIs2D,
+		   const TString conf,
 		   DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
 		   TString extraTag="",
@@ -31,6 +32,14 @@ int derivePreFsrCS(const TString conf,
     if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST, DYTools::NO_REWEIGHT))
       return retCodeError;
   }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
+
+  // Set MIT style
+  //SetStyle();
 
   //-----------------------------------------------------
   // Settings 
@@ -240,8 +249,8 @@ int derivePreFsrCS(const TString conf,
   // Make plots 
   //=====================================================
 
-  int make_1D_plots=0;
-  int make_2D_plots=1;
+  int make_1D_plots=1;
+  int make_2D_plots=0;
 
   if (make_1D_plots) {
     int plot_case=1;
@@ -276,11 +285,11 @@ int derivePreFsrCS(const TString conf,
 
     TString canvName=Form("cx");
     TString canvTitle=Form("cx");
-    TCanvas *cx=new TCanvas(canvName,canvTitle,800,700);
+    TCanvas *cx=new TCanvas(canvName,canvTitle,850,700);
     //cp.Prepare2Pads(cx);
-    SetSideSpaces(cx,0.0,0.2,0.,0.01);
+    SetSideSpaces(cx,0.05,0.15,0.,0.01);
     cp.Draw(cx,false,"png",0);
-    cp.ChangeLegendPos(0.2,0.,0.1,0.);
+    cp.ChangeLegendPos(0.1,0.,0.1,0.);
     cx->Update();
     
     TString figName= TString("fig-") + plotTag;
@@ -290,6 +299,7 @@ int derivePreFsrCS(const TString conf,
   if (make_2D_plots) {
     int plot_case=1;
     for (int im=0; im<DYTools::nMassBins; ++im) {
+      if (im>0) break;
       TString mStr=Form("M_%2.0lf_%2.0lf-",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
       TString plotTag=TString("2D-") + mStr + extraTag;
       TString cpName=TString("cp_") + plotTag;
@@ -327,9 +337,14 @@ int derivePreFsrCS(const TString conf,
       hSum->SetTitle(hName);
     
       std::vector<unsigned int> index;
-      index.push_back(3); index.push_back(2); index.push_back(1);
-      index.push_back(0);
-      //for (unsigned int ih=0; ih<index.size(); ++ih) index[ih]=ih;
+      index.reserve(h1V.size());
+      if (h1V.size()==4) {
+	index.push_back(3); index.push_back(2); index.push_back(1);
+	index.push_back(0);
+      }
+      else {
+	for (unsigned int ih=0; ih<h1V.size(); ++ih) index.push_back(ih);
+      }
 
       for (unsigned int idx=0; idx<h1V.size(); ++idx) {
 	unsigned int ih=index[idx];
@@ -349,13 +364,13 @@ int derivePreFsrCS(const TString conf,
       TString canvTitle=Form("cx%d",im);
       TCanvas *cx=new TCanvas(canvName,canvTitle,900,700);
       //cp.Prepare2Pads(cx);
-      SetSideSpaces(cx,0.0,0.3,0.,0.02);
+      SetSideSpaces(cx,0.0,0.25,0.,0.02);
       cp.Draw(cx,false,"png",0);
       cp.ChangeLegendPos(0.05,0.,0.05,-0.05);
       if (DYTools::massBinningSet == DYTools::_MassBins_bins100GeV) {
 	cp.ChangeLegendPos(0.,0.,0.,-0.15);
       }
-      //cp.TransLegend(0.02,0.);
+      if (h1V.size()!=4) cp.TransLegend(0.0,0.3);
       cx->Update();
     
       TString figName="fig-" + plotTag;
@@ -368,7 +383,8 @@ int derivePreFsrCS(const TString conf,
   //=====================================================
   std::cout << std::endl;
 
-  gBenchmark->Show("derivePreFsrCS");
+  //gBenchmark->Show("derivePreFsrCS");
+  ShowBenchmarkTime("derivePreFsrCS");
   return retCodeOk;
 }
 
