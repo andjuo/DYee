@@ -1,6 +1,7 @@
 {
 
   gROOT->ProcessLine(".L ../Include/DYTools.cc+");
+  gROOT->ProcessLine(".L ../Include/DYTools.hh+");
 
   // Load "MIT Style" plotting
   gROOT->Macro("../Include/MitStyleRemix.cc+");
