@@ -1,5 +1,6 @@
 #include "../Include/MyTools.hh"
 #include "../Include/ComparisonPlot.hh"
+#include <TBenchmark.h>
 
 //--------------------------------------------------
 //--------------------------------------------------
@@ -264,6 +265,33 @@ TH2D* getRelDifference(const std::vector<TH2D*> &var, TString newName, int inclu
   }
   TH2D *diff=getRelDifference(vec,newName,includeVariants);
   return diff;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
+TString getTimeStrForPrint(Float_t tf) {
+  int t=int(tf);
+  int mins=t/60;
+  int hours=mins/60;
+  TString str;
+  if (hours>0) {
+    mins= t%60;
+    str=Form("(%2d hour(s) %2d min)",hours,mins);
+  }
+  else str=Form("(%2d min)",mins);
+  return str;
+}
+
+//-----------------------
+
+void ShowBenchmarkTime(const char *clock_name) {
+  gBenchmark->Show(clock_name);
+  Float_t realT=gBenchmark->GetRealTime(clock_name);
+  Float_t cpuT =gBenchmark->GetCpuTime(clock_name);
+  printf("  realTime= %5.2lf sec %s\n",realT,getTimeStrForPrint(realT).Data());
+  printf("  cpuTime = %5.2lf sec %s\n",cpuT ,getTimeStrForPrint(cpuT ).Data());
+  std::cout.flush();
 }
 
 //--------------------------------------------------

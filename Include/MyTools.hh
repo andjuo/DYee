@@ -1116,6 +1116,11 @@ int printZpeakInfo(TH1D_t *h) {
 
 // --------------------------------
 
+TString getTimeStrForPrint(Float_t tf);
+void ShowBenchmarkTime(const char *clock_name);
+
+// --------------------------------
+
 inline
 TString DayAndTimeTag()
 {
