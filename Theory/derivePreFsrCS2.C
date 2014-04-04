@@ -109,6 +109,8 @@ int derivePreFsrCS2(int analysisIs2D,
   if (DYTools::processData(runMode)) {
 
   EventCounterExt_t ecTotal("total");
+  double extraWeightFactor=1.;
+
   for (unsigned int isample=0; isample<inpMgr.mcSampleCount(); ++isample) {
     const CSample_t *mcSample=inpMgr.mcSampleInfo(isample);
     std::cout << "Processing " << mcSample->getLabel() << "..." << std::endl;
@@ -120,7 +122,6 @@ int derivePreFsrCS2(int analysisIs2D,
 
     // accumulate info about processed files
     EventCounterExt_t ecSample(mcSample->name);
-    double extraWeightFactor=1.;
 
     for (unsigned int ifile=0; ifile<mcSample->size(); ++ifile) {
       // Read input file
