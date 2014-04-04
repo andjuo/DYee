@@ -12,7 +12,7 @@ namespace DYTools {
   //TString study2Dstr;
 
   // For 8 TeV, we do unconventional 2.4 to match the muon channel
-  double electronEtaMax = (energy8TeV) ? 2.4 : 2.5;
+  const double electronEtaMax = (energy8TeV) ? 2.4 : 2.5;
 
   // Et cuts for the electrons
   double etMinLead  = 20;
@@ -38,7 +38,7 @@ namespace DYTools {
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
-#ifdef useDefaultBinSet
+#ifdef useDefaultBinSet  // defined in DYTools.hh
 //
 // Define mass and rapidity ranges
 //
@@ -94,45 +94,15 @@ const int _nYBins2012[_nMassBins2012] = {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 };
 
-// ------------------------------
+  const DYTools::TMassBinning_t _defined_massBinningSet= _MassBins_2012;
+  const TString _defined_analysisTag_binning="";
+  const double _extend_Y = 6.5; //additional space for the rapidity range in 1D
 
-int assignMassRapidityValues() {
-  massBinningSet= _MassBins_2012;
-  analysisTag_binning="";
-  const double *mblim=NULL;
-  const int *ylim=NULL;
-  if (DYTools::study2D==1) {
-    nMassBins= _nMassBins2D;
-    mblim= _massBinLimits2D;
-    ylim = _nYBins2D;
-    nYBinsMax= _nYBinsMax2D;
-  }
-  else if (DYTools::study2D==0) {
-    nMassBins= _nMassBins2012;
-    mblim= _massBinLimits2012;
-    ylim = _nYBins2012;
-    nYBinsMax= _nYBinsMax2012;
-  }
-  else {
-    std::cout << "ERROR detected in assignMassRapidityValues: "
-	      << "DYTools::study2D=" << DYTools::study2D << "\n";
-    return 0;
-  }
+  const int _nMassBins1D= _nMassBins2012;
+  const double * _massBinLimits1D= _massBinLimits2012;
+  const int * _nYBins1D = _nYBins2012;
+  const int _nYBinsMax1D= _nYBinsMax2012;
 
-  double addY=((!study2D && extendYRangeFor1D) ? ((energy8TeV) ? 6.5:6.5) : 0);
-  yRangeEdge= electronEtaMax + addY;
-  yRangeMax = yRangeEdge;
-
-  massBinLimits= new double[nMassBins+1];
-  nYBins= new int[nMassBins];
-  for (int i=0; i<=nMassBins; ++i) {
-    massBinLimits[i] = mblim[i];
-  }
-  for (int i=0; i< nMassBins; ++i) {
-    nYBins[i] = ylim[i];
-  }
-  return 1;
-}
 
 }; // namespace DYTools
 
@@ -148,6 +118,52 @@ int assignMassRapidityValues() {
   #include "rangeDef_bins100GeV_inc.h"
 
 #endif
+
+
+// -----------------------------------------------------------
+// -----------------------------------------------------------
+
+namespace DYTools {
+
+int assignMassRapidityValues() {
+  massBinningSet= _defined_massBinningSet;
+  analysisTag_binning= _defined_analysisTag_binning;
+  const double *mblim=NULL;
+  const int *ylim=NULL;
+  if (DYTools::study2D==1) {
+    nMassBins= _nMassBins2D;
+    mblim= _massBinLimits2D;
+    ylim = _nYBins2D;
+    nYBinsMax= _nYBinsMax2D;
+  }
+  else if (DYTools::study2D==0) {
+    nMassBins= _nMassBins1D;
+    mblim= _massBinLimits1D;
+    ylim = _nYBins1D;
+    nYBinsMax= _nYBinsMax1D;
+  }
+  else {
+    std::cout << "ERROR detected in assignMassRapidityValues: "
+	      << "DYTools::study2D=" << DYTools::study2D << "\n";
+    return 0;
+  }
+
+  double addY=(!study2D && extendYRangeFor1D) ? _extend_Y : 0;
+  yRangeEdge= electronEtaMax + addY;
+  yRangeMax = yRangeEdge;
+
+  massBinLimits= new double[nMassBins+1];
+  nYBins= new int[nMassBins];
+  for (int i=0; i<=nMassBins; ++i) {
+    massBinLimits[i] = mblim[i];
+  }
+  for (int i=0; i< nMassBins; ++i) {
+    nYBins[i] = ylim[i];
+  }
+  return 1;
+}
+
+}; // namespace DYTools
 
 // -----------------------------------------------------------
 // -----------------------------------------------------------

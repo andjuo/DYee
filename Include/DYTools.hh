@@ -7,7 +7,10 @@
 
 
 // Mass-Rapidity binning
-#define useDefaultBinSet
+// Non-default rapidity binnings are defined in separate files,
+// included in DYTools.cc
+
+//#define useDefaultBinSet
 
 
 // Check that the analysis is clearly defined
@@ -77,7 +80,7 @@ namespace DYTools {
   extern TString analysisTag; // final, to be used in the macros
 
   // For 8 TeV, we do unconventional 2.4 to match the muon channel
-  extern double electronEtaMax; // = (energy8TeV) ? 2.4 : 2.5;
+  extern const double electronEtaMax; // = (energy8TeV) ? 2.4 : 2.5;
   // Et cuts for the electrons
   extern double etMinLead; //  = 20; // GeV
   extern double etMinTrail; // = 10; // GeV
