@@ -1451,6 +1451,19 @@ int addHistos(histo_t *sum, const std::vector<histo_t*> &vec) {
   return 1;
 }
 
+//-----------------------------------------------------------
+
+template<class histo_t>
+inline
+histo_t* addHistos(TString newName, const std::vector<histo_t*> &vec) {
+  if (vec.size()==0) return NULL;
+  histo_t *h=(histo_t*)vec[0]->Clone(newName);
+  h->SetDirectory(0);
+  h->SetTitle(newName);
+  for (unsigned int i=0; i<vec.size(); ++i) h->Add(vec[i]);
+  return h;
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class tObject_t>
