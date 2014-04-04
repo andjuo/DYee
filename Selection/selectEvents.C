@@ -64,18 +64,23 @@ using namespace std;
 
 //=== MAIN MACRO =================================================================================================
 
-int selectEventsR9(const TString conf, 
-		   DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
+int selectEvents(int analysisIs2D,
+		 const TString conf, 
+		 DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {  
   gBenchmark->Start("selectEvents");
-
 
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
     if (!DYTools::checkSystMode(systMode,debug_print,4, DYTools::NO_SYST, DYTools::ESCALE_STUDY, DYTools::ESCALE_STUDY_RND,DYTools::LOWER_ET_CUT)) 
       return retCodeError;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
   }
 
   //--------------------------------------------------------------------------------------------------------------
@@ -108,7 +113,7 @@ int selectEventsR9(const TString conf,
 
 
   // Construct eventSelector, update inpMgr and plot directory
-  TString extraTag="R9";
+  TString extraTag;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag,"", EventSelector::_selectDefault);
 
@@ -485,7 +490,8 @@ int selectEventsR9(const TString conf,
   cout << endl;
   */
         
-  gBenchmark->Show("selectEvents");
+  //gBenchmark->Show("selectEvents");
+  ShowBenchmarkTime("selectEvents");
   std::cout << "exit" << std::endl;
   return retCodeOk;
 } 
