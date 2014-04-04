@@ -93,7 +93,9 @@ public:
   int absRapidity() const { return FAbsRapidity; }
 
   void SetDirectory(void*) const {}  // a dummy
-  bool InheritsFrom(const TString &) const { return false; }
+  bool InheritsFrom(const TString &testClass) const {
+    return (testClass==TString("TH1")) ? true : false;
+  }
 
 
   double calcIntegral(int iYbin, int the_case) const {
