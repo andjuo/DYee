@@ -51,7 +51,8 @@
 
 //=== MAIN MACRO =================================================================================================
 
-int plotDYEfficiency(const TString conf,
+int plotDYEfficiency(int analysisIs2D,
+		     const TString conf,
 		  DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {
@@ -70,6 +71,11 @@ int plotDYEfficiency(const TString conf,
   // - PU_5plus, PU_5minus are taken care by the eventWeight, through 
   //   the PUReweight class
   // - FSR_5plus, FSR_5minus should be taken care here
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -217,7 +223,7 @@ int plotDYEfficiency(const TString conf,
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
 	if (DYTools::isDebugMode(runMode) && (ientry>1000000)) break; // debug option
 	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
-	printProgress(100000," ientry=",ientry,maxEvents);
+	printProgress(250000," ientry=",ientry,maxEvents);
 	ec.numEvents_inc();
 	
 	// Load generator level info
@@ -417,7 +423,8 @@ int plotDYEfficiency(const TString conf,
   printHisto(hEff);
   //printHisto(hSumFail);
 
-  gBenchmark->Show("plotDYEfficiency");
+  //gBenchmark->Show("plotDYEfficiency");
+  ShowBenchmarkTime("plotDYEfficiency");
   return retCodeOk;
 }
 
