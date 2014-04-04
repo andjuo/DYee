@@ -10,7 +10,7 @@
 // Non-default rapidity binnings are defined in separate files,
 // included in DYTools.cc
 
-//#define useDefaultBinSet
+#define useDefaultBinSet
 
 
 // Check that the analysis is clearly defined
