@@ -1,4 +1,5 @@
 {
+  gROOT->Macro("../DYTools.cc+");
   gROOT->Macro("../DYTools.hh+");
 
   // to run chkExtractHisto
