@@ -66,7 +66,8 @@ void SomeHistAttributes (TH1F* hist, TString samplename);
 
 //=== MAIN MACRO =================================================================================================
 
-int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
+int prepareYields(int analysisIs2D,
+		    const TString conf  = "default",
 		    DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {  
@@ -122,6 +123,11 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
   default: ;
   }
 
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
+
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
@@ -134,16 +140,17 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
   //inpMgr.clearEnergyScaleTag();
 
   // Construct eventSelector, update mgr and plot directory
-  TString extraTag="R9";
+  TString extraTag;
   TString plotExtraTag;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag, plotExtraTag, EventSelector::_selectDefault);
+		      extraTag, plotExtraTag, EventSelector::_selectDefault);
   // However, the plots should be saved according to the outputSystMode
   evtSelector.SetPlotOutDir(runMode,outputSystMode,plotExtraTag,1);
 
   int createDir=DYTools::processData(runMode);
   TString yieldFullName= inpMgr.yieldFullFileName(-1,outputSystMode,createDir);
-  std::cout << "will (work with)/(produce) yieldFile=<" << yieldFullName << ">\n";
+  std::cout << "will (work with)/(produce) yieldFile=<" 
+	    << yieldFullName << ">\n";
 
     
   //--------------------------------------------------------------------------------------------------------------
@@ -819,6 +826,11 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
   std::cout << "*--------------------------------------------------" << std::endl;
   std::cout << std::endl;
   
+
+  double sumData_Zpeak=0.;
+  double sumZee_Zpeak=0.;
+  double dataOverMC=0.;
+
   if (1) {
     std::cout << "   Data: " << setprecision(1) << fixed << hSelEvents->GetBinContent(1) << " Drell-Yan events!\n";
     const CSample_t *sample = inpMgr.sampleInfo(0);
@@ -858,15 +870,19 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
     totalSignalMCError[im] = 0;
     totalBg           [im] = 0;
     totalBgError      [im] = 0;
+    int isZpeak=((DYTools::massBinLimits[im]>=60.) && 
+		 (DYTools::massBinLimits[im]<120.)) ? 1:0;
     for(int iy = 0; iy < DYTools::nYBins[im]; iy++){
       for( UInt_t isam = 0; isam < yields.size(); isam++){
 	double yield_val=yields[isam]->GetBinContent(im+1,iy+1);
 	double yield_err=yields[isam]->GetBinError  (im+1,iy+1);
 	if( inpMgr.sampleName(isam) == TString("data") ){
 	  totalData[im] += yield_val;
+	  if (isZpeak) sumData_Zpeak += yield_val;
 	}else if ( inpMgr.sampleName(isam) == TString("zee") ){
 	  totalSignalMC[im] += yield_val;
 	  totalSignalMCError[im] += yield_err*yield_err;
+	  if (isZpeak) sumZee_Zpeak+= yield_val;
 	}else{
 	  // what remains are background samples
 	  totalBg[im] += yield_val;
@@ -878,48 +894,66 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
     totalSignalMCError[im] = sqrt( totalSignalMCError[im] );
   } // end loop over mass bins
 
+  if (sumZee_Zpeak>double(0.)) dataOverMC= sumData_Zpeak/sumZee_Zpeak;
+
   printf("Printout of the data, MC signal and MC backgrounds integrated over rapidity\n");
-  printf("     mass bin        data      MC-signal     MC-backgr\n");
-  for(int im = 0; im < DYTools::nMassBins; im++){
-    printf("%5.0f-%5.0f GeV: ", DYTools::massBinLimits[im],
-	   DYTools::massBinLimits[im+1]);
-    printf(" %7.0f", totalData[im]);
-    printf(" %9.1f+-%6.1f", totalSignalMC[im], totalSignalMCError[im]);
-    printf(" %7.2f+-%5.2f", totalBg[im], totalBgError[im]);
+  for (int scale=0; scale<2; ++scale) {
+    double factor=(scale) ? dataOverMC : 1.;
+    printf("     mass bin        data      MC-signal     MC-backgr\n");
+    for(int im = 0; im < DYTools::nMassBins; im++){
+      printf("%5.0f-%5.0f GeV: ", DYTools::massBinLimits[im],
+	     DYTools::massBinLimits[im+1]);
+      printf(" %7.0f", totalData[im]);
+      printf(" %9.1f+-%6.1f", totalSignalMC[im]*factor, 
+	                      totalSignalMCError[im]*factor);
+      printf(" %7.2f+-%5.2f", totalBg[im]*factor, 
+	                      totalBgError[im]*factor);
+      printf("\n");
+    }
+    if (scale==0) printf("Note: these MC numbers are not rescaled!\n");
+    else printf("Note: these MC numbers are scaled by %8.5lf\n",dataOverMC);
     printf("\n");
   }
-  printf("Note: these MC numbers are not rescaled!\n");
 
   if (1) {
-    // A different view of background table
-    printf("\n\nPrintout of the backgrounds for all mass bins, view II (not rescaled)\n");
+    for (int scale=0; scale<2; ++scale) {
+      double factor=(scale) ? dataOverMC : 1.;
+      if (factor==double(0)) {
+	std::cout << "dataOverMC scaling factor is 0\n";
+	continue;
+      }
+      // A different view of background table
+      printf("\n\nPrintout of the backgrounds for all mass bins, view II\n");
+      if (scale) printf(" (scaled by %8.5lf)\n",factor);
+      else printf(" (not scaled)\n");
 
-    printf("            ");
-    for(UInt_t isam=0; isam<inpMgr.sampleCount(); isam++) {
-      printf(" %14s ",inpMgr.sampleName(isam).Data());
-    }
-    printf("           total          fraction\n");
-    for(int ibin=0; ibin<DYTools::nMassBins; ibin++){
-      printf("%5.1f-%5.1f GeV: ",
-	     hMassBinsv[0]->GetXaxis()->GetBinLowEdge(ibin+1),
-	     hMassBinsv[0]->GetXaxis()->GetBinUpEdge(ibin+1));
-      // Data:
-      printf(" %7.0f+-%5.0f ",hMassBinsv[0]->GetBinContent(ibin+1),hMassBinsv[0]->GetBinError(ibin+1) );
-      // Individual MC samples
-      double total=0., totalError=0.;
-      for(UInt_t isam=1; isam<inpMgr.sampleCount(); isam++) {
-	double thisContent = hMassBinsv[isam]->GetBinContent(ibin+1);
-	double thisError = hMassBinsv[isam]->GetBinError(ibin+1);
-	printf(" %7.2f+-%5.2f ",thisContent, thisError);
-	if ( (isam!=0) && (inpMgr.sampleName(isam)!=TString("zee"))) {
-	  total+= thisContent;
-	  totalError+=thisError*thisError;
+      printf("            ");
+      for(UInt_t isam=0; isam<inpMgr.sampleCount(); isam++) {
+	printf(" %14s ",inpMgr.sampleName(isam).Data());
       }
+      printf("           total          fraction\n");
+      for(int ibin=0; ibin<DYTools::nMassBins; ibin++){
+	printf("%5.1f-%5.1f GeV: ",
+	       hMassBinsv[0]->GetXaxis()->GetBinLowEdge(ibin+1),
+	       hMassBinsv[0]->GetXaxis()->GetBinUpEdge(ibin+1));
+	// Data:
+	printf(" %7.0f+-%5.0f ",hMassBinsv[0]->GetBinContent(ibin+1),hMassBinsv[0]->GetBinError(ibin+1) );
+	// Individual MC samples
+	double total=0., totalError=0.;
+	for(UInt_t isam=1; isam<inpMgr.sampleCount(); isam++) {
+	  double thisContent = hMassBinsv[isam]->GetBinContent(ibin+1);
+	  double thisError = hMassBinsv[isam]->GetBinError(ibin+1);
+	  printf(" %7.2f+-%5.2f ",thisContent, thisError);
+	  if ( (isam!=0) && (inpMgr.sampleName(isam)!=TString("zee"))) {
+	    total+= thisContent;
+	    totalError+=thisError*thisError;
+	  }
+	}
+	totalError = sqrt(totalError);
+	// Total
+	printf("  %8.2f+-%6.2f",total*factor, totalError*factor);
+	printf("  %5.1f\n",100*total*factor/hMassBinsv[0]->GetBinContent(ibin+1));
       }
-      totalError = sqrt(totalError);
-      // Total
-      printf("  %8.2f+-%6.2f",total, totalError);
-      printf("  %5.1f\n",100*total/hMassBinsv[0]->GetBinContent(ibin+1));
     }
   }
 
@@ -967,7 +1001,8 @@ int prepareYieldsR9(const TString conf  = "../config_files/dataT3.conf",
     */
 
 
-  gBenchmark->Show("prepareYields");
+  //gBenchmark->Show("prepareYields");
+  ShowBenchmarkTime("prepareYields");
   return retCodeOk;
 }
 

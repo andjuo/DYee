@@ -27,12 +27,13 @@ void bkgTablesToLatex(TMatrixD true2eBackground, TMatrixD true2eBackgroundError,
 
 // -----------------------------------------------------------------------------
 
-int subtractBackgroundR9(const TString conf,
-			 DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-			 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST){
+int subtractBackground(int analysisIs2D,
+		       const TString conf = "default",
+		       DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+		       DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST){
 
 
-  gBenchmark->Start("subtractBackgroundR9");
+  gBenchmark->Start("subtractBackground");
 
   {
     using namespace DYTools;
@@ -45,6 +46,11 @@ int subtractBackgroundR9(const TString conf,
 		ESCALE_DIFF_0000, ESCALE_DIFF_0005, ESCALE_DIFF_0010, ESCALE_DIFF_0015, ESCALE_DIFF_0020
 				)) 
       return retCodeError;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
   }
 
   //--------------------------------------------------------------------------------------------------------------
@@ -708,7 +714,8 @@ int subtractBackgroundR9(const TString conf,
   }
 
 
-  gBenchmark->Show("subtractBackgroundR9");
+  //gBenchmark->Show("subtractBackground");
+  ShowBenchmarkTime("subtractBackground");
   return retCodeOk;
 
 }
