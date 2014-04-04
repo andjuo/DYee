@@ -6,11 +6,14 @@
 #include <TPad.h>
 
 void     MitStyleRemix();
-TCanvas* MakeCanvas   (const char* name, const char *title, int dX = 500, int dY = 500);
+TCanvas* MakeCanvas   (const char* name, const char *title,
+		       int dX = 500, int dY = 500);
 void     InitSubPad   (TPad* pad, int i);
-void     InitHist     (TH1 *hist, const char *xtit, const char *ytit  = "Number of Entries",
+void     InitHist     (TH1 *hist, const char *xtit,
+		       const char *ytit  = "Number of Entries",
 		       EColor color = kBlack);
 void     SetStyle     ();
+void     SetTdrStyle  ();  // probably the "official" CMS style
 
 
 
@@ -37,7 +40,8 @@ void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18) {
 
 #ifndef ColorPalettes_HH
 inline
-void SetSideSpaces(TCanvas *c, double dxLeft=0.05, double dxRight=0.02, double dyTop=0., double dyBottom=0.02) {
+void SetSideSpaces(TCanvas *c, double dxLeft=0.05, double dxRight=0.02,
+		   double dyTop=0., double dyBottom=0.02) {
   int count=0;
   for (int i=0; i<50; i++) {
     TPad *pad=(TPad*)c->GetPad(i);
