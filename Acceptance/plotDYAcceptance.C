@@ -235,7 +235,7 @@ int plotDYAcceptance(int analysisIs2D,
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
 	if (DYTools::isDebugMode(runMode) && (ientry>1000000)) break; // debug option
 	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
-	printProgress(100000," ientry=",ientry,maxEvents);
+	printProgress(250000," ientry=",ientry,maxEvents);
 	ec.numEvents_inc();
 	
 	// Load generator level info
