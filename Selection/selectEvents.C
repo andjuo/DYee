@@ -7,7 +7,7 @@
 //
 //  * plots distributions associated with selected events
 //  * prints list of selected events from data
-//  * outputs ROOT files of events passing selection for each sample, 
+//  * outputs ROOT files of events passing selection for each sample,
 //    which can be processed by plotSelect.C
 //
 //________________________________________________________________________________________________
@@ -48,7 +48,7 @@ using namespace std;
 #include "../Include/TVertex.hh"
 
 // Helper functions for Electron ID selection
-#include "../Include/EleIDCuts.hh" 
+#include "../Include/EleIDCuts.hh"
 
 #include "../Include/AccessOrigNtuples.hh"
 #include "../Include/EventSelector.hh"
@@ -65,16 +65,18 @@ using namespace std;
 //=== MAIN MACRO =================================================================================================
 
 int selectEvents(int analysisIs2D,
-		 const TString conf, 
+		 const TString conf,
 		 DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
-{  
+{
   gBenchmark->Start("selectEvents");
 
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,4, DYTools::NO_SYST, DYTools::ESCALE_STUDY, DYTools::ESCALE_STUDY_RND,DYTools::LOWER_ET_CUT)) 
+    if (!DYTools::checkSystMode(systMode,debug_print,4,
+		DYTools::NO_SYST, DYTools::ESCALE_STUDY,
+		DYTools::ESCALE_STUDY_RND,DYTools::LOWER_ET_CUT))
       return retCodeError;
   }
 
@@ -84,7 +86,7 @@ int selectEvents(int analysisIs2D,
   }
 
   //--------------------------------------------------------------------------------------------------------------
-  // Settings 
+  // Settings
   //==============================================================================================================
 
   InputFileMgr_t inpMgr;
@@ -92,7 +94,7 @@ int selectEvents(int analysisIs2D,
 
   int keepFirstAndLast=0;
   unsigned int keepSample=-1;
-  if (keepFirstAndLast){ 
+  if (keepFirstAndLast){
     if (!inpMgr.KeepFirstAndLastSample()) {
       std::cout << "failed to eliminate the middle samples" << std::endl;
       return retCodeError;
@@ -108,7 +110,7 @@ int selectEvents(int analysisIs2D,
     std::cout << "kept only sample #" << keepSample << "\n";
     inpMgr.Print();
   }
-  
+
   //return retCodeStop;
 
 
@@ -125,9 +127,9 @@ int selectEvents(int analysisIs2D,
   gSystem->mkdir(inpMgr.nTupleDir(systMode),true);
 
   //--------------------------------------------------------------------------------------------------------------
-  // Main analysis code 
-  //==============================================================================================================  
-  
+  // Main analysis code
+  //==============================================================================================================
+
   //EventCounter_t ec;
 
   //
@@ -135,7 +137,7 @@ int selectEvents(int analysisIs2D,
   //
   const int scBrIsActive=1;
   AccessOrigNtuples_t accessInfo(scBrIsActive);
-  
+
   // Data structures to store info from TTrees
   //mithep::TEventInfo *info    = new mithep::TEventInfo();
   //mithep::TGenInfo *gen       = new mithep::TGenInfo();
@@ -146,12 +148,12 @@ int selectEvents(int analysisIs2D,
   // Reduce output file
   ZeeData_t *data=new ZeeData_t();
   ZeeData_t::Class()->IgnoreTObjectStreamer();
-  
+
   //
   // loop over samples
   //
   if (DYTools::processData(runMode)) {
-  for(UInt_t isam=0; isam<inpMgr.sampleCount(); isam++) {        
+  for(UInt_t isam=0; isam<inpMgr.sampleCount(); isam++) {
 
     // Configure the object for trigger matching	
 
@@ -160,17 +162,17 @@ int selectEvents(int analysisIs2D,
     bool isData = (samp->name=="data") ? true : false;
     //requiredTriggers.actOnData(isData);
     evtSelector.setTriggerActsOnData(isData);
-    if (!evtSelector.setEScaleCorrectionType(isData,systMode)) 
+    if (!evtSelector.setEScaleCorrectionType(isData,systMode))
       return retCodeError;
 
     //
     // Prepare ntuple file name
     //
     TString outName = inpMgr.nTupleFullFileName(isam,systMode);
-    if ((systMode!=DYTools::NO_SYST) && 
+    if ((systMode!=DYTools::NO_SYST) &&
 	(systMode!=DYTools::LOWER_ET_CUT) &&
 	(isam!=0)) {
-      std::cout << "... systMode=<" << SystematicsStudyName(systMode) 
+      std::cout << "... systMode=<" << SystematicsStudyName(systMode)
 		<< ">, skipping the non-data files\n";
       break;
     }
@@ -196,19 +198,19 @@ int selectEvents(int analysisIs2D,
 	infile= new TFile(skimName,"read");
       }
       assert(infile->IsOpen());
-    
+
       if (!accessInfo.prepareJson(samp->getJsonFName(ifile))) {
 	std::cout << "\nfailed at json file <" << samp->getJsonFName(ifile) << ">\n";
 	return retCodeError;
       }
-      
+
       // Get the TTree
       int isSignalMC=(samp->name=="zee") ? 1:0;
       // Gen branch is activated only for signal MC:
       //int setupGenBranch=isSignalMC;
       // Photon branch activation is set in the constructor
       if (!accessInfo.setTree(*infile,"Events", isSignalMC)) return retCodeError;
-      
+
       // Determine maximum number of events to consider
       // *** CASES ***
       // <> lumi < 0                             => use all events in the sample
@@ -217,8 +219,9 @@ int selectEvents(int analysisIs2D,
       // <> lumi > 0, xsec > 0, doWeight = false => compute expected number of events
       ULong_t maxEvents = accessInfo.getEntries();
       const double extraWeightFactor=1.0;
-      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), samp->getXsec(ifile), 
-						   extraWeightFactor, inpMgr.selectEventsFlag())) {
+      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents,
+			inpMgr.totalLumi(), samp->getXsec(ifile),
+			extraWeightFactor, inpMgr.selectEventsFlag())) {
 	std::cout << "adjustMaxEvents failed\n";
 	return retCodeError;
       }
@@ -232,7 +235,7 @@ int selectEvents(int analysisIs2D,
       // the FEWZ weight has been identified (see a line below)
       ec.setScale(evWeight.baseWeight());
 
-      std::cout << "numEntries = " << accessInfo.getEntriesFast() 
+      std::cout << "numEntries = " << accessInfo.getEntriesFast()
 		<< ", " << maxEvents << " events will be used" << std::endl;
 
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
@@ -270,7 +273,7 @@ int selectEvents(int analysisIs2D,
 	//  evWeight.setPUWeight( nPV );
 	//}
 
-	// adjust the scale in the counter to include FEWZ 
+	// adjust the scale in the counter to include FEWZ
 	// (and possibly PU) weight
 	//ec.setScale(evWeight.totalWeight());
 	
@@ -284,7 +287,7 @@ int selectEvents(int analysisIs2D,
 	for(Int_t i=0; i<accessInfo.dielectronCount(); i++) {
 	  mithep::TDielectron *dielectron = accessInfo.editDielectronPtr(i);
 	  ec.numDielectrons_inc();
-	  
+
 	  // escale may modify dielectron!
 	  if (!evtSelector.testDielectron(dielectron,accessInfo.evtInfoPtr(),&ec)) continue;
 
@@ -293,7 +296,7 @@ int selectEvents(int analysisIs2D,
 
 
           /******** We have a Z candidate! HURRAY! ********/
-	  
+
 	  dielCount++;
 	  ec.numDielectronsPass_inc();
 	  if (ec.numDielectronsOkSameSign_inc(dielectron->q_1,dielectron->q_2)) {
@@ -303,13 +306,14 @@ int selectEvents(int analysisIs2D,
 	  // event printout
 	  /*
           if((isam==0) && evtfile.is_open())
-            eventDump(evtfile, dielectron, info->runNum, info->lumiSec, info->evtNum, 
+            eventDump(evtfile, dielectron, info->runNum, info->lumiSec,
+	              info->evtNum,
 		      leadingTriggerObjectBit, trailingTriggerObjectBit);
 	  */
-	  
+
 	  //
 	  // Fill histograms
-	  // 
+	  //
 	  //hMassv[isam]->Fill(dielectron->mass,weight);
 
 	  //if ((isam==0) && (ientry<100)) std::cout << "ientry=" << ientry << ", weight: " << evWeight << "\n";
@@ -360,7 +364,7 @@ int selectEvents(int analysisIs2D,
     std::cout << "next file" << std::endl;
     outFile.Write();
     delete outTree;
-    outFile.Close();        
+    outFile.Close();
     //delete outFile;
 
     evtSelector.printCounts();
@@ -398,7 +402,7 @@ int selectEvents(int analysisIs2D,
     if(lumi<1) { sprintf(lumitext,"#int#font[12]{L}dt = %.0f nb^{-1}",1000.*lumi); }
     else       { sprintf(lumitext,"#int#font[12]{L}dt = %.3g pb^{-1}",lumi); }
   }
-      
+
   // scale factor for yield in MC to equal yield in data
   Double_t mcscale=1;
   if(hasData) {
@@ -408,7 +412,7 @@ int selectEvents(int analysisIs2D,
       denom += nSelv[isam];
     mcscale = (denom>0) ? numer/denom : 1.0;
   }
-  
+
   printf("Plot dielectron mass\n");fflush(stdout);
   // dielectron mass
   sprintf(ylabel,"Events / %.1f GeV/c^{2}",hMassv[0]->GetBinWidth(1));
@@ -426,11 +430,12 @@ int selectEvents(int analysisIs2D,
     plotMass.TransLegend(0.1,0);
   if(lumi>0) plotMass.AddTextBox(lumitext,0.21,0.85,0.41,0.8,0);
   plotMass.Draw(c,kFALSE,format);
-  
+
   plotMass.SetName("masslog");
   plotMass.SetLogy();
   if( plotMass.GetStack() != NULL)
-    plotMass.SetYRange((1e-4)*(plotMass.GetStack()->GetMaximum()),10.*(plotMass.GetStack()->GetMaximum()));  
+    plotMass.SetYRange((1e-4)*(plotMass.GetStack()->GetMaximum()),
+                       10.*(plotMass.GetStack()->GetMaximum()));
   plotMass.Draw(c,kFALSE,format);
 
   c->Write();
@@ -439,10 +444,10 @@ int selectEvents(int analysisIs2D,
 
   //--------------------------------------------------------------------------------------------------------------
   // Summary print out
-  //============================================================================================================== 
+  //==============================================================================================================
   /*
   ofstream txtfile;
-  char txtfname[100];    
+  char txtfname[100];
   sprintf(txtfname,"%s/summary.txt",outputDir.Data());
   txtfile.open(txtfname);
   assert(txtfile.is_open());
@@ -453,7 +458,7 @@ int selectEvents(int analysisIs2D,
 
   txtfile << "  L_int = " << lumi << "/pb" << endl;
   txtfile << endl;
-  
+
   if(hasData) {
     txtfile << "   Data: " << setprecision(1) << fixed << nProcessedEvents << " events processed!" << endl;
     txtfile << "         " << setprecision(1) << fixed << nSelv[0] << " Z events!" << endl;
@@ -462,11 +467,11 @@ int selectEvents(int analysisIs2D,
     for(UInt_t ifile=0; ifile<samplev[0]->fnamev.size(); ifile++)
       txtfile << "     " << samplev[0]->fnamev[ifile] << endl;
       txtfile << endl;
-  } 
-  
+  }
+
   if(samplev.size()>1) {
     txtfile << "   MC:" << endl;
-    for(UInt_t isam=1; isam<samplev.size(); isam++) {      
+    for(UInt_t isam=1; isam<samplev.size(); isam++) {
       for(UInt_t ifile=0; ifile<samplev[isam]->fnamev.size(); ifile++) {
         if(ifile==0) {
           txtfile << setw(10) << snamev[isam];
@@ -489,12 +494,12 @@ int selectEvents(int analysisIs2D,
   cout << " <> Output saved in " << outputDir << "/" << endl;
   cout << endl;
   */
-        
+
   //gBenchmark->Show("selectEvents");
   ShowBenchmarkTime("selectEvents");
   std::cout << "exit" << std::endl;
   return retCodeOk;
-} 
+}
 
 
 //=== FUNCTION DEFINITIONS ======================================================================================
@@ -503,8 +508,8 @@ int selectEvents(int analysisIs2D,
 //--------------------------------------------------------------------------------------------------
 
 /*
-void eventDump(ofstream &ofs, const mithep::TDielectron *dielectron, 
-               const UInt_t runNum, const UInt_t lumiSec, const UInt_t evtNum, 
+void eventDump(ofstream &ofs, const mithep::TDielectron *dielectron,
+               const UInt_t runNum, const UInt_t lumiSec, const UInt_t evtNum,
 	       const UInt_t triggerObj1, const UInt_t triggerObj2)
 {
   ofs << endl;
@@ -513,11 +518,11 @@ void eventDump(ofstream &ofs, const mithep::TDielectron *dielectron,
   ofs << "  Event:" << evtNum;
   ofs << "  mass: " << dielectron->mass;
   ofs << "  pt: " << dielectron->pt << endl;
-  
+
   ofs << "----------+-----------+-----------+-----------+-----------+-----------+-------------+------------+------------+-----------+------" << endl;
   ofs << "  SC ET   |  SC eta   |   SC phi  | trkiso/pt | emiso/pt  | hadiso/pt | sigiEtaiEta |    deta    |    dphi    |    H/E    | HLT" << endl;
   ofs << "----------+-----------+-----------+-----------+-----------+-----------+-------------+------------+------------+-----------+------" << endl;
-      
+
   ofs << setw(9) << dielectron->scEt_1 << " |";
   ofs << setw(10) << dielectron->scEta_1 << " |";
   ofs << setw(10) << dielectron->scPhi_1 << " |";
@@ -529,12 +534,12 @@ void eventDump(ofstream &ofs, const mithep::TDielectron *dielectron,
   ofs << setw(12) << dielectron->deltaPhiIn_1 << "|";
   ofs << setw(10) << dielectron->HoverE_1 << " |";
   if(dielectron->hltMatchBits_1 & triggerObj1)
-    ofs << " LEAD" << endl; 
+    ofs << " LEAD" << endl;
   else if(dielectron->hltMatchBits_1 & triggerObj2)
     ofs << " TRAIL" << endl;
   else
     ofs << " NOMAT" << endl;
-    
+
   ofs << setw(9) << dielectron->scEt_2 << " |";
   ofs << setw(10) << dielectron->scEta_2 << " |";
   ofs << setw(10) << dielectron->scPhi_2 << " |";
@@ -546,11 +551,11 @@ void eventDump(ofstream &ofs, const mithep::TDielectron *dielectron,
   ofs << setw(12) << dielectron->deltaPhiIn_2 << "|";
   ofs << setw(10) << dielectron->HoverE_2 << " |";
   if(dielectron->hltMatchBits_2 & triggerObj1)
-    ofs << " LEAD" << endl; 
+    ofs << " LEAD" << endl;
   else if(dielectron->hltMatchBits_2 & triggerObj2)
     ofs << " TRAIL" << endl;
   else
     ofs << " NOMAT" << endl;
-}    
+}
 
 */
