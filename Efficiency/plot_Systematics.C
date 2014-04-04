@@ -5,8 +5,17 @@
 #include "../Include/HistoPair.hh"
 #include "../Include/MitStyleRemix.hh" // SetSideSpaces
 
-void plot_Systematics(TString correctionKind, TString flagStr="111", int saveCanvas=0) {
+void plot_Systematics(int analysisIs2D,
+		      TString correctionKind,
+		      TString flagStr="111",
+		      int saveCanvas=0)
+{
   std::cout << "correctionKind=" << correctionKind << "\n";
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return;
+  }
 
   ApplySystFlags_t applySyst;
   if (!applySyst.assignFlags(flagStr)) return;
