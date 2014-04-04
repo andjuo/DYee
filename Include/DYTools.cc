@@ -170,6 +170,10 @@ namespace DYTools {
 namespace DYTools {
   int setup(int analysisIs2D) {
     study2D=analysisIs2D;
+    if (!assignMassRapidityValues()) {
+      std::cout << "error in DYTools::setup(analysisIs2D=" << analysisIs2D << ")\n";
+      return 0;
+    }
 
 #ifdef unlimited_Y_in_1D
     if (!study2D) analysisTag_USER.Append("-unlimY");
@@ -183,7 +187,7 @@ namespace DYTools {
     strLumiAtECMS= "19.8 fb^{-1} at #sqrt(s) = 8 TeV";
     lumiAtECMS= 19789.;
 #endif
-#ifdef DYee8TeV // energy-regressed files
+#ifdef DYee8TeV_reg // energy-regressed files
     strLumiAtECMS= "19.7 fb^{-1} at #sqrt(s) = 8 TeV";
     lumiAtECMS= 19712.;
 #endif
