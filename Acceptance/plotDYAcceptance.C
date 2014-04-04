@@ -55,7 +55,8 @@
 
 //=== MAIN MACRO =================================================================================================
 
-int plotDYAcceptance(const TString conf,
+int plotDYAcceptance(int analysisIs2D,
+		     const TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) 
 {
@@ -72,6 +73,12 @@ int plotDYAcceptance(const TString conf,
   //
   // A note on systematics mode
   // - FSR_5plus, FSR_5minus should be taken care here
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
+
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -436,7 +443,8 @@ int plotDYAcceptance(const TString conf,
   cout << endl; 
     */  
 
-  gBenchmark->Show("plotDYAcceptance");
+  //gBenchmark->Show("plotDYAcceptance");
+  ShowBenchmarkTime("plotDYAcceptance");
   return retCodeOk;
 }
 
