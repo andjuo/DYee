@@ -1,7 +1,13 @@
 #include "../Include/DYTools.hh"
 #include "../Include/UnfoldingMatrix.h"
 
-void printUnfMatrix(int printCase=-1, int dataIdx=1) {
+void printUnfMatrix(int analysisIs2D, int printCase=-1, int dataIdx=1) {
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return;
+  }
+
   TString dir1="../root_files7TeV/constants/DY_20130801_test/";
   TString dir2="/home/andriusj/cms/CMSSW_3_8_4/src/DrellYanDMDY-20130131/root_files/constants_debug/DY_m10+pr+a05+o03+pr_4839pb/";
   TString ending="_withFEWZ1D.root";
