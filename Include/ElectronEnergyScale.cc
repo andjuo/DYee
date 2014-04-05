@@ -2311,7 +2311,7 @@ int ElectronEnergyScale::ProcessZeeDataFileApproximateMCWeight(const char *mc_fi
 	std::cout << "QuickSort failed\n";
 	return 0;
       }
-      int cx=remMasses->size()-1;
+      //int cx=remMasses->size()-1;
       //int ccc=100;
       if (0) {
 	for (unsigned int ii=0; ii<remMasses->size(); ++ii) {
@@ -2348,7 +2348,7 @@ int ElectronEnergyScale::ProcessZeeDataFileApproximateMCWeight(const char *mc_fi
 	    if (debug3fillHistosRem && hfinV.size()) hfinV[idx]->Fill(m1,1.);
 	    if (h2) h2->Fill(m1,1.);
 	  }
-	  cx=1;
+	  //cx=1;
 	  if (debug2) std::cout << "erasing ci=" << ci << ", " << (*remMasses)[ci] << "\n";
 	  remMasses->erase(remMasses->begin()+ci);
 	  remWeight->erase(remWeight->begin()+ci);

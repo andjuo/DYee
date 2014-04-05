@@ -146,7 +146,7 @@ public:
     else {
       res= this->applyDataEnergyScale(data,randomized);
     }
-    return 1;
+    return res;
   }
 
   template<class tData_t>
