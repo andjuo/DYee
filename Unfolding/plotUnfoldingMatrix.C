@@ -9,7 +9,8 @@
 
 //=== MAIN MACRO =================================================================================================
 
-int plotUnfoldingMatrix(const TString conf,
+int plotUnfoldingMatrix(int analysisIs2D,
+			const TString conf,
 			DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST
 			//, double FSRreweight=1.0, double FSRmassDiff=1.
@@ -40,6 +41,11 @@ int plotUnfoldingMatrix(const TString conf,
 				DYTools::PU_STUDY,
 				DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL))
       return retCodeError;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
   }
 
   //--------------------------------------------------------------------------------------------------------------
@@ -110,7 +116,7 @@ int plotUnfoldingMatrix(const TString conf,
     }
     specEWeightsV.reserve(2);
     for (int i=0; i<2; ++i) {
-      DYTools::TSystematicsStudy_t study=(i==0) ? DYTools::PILEUP_5plus : DYTools::PILEUP_5minus;
+      DYTools::TSystematicsStudy_t study=(i==0) ? DYTools::PILEUP_5minus : DYTools::PILEUP_5plus;
       EventWeight_t *ew=new EventWeight_t();
       if (!ew->init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),study)) {
 	std::cout << "in plotUnfoldingMatrix.C\n";
@@ -386,9 +392,10 @@ int plotUnfoldingMatrix(const TString conf,
 		<< ", " << maxEvents << " events will be used" << std::endl;
 
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
-	if (DYTools::isDebugMode(runMode) && (ientry>1000000+DYTools::study2D*2000000)) break; // debug option
+	if (DYTools::isDebugMode(runMode) &&
+	    (ientry>ULong_t(1000000)+DYTools::study2D*ULong_t(2000000))) break; // debug option
 	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
-	printProgress(100000," ientry=",ientry,maxEvents);
+	printProgress(250000," ientry=",ientry,maxEvents);
 	ec.numEvents_inc();
 	
 	// Load generator level info
@@ -697,6 +704,7 @@ int plotUnfoldingMatrix(const TString conf,
     }
   }
   */
+  if (DYTools::isDebugMode(runMode)) fnameTag.Prepend("_DebugRun_");
   std::cout << "fnameTag=<" << fnameTag << ">\n";
   CPlot::sOutDir.Append(fnameTag);
 
@@ -716,6 +724,19 @@ int plotUnfoldingMatrix(const TString conf,
       fsrDETcorrections.autoSaveToFile(outputDir,fnameTag);
     }
     for (unsigned int i=0; i<detRespV.size(); i++) detRespV[i]->autoSaveToFile(outputDir,fnameTag);
+    // additional saving for systematics
+    if (systMode==DYTools::FSR_STUDY) {
+      detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5minus,0),
+		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
+      detRespV[2]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5plus,0),
+		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
+    }
+    else if (systMode==DYTools::PU_STUDY) {
+      detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5minus,0),
+		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
+      detRespV[1]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5plus,0),
+		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5plus));
+    }
   }
   else {
     if (//(systMode!=DYTools::NORMAL_RND) && 
@@ -1070,7 +1091,8 @@ int plotUnfoldingMatrix(const TString conf,
     fsrDET.printYields();
   }
 */
-  gBenchmark->Show("makeUnfoldingMatrix");
+  //gBenchmark->Show("makeUnfoldingMatrix");
+  ShowBenchmarkTime("makeUnfoldingMatrix");
   return retCodeOk;
 }
 
