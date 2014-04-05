@@ -82,7 +82,7 @@ int derivePreFsrCS2(int analysisIs2D,
   std::vector<MXSectD_t*> MxMass2Dv;
   
   // distributions in 1GeV bins
-  createAnyH1Vec(hMass1Dv,"hMass1D_",inpMgr.mcSampleNames(),1990,10.,2000.,"#it{M}_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hMass1Dv,"hMass1D_",inpMgr.mcSampleNames(),2990,10.,3000.,"#it{M}_{ee} [GeV]","counts/1GeV");
   createBaseH2Vec(hMass2Dv,"hMass2D_",inpMgr.mcSampleNames(),1,1);
   createBaseH2Vec(hMass2DasymV,"hMass2Dasym_",inpMgr.mcSampleNames(),0,1);
 
@@ -180,7 +180,10 @@ int derivePreFsrCS2(int analysisIs2D,
 	// If the Z->ll leptons are not electrons, discard this event.
 	// This is needed for signal MC samples such as Madgraph Z->ll
 	// where all 3 lepton flavors are possible
-	if (!accessInfo.genLeptonsAreElectrons()) continue;
+	if (!accessInfo.genLeptonsAreElectrons()) {
+	  std::cout << "genLeptons aren't electrons\n";
+	  continue;
+	}
 
 	// Load event info to get nPU
 	accessInfo.GetInfoEntry(ientry);
