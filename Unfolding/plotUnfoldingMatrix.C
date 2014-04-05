@@ -206,7 +206,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   //
   std::vector<TH1D*> hMassv;
   std::vector<TH1D*> hMassBinsv;
-  TH1D *hSelEvents=NULL;
+  //TH1D *hSelEvents=NULL;
 
   // debug distributions: 1GeV bins
   //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
@@ -214,7 +214,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   // debug distributions for current mass bin
   createBaseH1Vec(hMassBinsv,"hMassBins_",inpMgr.mcSampleNames());
   // debug: accumulate info about the selected events in the samples
-  hSelEvents=createAnyTH1D("hSelEvents","hSelEvents",inpMgr.mcSampleCount(),0,inpMgr.mcSampleCount(),"sampleId","event count");
+  //hSelEvents=createAnyTH1D("hSelEvents","hSelEvents",inpMgr.mcSampleCount(),0,inpMgr.mcSampleCount(),"sampleId","event count");
 
 
   /*
