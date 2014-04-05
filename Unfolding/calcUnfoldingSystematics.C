@@ -1,5 +1,6 @@
 #include <TFile.h>
 #include "../Include/DYTools.hh"
+#include <TRandom.h>
 #include "../Include/HistoPair.hh"
 #include "../Include/InputFileMgr.hh"
 #include "../Include/EventSelector.hh"
@@ -32,12 +33,19 @@ public:
 //  Main code
 // --------------------------------------------------
 
-int calcUnfoldingSystematics(TString conf, int debug, int needInfo=0, std::vector<const TInfoLoc_t*> *infoV=NULL) {
+int calcUnfoldingSystematics(int analysisIs2D,
+			     TString conf, int debug,
+	     int needInfo=0, std::vector<const TInfoLoc_t*> *infoV=NULL) {
 
   // check whether it is a calculation
   if (conf.Contains("_DebugRun_")) {
     std::cout << "calcUnfoldingSystematics: _DebugRun_ detected. Terminating the script\n";
     return retCodeOk;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
   }
 
   //----------------------------------------
@@ -47,10 +55,6 @@ int calcUnfoldingSystematics(TString conf, int debug, int needInfo=0, std::vecto
   int calcFSR=1;
   int calcPU=1;
   int calcRnd=1;
-
-  if (conf==TString("default")) {
-    conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
-  }
 
   DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
   int doCalc=processData(runMode);
@@ -65,7 +69,7 @@ int calcUnfoldingSystematics(TString conf, int debug, int needInfo=0, std::vecto
 
   // Construct eventSelector, update mgr and plot directory
   TString extraTag;
-  extraTag="R9";
+  extraTag="";
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag, "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
