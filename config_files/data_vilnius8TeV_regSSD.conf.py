@@ -312,17 +312,17 @@ $ zee 426  798 798 803  @Z#rightarrowee
 # In case we use 20-500-inf:
 #/mnt/hadoop/user/uscms01/pnfs/unl.edu/data4/cms/store/user/ikrav/DrellYan_8TeV/53X_with_regression/s12-zeem500-v7a_ntuple.root 0.045129
 #
-PATH_1/s12-zeem1020-v7a_tight-loose_skim.root 3708.0  800 @Powheg 10-20
+PATH_SSD/s12-zeem1020-v7a_tight-loose_skim.root 3708.0  800 @Powheg 10-20
 #
 # new n-tuples with finer binning
 #
-/media/ssd/s12-zeem20to200-v7a_tight-loose_skim.root 1869.5   600 1 @Powheg 20-200
-/media/ssd/s12-zeem200to400-v7a_ntuple.root   1.3745     632 1 @Powheg 200-400
-/media/ssd/s12-zeem400to500-v7a_ntuple.root   0.06441    432 1 @Powheg 400-500
-/media/ssd/s12-zeem500to700-v7a_ntuple.root   0.03384    616 1 @Powheg 500-700
-/media/ssd/s12-zeem700to800-v7a_ntuple.root   0.004759   880 1 @Powheg 700-800
-/media/ssd/s12-zeem800to1000-v7a_ntuple.root  0.003695   900 1 @Powheg 800-1000
-/media/ssd/s12-zeem1000to1500-v7a_ntuple.root 0.0016255   625 1 @Powheg 1000-1500
-/media/ssd/s12-zeem1500to2000-v7a_ntuple.root 0.00014842  419 1 @Powheg 1500-2000
-/media/ssd/s12-zeem2000-v7a_ntuple.root 0.00002208  802 1 @Powheg 2000-
+PATH_SSD/s12-zeem20to200-v7a_tight-loose_skim.root 1869.5   600 1 @Powheg 20-200
+PATH_SSD/s12-zeem200to400-v7a_ntuple.root   1.3745     632 1 @Powheg 200-400
+PATH_SSD/s12-zeem400to500-v7a_ntuple.root   0.06441    432 1 @Powheg 400-500
+PATH_SSD/s12-zeem500to700-v7a_ntuple.root   0.03384    616 1 @Powheg 500-700
+PATH_SSD/s12-zeem700to800-v7a_ntuple.root   0.004759   880 1 @Powheg 700-800
+PATH_SSD/s12-zeem800to1000-v7a_ntuple.root  0.003695   900 1 @Powheg 800-1000
+PATH_SSD/s12-zeem1000to1500-v7a_ntuple.root 0.0016255   625 1 @Powheg 1000-1500
+PATH_SSD/s12-zeem1500to2000-v7a_ntuple.root 0.00014842  419 1 @Powheg 1500-2000
+PATH_SSD/s12-zeem2000-v7a_ntuple.root 0.00002208  802 1 @Powheg 2000-
 %
