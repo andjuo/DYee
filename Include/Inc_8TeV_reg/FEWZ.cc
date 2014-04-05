@@ -206,7 +206,7 @@ double weight_FEWZ8TeV( double muon_pt, double muon_rap, double mass) {
  } else if (mass >= 64 && mass < 120) {
    index_pt = Find_Index2(muon_pt, true);
    index_rap = Find_Index2(muon_rap, false);
- } else if (mass >= 120 && mass < 1500) {
+ } else if (mass >= 120 && mass < 3000) {
    index_pt = Find_Index3(muon_pt, true);
    index_rap = Find_Index3(muon_rap, false);
  }
