@@ -19,12 +19,12 @@ done
 if [ ${#debugMode} -eq 0 ] ; then debugMode=0; fi
 #debugMode=1
 
-
-confInputFile=$1
-fullRun=$2
+analysisIs2D=$1
+confInputFile=$2
+fullRun=$3
 
 if [ ${#confInputFile} -eq 0 ] || [ "${confInputFile}" == "default" ] ; then
-    confInputFile="../config_files/data_vilnius8TeV_regSSD.conf.py"
+    confInputFile="default"
 fi
 
 # check whether the full run was requested, overriding internal settings
@@ -75,6 +75,7 @@ fi
 echo
 echo
 echo "evaluateUnfoldingSyst.sh: ${runMode}"
+echo "    analysisIs2D=${analysisIs2D}
 echo "    confInputFile=${confInputFile}"
 echo "    runFlags=${fullRun}"
 echo "       - doFsrStudy=${doFsrStudy}"
@@ -129,7 +130,7 @@ checkFile() {
 
 
 runPlotDYUnfoldingMatrix() {
-  root -b -q -l  plotUnfoldingMatrix.C+\(\"${confInputFile}\",${runMode},${systMode}\)
+  root -b -q -l  plotUnfoldingMatrix.C+\(${analysisIs2D},\"${confInputFile}\",${runMode},${systMode}\)
   #errCode=$?
   #echo "errCode=${errCode}"
   if [ $? != 7 ] ; then noError=0; fi
@@ -137,26 +138,19 @@ runPlotDYUnfoldingMatrix() {
   echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   echo 
   if [ ${noError} -eq 0 ] ; then echo "ERROR"; fi
-  echo "DONE: plotUnfoldingMatrix.C(\"${confInputFile}\",\"${runMode}\",${systMode}\)"
+  echo "DONE: plotUnfoldingMatrix.C(${analysisIs2D},\"${confInputFile}\",\"${runMode}\",${systMode}\)"
   echo 
   echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
 
 }
 
-#info:
-#int plotUnfoldingMatrix(const TString conf,
-#			DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-#			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
-#			double FSRreweight=1.0, double FSRmassDiff=1.) {
-
-
 runCalcUnfoldingSystematics() {
-  root -b -q -l  calcUnfoldingSystematics.C+\(\"${confInputFile}\",${debugMode}\)
+  root -b -q -l  calcUnfoldingSystematics.C+\(${analysisIs2D},\"${confInputFile}\",${debugMode}\)
   if [ $? != 7 ] ; then noError=0;
   else 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcUnfoldingSystematics.C+(\"${confInputFile}\",debugMode=${debugMode})"
+     echo "DONE: calcUnfoldingSystematics.C+(${analysisIs2D},\"${confInputFile}\",debugMode=${debugMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
