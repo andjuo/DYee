@@ -87,7 +87,14 @@ echo
 echo
 
 if [ x${analysisIs2D} == x ] ; then 
+    echo
     echo "evaluateUnfoldingSyst.sh analysisIs2D [config_file [run_flags]]"
+    echo "run_flags=abcd_e"
+    echo "  a - FSR study"
+    echo "  b - Pile-up study"
+    echo "  c - resolution study"
+    echo "  d - shape reweight study"
+    echo "  e - calc unfolding systematics"
     exit
 fi
 
