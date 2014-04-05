@@ -309,6 +309,11 @@ int InputFileMgr_t::Load(const TString &inputfname_inp,
 	FSkimDef=value;
 	if (debug==2) std::cout << " * skimDef=<" << FSkimDef << ">\n";
       }
+      else if (key=="RESULT_ROOT_DIR") {
+	FRootFileBaseDir=value;
+	//if (debug==2)
+	std::cout << " *!!* setting RESULT_ROOT_DIR=<" << FRootFileBaseDir << ">\n";
+      }
       else {
 	keys.push_back(key);
 	values.push_back(value);
