@@ -75,7 +75,7 @@ fi
 echo
 echo
 echo "evaluateUnfoldingSyst.sh: ${runMode}"
-echo "    analysisIs2D=${analysisIs2D}
+echo "    analysisIs2D=${analysisIs2D}"
 echo "    confInputFile=${confInputFile}"
 echo "    runFlags=${fullRun}"
 echo "       - doFsrStudy=${doFsrStudy}"
@@ -86,7 +86,10 @@ echo "       + doCalcUnfoldingSyst=${doCalcUnfoldingSyst}"
 echo 
 echo
 
-
+if [ x${analysisIs2D} == x ] ; then 
+    echo "evaluateUnfoldingSyst.sh analysisIs2D [config_file [run_flags]]"
+    exit
+fi
 
 #
 #  Flag of an error
