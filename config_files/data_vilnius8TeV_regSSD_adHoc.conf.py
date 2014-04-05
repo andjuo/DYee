@@ -20,7 +20,7 @@
 [DEFINITIONS]
 PATH_1=/media/sdb3/CMSData2012-regressed
 PATH_2=/media/sdb3/CMSData2012-regressed
-PATH_3=
+PATH_3=/media/sdb/CMSData2012-regressed2
 PATH_4=
 PATH_5=../config_files/JSONs/8TeV/
 PATH_SSD=/media/ssd
@@ -49,6 +49,7 @@ SpecTagFileUser=
 
 # Electron energy scale
 #EScaleSet=Date20130529_2012_j22_adhoc   # Name of energy scale calibrations set. See ElectronEnergyScale.hh.
+#EScaleSet=UNCORRECTED
 EScaleSet=Date20140220_2012_j22_peak_position
 
 # Extension of the saved plots
@@ -254,8 +255,14 @@ $ zee 426  798 798 803  @Z#rightarrowee
 #     http://cms.cern.ch/iCMS/jsp/mcprod/admin/requestmanagement.jsp?dsn=*DYToEE*&campid=Summer12_DR53X_with_regression
 #  10-20  : 3708.0 pb
 #  20-inf : 1871.0 pb
+#  200-inf: 1.483  pb
+#  400-inf: 0.1085 pb
 #  500-inf: 0.04409 pb
+#  700-inf: 0.01025 pb
 #  800-inf: 0.005491 pb
+# 1000-inf: 0.001796 pb
+# 1500-inf: 1.705E-4 pb
+# 2000-inf: 2.208E-5 pb
 #
 # The NNLO for DY->LL (L=e,mu,tau) from generator group is 5745.25 pb
 #     https://twiki.cern.ch/twiki/bin/viewauth/CMS/StandardModelCrossSectionsat8TeV
@@ -266,29 +273,57 @@ $ zee 426  798 798 803  @Z#rightarrowee
 # Thus:
 #  10-20  : 3708.0 * (1915.1/1871.0) = 3795.4
 #  20-inf : 1871.0 * (1915.1/1871.0) = 1915.1
+#  200-inf: 1.483  * (1915.1/1871.0) = 1.5180
+#  400-inf: 0.1085 * (1915.1/1871.0) = 0.1111
 #  500-inf: 0.04409  * (1915.1/1871.0) = 0.045129
+#  700-inf: 0.01025  * (1915.1/1871.0) = 0.01049
 #  800-inf: 0.005491 * (1915.1/1871.0) = 0.005620
+# 1000-inf: 0.001796 * (1915.1/1871.0) = 0.001838
+# 1500-inf: 1.705E-4 * (1915.1/1871.0) = 1.745E-4
+# 2000-inf: 2.208E-5 * (1915.1/1871.0) = 2.260E-5
 #
 # Additionally:
 #  20-500: xsec(>20) - xsec(>500)   = 1915.1 - 0.045129 ~= 1915.1
 #  500-800: xsec(>500) - xsec(>800) = 0.045129 - 0.005620 ~= 0.039509
 #
+#    20- 200: xsec(  >20) - xsec( >200) = 1915.1 - 1.5180     = 1913.6
+#   200- 400: xsec( >200) - xsec( >400) = 1.5180 - 0.1111     = 1.4069
+#   400- 500: xsec( >400) - xsec( >500) = 0.1111 - 0.045129   = 0.06597
+#   500- 700: xsec( >500) - xsec( >700) = 0.045129 - 0.01049  = 0.03464
+#   700- 800: xsec( >700) - xsec( >800) = 0.01049  - 0.005620 = 0.004870
+#   800-1000: xsec( >800) - xsec(>1000) = 0.005620 - 0.001838 = 0.003782
+#  1000-1500: xsec(>1000) - xsec(>1500) = 0.001838 - 1.745E-4 = 0.001664
+#  1500-2000: xsec(>1500) - xsec(>2000) = 1.745E-4 - 2.260E-5 = 0.0001519
+#
 # -----
 # We will use either 10-20 + 20-inf GeV samples, or 10-20 + 20-500 + 500-800 + 800-inf.
+# AJ: Ilya uses scaled CS values, I put here NLO CS values
 # -----
 # In case we use 20-inf sample:
 #PATH_2/s12-zeem20-v7a_tight-loose_skim.root 1915.1
 #
 # In case we use 20-500-800-inf:
 #
-PATH_SSD/s12-zeem20to500-v7a_tight-loose_skim.root 1915.1  600  @Powheg 20-500
+#PATH_SSD/s12-zeem20to500-v7a_tight-loose_skim.root 1915.1  600  @Powheg 20-500
 #
-PATH_2/s12-zeem500to800-v7a_ntuple.root 0.039509  632 @Powheg 500-800
+#PATH_2/s12-zeem500to800-v7a_ntuple.root 0.039509  632 @Powheg 500-800
 #
-PATH_2/s12-zeem800-v7a_ntuple.root 0.005620   432 @Powheg 800+
+#PATH_2/s12-zeem800-v7a_ntuple.root 0.005620   432 @Powheg 800+
 #
 # In case we use 20-500-inf:
 #/mnt/hadoop/user/uscms01/pnfs/unl.edu/data4/cms/store/user/ikrav/DrellYan_8TeV/53X_with_regression/s12-zeem500-v7a_ntuple.root 0.045129
 #
-PATH_2/s12-zeem1020-v7a_tight-loose_skim.root 3795.4  800 @Powheg 10-20
+PATH_SSD/s12-zeem1020-v7a_tight-loose_skim.root 3708.0  800 @Powheg 10-20
+#
+# new n-tuples with finer binning
+#
+PATH_SSD/s12-zeem20to200-v7a_tight-loose_skim.root 1869.5   600 1 @Powheg 20-200
+PATH_SSD/s12-zeem200to400-v7a_ntuple.root   1.3745     632 1 @Powheg 200-400
+PATH_SSD/s12-zeem400to500-v7a_ntuple.root   0.06441    432 1 @Powheg 400-500
+PATH_SSD/s12-zeem500to700-v7a_ntuple.root   0.03384    616 1 @Powheg 500-700
+PATH_SSD/s12-zeem700to800-v7a_ntuple.root   0.004759   880 1 @Powheg 700-800
+PATH_SSD/s12-zeem800to1000-v7a_ntuple.root  0.003695   900 1 @Powheg 800-1000
+PATH_SSD/s12-zeem1000to1500-v7a_ntuple.root 0.0016255   625 1 @Powheg 1000-1500
+PATH_SSD/s12-zeem1500to2000-v7a_ntuple.root 0.00014842  419 1 @Powheg 1500-2000
+PATH_SSD/s12-zeem2000-v7a_ntuple.root 0.00002208  802 1 @Powheg 2000-
 %
