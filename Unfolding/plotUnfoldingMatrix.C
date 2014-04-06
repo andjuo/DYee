@@ -732,10 +732,10 @@ int plotUnfoldingMatrix(int analysisIs2D,
 		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
     }
     else if (systMode==DYTools::PU_STUDY) {
-      detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5minus,0),
-		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
-      detRespV[1]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5plus,0),
-		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5plus));
+      detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::PILEUP_5minus,0),
+		  UnfoldingMatrix_t::generateFNameTag(DYTools::PILEUP_5minus));
+      detRespV[1]->autoSaveToFile(inpMgr.constDir(DYTools::PILEUP_5plus,0),
+		  UnfoldingMatrix_t::generateFNameTag(DYTools::PILEUP_5plus));
     }
   }
   else {
