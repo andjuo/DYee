@@ -18,6 +18,7 @@ TString getDefaultFileName(TString index) {
   else if (index=="defaultOld") {
     fname="../config_files/old-data_vilnius8TeV_regSSD.conf.py";
   }
+  else fname=index;
   return fname;
 }
 
