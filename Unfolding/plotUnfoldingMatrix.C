@@ -729,7 +729,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
       detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5minus,0),
 		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
       detRespV[2]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5plus,0),
-		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
+		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5plus));
     }
     else if (systMode==DYTools::PU_STUDY) {
       detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::PILEUP_5minus,0),
