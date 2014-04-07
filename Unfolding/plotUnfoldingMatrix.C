@@ -280,7 +280,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     if (specEWeightsV.size()!=2) { std::cout << "expected specEWeights.size=2\n"; return retCodeError; }
     detRespV.reserve(specEWeightsV.size());
     for (unsigned int i=0; i<specEWeightsV.size(); i++) {
-      TString wStr=(i==0) ? "PU5plus" : "PU5minus";
+      TString wStr=(i==0) ? "PU5minus" : "PU5plus"";
       TString name=TString("detResponse_") + wStr;
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
