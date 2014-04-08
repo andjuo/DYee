@@ -1,7 +1,9 @@
 // from 2014.02.25 ver. studyCovEff.C
 // from 2013.08.01 ver. studyEffCovD
 
+#include <TBenchmark.h>
 #include "CovariantEff.h"
+//#include "../EventScaleFactors/tnpSelectEvents.hh"
 
 const int nExps=100;
 const int nTotBins=DYTools::getTotalNumberOfBins(); //same as DYTools::nMassBins in 1D;
@@ -31,8 +33,16 @@ int PrepareEtEtaIdx(const esfSelectEvent_t &selData, EtEtaIndexer_t &fidx1, EtEt
 // or only ID syst, for ID SF.
 
 
-int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, TString variant="") {
+int studyEffCov_SFsyst(int analysisIs2D,
+		       int debugMode,
+		       TString systCode="111",
+		       int scaleFactorKind=-1, TString variant="") {
   gBenchmark->Start("studyEffCov");
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
 
   if (( DYTools::study2D && (DYTools::nYBins[0]==1)) ||
       (!DYTools::study2D && (DYTools::nYBins[0] >1))) {
@@ -59,12 +69,10 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     int recoOn=(systCode[0]=='1') ? 1:0;
     int idOn  =(systCode[1]=='1') ? 1:0;
     int hltOn =(systCode[2]=='1') ? 1:0;
-    if (recoOn) recoSystFName="../root_files_reg/tag_and_probe/DY_j22_19712pb_egamma_Unregressed_energy/efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
-    if (idOn) idSystFName="../root_files_reg/tag_and_probe/DY_j22_19712pb_egamma_Unregressed_energy/efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
+    if (recoOn) recoSystFName="../../Results-DYee/root_files_reg/extra_systematics/DY_j22_19712pb_egamma_Unregressed_energy/efficiency_TnP_1D_Full2012_dataRECO_fit-fitEtBins6EtaBins5egamma_PU.root";
+    if (idOn) idSystFName="../../Results-DYee/root_files_reg/extra_systematics/DY_j22_19712pb_egamma_Unregressed_energy/efficiency_TnP_1D_Full2012_dataID_fit-fitEtBins6EtaBins5egamma_PU.root";
     if (hltOn) {
-      //hltSystFName="../EventScaleFactors/unregHLTSystematics20140226.root";
-      std::cout << "\n\thlt systematics is switched off\n\n";
-      return retCodeStop;
+      hltSystFName="../../Results-DYee/root_files_reg/extra_systematics/DY_j22_19712pb_egamma_Unregressed_energy/unregHLTSystematics20140226.root";
     }
     if (recoOn+idOn+hltOn==3) includedSyst="-allSyst";
     else if (recoOn+idOn+hltOn==0) includedSyst="-noSyst";
@@ -641,6 +649,7 @@ int studyEffCov_SFsyst(int debugMode, TString systCode, int scaleFactorKind=-1, 
     }
   }
 
-  gBenchmark->Show("studyEffCov");
+  //gBenchmark->Show("studyEffCov");
+  ShowBenchmarkTime("selectEvents");
   return retCodeOk;
 }
