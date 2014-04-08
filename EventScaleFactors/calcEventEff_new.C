@@ -812,6 +812,13 @@ int calcEventEff_new(int analysisIs2D,
       hScaleV   [ibin]->Fill( scaleFactor, weight);
       //if (ibin==39) std::cout << " sf=" << scaleFactor << " * " << weight << "\n";
 
+      if (idx<0) {
+	std::cout << "ientry=" << ientry << "  ";
+	std::cout << "idx<0: genMass=" << selData.genMass << ", genY="
+		  << selData.genY << ", ibin=" << ibin << std::endl;
+	continue;
+      }
+
       if ((idx>=0) && (idx<DYTools::nUnfoldingBins)) {
 	hScaleRecoFIV[idx]->Fill( scaleFactorReco, weight);
 	hScaleIdFIV [idx]->Fill( scaleFactorId, weight);
@@ -866,6 +873,7 @@ int calcEventEff_new(int analysisIs2D,
 	  systSumEsfEvtW_ZpeakV[iexp]+=weight*scaleFactor;
 	}
       }
+
       for(int iexp = 0; iexp<nexp; iexp++){
 	scaleFactorReco = sqrt(findEventScaleFactorSmeared(DYTools::RECO,selData,iexp));
 	(*systScaleRecoFI[idx])[iexp]->Fill(scaleFactorReco, weight);
