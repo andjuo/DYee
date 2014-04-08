@@ -108,7 +108,7 @@ public:
   Double_t et_1,eta_1,et_2,eta_2;
   Double_t weight;
   UInt_t nGoodPV;
-  Int_t largeFSR;
+  UInt_t largeFSR;
 
   esfSelectEvent_t() : TObject(),
 		       genMass(0.), genY(0.), mass(0.), y(0.),
@@ -131,7 +131,7 @@ public:
   }
   */
 
-  void assign(const mithep::TDielectron *dielectron, const mithep::TGenInfo *gen, int _nGoodPV, double _weight, int _largeFSR=0) {
+  void assign(const mithep::TDielectron *dielectron, const mithep::TGenInfo *gen, UInt_t _nGoodPV, double _weight, UInt_t _largeFSR=0) {
     genMass= gen->mass;
     genY= gen->y;
     mass= dielectron->mass;
