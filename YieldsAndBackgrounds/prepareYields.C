@@ -941,8 +941,8 @@ int prepareYields(int analysisIs2D,
 	// Individual MC samples
 	double total=0., totalError=0.;
 	for(UInt_t isam=1; isam<inpMgr.sampleCount(); isam++) {
-	  double thisContent = hMassBinsv[isam]->GetBinContent(ibin+1);
-	  double thisError = hMassBinsv[isam]->GetBinError(ibin+1);
+	  double thisContent = factor*hMassBinsv[isam]->GetBinContent(ibin+1);
+	  double thisError = factor*hMassBinsv[isam]->GetBinError(ibin+1);
 	  printf(" %7.2f+-%5.2f ",thisContent, thisError);
 	  if ( (isam!=0) && (inpMgr.sampleName(isam)!=TString("zee"))) {
 	    total+= thisContent;
@@ -951,8 +951,8 @@ int prepareYields(int analysisIs2D,
 	}
 	totalError = sqrt(totalError);
 	// Total
-	printf("  %8.2f+-%6.2f",total*factor, totalError*factor);
-	printf("  %5.1f\n",100*total*factor/hMassBinsv[0]->GetBinContent(ibin+1));
+	printf("  %8.2f+-%6.2f",total, totalError);
+	printf("  %5.1f\n",100*total/hMassBinsv[0]->GetBinContent(ibin+1));
       }
     }
   }
