@@ -145,6 +145,10 @@ public:
   CSResults_t(const CSResults_t &r) :
     fZXSec(r.fZXSec), fZXSecErr(r.fZXSecErr), fZXSecSystErr(r.fZXSecSystErr) {}
 
+  void clear() {
+    fZXSec=0; fZXSecErr=0.; fZXSecSystErr=0.;
+  }
+
   double xs() const { return fZXSec; }
   double xsErr() const { return fZXSecErr; }
   double xsErrSyst() const { return fZXSecSystErr; }
@@ -152,6 +156,19 @@ public:
 
   void assignCS(double set_xs, double set_xsErr, double set_xsSystErr) {
     fZXSec=set_xs; fZXSecErr=set_xsErr; fZXSecSystErr=set_xsSystErr;
+  }
+
+  void assignZpeakCS(const HistoPair2D_t &hp) {
+    fZXSec = hp.ZpeakCount(&fZXSecErr);
+    fZXSecSystErr= hp.ZpeakCountSystErr();
+  }
+
+  int doNormalize(HistoPair2D_t &hp, int allErrIsSyst) const {
+    int res=1;
+    if (allErrIsSyst) res=hp.divide_allErrSyst(fZXSec,fZXSecErr,fZXSecSystErr);
+    else res=hp.divide(fZXSec,fZXSecErr,fZXSecSystErr);
+    if (!res) std::cout << "error in CSResults::useToNormalize\n";
+    return res;
   }
 
   friend std::ostream& operator<<(std::ostream& out, const CSResults_t &r) {
