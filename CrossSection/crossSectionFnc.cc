@@ -83,7 +83,7 @@ int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Histo
     constDir=codeDebugFilePath;
     fnameTag=DYTools::analysisTag + TString("_PU");
   }
-  UnfM=UnfoldingMatrix_t::LoadUnfM("fsrDET_good", constDir, fnameTag, inverse);
+  UnfM=UnfoldingMatrix_t::LoadUnfM("fsrDETgood", constDir, fnameTag, inverse);
   if (!UnfM) return 0;
   // unfolding does not include additional error of the unfolding matrix
   int res= fin.unfold(*UnfM, ini);
@@ -250,9 +250,19 @@ int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp,
     std::cout << "output fname would be <" << fname << ">\n";
 
     hp.print();
+
+    HistoPair2D_t hpPerLumi(hp.GetName() + TString("_divLumi"),hp);
+    hpPerLumi.scale(1./ia.inpMgr()->totalLumi());
+    hpPerLumi.print();
+    std::cout << "\n\n";
+    CSResults_t zpResult;
+    zpResult.assignZpeakCS(hpPerLumi);
+    std::cout << "normalization factor: " << zpResult << "\n";
+
     if (!ia.noSave()) {
       TFile fout(fname,"recreate");
       if (!hp.Write(fout)) return 0;
+      if (!hpPerLumi.Write(fout)) return 0;
       writeBinningArrays(fout);
       fout.Close();
       std::cout << "saved to file <" << fout.GetName() << ">\n";
@@ -408,8 +418,10 @@ int calculateCSdistribution(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
 
 int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini, 
 		DYTools::TCrossSectionKind_t csKind,
-		HistoPair2D_t &hp_fin, CSResults_t &result) 
+		HistoPair2D_t &hp_fin, CSResults_t &zpResult)
 {
+  zpResult.clear();
+
   // initial test
   {
     using namespace DYTools;
@@ -439,20 +451,14 @@ int calculateCS(const InputArgs_t &ia, const HistoPair2D_t &hp_ini,
     hp_fin.eliminateNaNs();
   }
 
-  //int imLow=-1, imHigh=-1;
-  //res= getNormalizationMBinRange(imLow,imHigh);
-  //if (!res) { std::cout << "in calculateCS\n"; return 0; }
+  // Divide by the luminosity
+  hp_fin.scale(1/ia.inpMgr()->totalLumi());
 
-  double Zcs=0., ZcsErr=0.;
-  Zcs = hp_fin.ZpeakCount(&ZcsErr);
-  double ZcsSystErr= hp_fin.ZpeakCountSystErr();
-
-  result.assignCS(Zcs,ZcsErr,ZcsSystErr);
-  if (ia.silentMode()<2) std::cout << "normalization factors: " << result << "\n";
+  zpResult.assignZpeakCS(hp_fin);
+  if (ia.silentMode()<2) std::cout << "normalization factor: " << zpResult << "\n";
 
   if (res && DYTools::isNormalizedCS(csKind)) {
-    if (ia.allNormErrorIsSyst()) res=hp_fin.divide_allErrSyst(Zcs,ZcsErr,ZcsSystErr);
-    else res=hp_fin.divide(Zcs,ZcsErr,ZcsSystErr);
+    res=zpResult.doNormalize(hp_fin, ia.allNormErrorIsSyst());
     if (!res) {
       std::cout << "in calculateCS\n";
       return 0;
