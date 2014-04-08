@@ -443,6 +443,17 @@ public:
 
   // ----------------
 
+  int scale(double norm) {
+    if (norm==double(0)) {
+      return reportError("scale(norm): norm=0");
+    }
+    fHisto->Scale(norm);
+    fHistoSystErr->Scale(norm);
+    return 1;
+  }
+
+  // ----------------
+
   double ZpeakCount(double *err=NULL) const { return ::ZpeakCount(fHisto,err); }
 
   double ZpeakCountSystErr() const { 
