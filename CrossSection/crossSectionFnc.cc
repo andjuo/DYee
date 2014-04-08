@@ -142,10 +142,16 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
 
 int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
   if (inpArg.silentMode()<2) HERE(" -- efficiencyScaleCorrection");
-  TString rhoCorrFName=inpArg.inpMgr()->correctionFullFileName("scale_factors",inpArg.systMode(),0);
+  TString rhoCorrFName=inpArg.inpMgr()->correctionFullFileName("scale_factors_asymHLT",inpArg.systMode(),0);
   TH2D *hRho=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
+    TString sfTag=inpArg.inpMgr()->userKeyValueAsTString("ScaleFactorTag");
+    if (sfTag.Length()) {
+      std::cout << "special scale factor tag=<" << sfTag << ">\n";
+      TString constTag=inpArg.inpMgr()->constTag();
+      rhoCorrFName.ReplaceAll(constTag,sfTag);
+    }
     //hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
     int checkBinning=0;
     hRho=LoadMatrixFields(rhoCorrFName,checkBinning,"scaleFactor","scaleFactorErr",1);
