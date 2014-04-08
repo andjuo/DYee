@@ -4,7 +4,7 @@
 #include <TBenchmark.h>
 #include <TClonesArray.h>
 #include <TLorentzVector.h>
-#include <TH1F.h>
+//#include <TH1D.h>
 #include <TCanvas.h>
 #include <TStyle.h>
 #include <TRandom.h>
@@ -27,23 +27,26 @@
 #include "../Include/MitStyleRemix.hh"
 
 #include "../Include/DYTools.hh"
-#include "../Include/EleIDCuts.hh"
+//#include "../Include/MyTools.hh"
+//#include "../Include/EleIDCuts.hh"
 
-#include "../Include/EWKAnaDefs.hh"
-#include "../Include/TGenInfo.hh"
-#include "../Include/TEventInfo.hh"
-#include "../Include/TDielectron.hh"
-#include "../Include/TElectron.hh"
-#include "../Include/TVertex.hh"
-#include "../Include/TriggerSelection.hh"
-#include "../Include/cutFunctions.hh"
+//#include "../Include/EWKAnaDefs.hh"
+//#include "../Include/TGenInfo.hh"
+//#include "../Include/TEventInfo.hh"
+//#include "../Include/TDielectron.hh"
+//#include "../Include/TElectron.hh"
+//#include "../Include/TVertex.hh"
+//#include "../Include/TriggerSelection.hh"
+#include "../EventScaleFactors/cutFunctions.hh"
 #include "../EventScaleFactors/tnpSelectEvents.hh"
 
+#include "../Include/AccessOrigNtuples.hh"
 #include "../Include/InputFileMgr.hh"
 #include "../Include/EventSelector.hh"
-#include "../Include/PUReweight.hh"
-#include "../Include/UnfoldingTools.hh"
-#include "../Include/FEWZ.hh"
+#include "../Include/EventWeight.hh"
+//#include "../Include/PUReweight.hh"
+//#include "../Include/UnfoldingTools.hh"
+//#include "../Include/FEWZ.hh"
 
 using namespace mithep;
 using namespace std;
@@ -53,7 +56,8 @@ using namespace std;
 // where the eff(i,trig1) is the efficiency i'th electron in HLT_leg1,
 // eff(i,trig2) is the efficiency of i'th electron in HLT_leg2,
 // the threshold for HLT_leg1 is higher than for HLT_leg2
-const int nonUniversalHLT=0;// if nonUniversalHLT=1, HLT_leg1 and HLT_leg2 are used
+const int nonUniversalHLT=1;// if nonUniversalHLT=1, HLT_leg1 and HLT_leg2 are used
+int loadUniversalHLT=1-nonUniversalHLT; 
 const int NEffTypes=3 + 2*nonUniversalHLT;
 const int allowToIgnoreAnalysisTag=1; // efficiencies and selected events...
 // .... are the same for 1D and 2D
@@ -62,26 +66,29 @@ const int allowToIgnoreAnalysisTag=1; // efficiencies and selected events...
 typedef double EffArray_t[NEffTypes][DYTools::nEtBinsMax][DYTools::nEtaBinsMax]; // largest storage
 
 const int nexp=100;
-typedef TH1F* SystTH1FArray_t[DYTools::nMassBins][nexp];   // mass index
-typedef TH1F* SystTH1FArrayFI_t[DYTools::nUnfoldingBinsMax][nexp]; // flat(mass,y) index
+typedef TH1D* SystTH1DArray_t[DYTools::nMassBins][nexp];   // mass index
+typedef TH1D* SystTH1DArrayFI_t[DYTools::nUnfoldingBinsMax][nexp]; // flat(mass,y) index
 
 template<class T> T SQR(const T& x) { return x*x; }
 
 
 //=== FUNCTION DECLARATIONS ======================================================================================
 
-int fillEfficiencyConstants( const TnPInputFileMgr_t &mcMgr, 
-    const TnPInputFileMgr_t &dataMgr, const TriggerSelection &triggers,
-			    int puReweight );
-int fillOneEfficiency(const TnPInputFileMgr_t &mgr, const TString filename, 
+int fillEfficiencyConstants( const InputFileMgr_t &inpMgr, DYTools::TSystematicsStudy_t systMode );
+
+int fillOneEfficiency(const TString &use_dirTag, const TString filename, 
   UInt_t kindIdx, vector<TMatrixD*> &data, vector<TMatrixD*> &dataErrLo, 
   vector<TMatrixD*> &dataErrHi, vector<TMatrixD*> &dataAvgErr, int weightedCnC);
 
+// moved to AccessOrigNtuples.hh
+//Bool_t matchedToGeneratorLevel(const TGenInfo *gen, 
+//  const TDielectron *dielectron);
 
-Bool_t matchedToGeneratorLevel(const TGenInfo *gen, 
-  const TDielectron *dielectron);
-int createSelectionFile(const MCInputFileMgr_t &mcMgr, 
-    const TString &outSkimFName, TriggerSelection &triggers, int debugMode);
+int createSelectionFile(const InputFileMgr_t &mcMgr, 
+			EventSelector_t &evtSelector,
+			const TString &outSkimFName, 
+			DYTools::TRunMode_t runMode,
+			DYTools::TSystematicsStudy_t systMode);
 
 double findEventScaleFactor(int kind, const esfSelectEvent_t &data); // -1 for total
 
@@ -137,18 +144,23 @@ double getHLTefficiencySmeared(DYTools::TDataKind_t dataKind,
 			       int etBin2, int etaBin2, double Et2,
 			       const EffArray_t &rndWeight);
 
-void drawEfficiencies(TFile *fRoot);
+#ifndef calcEventEffLink_H
+void drawEfficiencies(TFile *fRootOutput, 
+		      int ignoreAsymHLT=0,
+		      std::vector<TGraphErrors*> *grDataVec=NULL,
+		      std::vector<TGraphErrors*> *grMCVec=NULL);
+#endif
 
 void drawEfficiencyGraphs(
      TGraphErrors *grData, TGraphErrors *grMc,
      TString yAxisTitle, TString text, TString plotName,
-     TFile *fRoot);
+     TFile *fRootOutput);
 
 //template<class Graph_t>
 //void drawEfficiencyGraphsAsymmErrors(Graph_t *grData, Graph_t *grMc,
 //			  TString yAxisTitle, TString text, TString plotName);
 
-void drawScaleFactors(TFile *fRoot);
+void drawScaleFactors(TFile *fRoot, int saveArrs=0);
 
 void drawScaleFactorGraphs(TGraphErrors *gr, TString yAxisTitle, TString text, 
 			   TString plotName, TFile *fRoot);
@@ -193,9 +205,9 @@ double errOnRatio(double a, double da, double b, double db);
 // Global variables
 //const int nexp = 100;
 
-template<class TSystTH1FArray_t>
+template<class TSystTH1DArray_t>
 void deriveScaleMeanAndErr(const int binCount, const int nexpCount, 
-			   TSystTH1FArray_t &systScale, 
+			   TSystTH1DArray_t &systScale, 
 			   TVectorD &scaleMean, TVectorD &scaleMeanErr) {
 
   if ((scaleMean.GetNoElements() != binCount) ||
@@ -225,22 +237,9 @@ void deriveScaleMeanAndErr(const int binCount, const int nexpCount,
 
 const bool savePlots = true;
 const bool correlationStudy = false;
-const bool useFewzWeights = true;
-
 
 // File names for efficiency measurements from tag and probe
-TString          dirTag;
-
-// Define the method used to obtain the efficiencies
-//const int dataRecoEffMethod = FITnFIT;
-//const int mcRecoEffMethod   = COUNTnCOUNT;
-//const int dataIdEffMethod  = FITnFIT;
-//const int mcIdEffMethod    = COUNTnCOUNT;
-//const int dataHltEffMethod = COUNTnCOUNT;
-//const int mcHltEffMethod   = COUNTnCOUNT;
-
-//int dataEffMethods[NEffTypes], mcEffMethods[NEffTypes];
-
+//TString          dirTag;
 
 vector<TMatrixD*> dataEff,mcEff;
 vector<TMatrixD*> dataEffErrLo,mcEffErrLo;
@@ -262,72 +261,57 @@ DYTools::TEtaBinSet_t etaBinning= DYTools::ETABINS_UNDEFINED;
 int etaBinCount=0;
 double *etaBinLimits=NULL;
 
+// ---------- Setup main variables ---------------
 
-//=== MAIN MACRO =================================================================================================
-
-void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile, 
-    const TString tnpMCInputFile, TString triggerSetString, int selectEvents, 
-		  int puReweight, int debugMode=0)
+int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
+		 InputFileMgr_t &inpMgr, EventSelector_t &evtSelector,
+		 TString &puStr, int createDestinationDir,
+		 DYTools::TSystematicsStudy_t systMode) 
 {
 
-//  ---------------------------------
-//       Preliminary checks
-//  ---------------------------------
+  //InputFileMgr_t inpMgr;
+  if (!inpMgr.LoadTnP(confFileName)) return 0;
+  // no energy correction for this evaluation
+  inpMgr.clearEnergyScaleTag();
 
-  // verify whether it was a compilation check
-  if (mcInputFile.Contains("_DebugRun_") || 
-      triggerSetString.Contains("_DebugRun_")) {
-    std::cout << "calcEventEff: _DebugRun_ detected. Terminating the script\n";
-    return;
-  }
-
-  // fast check
-  // Construct the trigger object
-  TriggerSelection triggers(triggerSetString, false, 0); 
-  assert ( triggers.isDefined() );
-
-  if (debugMode) std::cout << "\n\n\tDEBUG MODE is ON\n\n";
-
-//  ---------------------------------
-//         Normal execution
-//  ---------------------------------
-
-  gBenchmark->Start("calcEventEff");
-
-  ro_Data= new EffArray_t[nexp];
-  ro_MC  = new EffArray_t[nexp];
-  assert(ro_Data && ro_MC);
-
-
-  TString puStr = (puReweight) ? "_PU" : "";
+  const int puReweight=inpMgr.puReweightFlag();
+  const int useFewzWeights=inpMgr.fewzFlag();
+  //TString 
+  puStr = (puReweight) ? "PU" : "";
   if (!useFewzWeights) puStr.Append("_noFEWZ");
   if (nonUniversalHLT) puStr.Append("_HLTlegs");
-  CPlot::sOutDir = TString("plots") + DYTools::analysisTag + puStr;
-  gSystem->mkdir(CPlot::sOutDir,true);
+  //CPlot::sOutDir = TString("plots") + DYTools::analysisTag + puStr;
+  //std::cout << "changed CPlot::sOutDir=<" << CPlot::sOutDir << ">\n";
+  //gSystem->mkdir(CPlot::sOutDir,true);
 
-  MCInputFileMgr_t mcMgr;
-  TnPInputFileMgr_t tnpDataMgr,tnpMCMgr;
-
-  if (!mcMgr.Load(mcInputFile) ||
-      !tnpMCMgr.Load(tnpMCInputFile) ||
-      !tnpDataMgr.Load(tnpDataInputFile)) {
-    return;
+  // Construct eventSelector, update mgr and plot directory
+  TString plotsExtraTag=puStr;
+  EventSelector::TSelectionType_t set_selection=EventSelector::_selectHLTOrdered;
+#ifdef DYee8TeV_reg
+  if (systMode==DYTools::UNREGRESSED_ENERGY) set_selection=EventSelector::_selectHLTOrdered_nonRegressed;
+#endif
+  if (!evtSelector.init(inpMgr,runMode,systMode,
+			"",plotsExtraTag, set_selection)) {
+    std::cout << "failed to create EventSelector_t\n";
+    return 0;
   }
-  if (!tnpMCMgr.hasSameBinCounts(tnpDataMgr)) {
-    cout << "Files tnpMCInputFile=<" << tnpMCInputFile 
-	 << ">, tnpDataInputFile=<" << tnpDataInputFile 
-	 << "> have different bin counts:\n";
-    cout << "MC   input: " << tnpMCMgr;
-    cout << "Data input: " << tnpDataMgr;
-    return;
-  }
-  dirTag=tnpMCMgr.dirTag();
+  evtSelector.setTriggerActsOnData(false);
 
-  etBinning=tnpMCMgr.etBinsKind();
+  // Prepare output directory
+  inpMgr.constDir(systMode,createDestinationDir);
+
+
+  //dirTag=inpMgr.tnpTag();
+
+  TString etStr=inpMgr.getTNP_etBinningString();
+  std::cout << "etStr=" << etStr << "\n";
+  etBinning=DetermineEtBinSet(etStr);
   etBinCount=DYTools::getNEtBins(etBinning);
   etBinLimits=DYTools::getEtBinLimits(etBinning);
   
-  etaBinning=tnpMCMgr.etaBinsKind();
+  TString etaStr=inpMgr.getTNP_etaBinningString();
+  std::cout << "etaStr=" << etaStr << "\n";
+  etaBinning=DetermineEtaBinSet(etaStr);
   etaBinCount=DYTools::getNEtaBins(etaBinning);
   etaBinLimits=DYTools::getEtaBinLimits(etaBinning);
 
@@ -341,16 +325,133 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
     std::cout << std::endl;
     assert(0);
   }
-  
-  TString selectEventsFName=TString("../root_files/tag_and_probe/") +
-    dirTag + TString("/eventSFSelectEvents") + DYTools::analysisTag + puStr +
-    TString(".root");
 
+  return 1;
+}
+
+// -----------------------------------------
+
+int preparePseudoExps(int nExps, int debug_pseudo_exps) {
+  //
+  // prepare global variables
+  // 
+
+  ro_Data= new EffArray_t[nExps];
+  ro_MC  = new EffArray_t[nExps];
+  //assert(ro_Data && ro_MC);
+  if (!ro_Data || !ro_MC) {
+    std::cout << Form("preparePseudoExps(nExps=%d,debug_pseudo_exps=%d): failed to allocate ro_Data\n",nExps,debug_pseudo_exps);
+    return 0;
+  }
+
+  for (int isData=0; isData<2; ++isData) {
+    int extra_sign=(isData) ? 1 : -1; // for debug_pseudo_exps
+    for (int i=0; i<nExps; i++) {
+      EffArray_t *arr= (isData==0) ? (&ro_MC[i]) : (&ro_Data[i]);
+    for (int kind=0; kind<NEffTypes; ++kind) {
+      for (int iEt=0; iEt<DYTools::nEtBinsMax; ++iEt) {
+	for (int iEta=0; iEta<DYTools::nEtaBinsMax; ++iEta) {
+	  // In the special case of the RECO efficiency for low Et
+	  // electrons, some eta bins are MERGED in tag and probe.
+	  // However the binning is kept standard, so the values
+	  // for the efficiencies in the merged bins are the same,
+	  // and the errors are 100% correlated. Take this into
+	  // account and make the smearing 100% correlated as well.
+	  if( kind == 0 && DYTools::mergeEtBins(etaBinning)
+	      && (getEtBinLimits(etBinning))[iEt+1] <= 20.0 
+	      && (iEta == 1 || iEta == 4)    ) {
+	    // We are dealing with merged bins of the RECO efficiency with the right binning
+	    // For iEta == 1 or 4, fall back to the values for iEta == 0 or 3.
+	    (*arr)[kind][iEt][iEta]= (*arr)[kind][iEt][iEta-1];
+	  }else{
+	    // The default case, all other efficiencies and bins
+	    (*arr)[kind][iEt][iEta]=
+	      (debug_pseudo_exps) ? 
+	      extra_sign*((kind+1)*100 + (iEt+1)*10 + iEta+1) :
+	      gRandom->Gaus(0.0,1.0);
+	  }
+	}
+      }
+    }
+    }
+  }
+  return 1;
+}
+
+
+//=== MAIN MACRO =================================================================================================
+
+int calcEventEff_old(const TString confFileName,
+		 int selectEvents, 
+		 DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
+{
+
+  gBenchmark->Start("calcEventEff");
+
+//  ---------------------------------
+//       Preliminary checks
+//  ---------------------------------
+
+  // verify whether it was a compilation check
+  if (confFileName.Contains("_DebugRun_") ||
+      confFileName.Contains("_check_")) {
+    std::cout << "calcEventEff: _DebugRun_/_check_ detected. Terminating the script\n";
+    return retCodeOk;
+  }
+
+  {
+    DYTools::printExecMode(runMode,systMode);
+    const int debug_print=1;
+    if (!DYTools::checkSystMode(systMode,debug_print,6, DYTools::NO_SYST,
+				DYTools::UNREGRESSED_ENERGY,
+				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
+				DYTools::FSR_5plus, DYTools::FSR_5minus))
+      return retCodeError;
+  }
+
+  if (( DYTools::study2D && (DYTools::nYBins[0]==1)) ||
+      (!DYTools::study2D && (DYTools::nYBins[0] >1))) {
+    std::cout << "\n\nlinking error:\n";
+    std::cout << " either study2D=1 but DYTools::nYBins[0]=1\n";
+    std::cout << " or study2D=0 but DYTools::nYBins[0] >1\n";
+    std::cout << "Try to remove *.d *.so and recompile\n\n";
+    return retCodeError;
+  }
+
+  //--------------------------------------------------------------------------------------------------------------
+  // Settings 
+  //==============================================================================================================
+  
+  InputFileMgr_t inpMgr;
+  EventSelector_t evtSelector;
+  TString puStr;
+
+  //HERE("\n\tCalling initManagers\n");
+  std::cout << "initManagers is called insisting NO_SYST\n";
+  if (!initManagers(confFileName,DYTools::NORMAL_RUN,inpMgr,evtSelector,
+		    puStr,1, DYTools::NO_SYST)) {
+    std::cout << "failed to initialize managers\n";
+    return retCodeError;
+  }
+
+  //const int puReweight=inpMgr.puReweightFlag();
+  //const int useFewzWeights=inpMgr.fewzFlag();
+	// end of relocation
+
+  TString selectEventsFName=inpMgr.tnpSFSelEventsFullName(systMode,0);
+  if ((systMode!=DYTools::NO_SYST) && selectEvents) { 
+    // create dir
+    inpMgr.tnpDir(systMode,1);
+  }
+  
   // remove HLTlegs tag from the file name, if needed
   if (nonUniversalHLT) selectEventsFName.ReplaceAll("_HLTlegs","");
+  //selectEventsFName.ReplaceAll(".root","-chk.root");
+  std::cout << "selectEventsFName=<" << selectEventsFName << ">\n";
   
   if (selectEvents) {
-    if (!createSelectionFile(mcMgr, selectEventsFName, triggers, debugMode)) {
+    if (!createSelectionFile(inpMgr, evtSelector,selectEventsFName, runMode,systMode)) {
       std::cout << "failed to create selection file <" 
 		<< selectEventsFName << ">\n";
     }
@@ -358,22 +459,35 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
       std::cout << "selection file <" << selectEventsFName << "> created\n";
       gBenchmark->Show("calcEventEff");
     }
-    return;
+    return retCodeError;
   }
+
+  int applyNtupleExtraTag=1;
+  TString corrName="scale_factors";
+  corrName.Append(inpMgr.userKeyValueAsTString("T&P_ESF_extra"));
+  if (nonUniversalHLT) corrName.Append("_asymHLT");
+  TString sfConstFileName=inpMgr.correctionFullFileName(corrName,systMode,applyNtupleExtraTag);
+  std::cout << "\n\tsfConstFileName=<" << sfConstFileName << ">\n";
+  if (nonUniversalHLT) std::cout << "\t\tnote: HLT legs are considered!\n\n";
+
 
   // Read efficiency constants from ROOT files
   // This has to be done AFTER configuration file is parsed
-  if (!fillEfficiencyConstants( tnpMCMgr, tnpDataMgr, triggers, puReweight )) {
-    return;
+  if (!fillEfficiencyConstants( inpMgr, systMode ) ) {
+    return retCodeError;
   }
 
-  TH1F *hScale = new TH1F("hScale", "", 150, 0.0, 1.5);
-  TH1F *hScaleReco = new TH1F("hScaleReco", "", 150, 0.0, 1.5);
-  TH1F *hScaleId  = new TH1F("hScaleId" , "", 150, 0.0, 1.5);
-  TH1F *hScaleHlt = new TH1F("hScaleHlt", "", 150, 0.0, 1.5);
-  TH1F *hScaleHltLeg1 = (nonUniversalHLT) ? new TH1F("hScaleHltLeg1", "", 150, 0.0, 1.5) : NULL;
-  TH1F *hScaleHltLeg2 = (nonUniversalHLT) ? new TH1F("hScaleHltLeg2", "", 150, 0.0, 1.5) : NULL;
-  std::vector<TH1F*> hScaleEffV;
+  //std::cout << "stopping\n";
+  //return retCodeStop;
+
+
+  TH1D *hScale = new TH1D("hScale", "", 150, 0.0, 1.5);
+  TH1D *hScaleReco = new TH1D("hScaleReco", "", 150, 0.0, 1.5);
+  TH1D *hScaleId  = new TH1D("hScaleId" , "", 150, 0.0, 1.5);
+  TH1D *hScaleHlt = new TH1D("hScaleHlt", "", 150, 0.0, 1.5);
+  TH1D *hScaleHltLeg1 = (nonUniversalHLT) ? new TH1D("hScaleHltLeg1", "", 150, 0.0, 1.5) : NULL;
+  TH1D *hScaleHltLeg2 = (nonUniversalHLT) ? new TH1D("hScaleHltLeg2", "", 150, 0.0, 1.5) : NULL;
+  std::vector<TH1D*> hScaleEffV;
   hScaleEffV.reserve(NEffTypes);
   hScaleEffV.push_back(hScaleReco);
   hScaleEffV.push_back(hScaleId);
@@ -383,21 +497,21 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
     hScaleEffV.push_back(hScaleHltLeg2);
   }
 
-  TH1F *hZpeakEt = new TH1F("hZpeakEt", "", etBinCount, etBinLimits);
-  vector<TH1F*> hLeadingEtV;
-  vector<TH1F*> hTrailingEtV;
-  vector<TH1F*> hElectronEtV;
+  TH1D *hZpeakEt = new TH1D("hZpeakEt", "", etBinCount, etBinLimits);
+  vector<TH1D*> hLeadingEtV;
+  vector<TH1D*> hTrailingEtV;
+  vector<TH1D*> hElectronEtV;
 
-  vector<TH1F*> hScaleV;     // mass indexing
-  vector<TH1F*> hScaleRecoV;
-  vector<TH1F*> hScaleIdV;
-  vector<TH1F*> hScaleHltV;
-  vector<TH1F*> hScaleHltLeg1V , hScaleHltLeg2V;
-  vector<TH1F*> hScaleFIV; // flat indexing
-  vector<TH1F*> hScaleRecoFIV;
-  vector<TH1F*> hScaleIdFIV;
-  vector<TH1F*> hScaleHltFIV;
-  vector<TH1F*> hScaleHltLeg1FIV, hScaleHltLeg2FIV;
+  vector<TH1D*> hScaleV;     // mass indexing
+  vector<TH1D*> hScaleRecoV;
+  vector<TH1D*> hScaleIdV;
+  vector<TH1D*> hScaleHltV;
+  vector<TH1D*> hScaleHltLeg1V , hScaleHltLeg2V;
+  vector<TH1D*> hScaleFIV; // flat indexing
+  vector<TH1D*> hScaleRecoFIV;
+  vector<TH1D*> hScaleIdFIV;
+  vector<TH1D*> hScaleHltFIV;
+  vector<TH1D*> hScaleHltLeg1FIV, hScaleHltLeg2FIV;
 
   hLeadingEtV.reserve(DYTools::nMassBins);
   hTrailingEtV.reserve(DYTools::nMassBins);
@@ -423,32 +537,32 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
   }
 
   for(int i=0; i<DYTools::nMassBins; i++){
-    double *rapidityBinLimits=DYTools::getYBinLimits(i);
+    double *rapidityBinLimits=DYTools::getYBinArray(i);
 
     TString base = TString("hScaleV_massBin");
     base += i;
-    hScaleV.push_back(new TH1F(base,base,150,0.0,1.5));
-    hScaleRecoV.push_back(new TH1F(base+TString("_reco"),
+    hScaleV.push_back(new TH1D(base,base,150,0.0,1.5));
+    hScaleRecoV.push_back(new TH1D(base+TString("_reco"),
 				   base+TString("_reco"),150,0.0,1.5));
-    hScaleIdV.push_back(new TH1F(base+TString("_id" ),
+    hScaleIdV.push_back(new TH1D(base+TString("_id" ),
 				 base+TString("_id" ),150,0.0,1.5));
-    hScaleHltV.push_back(new TH1F(base+TString("_hlt" ),
+    hScaleHltV.push_back(new TH1D(base+TString("_hlt" ),
 				  base+TString("_hlt" ),150,0.0,1.5));
     if (nonUniversalHLT) {
-      hScaleHltLeg1V.push_back(new TH1F(base+TString("_hltLeg1"),
+      hScaleHltLeg1V.push_back(new TH1D(base+TString("_hltLeg1"),
 					base+TString("_hltLeg1"),150,0.0,1.5));
-      hScaleHltLeg2V.push_back(new TH1F(base+TString("_hltLeg2"),
+      hScaleHltLeg2V.push_back(new TH1D(base+TString("_hltLeg2"),
 					base+TString("_hltLeg2"),150,0.0,1.5));
     }
     base = "hLeadingEt_";
     base += i;
-    hLeadingEtV.push_back(new TH1F(base,base,etBinCount, etBinLimits));
+    hLeadingEtV.push_back(new TH1D(base,base,etBinCount, etBinLimits));
     base = "hTrailingEt_";
     base += i;
-    hTrailingEtV.push_back(new TH1F(base,base,etBinCount, etBinLimits));
+    hTrailingEtV.push_back(new TH1D(base,base,etBinCount, etBinLimits));
     base = "hElectronEt_";
     base += i;
-    hElectronEtV.push_back(new TH1F(base,base,etBinCount, etBinLimits));
+    hElectronEtV.push_back(new TH1D(base,base,etBinCount, etBinLimits));
     
     for (int yi=0; yi<DYTools::nYBins[i]; ++yi) {
       char buf[50];
@@ -457,17 +571,17 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
       TString idxStr=buf;
       idxStr.ReplaceAll(".","_");
       base = TString("hScaleV_")+idxStr;
-      hScaleFIV.push_back(new TH1F(base,base,150,0.0,1.5));
-      hScaleRecoFIV.push_back(new TH1F(base+TString("_reco"),
+      hScaleFIV.push_back(new TH1D(base,base,150,0.0,1.5));
+      hScaleRecoFIV.push_back(new TH1D(base+TString("_reco"),
 				       base+TString("_reco"),150,0.0,1.5));
-      hScaleIdFIV.push_back(new TH1F(base+TString("_id" ),
+      hScaleIdFIV.push_back(new TH1D(base+TString("_id" ),
 				     base+TString("_id" ),150,0.0,1.5));
-      hScaleHltFIV.push_back(new TH1F(base+TString("_hlt"),
+      hScaleHltFIV.push_back(new TH1D(base+TString("_hlt"),
 				      base+TString("_hlt"),150,0.0,1.5));
       if (nonUniversalHLT) {
-	hScaleHltLeg1FIV.push_back(new TH1F(base+TString("_hltLeg1"),
+	hScaleHltLeg1FIV.push_back(new TH1D(base+TString("_hltLeg1"),
 					    base+TString("_hltLeg1"),150,0.0,1.5));
-	hScaleHltLeg2FIV.push_back(new TH1F(base+TString("_hltLeg2"),
+	hScaleHltLeg2FIV.push_back(new TH1D(base+TString("_hltLeg2"),
 					    base+TString("_hltLeg2"),150,0.0,1.5));
       }
     }
@@ -494,6 +608,9 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
   }
   */
   int debug_pseudo_exps=0;
+  if (!preparePseudoExps(nexp,debug_pseudo_exps)) return retCodeError;
+
+  /*
   for (int i=0; i<nexp; i++) {
     EffArray_t *arr= & ro_Data[i];
     for (int kind=0; kind<NEffTypes; ++kind) {
@@ -505,7 +622,7 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
 	  // for the efficiencies in the merged bins are the same,
 	  // and the errors are 100% correlated. Take this into
 	  // account and make the smearing 100% correlated as well.
-	  if( kind == 0 && etaBinning == DYTools::ETABINS5 
+	  if( kind == 0 && DYTools::mergeEtBins(etaBinning)
 	      && (getEtBinLimits(etBinning))[iEt+1] <= 20.0 
 	      && (iEta == 1 || iEta == 4)    ) {
 	    // We are dealing with merged bins of the RECO efficiency with the right binning
@@ -527,7 +644,7 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
 	  // In the case of RECO efficiency with MERGED bins for tag and
 	  // probe and ETABINS5, the randomization is different. See 
 	  // comments above. 
-	  if( kind == 0 && etaBinning == DYTools::ETABINS5 
+	  if( kind == 0 && DYTools::mergeEtBins(etaBinning)
 	      && (getEtBinLimits(etBinning))[iEt+1] <= 20.0 
 	      && (iEta == 1 || iEta == 4)    ) {
 	    // We are dealing with merged bins of the RECO efficiency with the right binning
@@ -543,26 +660,27 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
       }
     }
   }
+  */
   
   // Create container for data for error estimates based on pseudo-experiments
-  //TH1F *systScale[DYTools::nMassBins][nexp];
+  //TH1D *systScale[DYTools::nMassBins][nexp];
 
 #ifdef debug_systScaleArrs
-  SystTH1FArray_t systScale;
-  SystTH1FArray_t systScaleReco;
-  SystTH1FArray_t systScaleId;
-  SystTH1FArray_t systScaleHlt;
-  SystTH1FArray_t systScaleHltLeg1;
-  SystTH1FArray_t systScaleHltLeg2;
+  SystTH1DArray_t systScale;
+  SystTH1DArray_t systScaleReco;
+  SystTH1DArray_t systScaleId;
+  SystTH1DArray_t systScaleHlt;
+  SystTH1DArray_t systScaleHltLeg1;
+  SystTH1DArray_t systScaleHltLeg2;
 #endif
 
-  //TH1F *systScaleFI[nUnfoldingBins][nexp];
-  SystTH1FArrayFI_t systScaleFI;
-  SystTH1FArrayFI_t systScaleRecoFI;
-  SystTH1FArrayFI_t systScaleIdFI;
-  SystTH1FArrayFI_t systScaleHltFI;
-  SystTH1FArrayFI_t systScaleHltLeg1FI;
-  SystTH1FArrayFI_t systScaleHltLeg2FI;
+  //TH1D *systScaleFI[nUnfoldingBins][nexp];
+  SystTH1DArrayFI_t systScaleFI;
+  SystTH1DArrayFI_t systScaleRecoFI;
+  SystTH1DArrayFI_t systScaleIdFI;
+  SystTH1DArrayFI_t systScaleHltFI;
+  SystTH1DArrayFI_t systScaleHltLeg1FI;
+  SystTH1DArrayFI_t systScaleHltLeg2FI;
 
   for(int i=0; i<nUnfoldingBins; i++) {
     for(int j=0; j<nexp; j++){
@@ -573,18 +691,18 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
 	base += i;
 	base += "_exp";
 	base += j;
-	systScale[i][j] = new TH1F(base,base,150,0.0,1.5);
-	systScaleReco[i][j] = new TH1F(base+TString("_reco"),
+	systScale[i][j] = new TH1D(base,base,150,0.0,1.5);
+	systScaleReco[i][j] = new TH1D(base+TString("_reco"),
 				       base+TString("_reco"),150,0.0,1.5);
-	systScaleId [i][j] = new TH1F(base+TString("_id" ),
+	systScaleId [i][j] = new TH1D(base+TString("_id" ),
 				      base+TString("_id" ),150,0.0,1.5);
-	systScaleHlt[i][j] = new TH1F(base+TString("_hlt"),
+	systScaleHlt[i][j] = new TH1D(base+TString("_hlt"),
 				      base+TString("_hlt"),150,0.0,1.5);
 	systScaleHltLeg1[i][j] = (nonUniversalHLT) ?
-	                 new TH1F(base+TString("_hltLeg1"),
+	                 new TH1D(base+TString("_hltLeg1"),
 				  base+TString("_hltLeg1"),150,0.0,1.5) : NULL;
 	systScaleHltLeg2[i][j] = (nonUniversalHLT) ?
-	                 new TH1F(base+TString("_hltLeg2"),
+	                 new TH1D(base+TString("_hltLeg2"),
 				  base+TString("_hltLeg2"),150,0.0,1.5) : NULL;
       }
 #endif
@@ -592,47 +710,49 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
       base += i;
       base += "_exp";
       base += j;
-      systScaleFI[i][j] = new TH1F(base,base,150,0.0,1.5);
-      systScaleRecoFI[i][j] = new TH1F(base+TString("_reco"),
+      systScaleFI[i][j] = new TH1D(base,base,150,0.0,1.5);
+      systScaleRecoFI[i][j] = new TH1D(base+TString("_reco"),
 				       base+TString("_reco"),150,0.0,1.5);
-      systScaleIdFI [i][j] = new TH1F(base+TString("_id" ),
+      systScaleIdFI [i][j] = new TH1D(base+TString("_id" ),
 				      base+TString("_id" ),150,0.0,1.5);
-      systScaleHltFI[i][j] = new TH1F(base+TString("_hlt"),
+      systScaleHltFI[i][j] = new TH1D(base+TString("_hlt"),
 				      base+TString("_hlt"),150,0.0,1.5);
       systScaleHltLeg1FI[i][j] = (nonUniversalHLT) ?
-			new TH1F(base+TString("_hltLeg1"),
+			new TH1D(base+TString("_hltLeg1"),
 				 base+TString("_hltLeg1"),150,0.0,1.5) : NULL;
       systScaleHltLeg2FI[i][j] = (nonUniversalHLT) ?
-			new TH1F(base+TString("_hltLeg2"),
+			new TH1D(base+TString("_hltLeg2"),
 				 base+TString("_hltLeg2"),150,0.0,1.5) : NULL;
     }
   }
 
   // for correlation studies
-  TH1F *hEvtW=new TH1F("hEvtW","hEvtW",nUnfoldingBins,0.,double(nUnfoldingBins));
-  TH1F *hEsfEvtW=new TH1F("hEsfEvtW","hEsfEvtW",nUnfoldingBins,0.,double(nUnfoldingBins));
+  TH1D *hEvtW=new TH1D("hEvtW","hEvtW",nUnfoldingBins,0.,double(nUnfoldingBins));
+  TH1D *hEsfEvtW=new TH1D("hEsfEvtW","hEsfEvtW",nUnfoldingBins,0.,double(nUnfoldingBins));
   double sumEvtW_Zpeak=0., sumEsfEvtW_Zpeak=0.;
   std::vector<double> systSumEsfEvtW_ZpeakV(nexp);
-  std::vector<TH1F*> hSystEsfEvtWV;
+  std::vector<TH1D*> hSystEsfEvtWV;
   hSystEsfEvtWV.reserve(nexp);
   for (int i=0; i<nexp; i++) {
     TString base = Form("hSystEsfEvtW_exp%d",i);
-    TH1F* h=new TH1F(base,base,nUnfoldingBins,0.,double(nUnfoldingBins));
+    TH1D* h=new TH1D(base,base,nUnfoldingBins,0.,double(nUnfoldingBins));
     h->SetDirectory(0);
     hSystEsfEvtWV.push_back(h);
   }
 
-  PUReweight_t PUReweight(PUReweight_t::_Hildreth);
-  // For Hildreth method of PU reweighting, the lines below are not needed
-//   if (puReweight) {
-//     assert(PUReweight.setDefaultFile(mcMgr.dirTag(),DYTools::analysisTag_USER,0));
-//     assert(PUReweight.setReference("hNGoodPV_data"));
-//     assert(PUReweight.setActiveSample("hNGoodPV_zee"));
-//   }
+  // PU-weight is present in the weighted of the selected events
+  //PUReweight_t PUReweight(PUReweight_t::_Hildreth);
+  //// For Hildreth method of PU reweighting, the lines below are not needed
+  ////   if (puReweight) {
+  ////     assert(PUReweight.setDefaultFile(mcMgr.dirTag(),DYTools::analysisTag_USER,0));
+  ////     assert(PUReweight.setReference("hNGoodPV_data"));
+  ////     assert(PUReweight.setActiveSample("hNGoodPV_zee"));
+  ////}
 
   //HERE("break the macro"); return;
 
 
+  if (selectEventsFName.Index("_DebugRun")!=-1) selectEventsFName.ReplaceAll("_DebugRun","");
   HERE("opening selectEventsFile=<%s>",selectEventsFName.Data());
 
   TFile *skimFile=new TFile(selectEventsFName);
@@ -655,11 +775,12 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
   selData.setBranchAddress(skimTree);
 
   //std::cout << "DYTools::nMassBins=" << DYTools::nMassBins << ", nUnfoldingBins=" << nUnfoldingBins << std::endl;
+  ULong_t maxEvents=skimTree->GetEntries();
   std::cout << "there are " << skimTree->GetEntries() 
 	    << " entries in the <" << selectEventsFName << "> file\n";
-  for (UInt_t ientry=0; ientry<skimTree->GetEntries(); ++ientry) {
-    if (debugMode && (ientry>10000)) break;
-    //if ( ientry%10000 == 0 ) std::cout << "ientry=" << ientry << "\n";
+  for (UInt_t ientry=0; ientry < maxEvents; ++ientry) {
+    if (DYTools::isDebugMode(runMode) && (ientry>10000)) break;
+    printProgress(100000," ientry=",ientry,maxEvents);
 
     skimTree->GetEntry(ientry);
 
@@ -672,8 +793,10 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
     double scaleFactorHltLeg2 = (nonUniversalHLT) ? 
       sqrt(findEventScaleFactor(DYTools::HLT_leg2,selData)) : 0;
     double weight=selData.weight;
-    if (puReweight) weight *= PUReweight.getWeightHildreth(selData.nGoodPV);
+    //if (puReweight) weight *= PUReweight.getWeightHildreth(selData.nGoodPV);
     if ( 0 || ( ientry%20000 == 0 )) std::cout << "ientry=" << ientry << ", weight=" << weight << ", scaleFactor=" << scaleFactor << "\n";
+
+    //std::cout << "sel_ientry=" << ientry << ", weight_from_file=" << selData.weight << ", final weight=" << weight << "; scaleFactor=" << scaleFactor << "\n";
 
     hScale->Fill(scaleFactor, weight);
     hScaleReco->Fill( scaleFactorReco, weight);
@@ -774,6 +897,8 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
   delete skimFile;
 
   std::cout << "loop over selected events done" << std::endl;
+  //std::cout << "forced stop\n";
+  //return retCodeStop;
   
   // Calculate errors on the scale factors
   // The "Mean" are the mean among all pseudo-experiments, very close to the primary scale factor values
@@ -974,21 +1099,11 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
   */
 
   // Store constants in the file
-  TString outputDir(TString("../root_files/constants/")+dirTag);
-  gSystem->mkdir(outputDir,kTRUE);
-  TString sfConstFileName(outputDir+TString("/scale_factors_") + 
-			  TString("TEST_") + 
-			  DYTools::analysisTag + 
-			  TString("_") +
-			  triggers.triggerConditionsName() + puStr +
-			  TString(".root"));
-  std::cout << "sfConstFileName=<" << sfConstFileName << ">\n";
-  if (nonUniversalHLT) std::cout << "\t\tnote: HLT legs are considered!\n\n";
 
   TMatrixD scaleMatrix(DYTools::nMassBins,DYTools::nYBinsMax);
   TMatrixD scaleMatrixErr(DYTools::nMassBins,DYTools::nYBinsMax);
-  unfolding::deflattenMatrix(scaleFIV, scaleMatrix);
-  unfolding::deflattenMatrix(scaleMeanErrFIV, scaleMatrixErr);
+  deflattenMatrix(scaleFIV, scaleMatrix);
+  deflattenMatrix(scaleMeanErrFIV, scaleMatrixErr);
 
   TVectorD vecEtBins(etBinCount+1);
   for (int i=0; i<etBinCount+1; ++i) vecEtBins[i]=etBinLimits[i];
@@ -1019,8 +1134,10 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
     scaleHltLeg2FIV.Write("scaleHltLeg2Factor_FIArray");
     scaleMeanHltLeg2ErrFIV.Write("scaleHltLeg2FactorErr_FIArray");
   }
-  unfolding::writeBinningArrays(fa);
+  writeBinningArrays(fa);
   fa.Close();
+
+  //std::cout << "forced stop 2\n";   return retCodeStop;
 
   //
   // Correlation study
@@ -1044,23 +1161,23 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
     const int idxMin= iMmin * DYTools::nYBins[0];
     const int nCorrelationBins=nUnfoldingBins-idxMin;
 
-    TH2F *hCorrelation=new TH2F("hCorrelation","hCorrelation",nCorrelationBins,0.5,nCorrelationBins+0.5,nCorrelationBins,0.5,nCorrelationBins+0.5);
+    TH2D *hCorrelation=new TH2D("hCorrelation","hCorrelation",nCorrelationBins,0.5,nCorrelationBins+0.5,nCorrelationBins,0.5,nCorrelationBins+0.5);
     hCorrelation->SetDirectory(0);
-    TH2F *hCorrelationNorm=(TH2F*)hCorrelation->Clone("hCorrelation_Norm");
+    TH2D *hCorrelationNorm=(TH2D*)hCorrelation->Clone("hCorrelation_Norm");
     hCorrelationNorm->SetDirectory(0);
 
-    std::vector<TH1F*> hRatioV, hRatio_NormV;
+    std::vector<TH1D*> hRatioV, hRatio_NormV;
     hRatioV.reserve(nexp);
     hRatio_NormV.reserve(nexp);
     for (int iexp=0; iexp<nexp; ++iexp) {
       TString nameHRatio= Form("hRatio_iexp%d",iexp);
-      TH1F *hRatio=(TH1F*)hSystEsfEvtWV[iexp]->Clone(nameHRatio);
+      TH1D *hRatio=(TH1D*)hSystEsfEvtWV[iexp]->Clone(nameHRatio);
       hRatio->SetDirectory(0);
       hRatio->Divide(hSystEsfEvtWV[iexp],hEvtW);
       hRatioV.push_back(hRatio);
       
       TString nameHRatioNorm= Form("hRatio_Norm_iexp%d",iexp);
-      TH1F *hRatio_Norm=(TH1F*)hSystEsfEvtWV[iexp]->Clone(nameHRatioNorm);
+      TH1D *hRatio_Norm=(TH1D*)hSystEsfEvtWV[iexp]->Clone(nameHRatioNorm);
       hRatio_Norm->SetDirectory(0);
       hRatio_Norm->Divide(hSystEsfEvtWV[iexp],hEvtW,sumEvtW_Zpeak/systSumEsfEvtW_ZpeakV[iexp],1.);
       hRatio_NormV.push_back(hRatio_Norm);
@@ -1072,15 +1189,15 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
 	  for (int jY=0; (jY<DYTools::nYBins[jM]) && (j<nUnfoldingBins); ++jY, ++j) {
 	    TString nameHESF= Form("hESF_%d_%d__iM%d_iY%d__jM%d_jY%d",i-idxMin,j-idxMin,iM-iMmin,iY,jM-iMmin,jY);
 	    TString nameHESF_Norm= Form("hESFNorm_%d_%d__iM%d_iY%d__jM%d_jY%d",i-idxMin,j-idxMin,iM-iMmin,iY,jM-iMmin,jY);
-	    if (debugMode) HERE(nameHESF.Data());
-	    TH2F *hESF=new TH2F(nameHESF,nameHESF,c_theEsfBins,c_esfLimit_low,c_esfLimit_high, c_theEsfBins,c_esfLimit_low,c_esfLimit_high);
-	    TH2F *hESF_Norm=(TH2F*)hESF->Clone(nameHESF_Norm);
+	    if (DYTools::isDebugMode(runMode)) HERE(nameHESF.Data());
+	    TH2D *hESF=new TH2D(nameHESF,nameHESF,c_theEsfBins,c_esfLimit_low,c_esfLimit_high, c_theEsfBins,c_esfLimit_low,c_esfLimit_high);
+	    TH2D *hESF_Norm=(TH2D*)hESF->Clone(nameHESF_Norm);
 	    hESF->SetDirectory(0); hESF_Norm->SetDirectory(0);
 	    
 	    for (int iexp=0; iexp<nexp; ++iexp) {
-	      TH1F *hRatio=hRatioV[iexp];
+	      TH1D *hRatio=hRatioV[iexp];
 	      hESF->Fill(hRatio->GetBinContent(i+1),hRatio->GetBinContent(j+1));
-	      TH1F *hRatio_Norm=hRatio_NormV[iexp];
+	      TH1D *hRatio_Norm=hRatio_NormV[iexp];
 	      hESF_Norm->Fill(hRatio_Norm->GetBinContent(i+1),hRatio_Norm->GetBinContent(j+1));
 	    }
 	    
@@ -1215,7 +1332,7 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
       std::string("   %3.0f - %3.0f  %4.2f-%4.2f     %5.3f +- %5.3f    %5.3f +- %5.3f")+
       std::string("     %5.3f +- %5.3f     %5.3f +- %5.3f\n");
     for(int i=0; i<DYTools::nMassBins; i++){
-      double *rapidityBinLimits=DYTools::getYBinLimits(i);
+      double *rapidityBinLimits=DYTools::getYBinArray(i);
       for (int yi=0; yi<DYTools::nYBins[i]; ++yi) {
 	int idx=DYTools::findIndexFlat(i,yi);
 	std::cout << "idx=" << idx << "\n";
@@ -1238,7 +1355,7 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
       std::string("   %3.0f - %3.0f  %4.2f-%4.2f     %5.3f +- %5.3f    %5.3f +- %5.3f")+
       std::string("     %5.3f +- %5.3f\n");
     for(int i=0; i<DYTools::nMassBins; i++){
-      double *rapidityBinLimits=DYTools::getYBinLimits(i);
+      double *rapidityBinLimits=DYTools::getYBinArray(i);
       for (int yi=0; yi<DYTools::nYBins[i]; ++yi) {
 	int idx=DYTools::findIndexFlat(i,yi);
 	std::cout << "idx=" << idx << "\n";
@@ -1254,7 +1371,7 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
 
   drawEfficiencies(faPlots);
   HERE("next: drawScaleFactors");
-  drawScaleFactors(faPlots);
+  drawScaleFactors(faPlots,1); // saveArrs
 
 #ifdef debug_systScaleArrs
   if (1)
@@ -1299,6 +1416,7 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
 	cplotsV[i]->AddLine(0,1.0, 1500,1.0, kBlack, kDashed);
       }
     }
+    HERE("calling drawEventScaleFactorsFI");
     for (int ri=0; ri<rapidityIdxCount; ++ri) {
       HERE("ri=%d",ri);
       drawEventScaleFactorsFI(scaleRecoFIV, scaleMeanRecoErrFIV,
@@ -1411,13 +1529,17 @@ void calcEventEff(const TString mcInputFile, const TString tnpDataInputFile,
     c3->Write();
   }
 
+  saveVec(*faPlots,hLeadingEtV,"leadingEt");
+  saveVec(*faPlots,hTrailingEtV,"trailingEt");
+  saveVec(*faPlots,hElectronEtV,"electronEt");
+  
   faPlots->Close();
   gBenchmark->Show("calcEventEff");
-  return;
+  return retCodeOk;
 }
 
 // ------------------------------------------------------------
-
+/*
 Bool_t matchedToGeneratorLevel(const TGenInfo *gen, 
 			       const TDielectron *dielectron){
 
@@ -1445,31 +1567,30 @@ Bool_t matchedToGeneratorLevel(const TGenInfo *gen,
   
   return result;
 }
+*/
 
 // ------------------------------------------------------------
 
-int createSelectionFile(const MCInputFileMgr_t &mcMgr, 
-     const TString &outSkimFName, TriggerSelection &triggers, int debugMode) {
-  int eventsInNtuple = 0;
-  double weightedEventsInNtuple = 0;
-  int eventsAfterTrigger = 0;
-  int totalCand = 0;
-  int totalCandInMassWindow = 0;
-  int totalCandInEtEtaAcceptance = 0;
-  int totalCandMatchedToGen = 0;
-  int totalCandFullSelection = 0;
+int createSelectionFile(const InputFileMgr_t &inpMgr, 
+			EventSelector_t &evtSelector,
+			const TString &outSkimFName, 
+			DYTools::TRunMode_t runMode,
+			DYTools::TSystematicsStudy_t systMode) {
 
-  const bool cutZPT100 = true;
-  FEWZ_t fewz(useFewzWeights,cutZPT100);
-  if (useFewzWeights && !fewz.isInitialized()) {
-    std::cout << "failed to prepare FEWZ correction\n";
-    throw 2;
-  }
+
+  // Event weight handler
+  EventWeight_t evWeight;
+  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
+
+  double specWeight=1.;
+  if (systMode==DYTools::FSR_5plus) specWeight=1.05;
+  else if (systMode==DYTools::FSR_5minus) specWeight=0.95;
 
 #ifdef esfSelectEventsIsObject
   esfSelectEvent_t::Class()->IgnoreTObjectStreamer();
 #endif
   esfSelectEvent_t selData;
+  //outSkimFName.ReplaceAll(".root","-chk.root");
   TFile *skimFile=new TFile(outSkimFName,"recreate");
   cout << "createSelectionFileName=<" << outSkimFName << ">\n";
   if (!skimFile || !skimFile->IsOpen()) {
@@ -1477,198 +1598,251 @@ int createSelectionFile(const MCInputFileMgr_t &mcMgr,
 	 << outSkimFName << ">\n";
     return 0;
   }
+
+  if (DYTools::study2D) {
+    std::cout << "createSelectionFile: In general the lower mass limit\n" 
+	      << "in the 2D case is higher than in 1D case. Change\n";
+    std::cout << "the value of study2D in DYTools.hh or remove this\n"
+	      << "forced stop\n";
+    return 0;
+  }
+
+
   TTree *skimTree= new TTree("Events","Events");
   assert(skimTree);
   selData.createBranches(skimTree);
 
-  TElectron *ele1= new TElectron();
-  TElectron *ele2= new TElectron();
+  // access original n-tuple
+  AccessOrigNtuples_t accessInfo;
 
-  double lumi0=1.;
+  double extraWeightFactor=1.0;
+  EventCounterExt_t ecTotal("total");
 
   // Loop over files
-  for(UInt_t ifile=0; ifile<mcMgr.size(); ifile++){
+  for (unsigned int isample=0; isample<inpMgr.mcSampleCount(); ++isample) {
+    //if (isample>0) break;
+    const CSample_t *mcSample=inpMgr.mcSampleInfo(isample);
+    std::cout << "Processing " << mcSample->getLabel() << "..." << std::endl;
+    std::cout << " of size " << mcSample->size() << "\n";
+    if (mcSample->size()!=1) {
+      std::cout << "mcSample->size is expected to be 1\n";
+      return retCodeError;
+    }
 
-    //
-    // Access samples and fill histograms
-    //  
-    TFile *infile = 0;
-    TTree *eventTree = 0;
-        
-    // Data structures to store info from TTrees
-    mithep::TEventInfo *info = new mithep::TEventInfo();
-    mithep::TGenInfo   *gen  = new mithep::TGenInfo();
-    TClonesArray *dielectronArr = new TClonesArray("mithep::TDielectron");
-    TClonesArray *pvArr   = new TClonesArray("mithep::TVertex");
-    
-    // Read input file
-    TString fname=mcMgr.fileName(ifile);
-    cout << "Processing " << fname << "..." << endl;
-    infile = new TFile(fname); 
-    assert(infile);
-    
-    // Get the TTrees
-    eventTree = (TTree*)infile->Get("Events"); assert(eventTree);
+    for (unsigned int ifile=0; ifile<mcSample->size(); ++ifile) {
+      //if (ifile>0) break;
 
-    // Find weight for events for this file
-    // The first file in the list comes with weight 1,
-    // all subsequent ones are normalized to xsection and luminosity
-    double xsec=mcMgr.xsec(ifile);
-    AdjustXSectionForSkim(infile,xsec,eventTree->GetEntries(),1);
-    double lumi = eventTree->GetEntries()/xsec;
-    if (ifile==0) lumi0=lumi;
-    double extraScale=1.; // 4839*1666/27166257.; // MC Zee weight in selectEvents
-    double sample_weight = extraScale * lumi0/lumi;
-    cout << "       -> sample weight is " << sample_weight << endl;
+      // Read input file
+      TFile *infile = new TFile(mcSample->getFName(ifile),"read");
+      if (!infile->IsOpen()) {
+	delete infile;
+	TString fname_orig=mcSample->getFName(ifile);
+	TString fname=inpMgr.convertSkim2Ntuple(fname_orig);
+	std::cout << "failed to open <" << fname_orig << ">... trying <" << fname << ">\n";
+	infile = new TFile(fname,"read");
+	if (!infile->IsOpen()) {
+	  std::cout << "total failure\n";
+	  return retCodeError;
+	}
+      }
+      std::cout << " Reading file <" << infile->GetName() << ">\n";
 
-    // Set branch address to structures that will store the info  
-    eventTree->SetBranchAddress("Info",&info);
-    TBranch *infoBr       = eventTree->GetBranch("Info");
-    eventTree->SetBranchAddress("Dielectron",&dielectronArr);
-    TBranch *dielectronBr = eventTree->GetBranch("Dielectron");
-    eventTree->SetBranchAddress("Gen",&gen);
-    TBranch *genBr = eventTree->GetBranch("Gen");
-    eventTree->SetBranchAddress("PV", &pvArr); 
-    TBranch *pvBr         = eventTree->GetBranch("PV");
+      // Get the TTrees
+      if (!accessInfo.setTree(*infile,"Events",true)) {
+	return retCodeError;
+      }
 
-    // loop over events    
-    eventsInNtuple         += eventTree->GetEntries();
-    weightedEventsInNtuple += sample_weight * eventTree->GetEntries();
-    for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
-      if (debugMode && (ientry>100000)) break;
-      genBr->GetEntry(ientry);
-      infoBr->GetEntry(ientry);
-      
-      /* old trigger defs
-      // For EPS2011 for both data and MC (starting from Summer11 production)
-      // we use an OR of the twi triggers below. Both are unpresecaled.
-      ULong_t eventTriggerBit = kHLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL 
-	| kHLT_Ele17_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele8_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL;
-      ULong_t leadingTriggerObjectBit = kHLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL_Ele1Obj
-	| kHLT_Ele17_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele8_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele1Obj;
-      ULong_t trailingTriggerObjectBit = kHLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL_Ele2Obj
-	| kHLT_Ele17_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele8_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele2Obj;
-      */
-      ULong_t eventTriggerBit = triggers.getEventTriggerBit(info->runNum);
-      ULong_t leadingTriggerObjectBit  = 
-	triggers.getLeadingTriggerObjectBit(info->runNum);
-      ULong_t trailingTriggerObjectBit = 
-	triggers.getTrailingTriggerObjectBit(info->runNum);
-      
-      if(!(info->triggerBits & eventTriggerBit)) continue;  // no trigger accept? Skip to next event...
-      eventsAfterTrigger++;
-      
-      // check the number of goodPVs
-      pvBr->GetEntry(ientry);
-      int nGoodPV=countGoodVertices(pvArr);
+      // Find weight for events for this file
+      // The first file in the list comes with weight 1*extraWeightFactor,
+      // all subsequent ones are normalized to xsection and luminosity
+      ULong_t maxEvents = accessInfo.getEntries();
+      // to match old version package (DYee 7TeV paper), 
+      if ((inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT")==1) && 
+	  (isample==0) && (ifile==0)) {
+	extraWeightFactor=maxEvents / (inpMgr.totalLumi() * inpMgr.mcSampleInfo(0)->getXsec(ifile));
+      }
+      //extraWeightFactor=1.451900637222e-01; // compensate for 10-20GeV sample
+      //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
+      //const double extraWeightFactor=1.0;
+      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, inpMgr.totalLumi(), mcSample->getXsec(ifile), 
+						   extraWeightFactor, inpMgr.selectEventsFlag())) {
+	std::cout << "adjustMaxEvents failed\n";
+	return retCodeError;
+      }
 
-      // loop through dielectrons
-      dielectronArr->Clear();
-      dielectronBr->GetEntry(ientry);
+      std::cout << "       -> sample base weight is " << evWeight.baseWeight() << "\n";
+ 
 
-      for(Int_t i=0; i<dielectronArr->GetEntriesFast(); i++) {
+      // loop through events
+      EventCounterExt_t ec(Form("%s_file%d",mcSample->name.Data(),ifile));
+      ec.setIgnoreScale(0); // 1 - count events, 0 - take weight in account
+      // adjust the scale in the counter
+      // if FEWZ weight should be considered, use evWeight.totalWeight() after
+      // the FEWZ weight has been identified (see a line below)
+      ec.setScale(evWeight.baseWeight());
+
+      std::cout << "numEntries = " << accessInfo.getEntriesFast() 
+		<< ", " << maxEvents << " events will be used" << std::endl;
+
+
+      for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
+	//if (ientry<=290) continue;
+	//if (ientry>294) break;
+	//if (ientry>100) break;
+	if (DYTools::isDebugMode(runMode) && (ientry>1000000)) break; // debug option
+	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
+	printProgress(500000," ientry=",ientry,maxEvents);
+	ec.numEvents_inc();
 	
-	totalCand++;
-	const mithep::TDielectron *dielectron = 
-	  (mithep::TDielectron*)((*dielectronArr)[i]);
+	// Load generator level info
+	accessInfo.GetGen(ientry);
+	// If the Z->ll leptons are not electrons, discard this event.
+	// This is needed for signal MC samples such as Madgraph Z->ll
+	// where all 3 lepton flavors are possible
+	if (!accessInfo.genLeptonsAreElectrons()) continue;
 
-	// Consider only events in the mass range of interest
-	// Use generator level post-FSR mass.
- 	if( gen->mass < DYTools::massBinLimits[0] || 
-	    gen->mass > DYTools::massBinLimits[DYTools::nMassBins]) continue;
-	totalCandInMassWindow++;
+ 	// Load event info
+	accessInfo.GetInfoEntry(ientry);
 
-	// Check Et and eta
-	if( ! DYTools::goodEtEtaPair(dielectron->scEt_1, dielectron->scEta_1,
-				     dielectron->scEt_2, dielectron->scEta_2) ) continue;
-
-	totalCandInEtEtaAcceptance++;
-
-	// For MC-only, do generator level matching
-	if( ! matchedToGeneratorLevel(gen, dielectron) ) continue;
-	totalCandMatchedToGen++;
-
-	// ECAL-driven reconstruction is not required.
-
-	// No cut on opposite charges to avoid systematics related to charge mis-ID	
-	//  	if( (dielectron->q_1 == dielectron->q_2 )) continue;
-
-	DYTools::extractElectron(dielectron, 1, *ele1);
-	DYTools::extractElectron(dielectron, 2, *ele2);
-
-	// ID cuts
- 	//if( !( passSmurf(ele1) && passSmurf(ele2) ) ) continue;
-	// 
-	if( !( passID(ele1, info->rhoLowEta) 
-	       && passID(ele2, info->rhoLowEta) ) ) continue;
-
-	// ET and trigger cut on the leading electron
-	const TElectron *leading = ele1;
-	const TElectron *trailing = ele2;
-	if( ele1->scEt < ele2->scEt ){
-	  leading = ele2;
-	  trailing = ele1;
+	// Adjust event weight
+	// .. here "false" = "not data"
+	if (0) {
+	  // main analysis way to set weight
+	  // nPVs=info->nPU
+	  evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
+	}
+	else {
+	  // a different way to calculate nPVs
+	  accessInfo.GetPVs(ientry);
+	  evWeight.setFewzWeight(accessInfo.genPtr());
+	  evWeight.setPUWeight(countGoodVertices(accessInfo.getPVArr()));
 	}
 
-	// Check trigger bits
-	if( ! ( (leading ->hltMatchBits & leadingTriggerObjectBit)
-		&& (trailing->hltMatchBits & trailingTriggerObjectBit) ) ) continue;
+	// just save the info
+	int eventWithLargeFSR=evWeight.setSpecWeightValue(accessInfo,1.,specWeight);
 
-	totalCandFullSelection++;
+	//std::cout << "ientry=" << ientry << ", totalWeight=" << evWeight.totalWeight() << "\n";
+	/*
+	if (0 || (ientry%20000==0)) {
+	  const mithep::TGenInfo *gen=accessInfo.genPtr();
+	  std::cout << "ientry=" << ientry << ", gen->vmass=" << gen->vmass << ", gen->vpt=" <<gen->vpt << ", gen->vy=" << gen->vy << "; reco gen->mass=" << gen->mass << ", gen->pt=" << gen->pt << ", gen->y=" << gen->y << "\n";
+	  std::cout << "evWeight: " << evWeight << "\n";
+	}
+	*/
 
-	double weight=sample_weight;
-	if (useFewzWeights) weight *= fewz.getWeight(gen->vmass,gen->vpt,gen->vy);
-	selData.assign(gen->mass, gen->y,
-		       dielectron->mass, dielectron->y,
-		       leading->scEt, leading->scEta,
-		       trailing->scEt, trailing->scEta,
-		       weight,
-		       nGoodPV
-		       );
-	skimTree->Fill();
- 
-	// 	  printf("  leading:   %f    %f      trailing:   %f   %f     mass: %f\n",
-	// 		 leading->scEt, leading->scEta, trailing->scEt, trailing->scEta, dielectron->mass);
 
-	// memory clean-up
-	delete ele1;
-	delete ele2;
-	
-      } // end loop over dielectrons
-    } // end loop over events
+	// adjust the scale in the counter to include FEWZ 
+	// (and possibly PU) weight
+	//ec.setScale(evWeight.totalWeight());
+
+	// check event trigger
+	if (!evtSelector.eventTriggerOk(accessInfo)) {
+	  //hFail[ifile]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
+	  continue; // no trigger accept? Skip to next event...	
+	}
+	ec.numEventsPassedEvtTrigger_inc();
+
+	// load dielectron array
+	accessInfo.GetDielectrons(ientry);
+
+	const int trace=0; //(ientry==293) ? 1:0;
+	if (trace) std::cout << "tracing\n";
+
+	mithep::TDielectron *dielectron=NULL;
+#ifdef DYee8TeV_reg
+	mithep::TDielectron unregDielectron;
+#endif
+
+	// loop through dielectrons
+	//int pass=0;
+	for(Int_t i=0; i<accessInfo.dielectronCount(); i++) {
+	  dielectron = accessInfo.editDielectronPtr(i);
+	  ec.numDielectrons_inc();
+	  if (trace) std::cout << "i=" << i << "\n";
+
+	  // For MC-only, do generator level matching
+	  if( ! accessInfo.dielectronMatchedToGenLevel(i) ) {
+	    if (trace) printf("failed gen match\n");
+	    continue;
+	  }
+	  ec.numDielectronsGenMatched_inc();
+
+	  // Consider only events in the mass range of interest
+	  // Use generator level post-FSR mass.
+	  if( accessInfo.genPtr()->mass < DYTools::massBinLimits[0] ) {
+	    if (trace) printf("failed lower mass limit\n");
+	    continue;
+	  }
+	  if ((DYTools::massBinLimits[DYTools::nMassBins]<1001.) &&
+	      (accessInfo.genPtr()->mass > DYTools::massBinLimits[DYTools::nMassBins])) {
+	    if (trace) printf("failed upper mass limit\n");
+	    continue;
+	  }
+	  ec.numDielectronsGoodMass_inc();
+
+#ifdef DYee8TeV_reg
+	  if (systMode==DYTools::UNREGRESSED_ENERGY) {
+	    unregDielectron.assign(dielectron);
+	    //std::cout << "dielectron info    : " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
+	    unregDielectron.replace2UncorrEn(0); // 0 - do replace, 1 - don't replace
+	    dielectron= &unregDielectron;
+	    //std::cout << "dielectron info (2): " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
+	  }
+#endif
+
+	  // escale may modify dielectron! But it should not be applied here
+	  if (!evtSelector.testDielectron(dielectron,accessInfo.evtInfoPtr(),&ec)) {
+	    if (trace) printf("failed selection\n");
+	    continue;
+	  }
+
+	  if (0) {
+	    //const mithep::TGenInfo *gen=accessInfo.genPtr();
+	    const mithep::TEventInfo *info=accessInfo.evtInfoPtr();
+	    //std::cout << "ientry=" << ientry << ", iD=" << i << ", gen->vec(" << gen->vmass << "," << gen->vpt << "," << gen->vy << "), weight=" << evWeight << "\n";
+	    // line for DrellYanDMDY: std::cout << "ientry=" << ientry << ", event(" << info->runNum << "," << info->evtNum << "), (m,y)=(" << dielectron->mass << "," << dielectron->y << "), weights: " << sample_weight << "(s), " << fewz.getWeight(gen->vmass,gen->vpt,gen->vy) << "(f), saved weight=" << weight << ", nGoodPV=" << nGoodPV << "\n";
+	    int nGoodPV=countGoodVertices(accessInfo.getPVArr());
+	    std::cout << "ientry=" << ientry << ", event(" << info->runNum << "," << info->evtNum << "), (m,y)=(" << dielectron->mass << "," << dielectron->y << "), weights: " << evWeight << ", saved weight=" << evWeight.totalWeight() << ", nGoodPV=" << nGoodPV << "\n";
+	  }
+
+	  if (int(ec.numDielectronsPass[0]+1e-3)%20000 == 0) {
+	    const mithep::TGenInfo *gen=accessInfo.genPtr();
+	    std::cout << "ientry=" << ientry << ", iDielectron=" << i << ", gen->mass=" << gen->vmass << ", gen->vy=" <<gen->vy << ", gen->vpt=" << gen->vpt << "; gen->mass=" << gen->mass << ", gen->y=" << gen->y << "\n";
+	    std::cout << "evWeight: " << evWeight << "\n";
+	  }
+
+	  ec.numDielectronsPass_inc();
+
+	  const int isData=0;
+	  //selData.assign(accessInfo,isData,i,evWeight.totalWeight());
+	  selData.assign(dielectron,accessInfo.genPtr(),
+			 accessInfo.getNPV(isData),evWeight.totalWeight(), 
+			 eventWithLargeFSR);
+
+	  skimTree->Fill();
+	} // end loop over dielectrons
+
+	//if (ec.numDielectronsPass[0]>21000) break;
+
+      } // end loop over events
+      ec.print();  // print info about file
+      //ecSample.add(ec); // accumulate event counts
+      ecTotal.add(ec);
+
+      //if (ecTotal.numDielectronsPass[0]>20000) break;
+      delete infile;
+    } // end loop over files
+    //ecSample.print(); // print info about sample
+    evtSelector.printCounts();
+    //if (ecTotal.numDielectronsPass[0]>20000) break;
+  } // end loop over samples
+  ecTotal.print();
     
-    delete infile;
-    infile = 0;
-    eventTree = 0;
-    delete gen;
-    delete info;
-    delete dielectronArr;
-    delete pvArr;
-  } // end loop over files
-  
   skimFile->cd();
   skimTree->Write();
   skimFile->Close();
   delete skimFile;
-  delete ele1;
-  delete ele2;
 
-  printf("Total events in ntuple(s)                          %15d\n",
-	 eventsInNtuple);
-  printf("    number of weighted events in ntuple            %17.1lf\n",
-	 weightedEventsInNtuple);
-  printf("    events after event level trigger cut           %15d\n",
-	 eventsAfterTrigger);
-  printf("\nTotal candidates (no cuts)                       %15d\n",
-	 totalCand);
-  printf("        candidates in 15-600 mass window           %15d\n",
-	 totalCandInMassWindow);
-  printf("        candidates passing Et and eta cuts         %15d\n",
-	 totalCandInEtEtaAcceptance);
-  printf("        candidates matched to GEN level (if MC)    %15d\n",
-	 totalCandMatchedToGen);
-  printf("        candidates, full selection                 %15d\n",
-	 totalCandFullSelection);
   return 1;
 }
 
@@ -2222,6 +2396,7 @@ double getHLTefficiencySmeared(DYTools::TDataKind_t dataKind,
    plot1.AddGraph(grMc  ,"MC"  ,"PE", kBlack);
    plot1.Draw(c2);
    plot1.SetYRange(0.0,1.1);
+   //plot1.SetYRange(0.6,1.0);
    grData->GetXaxis()->SetTitle("E_{T} [GeV]");
    grData->GetXaxis()->SetMoreLogLabels();
    grData->GetXaxis()->SetNoExponent();
@@ -2386,7 +2561,11 @@ void drawEventScaleFactorGraphs(TGraphErrors *gr, TString yAxisTitle,
 
 // -------------------------------------------------------------------------
 
-void drawEfficiencies(TFile *fRoot){
+void drawEfficiencies(TFile *fRootOutput,
+		      int ignoreAsymHLT,
+		      std::vector<TGraphErrors*> *grDataVec,
+		      std::vector<TGraphErrors*> *grMCVec
+		      ){
   // Make graphs
   double x[etBinCount];
   double dx[etBinCount];
@@ -2406,7 +2585,7 @@ void drawEfficiencies(TFile *fRoot){
   const char *etaLabelStr=(signedEta) ? "#eta" : "|#eta|";
 
   for (int kind=0; kind<NEffTypes; ++kind) {
-    if ((nonUniversalHLT) && (kind==DYTools::HLT)) continue; // skip for now
+    if ((nonUniversalHLT) && (kind==DYTools::HLT) && !ignoreAsymHLT) continue; // skip for now
     for (int iEta=0; iEta<etaBinCount; ++iEta) {
       TString etaStr=
 	Form("%s_%5.3lf__%5.3lf", etaSignStr,
@@ -2425,18 +2604,32 @@ void drawEfficiencies(TFile *fRoot){
       }
       TGraphErrors *grDataEff 
 	= new TGraphErrors(etBinCount, x,  effData, dx, effDataErr);
+      if (grDataVec) grDataVec->push_back(grDataEff);
   
       TGraphErrors *grMcEff 
 	= new TGraphErrors(etBinCount, x,  effMC, dx, effMCErr);
+      if (grMCVec) grMCVec->push_back(grMcEff);
+
   
       // Draw all graphs
       TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
       TString ylabel=TString("efficiency_{") + effName + TString("}");
       TString plotName = TString("plot_eff_") + DYTools::analysisTag + TString("_") +
 	effName + etaStr;
-      
+
       drawEfficiencyGraphs(grDataEff, grMcEff,
-			   ylabel, plotLabel, plotName, fRoot);
+			   ylabel, plotLabel, plotName, fRootOutput);
+
+      if (grDataVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","data_");
+	grDataEff->SetTitle(title);
+      }
+      if (grMCVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","mc_");
+	grMcEff->SetTitle(title);
+      }
 
       //delete grMcEff;
       //delete grDataEff;
@@ -2515,9 +2708,11 @@ void drawEfficiencies(TFile *fRoot){
       }
       TGraphErrors *grDataEff 
 	= new TGraphErrors(specEtBinCount, tmpBinCs,  effData, dTmpBins, effDataErr);
+      if (grDataVec) grDataVec->push_back(grDataEff);
   
       TGraphErrors *grMcEff 
 	= new TGraphErrors(specEtBinCount, tmpBinCs,  effMC, dTmpBins, effMCErr);
+      if (grMCVec) grMCVec->push_back(grMcEff);
   
       // Draw all graphs
       TString effName=EfficiencyKindName(DYTools::HLT);
@@ -2526,8 +2721,18 @@ void drawEfficiencies(TFile *fRoot){
 	effName + etaStr;
       
       drawEfficiencyGraphs(grDataEff, grMcEff,
-			   ylabel, plotLabel, plotName, fRoot);
+			   ylabel, plotLabel, plotName, fRootOutput);
 
+      if (grDataVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","data_");
+	grDataEff->SetTitle(title);
+      }
+      if (grMCVec) {
+	TString title=plotName;
+	title.ReplaceAll("plot_","mc_");
+	grMcEff->SetTitle(title);
+      }
    
     }
     if (tmpBinCs) delete tmpBinCs;
@@ -2539,7 +2744,7 @@ void drawEfficiencies(TFile *fRoot){
 
 // -------------------------------------------------------------------------
 
-void drawScaleFactors(TFile *fRoot){
+void drawScaleFactors(TFile *fRoot, int saveArrs){
 
   double x[etBinCount];
   double dx[etBinCount];
@@ -2559,7 +2764,12 @@ void drawScaleFactors(TFile *fRoot){
   const char *etaSignStr=(signedEta) ? "_eta" : "_abs_eta";
   const char *etaLabelStr=(signedEta) ? "#eta" : "|#eta|";
 
+  TMatrixD MRho(etBinCount,etaBinCount);
+  TMatrixD MRhoErr(MRho);
+
   for (int kind=0; kind<NEffTypes; ++kind) {
+    if (saveArrs) { MRho.Zero(); MRhoErr.Zero(); }
+    
     for (int iEta=0; iEta<etaBinCount; ++iEta) {
       TString etaStr=
 	Form("%s_%5.3lf__%5.3lf", etaSignStr,
@@ -2567,7 +2777,7 @@ void drawScaleFactors(TFile *fRoot){
       etaStr.ReplaceAll(".","_");
       snprintf(plotLabel,bufsize,"%5.3lf < %s < %5.3lf",
 	       etaBinLimits[iEta],etaLabelStr,etaBinLimits[iEta+1]);
-
+      
       for (int iEt=0; iEt<etBinCount; ++iEt) {
 	scale[iEt]= (*dataEff[kind])[iEt][iEta] / (*mcEff[kind])[iEt][iEta];
 	scaleErr[iEt]= errOnRatio( (*dataEff[kind])[iEt][iEta], 
@@ -2575,22 +2785,58 @@ void drawScaleFactors(TFile *fRoot){
 				   (*mcEff[kind])[iEt][iEta], 
 				   (*mcEffAvgErr[kind])[iEt][iEta] );
       }
+      
+      if (saveArrs) {
+	for (int iEt=0; iEt<etBinCount; ++iEt) {
+	  MRho(iEt,iEta)=scale[iEt];  
+	  MRhoErr(iEt,iEta)=scaleErr[iEt];
+	}
+      }
 
       TGraphErrors *grScaleFactor
 	= new TGraphErrors(etBinCount, x, scale, dx, scaleErr);
       TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
       TString ylabel=TString("scale factor ") + effName;
-      TString plotName = TString("plot_scale_") + DYTools::analysisTag + TString("_") +
-	effName + etaStr;
-
-      drawScaleFactorGraphs(grScaleFactor, ylabel, plotLabel, plotName, fRoot);
+      TString plotName = TString("plot_scale_") + DYTools::analysisTag + 
+	TString("_") + effName + etaStr;
+      
+      if (saveArrs!=2) {
+	drawScaleFactorGraphs(grScaleFactor, ylabel, plotLabel, plotName, fRoot);
+      }
       //delete grScaleFactor;
+    }
+
+    if (saveArrs) {
+      TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
+      TString field=TString("scale_factor_") + effName;
+      TString err="_err";
+      MRho.Write(field);
+      MRhoErr.Write(field + err);
+    }
+  }
+
+  if (saveArrs) {
+    for (int kind=0; kind<NEffTypes; ++kind) {
+      TString effName=EfficiencyKindName(DYTools::TEfficiencyKind_t(kind));
+      TString errLo="_errLo";
+      TString errHi="_errHi";
+      TString errAvg="_errAvg";
+      TString field=TString("data_eff_") + effName;
+      dataEff[kind]->Write(field);
+      dataEffErrLo[kind]->Write(field + errLo);
+      dataEffErrHi[kind]->Write(field + errHi);
+      dataEffAvgErr[kind]->Write(field + errAvg);
+      field=TString("mc_eff_") + effName;
+      mcEff[kind]->Write(field);
+      mcEffErrLo[kind]->Write(field + errLo);
+      mcEffErrHi[kind]->Write(field + errHi);
+      mcEffAvgErr[kind]->Write(field + errAvg);	
     }
   }
 }
 
 // -------------------------------------------------------------------------
-
+/*
 double errOnRatio(double a, double da, double b, double db){
 
   double result = 0;
@@ -2600,6 +2846,7 @@ double errOnRatio(double a, double da, double b, double db){
   result = (a/b)*sqrt( (da/a)*(da/a) + (db/b)*(db/b) );
   return result;
 }
+*/
 
 // -------------------------------------------------------------------------
 
@@ -2677,6 +2924,10 @@ void drawEventScaleFactorsHLT(const TVectorD &scaleHltLeg1V, const TVectorD &sca
 
   TGraphErrors *grScaleHltLeg1 = createGraph_vsMass(scaleHltLeg1V,scaleHltLeg1ErrV);
   TGraphErrors *grScaleHltLeg2 = createGraph_vsMass(scaleHltLeg2V,scaleHltLeg2ErrV);
+  if (!grScaleHltLeg1 || !grScaleHltLeg2) {
+    std::cout << "drawEventScaleFactorsHLT: got null ptr(s) to graphs\n";
+    return;
+  }
 
   TString plotName;
   TString plotNameBase = 
@@ -2708,14 +2959,18 @@ TGraphErrors* createGraph_vsMassFI(const TVectorD &v, const TVectorD &vErr,
   double rapidity=DYTools::findAbsYValue(0,rapidityIndex);
 
   for(int i=0; i<DYTools::nMassBins; i++){
+    std::cout << "massBin or i=" << i << ", rapidityIndex=" << rapidityIndex << "\n";
+    std::cout << "nYBins[massBin]=" << DYTools::nYBins[i] << "\n";
     int idx=DYTools::findIndexFlat(i,rapidityIndex);
-    if (idx<0) {
-      std::cout <<"createGraph_vsMassFI: massBin=" << i << ", rapidityIndex=" << rapidityIndex << "(supplied to subroutine), idx=" << idx << std::endl;
-      assert(0);
-    }
     if (i==DYTools::nMassBins-1) {
-      // last mass bins is special
+      // last mass bin is special
+      std::cout << "rapidity=" << rapidity << ", findAbsYBin=" << DYTools::findAbsYBin(i,rapidity) << "\n";
       idx=DYTools::findIndexFlat(i, DYTools::findAbsYBin(i,rapidity));
+    }
+    if (idx<0) {
+      std::cout <<"WARNING: createGraph_vsMassFI: massBin=" << i << ", rapidityIndex=" << rapidityIndex << "(supplied to subroutine), idx=" << idx << std::endl;
+      //assert(0);
+      return NULL;
     }
 
     x[i] = (DYTools::massBinLimits[i] + DYTools::massBinLimits[i+1])/2.0;
@@ -2849,11 +3104,13 @@ void drawEventScaleFactorsHltFI
 // This method reads all ROOT files that have efficiencies from
 // tag and probe in TMatrixD form and converts the matrices into 
 // more simple arrays.
-int fillEfficiencyConstants(  const TnPInputFileMgr_t &mcMgr, 
-     const TnPInputFileMgr_t &dataMgr, const TriggerSelection &triggers, 
-			      int puReweight) {
+int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr, DYTools::TSystematicsStudy_t systMode ) {
+
+  int puReweight = inpMgr.puReweightFlag();
+  TriggerSelection_t triggers(inpMgr.triggerTag(),true);
 
   TString fnStart="efficiency_TnP_"; //+ DYTools::analysisTag;
+  fnStart.Append(inpMgr.userKeyValueAsTString("T&P_eff_extra"));
   TString fnEnd=".root";
   if (puReweight) fnEnd= TString("_PU.root");
 
@@ -2873,30 +3130,58 @@ int fillEfficiencyConstants(  const TnPInputFileMgr_t &mcMgr,
   mcEffAvgErr.reserve(NEffTypes);
 
   int res=1;
+  TString tnpDirTag=inpMgr.tnpDir(systMode,0);
+  std::cout << "tnpDirTag=<" << tnpDirTag << ">" << std::endl;
+
   for (int kind=0; res && (kind<NEffTypes); ++kind) {    
     DYTools::TEtBinSet_t localEtBinning= etBinning;
-      //(etBinning == DYTools::ETBINS6spec) ? DYTools::ETBINS6 : etBinning;
+    DYTools::TEfficiencyKind_t effKind=DYTools::TEfficiencyKind_t(kind);
+
+    if ((effKind==DYTools::HLT) && !loadUniversalHLT) {
+      TMatrixD zero(etBinCount,etaBinCount);
+      zero.Zero();
+      dataEff.push_back(new TMatrixD(zero));
+      dataEffErrLo.push_back(new TMatrixD(zero));
+      dataEffErrHi.push_back(new TMatrixD(zero));
+      dataEffAvgErr.push_back(new TMatrixD(zero));
+      continue;
+    }
+
+    triggers.actOnData(true);
     TString dataFName=fnStart + 
-      getLabel(DYTools::DATA, DYTools::TEfficiencyKind_t(kind),
-	       dataMgr.effCalcMethod(kind),
+      getLabel(DYTools::DATA, effKind,
+	       inpMgr.tnpEffCalcMethod(DYTools::DATA,effKind),
 	       localEtBinning, etaBinning, triggers)
       + fnEnd;
     int weightedCnC= 
-      (DYTools::efficiencyIsHLT(DYTools::TEfficiencyKind_t(kind)))  ?
+      (DYTools::efficiencyIsHLT(effKind))  ?
       		puReweight : 0;
-    res=fillOneEfficiency(dataMgr, dataFName, kind, 
+    res=fillOneEfficiency(tnpDirTag, dataFName, kind, 
 			  dataEff, dataEffErrLo, dataEffErrHi, dataEffAvgErr,
 			  weightedCnC);
   }
+
   for (int kind=0; res && (kind<NEffTypes); ++kind) {
     DYTools::TEtBinSet_t localEtBinning= etBinning;
-      // (etBinning == DYTools::ETBINS6spec) ? DYTools::ETBINS6 : etBinning;
+    DYTools::TEfficiencyKind_t effKind=DYTools::TEfficiencyKind_t(kind);
+
+    if ((effKind==DYTools::HLT) && !loadUniversalHLT) {
+      TMatrixD zero(etBinCount,etaBinCount);
+      zero.Zero();
+      mcEff.push_back(new TMatrixD(zero));
+      mcEffErrLo.push_back(new TMatrixD(zero));
+      mcEffErrHi.push_back(new TMatrixD(zero));
+      mcEffAvgErr.push_back(new TMatrixD(zero));
+      continue;
+    }
+
+    triggers.actOnData(false);
     TString mcFName=fnStart + 
-      getLabel(DYTools::MC, DYTools::TEfficiencyKind_t(kind),
-	       mcMgr.effCalcMethod(kind),
+      getLabel(DYTools::MC, effKind,
+	       inpMgr.tnpEffCalcMethod(DYTools::MC,effKind),
 	       localEtBinning, etaBinning, triggers)
       + fnEnd;
-    res=fillOneEfficiency(mcMgr, mcFName, kind, 
+    res=fillOneEfficiency(tnpDirTag, mcFName, kind, 
 			  mcEff, mcEffErrLo, mcEffErrHi, mcEffAvgErr, puReweight);
   }
   if (res!=1) std::cout << "Error in fillEfficiencyConstants\n"; 
@@ -2906,12 +3191,12 @@ int fillEfficiencyConstants(  const TnPInputFileMgr_t &mcMgr,
 
 // -------------------------------------------------------------------------
 
-int fillOneEfficiency(const TnPInputFileMgr_t &mgr, const TString filename, 
+int fillOneEfficiency(const TString &use_dirTag, const TString filename, 
    UInt_t kindIdx, vector<TMatrixD*> &effV, vector<TMatrixD*> &errLoV, 
    vector<TMatrixD*> &errHiV, vector<TMatrixD*> &avgErrV, 
    int weightedCnC) {
 
-  TString fullFName=TString("../root_files/tag_and_probe/")+mgr.dirTag()+TString("/")+filename;
+  TString fullFName= use_dirTag+TString("/")+filename;
   TFile *f=new TFile(fullFName);
   if(!f->IsOpen()) {
     if (allowToIgnoreAnalysisTag) {
@@ -2922,6 +3207,15 @@ int fillOneEfficiency(const TnPInputFileMgr_t &mgr, const TString filename,
       if(f) delete f;
       f = new TFile(fullFName);
     }
+    /*
+    if (!f->IsOpen()) {
+      std::cout << "... changing EtBins6systEtaBins5 to EtBins6EtaBins5\n";
+      fullFName.ReplaceAll("2D","1D");
+      fullFName.ReplaceAll("EtBins6systEtaBins5","EtBins6EtaBins5");
+      if (f) delete f;
+      f = new TFile(fullFName);
+    }
+    */
     if (!f || !f->IsOpen()) {
       std::cout << "failed to open a file <" << fullFName << ">" << std::endl;
       assert(0);
