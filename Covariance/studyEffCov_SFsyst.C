@@ -6,7 +6,6 @@
 //#include "../EventScaleFactors/tnpSelectEvents.hh"
 
 const int nExps=100;
-const int nTotBins=DYTools::getTotalNumberOfBins(); //same as DYTools::nMassBins in 1D;
 
 // ------------------------------------------------------
 // ------------------------------------------------------
@@ -53,8 +52,11 @@ int studyEffCov_SFsyst(int analysisIs2D,
     return retCodeError;
   }
 
+  int nTotBins=DYTools::getTotalNumberOfBins(); //same as DYTools::nMassBins in 1D;
+  std::cout << "nTotBins=" << nTotBins << "\n";
+
   //TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
-  TString confFileName="../config_files/data_vilnius8TeV_egamma.conf.py";
+  TString confFileName="../config_files/data_vilnius8TeV_regSSD_egamma.conf.py";
   //TString confFileName="toy_EtaBins2_var1.conf.py";
   if (variant.Length()) confFileName=Form("toy_%s.conf.py",variant.Data());
 
@@ -237,11 +239,14 @@ int studyEffCov_SFsyst(int analysisIs2D,
 
     std::cout << "there are " << skimTree->GetEntries() 
 	      << " entries in the <" << selectEventsFName << "> file\n";
-    for (UInt_t ientry=0; ientry<skimTree->GetEntries(); ++ientry) {
-      if (debugMode && (ientry>10000)) break;
+    const UInt_t maxEvents=skimTree->GetEntries();
+    for (UInt_t ientry=0; ientry<maxEvents; ++ientry) {
+      //if (debugMode && (ientry>100000)) break;
+      if (debugMode && (ientry%10000!=0)) continue;
+      printProgress(200000," ientry=",ientry,maxEvents);
       
       skimTree->GetEntry(ientry);
-      
+
       // Use generator-level post-FSR mass, y
       //int massBin= DYTools::findMassBin(selData.genMass);
       int massFIdx = DYTools::findIndexFlat(selData.genMass,selData.genY);
