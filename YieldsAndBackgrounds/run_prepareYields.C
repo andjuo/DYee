@@ -18,7 +18,7 @@ int run_prepareYields(int analysisIs2D,
   switch(the_case) {
   case 0: ; break;
   case 1: 
-    confName="../config_files/data_vilnius8TeV_regSSD_adHoc.conf.py";
+    confName="defaultAdHoc";
     systMode=DYTools::APPLY_ESCALE;
     break;
   default:
