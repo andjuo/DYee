@@ -1,7 +1,8 @@
-#include "subtractBackgroundR9.C"
+#include "subtractBackground.C"
 
-int run_subtractBackgroundR9(int the_case, int systModeFlag=0, int loadData=1) {
-  TString confName="../config_files/data_vilnius8TeV_regSSD.conf.py";
+int run_subtractBackground(int analysisIs2D,
+			   int the_case, int systModeFlag=0, int loadData=1) {
+  TString confName="default";
 
   DYTools::TRunMode_t runMode=(loadData) ? DYTools::LOAD_DATA : DYTools::NORMAL_RUN;
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
@@ -14,7 +15,7 @@ int run_subtractBackgroundR9(int the_case, int systModeFlag=0, int loadData=1) {
   switch(the_case) {
   case 0: ; break;
   case 1: 
-    confName="../config_files/data_vilnius8TeV_regSSD_adHoc.conf.py";
+    confName="defaultAdHoc";
     systMode=DYTools::APPLY_ESCALE;
     break;
   default:
