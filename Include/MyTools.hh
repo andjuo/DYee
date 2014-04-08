@@ -1400,7 +1400,35 @@ int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase,
     TString histoTitle=(setHistoTitle) ? histoName : "";
     eliminateSeparationSigns(histoName);
     TH1D *h=new TH1D(histoName,histoTitle,nBins,xMin,xMax);
-    std::cout << "new histo: " << h->GetName() << "\n";
+    //std::cout << "new histo: " << h->GetName() << "\n";
+    h->SetDirectory(0);
+    h->SetStats(0);
+    h->Sumw2();
+    h->GetXaxis()->SetTitle(xAxisLabel);
+    h->GetYaxis()->SetTitle(yAxisLabel);
+    if (!h) { res=0; break; }
+    histosV.push_back(h);
+  }
+  return res;
+}
+
+// -------------------------------------------
+
+inline
+int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase,
+		   const std::vector<TString> &sample_labels,
+		   int nBins, const double *binEdges,
+		   const TString &xAxisLabel="x",
+		   const TString &yAxisLabel="counts", int setHistoTitle=1) {
+  int res=1;
+  if (sample_labels.size()==0) return 0;
+  histosV.reserve(sample_labels.size());
+  for (unsigned int i=0; i<sample_labels.size(); ++i) {
+    TString histoName= histoNameBase + sample_labels[i];
+    TString histoTitle=(setHistoTitle) ? histoName : "";
+    eliminateSeparationSigns(histoName);
+    TH1D *h=new TH1D(histoName,histoTitle,nBins,binEdges);
+    //std::cout << "new histo: " << h->GetName() << "\n";
     h->SetDirectory(0);
     h->SetStats(0);
     h->Sumw2();
