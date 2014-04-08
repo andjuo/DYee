@@ -381,7 +381,7 @@ int preparePseudoExps(int nExps, int debug_pseudo_exps) {
 
 //=== MAIN MACRO =================================================================================================
 
-int calcEventEff(const TString confFileName,
+int calcEventEff_old(const TString confFileName,
 		 int selectEvents, 
 		 DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)

@@ -430,8 +430,8 @@ int createSystContainer(SystTH1DArrayFI_t &systScaleFI, int nexps,
 
 //=== MAIN MACRO =================================================================================================
 
-int calcEventEff_new(int analysisIs2D,
-		     const TString confFileName,
+int calcEventEff(int analysisIs2D,
+		 const TString confFileName,
 		 int selectEvents, 
 		 DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		 DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
