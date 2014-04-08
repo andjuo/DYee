@@ -10,6 +10,7 @@
 #include "../Include/TriggerSelection.hh"
 #include "../Include/InputFileMgr.hh"
 #include "../Include/EventSelector.hh"
+#include "../EventScaleFactors/tnpSelectEvents.hh"
 
 
 
@@ -55,6 +56,10 @@ void drawEfficiencies(TFile *fRootOutput,
 		      std::vector<TGraphErrors*> *grDataVec=NULL,
 		      std::vector<TGraphErrors*> *grMCVec=NULL);
 
+// access scale factors
+double findEventScaleFactor(int kind, const esfSelectEvent_t &data); // -1 for total
+double findEventScaleFactorSmeared(int kind, const esfSelectEvent_t &data,
+				   int iexp); // -1 for total
 
 //
 // Original functions
