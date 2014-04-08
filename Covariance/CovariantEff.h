@@ -1,7 +1,8 @@
 #ifndef CovariantEff_H
 #define CovariantEff_H
 
-#include "../EventScaleFactors/calcEventEff.C"
+//#include "../EventScaleFactors/calcEventEff.C"
+#include "../EventScaleFactors/calcEventEffLink.h"
 #include "CovariantMatrix.hh"
 
 //extern EffArray_t *ro_Data_loc;
