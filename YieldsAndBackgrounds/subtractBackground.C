@@ -63,23 +63,11 @@ int subtractBackground(int analysisIs2D,
     return retCodeError;
   //inpMgr.Print();
 
-
-  // systMode correction
-  // Ensure the evtSelector does not attach systMode to a file name
-  DYTools::TSystematicsStudy_t inputFileSystMode=systMode;
-  systMode=DYTools::NO_SYST;
-
   // Construct eventSelector, update inpMgr and plot directory
-  TString extraTag="R9";
+  TString extraTag;
   TString plotExtraTag;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag, plotExtraTag, EventSelector::_selectDefault);
-  // However, the plots should be saved according to the systMode
-  evtSelector.SetPlotOutDir(runMode,inputFileSystMode,plotExtraTag,1);
-
-  // systMode correction
-  // full name has to contain systMode through the directory name
-  systMode=inputFileSystMode;
 
   //std::cout <<" " << inpMgr.yieldFullName(-1,systMode,0) << "\n";
   //std::cout <<" " << inpMgr.signalYieldFullName(systMode) << "\n";
