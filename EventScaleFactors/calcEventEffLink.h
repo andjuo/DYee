@@ -34,6 +34,8 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
 		 TString &puStr, int createDestinationDir,
 		 DYTools::TSystematicsStudy_t systMode);
 
+int preparePseudoExps(int nExps, int debug_pseudo_exps);
+
 double getHLTefficiency(DYTools::TDataKind_t dataKind,
 			int etBin1, int etaBin1, double et1,
 			int etBin2, int etaBin2, double et2);
@@ -44,7 +46,8 @@ double getHLTefficiencyErr(DYTools::TDataKind_t dataKind,
 			   int etBin1, int etaBin1, double et1,
 			   int etBin2, int etaBin2, double et2);
 
-int fillEfficiencyConstants( const InputFileMgr_t &inpMgr );
+int fillEfficiencyConstants( const InputFileMgr_t &inpMgr,
+		  DYTools::TSystematicsStudy_t systMode = DYTools::NO_SYST );
 
 
 void drawEfficiencies(TFile *fRootOutput, 

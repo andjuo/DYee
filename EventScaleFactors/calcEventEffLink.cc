@@ -4,10 +4,10 @@
 
 // ------------------------------------------------------------
 
-int fillEfficiencyConstants( const InputFileMgr_t &inpMgr ) {
-  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
-  return fillEfficiencyConstants(inpMgr,systMode);
-}
+//int fillEfficiencyConstants( const InputFileMgr_t &inpMgr,
+//			     DYTools::TSystematicsStudy_t systMode ) {
+//  return fillEfficiencyConstants(inpMgr,systMode);
+//}
 
 // ------------------------------------------------------------
 
