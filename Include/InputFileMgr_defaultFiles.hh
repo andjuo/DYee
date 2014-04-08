@@ -9,7 +9,10 @@ TString getDefaultFileName(TString index) {
   else if (index=="default") {
     fname="../config_files/data_vilnius8TeV_regSSD.conf.py";
   }
-  if (index=="defaultAdHocRemote") {
+  else if (index=="defaultEgamma") {
+    fname="../config_files/data_vilnius8TeV_regSSD_egamma.conf.py";
+  }
+  else if (index=="defaultAdHocRemote") {
     fname="../config_files/data_vilnius8TeVremote_regSSD_adHoc.conf.py";
   }
   else if (index=="defaultAdHoc") {
