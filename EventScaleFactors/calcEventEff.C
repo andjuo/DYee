@@ -91,7 +91,9 @@ int createSelectionFile(const InputFileMgr_t &mcMgr,
 			DYTools::TRunMode_t runMode,
 			DYTools::TSystematicsStudy_t systMode);
 
+#ifndef calcEventEffLink_H
 double findEventScaleFactor(int kind, const esfSelectEvent_t &data); // -1 for total
+#endif
 
 double findEventScaleFactor(int kind, 
 			    double Et1, double eta1,
@@ -110,8 +112,10 @@ double getHLTefficiencyErr(DYTools::TDataKind_t dataKind,
 			   int etBin1, int etaBin1, double et1,
 			   int etBin2, int etaBin2, double et2);
 
-double findEventScaleFactorSmeared(int kind, const esfSelectEvent_t &data, 
+#ifndef calcEventEffLink_H
+double findEventScaleFactorSmeared(int kind, const esfSelectEvent_t &data,
 				   int iexp); // -1 for total
+#endif
 
 double findEventScaleFactorSmeared(int kind, 
 				   double Et1, double eta1,
