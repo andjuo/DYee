@@ -19,8 +19,6 @@
 #include <string>                   // C++ string class
 #include <sstream>                  // class for parsing strings
 
-//#define debug_systScaleArrs
-
 #include <vector>
 
 #include "../Include/CPlot.hh"
@@ -220,14 +218,19 @@ void deriveScaleMeanAndErr(const int binCount, const int nexpCount,
 	      << "], scaleMeanErr[" << scaleMeanErr.GetNoElements() << "\n";
     assert(0);
   }
-  for(int ibin = 0; ibin < binCount; ibin++){
-    scaleMean[ibin] = 0;
-    scaleMeanErr[ibin] = 0;
+
+  scaleMean=0;
+  scaleMeanErr=0;
+
+  for (int ibin=0; ibin < binCount; ++ibin) {
     const std::vector<TH1D*> *hV=systScale[ibin];
     for(int iexp = 0; iexp < nexpCount; iexp++){
       scaleMean[ibin] += (*hV)[iexp]->GetMean();
       scaleMeanErr[ibin] += SQR((*hV)[iexp]->GetMean());
     }
+  }
+
+  for (int ibin=0; ibin < binCount; ++ibin) {
     scaleMean[ibin] = scaleMean[ibin]/double(nexpCount);
     scaleMeanErr[ibin] = sqrt( scaleMeanErr[ibin] / double(nexpCount) 
 			       - SQR(scaleMean[ibin]) );
@@ -254,8 +257,8 @@ vector<TMatrixD*> dataEffAvgErr,mcEffAvgErr;
 // Global variables
 //const int nexp = 100;
 
-EffArray_t *ro_Data=NULL;
-EffArray_t *ro_MC=NULL;
+std::vector<EffArray_t*> ro_Data;
+std::vector<EffArray_t*> ro_MC;
 
 
 DYTools::TEtBinSet_t etBinning= DYTools::ETBINS_UNDEFINED;
@@ -293,7 +296,9 @@ int initManagers(const TString &confFileName, DYTools::TRunMode_t runMode,
   TString plotsExtraTag=puStr;
   EventSelector::TSelectionType_t set_selection=EventSelector::_selectHLTOrdered;
 #ifdef DYee8TeV_reg
-  if (systMode==DYTools::UNREGRESSED_ENERGY) set_selection=EventSelector::_selectHLTOrdered_nonRegressed;
+  if (usesUnregEnergy(systMode)) {
+    set_selection=EventSelector::_selectHLTOrdered_nonRegressed;
+  }
 #endif
   if (!evtSelector.init(inpMgr,runMode,systMode,
 			"",plotsExtraTag, set_selection)) {
@@ -340,21 +345,23 @@ int preparePseudoExps(int nExps, int debug_pseudo_exps) {
   // prepare global variables
   //
 
-  ro_Data= new EffArray_t();
-  ro_MC  = new EffArray_t();
-  //assert(ro_Data && ro_MC);
-  if (!ro_Data || !ro_MC) {
-    std::cout << Form("preparePseudoExps(nExps=%d,debug_pseudo_exps=%d): failed to allocate ro_Data\n",nExps,debug_pseudo_exps);
-    return 0;
-  }
+  if (ro_Data.size()) ClearVec(ro_Data);
+  if (ro_MC.size()) ClearVec(ro_MC);
 
-  ro_Data->reserve(nexp);
-  ro_MC->reserve(nexp);
+  ro_Data.reserve(nexp);
+  ro_MC.reserve(nexp);
 
   for (int isData=0; isData<2; ++isData) {
     int extra_sign=(isData) ? 1 : -1; // for debug_pseudo_exps
     for (int i=0; i<nExps; i++) {
-      EffArray_t *arr= (isData==0) ? (&ro_MC[i]) : (&ro_Data[i]);
+      EffArray_t *arr=new EffArray_t();
+      if (!arr) {
+	std::cout << "Failed to create arr in preparePseudoExps\n";
+	return 0;
+      }
+      if (isData) ro_Data.push_back(arr);
+      else ro_MC.push_back(arr);
+      // create a matrix for each kind of efficiency
       for (int kind=0; kind<NEffTypes; ++kind) {
 	TMatrixD *rhoRnd=new TMatrixD(etBinCount,etaBinCount);
 	arr->push_back(rhoRnd);
@@ -391,6 +398,36 @@ int preparePseudoExps(int nExps, int debug_pseudo_exps) {
 }
 
 
+// -----------------------------------------
+
+int createSystContainer(SystTH1DArrayFI_t &systScaleFI, int nexps,
+			const std::vector<TString> &labelsFI,
+			TString hbase, TString xlabel,
+			int sfBinCount, double sfLoValue, double sfHiValue
+			) {
+  systScaleFI.reserve(labelsFI.size());
+  std::vector<TString> systLabels;
+  systLabels.reserve(nexps);
+  int res=1;
+  for (unsigned int i=0; res && (i<labelsFI.size()); ++i) {
+    systLabels.clear();
+    for (int iexp=0; res && (iexp<nexps); ++iexp) {
+      TString str=Form("_exp%d",iexp);
+      systLabels.push_back(labelsFI[i] + str);
+    }
+    std::vector<TH1D*> *ptr_systScale=new std::vector<TH1D*>();
+    if (!ptr_systScale) { res=0; continue; }
+    systScaleFI.push_back(ptr_systScale);
+    res= createAnyH1Vec(*ptr_systScale,hbase,systLabels,
+			sfBinCount,sfLoValue,sfHiValue,
+			xlabel,"counts",1);
+  }
+  if (!res) std::cout << "error in createSystContainer for hbase="
+		      << hbase << "\n";
+  return res;
+}
+
+
 //=== MAIN MACRO =================================================================================================
 
 int calcEventEff_new(int analysisIs2D,
@@ -416,10 +453,12 @@ int calcEventEff_new(int analysisIs2D,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,6, DYTools::NO_SYST,
+    if (!DYTools::checkSystMode(systMode,debug_print,10, DYTools::NO_SYST,
 				DYTools::UNREGRESSED_ENERGY,
 				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
-				DYTools::FSR_5plus, DYTools::FSR_5minus))
+				DYTools::UNREG_PU5plus, DYTools::UNREG_PU5minus,
+				DYTools::FSR_5plus, DYTools::FSR_5minus,
+				DYTools::UNREG_FSR5plus, DYTools::UNREG_FSR5minus))
       return retCodeError;
   }
 
@@ -446,9 +485,10 @@ int calcEventEff_new(int analysisIs2D,
   TString puStr;
 
   //HERE("\n\tCalling initManagers\n");
-  std::cout << "initManagers is called insisting NO_SYST\n";
+  //std::cout << "initManagers is called insisting NO_SYST\n";
   if (!initManagers(confFileName,DYTools::NORMAL_RUN,inpMgr,evtSelector,
-		    puStr,1, DYTools::NO_SYST)) {
+		    puStr,1, systMode //DYTools::NO_SYST
+		    )) {
     std::cout << "failed to initialize managers\n";
     return retCodeError;
   }
@@ -475,7 +515,8 @@ int calcEventEff_new(int analysisIs2D,
     }
     else {
       std::cout << "selection file <" << selectEventsFName << "> created\n";
-      gBenchmark->Show("calcEventEff");
+      //gBenchmark->Show("calcEventEff");
+      ShowBenchmarkTime("calcEventEff");
     }
     return retCodeError;
   }
@@ -531,79 +572,79 @@ int calcEventEff_new(int analysisIs2D,
   vector<TH1D*> hScaleHltFIV;
   vector<TH1D*> hScaleHltLeg1FIV, hScaleHltLeg2FIV;
 
-  hLeadingEtV.reserve(DYTools::nMassBins);
-  hTrailingEtV.reserve(DYTools::nMassBins);
-  hElectronEtV.reserve(DYTools::nMassBins);
-
-  hScaleV.reserve(DYTools::nMassBins);
-  hScaleRecoV.reserve(DYTools::nMassBins);
-  hScaleIdV.reserve(DYTools::nMassBins);
-  hScaleHltV.reserve(DYTools::nMassBins);
-  if (nonUniversalHLT) {
-    hScaleHltLeg1V.reserve(DYTools::nMassBins);
-    hScaleHltLeg2V.reserve(DYTools::nMassBins);
+  std::vector<TString> massLabels;
+  std::vector<TString> flatIdxLabels;
+  massLabels.reserve(DYTools::nMassBins);
+  for (int im=0; im<DYTools::nMassBins; ++im) {
+    massLabels.push_back(Form("M_%1.0lf_%1.0lf",DYTools::massBinLimits[im],
+			      DYTools::massBinLimits[im+1]));
+  }
+  flatIdxLabels.reserve(DYTools::nUnfoldingBins);
+  for (int im=0; im<DYTools::nMassBins; ++im) {
+    for (int iy=0; iy<DYTools::nYBins[im]; ++iy) {
+      double yMin=0, yMax=0;
+      DYTools::findAbsYValueRange(im,iy,yMin,yMax);
+      TString str=Form("M_%1.0lf_y_%4.2lf",DYTools::massBinLimits[im],yMin);
+      str.ReplaceAll(".","");
+      flatIdxLabels.push_back(str);
+    }
   }
 
-  int nUnfoldingBins = DYTools::getTotalNumberOfBins();
-  hScaleFIV.reserve(nUnfoldingBins);
-  hScaleRecoFIV.reserve(nUnfoldingBins);
-  hScaleIdFIV.reserve(nUnfoldingBins);
-  hScaleHltFIV.reserve(nUnfoldingBins);
+  const int sfBinCount=150;
+  const double sfLoValue=0.;
+  const double sfHiValue=1.5;
+  int res=1;
+  if (res) res=createAnyH1Vec(hLeadingEtV,"hLeadingEt_",massLabels,
+			      etBinCount, etBinLimits, "E_{T}","counts",1);
+  if (res) res=createAnyH1Vec(hTrailingEtV,"hTrailingEt_",massLabels,
+			      etBinCount, etBinLimits, "E_{T}","counts",1);
+  if (res) res=createAnyH1Vec(hElectronEtV,"hElectronEt_",massLabels,
+			      etBinCount, etBinLimits, "E_{T}","counts",1);
+  if (res) res=createAnyH1Vec(hScaleV,"hScale_",massLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho","counts",1);
+  if (res) res=createAnyH1Vec(hScaleRecoV,"hScale_reco_",massLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho_{reco}","counts",1);
+  if (res) res=createAnyH1Vec(hScaleIdV,"hScale_id_",massLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho_{id}","counts",1);
+  if (res) res=createAnyH1Vec(hScaleHltV,"hScale_hlt_",massLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho_{hlt}","counts",1);
   if (nonUniversalHLT) {
-    hScaleHltLeg1FIV.reserve(nUnfoldingBins);
-    hScaleHltLeg2FIV.reserve(nUnfoldingBins);
+    if (res) res=createAnyH1Vec(hScaleHltLeg1V,"hScale_hltLeg1_",massLabels,
+				sfBinCount,sfLoValue,sfHiValue,
+				"#rho_{hlt;leg1}","counts",1);
+    if (res) res=createAnyH1Vec(hScaleHltLeg2V,"hScale_hltLeg2_",massLabels,
+				sfBinCount,sfLoValue,sfHiValue,
+				"#rho_{hlt;leg2}","counts",1);
   }
-
-  for(int i=0; i<DYTools::nMassBins; i++){
-    double *rapidityBinLimits=DYTools::getYBinArray(i);
-
-    TString base = TString("hScaleV_massBin");
-    base += i;
-    hScaleV.push_back(new TH1D(base,base,150,0.0,1.5));
-    hScaleRecoV.push_back(new TH1D(base+TString("_reco"),
-				   base+TString("_reco"),150,0.0,1.5));
-    hScaleIdV.push_back(new TH1D(base+TString("_id" ),
-				 base+TString("_id" ),150,0.0,1.5));
-    hScaleHltV.push_back(new TH1D(base+TString("_hlt" ),
-				  base+TString("_hlt" ),150,0.0,1.5));
-    if (nonUniversalHLT) {
-      hScaleHltLeg1V.push_back(new TH1D(base+TString("_hltLeg1"),
-					base+TString("_hltLeg1"),150,0.0,1.5));
-      hScaleHltLeg2V.push_back(new TH1D(base+TString("_hltLeg2"),
-					base+TString("_hltLeg2"),150,0.0,1.5));
-    }
-    base = "hLeadingEt_";
-    base += i;
-    hLeadingEtV.push_back(new TH1D(base,base,etBinCount, etBinLimits));
-    base = "hTrailingEt_";
-    base += i;
-    hTrailingEtV.push_back(new TH1D(base,base,etBinCount, etBinLimits));
-    base = "hElectronEt_";
-    base += i;
-    hElectronEtV.push_back(new TH1D(base,base,etBinCount, etBinLimits));
-    
-    for (int yi=0; yi<DYTools::nYBins[i]; ++yi) {
-      char buf[50];
-      sprintf(buf,"mIdx%d_y%4.2lf-%4.2lf",
-	      i,rapidityBinLimits[yi],rapidityBinLimits[yi+1]);
-      TString idxStr=buf;
-      idxStr.ReplaceAll(".","_");
-      base = TString("hScaleV_")+idxStr;
-      hScaleFIV.push_back(new TH1D(base,base,150,0.0,1.5));
-      hScaleRecoFIV.push_back(new TH1D(base+TString("_reco"),
-				       base+TString("_reco"),150,0.0,1.5));
-      hScaleIdFIV.push_back(new TH1D(base+TString("_id" ),
-				     base+TString("_id" ),150,0.0,1.5));
-      hScaleHltFIV.push_back(new TH1D(base+TString("_hlt"),
-				      base+TString("_hlt"),150,0.0,1.5));
-      if (nonUniversalHLT) {
-	hScaleHltLeg1FIV.push_back(new TH1D(base+TString("_hltLeg1"),
-					    base+TString("_hltLeg1"),150,0.0,1.5));
-	hScaleHltLeg2FIV.push_back(new TH1D(base+TString("_hltLeg2"),
-					    base+TString("_hltLeg2"),150,0.0,1.5));
-      }
-    }
-    delete rapidityBinLimits;
+  if (res) res=createAnyH1Vec(hScaleFIV,"hScaleFI_",flatIdxLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho","#rho counts",1);
+  if (res) res=createAnyH1Vec(hScaleRecoFIV,"hScaleFI_reco_",flatIdxLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho_{reco}","counts",1);
+  if (res) res=createAnyH1Vec(hScaleIdFIV,"hScaleFI_id_",flatIdxLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho_{id}","counts",1);
+  if (res) res=createAnyH1Vec(hScaleHltFIV,"hScaleFI_hlt_",flatIdxLabels,
+			      sfBinCount,sfLoValue,sfHiValue,
+			      "#rho_{hlt}","counts",1);
+  if (nonUniversalHLT) {
+    if (res) res=createAnyH1Vec(hScaleHltLeg1FIV,"hScaleFI_hltLeg1_",
+				flatIdxLabels,
+				sfBinCount,sfLoValue,sfHiValue,
+				"#rho_{hlt;leg1}","counts",1);
+    if (res) res=createAnyH1Vec(hScaleHltLeg2FIV,"hScaleFI_hltLeg2_",
+				flatIdxLabels,
+				sfBinCount,sfLoValue,sfHiValue,
+				"#rho_{hlt;leg2}","counts",1);
+  }
+  if (!res) {
+    std::cout << "failed to create scale factor containers\n";
+    return retCodeError;
   }
 
   // Create Gaussian-distributed random offsets for each pseudo-experiment
@@ -625,27 +666,11 @@ int calcEventEff_new(int analysisIs2D,
     ro_M_E_hlt[i] = gRandom->Gaus(0.0,1.0);
   }
   */
+
   int debug_pseudo_exps=0;
   if (!preparePseudoExps(nexp,debug_pseudo_exps)) return retCodeError;
 
   // Create container for data for error estimates based on pseudo-experiments
-  //TH1D *systScale[DYTools::nMassBins][nexp];
-
-#ifdef debug_systScaleArrs
-  SystTH1DArray_t systScale;
-  SystTH1DArray_t systScaleReco;
-  SystTH1DArray_t systScaleId;
-  SystTH1DArray_t systScaleHlt;
-  SystTH1DArray_t systScaleHltLeg1;
-  SystTH1DArray_t systScaleHltLeg2;
-  systScale.reserve(DYTools::nMassBins);
-  systScaleReco.reserve(DYTools::nMassBins);
-  systScaleId.reserve(DYTools::nMassBins);
-  systScaleHlt.reserve(DYTools::nMassBins);
-  systScaleHltLeg1.reserve(DYTools::nMassBins);
-  systScaleHltLeg2.reserve(DYTools::nMassBins);
-#endif
-
   //TH1D *systScaleFI[nUnfoldingBins][nexp];
   SystTH1DArrayFI_t systScaleFI;
   SystTH1DArrayFI_t systScaleRecoFI;
@@ -654,102 +679,41 @@ int calcEventEff_new(int analysisIs2D,
   SystTH1DArrayFI_t systScaleHltLeg1FI;
   SystTH1DArrayFI_t systScaleHltLeg2FI;
 
-  systScaleFI.reserve(nUnfoldingBins);
-  systScaleRecoFI.reserve(nUnfoldingBins);
-  systScaleIdFI.reserve(nUnfoldingBins);
-  systScaleHltFI.reserve(nUnfoldingBins);
-  systScaleHltLeg1FI.reserve(nUnfoldingBins);
-  systScaleHltLeg2FI.reserve(nUnfoldingBins);
-
-  for(int i=0; i<nUnfoldingBins; i++) {
-    std::vector<TH1D*> *ptr_systScaleFI=new std::vector<TH1D*>();
-    std::vector<TH1D*> *ptr_systScaleRecoFI=new std::vector<TH1D*>();
-    std::vector<TH1D*> *ptr_systScaleIdFI=new std::vector<TH1D*>();
-    std::vector<TH1D*> *ptr_systScaleHltFI=new std::vector<TH1D*>();
-    std::vector<TH1D*> *ptr_systScaleHltLeg1FI=new std::vector<TH1D*>();
-    std::vector<TH1D*> *ptr_systScaleHltLeg2FI=new std::vector<TH1D*>();
-    systScaleFI.push_back(ptr_systScaleFI);
-    systScaleRecoFI.push_back(ptr_systScaleRecoFI);
-    systScaleIdFI.push_back(ptr_systScaleIdFI);
-    systScaleHltFI.push_back(ptr_systScaleHltFI);
-    systScaleHltLeg1FI.push_back(ptr_systScaleHltLeg1FI);
-    systScaleHltLeg2FI.push_back(ptr_systScaleHltLeg2FI);
-#ifdef debug_systScaleArrs
-    std::vector<TH1D*> *ptr_systScale=NULL;
-    std::vector<TH1D*> *ptr_systScaleReco=NULL;
-    std::vector<TH1D*> *ptr_systScaleId=NULL;
-    std::vector<TH1D*> *ptr_systScaleHlt=NULL;
-    std::vector<TH1D*> *ptr_systScaleHltLeg1=NULL;
-    std::vector<TH1D*> *ptr_systScaleHltLeg2=NULL;
-    if (i<DYTools::nMassBins) {
-      std::vector<TH1D*> *ptr_systScale=new std::vector<TH1D*>();
-      std::vector<TH1D*> *ptr_systScaleReco=new std::vector<TH1D*>();
-      std::vector<TH1D*> *ptr_systScaleId=new std::vector<TH1D*>();
-      std::vector<TH1D*> *ptr_systScaleHlt=new std::vector<TH1D*>();
-      std::vector<TH1D*> *ptr_systScaleHltLeg1=new std::vector<TH1D*>();
-      std::vector<TH1D*> *ptr_systScaleHltLeg2=new std::vector<TH1D*>();
-      systScale.push_back(ptr_systScale);
-      systScaleReco.push_back(ptr_systScaleReco);
-      systScaleId.push_back(ptr_systScaleId);
-      systScaleHlt.push_back(ptr_systScaleHlt);
-      systScaleHltLeg1.push_back(ptr_systScaleHltLeg1);
-      systScaleHltLeg2.push_back(ptr_systScaleHltLeg2);
-    }
-#endif
-
-    for(int j=0; j<nexp; j++){
-      TString base;
-#ifdef debug_systScaleArrs
-      if (i<DYTools::nMassBins) {
-	base = "hScaleM_massBin";
-	base += i;
-	base += "_exp";
-	base += j;
-	ptr_systScale->push_back(new TH1D(base,base,150,0.0,1.5));
-	ptr_systScaleReco->push_back(new TH1D(base+TString("_reco"),
-				     base+TString("_reco"),150,0.0,1.5));
-	ptr_systScaleId->push_back(new TH1D(base+TString("_id" ),
-					    base+TString("_id" ),150,0.0,1.5));
-	ptr_systScaleHlt->push_back(new TH1D(base+TString("_hlt"),
-				    base+TString("_hlt"),150,0.0,1.5));
-	ptr_systScaleHltLeg1->push_back((nonUniversalHLT) ?
-                new TH1D(base+TString("_hltLeg1"),
-			 base+TString("_hltLeg1"),150,0.0,1.5) : NULL);
-	ptr_systScaleHltLeg2->push_back((nonUniversalHLT) ?
-	        new TH1D(base+TString("_hltLeg2"),
-			 base+TString("_hltLeg2"),150,0.0,1.5) : NULL);
-      }
-#endif
-      base = "hScaleM_flatIdx";
-      base += i;
-      base += "_exp";
-      base += j;
-      ptr_systScaleFI->push_back(new TH1D(base,base,150,0.0,1.5));
-      ptr_systScaleRecoFI->push_back(new TH1D(base+TString("_reco"),
-				     base+TString("_reco"),150,0.0,1.5));
-      ptr_systScaleIdFI->push_back(new TH1D(base+TString("_id" ),
-					    base+TString("_id" ),150,0.0,1.5));
-      ptr_systScaleHltFI->push_back(new TH1D(base+TString("_hlt"),
-				    base+TString("_hlt"),150,0.0,1.5));
-      ptr_systScaleHltLeg1FI->push_back((nonUniversalHLT) ?
-			new TH1D(base+TString("_hltLeg1"),
-				 base+TString("_hltLeg1"),150,0.0,1.5) : NULL);
-      ptr_systScaleHltLeg2FI->push_back((nonUniversalHLT) ?
-			new TH1D(base+TString("_hltLeg2"),
-				 base+TString("_hltLeg2"),150,0.0,1.5) : NULL);
-    }
+  if (res) res=createSystContainer(systScaleFI,nexp,flatIdxLabels,
+				   "systSF_","#rho",
+				   sfBinCount,sfLoValue,sfHiValue);
+  if (res) res=createSystContainer(systScaleRecoFI,nexp,flatIdxLabels,
+				   "systSFreco_","#rho_{reco}",
+				   sfBinCount,sfLoValue,sfHiValue);
+  if (res) res=createSystContainer(systScaleIdFI,nexp,flatIdxLabels,
+				   "systSFid_","#rho_{id}",
+				   sfBinCount,sfLoValue,sfHiValue);
+  if (res) res=createSystContainer(systScaleHltFI,nexp,flatIdxLabels,
+				     "systSFhlt_","#rho_{hlt}",
+				     sfBinCount,sfLoValue,sfHiValue);
+  if (nonUniversalHLT) {
+    if (res) res=createSystContainer(systScaleHltLeg1FI,nexp,flatIdxLabels,
+				     "systSFhltLeg1_","#rho_{hlt;leg1}",
+				     sfBinCount,sfLoValue,sfHiValue);
+    if (res) res=createSystContainer(systScaleHltLeg2FI,nexp,flatIdxLabels,
+				     "systSFhltLeg2_","#rho_{hlt;leg2}",
+				     sfBinCount,sfLoValue,sfHiValue);
+  }
+  if (!res) {
+    std::cout << "failed to create syst containers\n";
+    return retCodeError;
   }
 
   // for correlation studies
-  TH1D *hEvtW=new TH1D("hEvtW","hEvtW",nUnfoldingBins,0.,double(nUnfoldingBins));
-  TH1D *hEsfEvtW=new TH1D("hEsfEvtW","hEsfEvtW",nUnfoldingBins,0.,double(nUnfoldingBins));
+  TH1D *hEvtW=new TH1D("hEvtW","hEvtW",DYTools::nUnfoldingBins,0.,double(DYTools::nUnfoldingBins));
+  TH1D *hEsfEvtW=new TH1D("hEsfEvtW","hEsfEvtW",DYTools::nUnfoldingBins,0.,double(DYTools::nUnfoldingBins));
   double sumEvtW_Zpeak=0., sumEsfEvtW_Zpeak=0.;
   std::vector<double> systSumEsfEvtW_ZpeakV(nexp);
   std::vector<TH1D*> hSystEsfEvtWV;
   hSystEsfEvtWV.reserve(nexp);
   for (int i=0; i<nexp; i++) {
     TString base = Form("hSystEsfEvtW_exp%d",i);
-    TH1D* h=new TH1D(base,base,nUnfoldingBins,0.,double(nUnfoldingBins));
+    TH1D* h=new TH1D(base,base,DYTools::nUnfoldingBins,0.,double(DYTools::nUnfoldingBins));
     h->SetDirectory(0);
     hSystEsfEvtWV.push_back(h);
   }
@@ -788,7 +752,7 @@ int calcEventEff_new(int analysisIs2D,
   esfSelectEvent_t selData;
   selData.setBranchAddress(skimTree);
 
-  //std::cout << "DYTools::nMassBins=" << DYTools::nMassBins << ", nUnfoldingBins=" << nUnfoldingBins << std::endl;
+  //std::cout << "DYTools::nMassBins=" << DYTools::nMassBins << ", DYTools::nUnfoldingBins=" << DYTools::nUnfoldingBins << std::endl;
   ULong_t maxEvents=skimTree->GetEntries();
   std::cout << "there are " << skimTree->GetEntries() 
 	    << " entries in the <" << selectEventsFName << "> file\n";
@@ -832,7 +796,7 @@ int calcEventEff_new(int analysisIs2D,
       if( selData.insideMassWindow(60,120) ) {
 	hZpeakEt->Fill(selData.et_1, weight);
 	hZpeakEt->Fill(selData.et_2, weight);
-	if ((idx>=0) && (idx<nUnfoldingBins)) {
+	if ((idx>=0) && (idx<DYTools::nUnfoldingBins)) {
 	  sumEvtW_Zpeak+=weight;
 	  sumEsfEvtW_Zpeak+=weight*scaleFactor;
 	}
@@ -848,7 +812,7 @@ int calcEventEff_new(int analysisIs2D,
       hScaleV   [ibin]->Fill( scaleFactor, weight);
       //if (ibin==39) std::cout << " sf=" << scaleFactor << " * " << weight << "\n";
 
-      if ((idx>=0) && (idx<nUnfoldingBins)) {
+      if ((idx>=0) && (idx<DYTools::nUnfoldingBins)) {
 	hScaleRecoFIV[idx]->Fill( scaleFactorReco, weight);
 	hScaleIdFIV [idx]->Fill( scaleFactorId, weight);
 	hScaleHltFIV[idx]->Fill( scaleFactorHlt, weight);
@@ -862,6 +826,7 @@ int calcEventEff_new(int analysisIs2D,
       }
 	
       // Acumulate pseudo-experiments for error estimate
+      /* // Previous version
       for(int iexp = 0; iexp<nexp; iexp++){
 	scaleFactor = findEventScaleFactorSmeared(-1, selData, iexp); // HLT formula is inside
 	//if (ibin==39) std::cout << " rndSf= " << scaleFactor << " * " << weight << "\n";
@@ -873,36 +838,61 @@ int calcEventEff_new(int analysisIs2D,
 	  scaleFactorHltLeg1 = sqrt(findEventScaleFactorSmeared(DYTools::HLT_leg1,selData,iexp));
 	  scaleFactorHltLeg2 = sqrt(findEventScaleFactorSmeared(DYTools::HLT_leg2,selData,iexp));
 	}
-#ifdef debug_systScaleArrs
-	(*systScale    [ibin])[iexp]->Fill(scaleFactor, weight);
-	(*systScaleReco[ibin])[iexp]->Fill(scaleFactorReco, weight);
-	(*systScaleId  [ibin])[iexp]->Fill(scaleFactorId, weight);
-	(*systScaleHlt [ibin])[iexp]->Fill(scaleFactorHlt, weight);
-	if (nonUniversalHLT) {
-	  (*systScaleHltLeg1[ibin])[iexp]->Fill(scaleFactorHltLeg1, weight);
-	  (*systScaleHltLeg2[ibin])[iexp]->Fill(scaleFactorHltLeg2, weight);
+	(*systScaleFI    [idx])[iexp]->Fill(scaleFactor, weight);
+	(*systScaleRecoFI[idx])[iexp]->Fill(scaleFactorReco, weight);
+	(*systScaleIdFI  [idx])[iexp]->Fill(scaleFactorId, weight);
+	if (!nonUniversalHLT) {
+	(*systScaleHltFI [idx])[iexp]->Fill(scaleFactorHlt, weight);
 	}
-#endif
-	if ((idx>=0) && (idx<nUnfoldingBins)) {
-	  (*systScaleFI    [idx])[iexp]->Fill(scaleFactor, weight);
-	  (*systScaleRecoFI[idx])[iexp]->Fill(scaleFactorReco, weight);
-	  (*systScaleIdFI  [idx])[iexp]->Fill(scaleFactorId, weight);
-	  (*systScaleHltFI [idx])[iexp]->Fill(scaleFactorHlt, weight);
-	  if (nonUniversalHLT) {
-	    (*systScaleHltLeg1FI[idx])[iexp]->Fill(scaleFactorHltLeg1, weight);
-	    (*systScaleHltLeg2FI[idx])[iexp]->Fill(scaleFactorHltLeg2, weight);
-	  }
-	  hSystEsfEvtWV[iexp]->Fill(idx,scaleFactor*weight);
-	  if( selData.insideMassWindow(60,120) ) {
-	    systSumEsfEvtW_ZpeakV[iexp]+=weight*scaleFactor;
-	  }
+	else {
+	  (*systScaleHltLeg1FI[idx])[iexp]->Fill(scaleFactorHltLeg1, weight);
+	  (*systScaleHltLeg2FI[idx])[iexp]->Fill(scaleFactorHltLeg2, weight);
+	}
+	hSystEsfEvtWV[iexp]->Fill(idx,scaleFactor*weight);
+	if( selData.insideMassWindow(60,120) ) {
+	  systSumEsfEvtW_ZpeakV[iexp]+=weight*scaleFactor;
+	}
+      }
+      */
+
+      // Acumulate pseudo-experiments for error estimate
+      for(int iexp = 0; iexp<nexp; iexp++){
+	scaleFactor = findEventScaleFactorSmeared(-1, selData, iexp); // HLT formula is inside
+	//if (ibin==39) std::cout << " rndSf= " << scaleFactor << " * " << weight << "\n";
+	//std::cout << "findEventScaleFactor(selData)=" << findEventScaleFactor(selData) << ", smeared scaleFactor=" << scaleFactor << "\n";
+	(*systScaleFI    [idx])[iexp]->Fill(scaleFactor, weight);
+	hSystEsfEvtWV[iexp]->Fill(idx,scaleFactor*weight);
+	if( selData.insideMassWindow(60,120) ) {
+	  systSumEsfEvtW_ZpeakV[iexp]+=weight*scaleFactor;
+	}
+      }
+      for(int iexp = 0; iexp<nexp; iexp++){
+	scaleFactorReco = sqrt(findEventScaleFactorSmeared(DYTools::RECO,selData,iexp));
+	(*systScaleRecoFI[idx])[iexp]->Fill(scaleFactorReco, weight);
+      }
+      for(int iexp = 0; iexp<nexp; iexp++){
+	scaleFactorId  = sqrt(findEventScaleFactorSmeared(DYTools::ID,selData,iexp));
+	(*systScaleIdFI  [idx])[iexp]->Fill(scaleFactorId, weight);
+      }
+      for(int iexp = 0; iexp<nexp; iexp++){
+	scaleFactorHlt = sqrt(findEventScaleFactorSmeared(DYTools::HLT,selData,iexp)); // HLT formula is inside
+	(*systScaleHltFI [idx])[iexp]->Fill(scaleFactorHlt, weight);
+      }
+      if (nonUniversalHLT) {
+	for(int iexp = 0; iexp<nexp; iexp++){
+	  scaleFactorHltLeg1 = sqrt(findEventScaleFactorSmeared(DYTools::HLT_leg1,selData,iexp));
+	  (*systScaleHltLeg1FI[idx])[iexp]->Fill(scaleFactorHltLeg1, weight);
+	}
+	for(int iexp = 0; iexp<nexp; iexp++){
+	  scaleFactorHltLeg2 = sqrt(findEventScaleFactorSmeared(DYTools::HLT_leg2,selData,iexp));
+	  (*systScaleHltLeg2FI[idx])[iexp]->Fill(scaleFactorHltLeg2, weight);
 	}
       }
     } // if (ibin is ok)
     
     // 	if(scaleFactor>1.3)
     // 	  printf("  leading:   %f    %f      trailing:   %f   %f     mass: %f\n",
-// 		 leading->scEt, leading->scEta, trailing->scEt, trailing->scEta, dielectron->mass);
+    // 		 leading->scEt, leading->scEta, trailing->scEt, trailing->scEta, dielectron->mass);
     
   } // end loop over selected events
    
@@ -916,201 +906,54 @@ int calcEventEff_new(int analysisIs2D,
   
   // Calculate errors on the scale factors
   // The "Mean" are the mean among all pseudo-experiments, very close to the primary scale factor values
-#ifdef debug_systScaleArrs
-  TVectorD scaleMeanV(DYTools::nMassBins);
-  TVectorD scaleMeanErrV(DYTools::nMassBins);
-  TVectorD scaleMeanRecoV(DYTools::nMassBins);
-  TVectorD scaleMeanRecoErrV(DYTools::nMassBins);
-  TVectorD scaleMeanIdV(DYTools::nMassBins);
-  TVectorD scaleMeanIdErrV(DYTools::nMassBins);
-  TVectorD scaleMeanHltV(DYTools::nMassBins);
-  TVectorD scaleMeanHltErrV(DYTools::nMassBins);
-  TVectorD scaleMeanHltLeg1V(DYTools::nMassBins);
-  TVectorD scaleMeanHltLeg1ErrV(DYTools::nMassBins);
-  TVectorD scaleMeanHltLeg2V(DYTools::nMassBins);
-  TVectorD scaleMeanHltLeg2ErrV(DYTools::nMassBins);
+  TVectorD scaleMeanFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanErrFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanRecoFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanRecoErrFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanIdFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanIdErrFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanHltFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanHltErrFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanHltLeg1FIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanHltLeg1ErrFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanHltLeg2FIV(DYTools::nUnfoldingBins);
+  TVectorD scaleMeanHltLeg2ErrFIV(DYTools::nUnfoldingBins);
   // Put into these vectors the content of the mean of the primary scale factor distributions
-  TVectorD scaleV(DYTools::nMassBins);
-  TVectorD scaleRecoV(DYTools::nMassBins);
-  TVectorD scaleIdV(DYTools::nMassBins);
-  TVectorD scaleHltV(DYTools::nMassBins);
-  TVectorD scaleHltLeg1V(DYTools::nMassBins);
-  TVectorD scaleHltLeg2V(DYTools::nMassBins);
-#endif
+  TVectorD scaleFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleRecoFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleIdFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleHltFIV(DYTools::nUnfoldingBins);
+  TVectorD scaleHltLeg1FIV(DYTools::nUnfoldingBins);
+  TVectorD scaleHltLeg2FIV(DYTools::nUnfoldingBins);
 
-  TVectorD scaleMeanFIV(nUnfoldingBins);
-  TVectorD scaleMeanErrFIV(nUnfoldingBins);
-  TVectorD scaleMeanRecoFIV(nUnfoldingBins);
-  TVectorD scaleMeanRecoErrFIV(nUnfoldingBins);
-  TVectorD scaleMeanIdFIV(nUnfoldingBins);
-  TVectorD scaleMeanIdErrFIV(nUnfoldingBins);
-  TVectorD scaleMeanHltFIV(nUnfoldingBins);
-  TVectorD scaleMeanHltErrFIV(nUnfoldingBins);
-  TVectorD scaleMeanHltLeg1FIV(nUnfoldingBins);
-  TVectorD scaleMeanHltLeg1ErrFIV(nUnfoldingBins);
-  TVectorD scaleMeanHltLeg2FIV(nUnfoldingBins);
-  TVectorD scaleMeanHltLeg2ErrFIV(nUnfoldingBins);
-  // Put into these vectors the content of the mean of the primary scale factor distributions
-  TVectorD scaleFIV(nUnfoldingBins);
-  TVectorD scaleRecoFIV(nUnfoldingBins);
-  TVectorD scaleIdFIV(nUnfoldingBins);
-  TVectorD scaleHltFIV(nUnfoldingBins);
-  TVectorD scaleHltLeg1FIV(nUnfoldingBins);
-  TVectorD scaleHltLeg2FIV(nUnfoldingBins);
-
-#ifdef debug_systScaleArrs
-  deriveScaleMeanAndErr(DYTools::nMassBins,nexp, 
-			systScale, scaleMeanV,scaleMeanErrV);
-  deriveScaleMeanAndErr(DYTools::nMassBins,nexp, 
-			systScaleReco, scaleMeanRecoV,scaleMeanRecoErrV);
-  deriveScaleMeanAndErr(DYTools::nMassBins,nexp, 
-			systScaleId  , scaleMeanIdV  ,scaleMeanIdErrV  );
-  deriveScaleMeanAndErr(DYTools::nMassBins,nexp, 
-			systScaleHlt , scaleMeanHltV ,scaleMeanHltErrV );
-  if (nonUniversalHLT) {
-    deriveScaleMeanAndErr(DYTools::nMassBins,nexp, 
-			  systScaleHltLeg1 , scaleMeanHltLeg1V ,scaleMeanHltLeg1ErrV );
-    deriveScaleMeanAndErr(DYTools::nMassBins,nexp, 
-			  systScaleHltLeg2 , scaleMeanHltLeg2V ,scaleMeanHltLeg2ErrV );
-  }
-#endif
-
-  deriveScaleMeanAndErr(nUnfoldingBins,nexp, 
+  deriveScaleMeanAndErr(DYTools::nUnfoldingBins,nexp,
 			systScaleFI, scaleMeanFIV,scaleMeanErrFIV);
-  deriveScaleMeanAndErr(nUnfoldingBins,nexp, 
+  deriveScaleMeanAndErr(DYTools::nUnfoldingBins,nexp,
 			systScaleRecoFI, scaleMeanRecoFIV,scaleMeanRecoErrFIV);
-  if (1) {
-  deriveScaleMeanAndErr(nUnfoldingBins,nexp, 
+  deriveScaleMeanAndErr(DYTools::nUnfoldingBins,nexp,
 			systScaleIdFI  , scaleMeanIdFIV  ,scaleMeanIdErrFIV  );
-  deriveScaleMeanAndErr(nUnfoldingBins,nexp, 
+  if (!nonUniversalHLT) {
+    deriveScaleMeanAndErr(DYTools::nUnfoldingBins,nexp,
 			systScaleHltFI , scaleMeanHltFIV ,scaleMeanHltErrFIV );
-  if (nonUniversalHLT) {
-    deriveScaleMeanAndErr(nUnfoldingBins,nexp, 
-			  systScaleHltLeg1FI , scaleMeanHltLeg1FIV ,scaleMeanHltLeg1ErrFIV );
-    deriveScaleMeanAndErr(nUnfoldingBins,nexp, 
-			  systScaleHltLeg2FI , scaleMeanHltLeg2FIV ,scaleMeanHltLeg2ErrFIV );
-  }
+  } else {
+    deriveScaleMeanAndErr(DYTools::nUnfoldingBins,nexp,
+	   systScaleHltLeg1FI , scaleMeanHltLeg1FIV ,scaleMeanHltLeg1ErrFIV );
+    deriveScaleMeanAndErr(DYTools::nUnfoldingBins,nexp,
+	   systScaleHltLeg2FI , scaleMeanHltLeg2FIV ,scaleMeanHltLeg2ErrFIV );
   }
 
-
-#ifdef debug_systScaleArrs
-  for(int ibin = 0; ibin < DYTools::nMassBins; ibin++){
-    scaleRecoV[ibin] = hScaleRecoV[ibin]->GetMean();
-    scaleIdV [ibin] = hScaleIdV [ibin] ->GetMean();
-    scaleHltV[ibin] = hScaleHltV[ibin]->GetMean();
-    scaleV   [ibin] = hScaleV   [ibin]->GetMean();
-  }
-#endif
-
-  for(int idx = 0; idx < nUnfoldingBins; idx++){
+  for(int idx = 0; idx < DYTools::nUnfoldingBins; idx++){
     scaleRecoFIV[idx] = hScaleRecoFIV[idx]->GetMean();
     scaleIdFIV [idx] = hScaleIdFIV [idx] ->GetMean();
     scaleHltFIV[idx] = hScaleHltFIV[idx]->GetMean();
     scaleFIV   [idx] = hScaleFIV   [idx]->GetMean();
   }
   if (nonUniversalHLT) {
-#ifdef debug_systScaleArrs
-    for(int ibin = 0; ibin < DYTools::nMassBins; ibin++){
-      scaleHltLeg1V[ibin] = hScaleHltLeg1V[ibin]->GetMean();
-      scaleHltLeg2V[ibin] = hScaleHltLeg2V[ibin]->GetMean();
-    }
-#endif
-    for(int idx = 0; idx < nUnfoldingBins; idx++){
+    for(int idx = 0; idx < DYTools::nUnfoldingBins; idx++){
       scaleHltLeg1FIV[idx] = hScaleHltLeg1FIV[idx]->GetMean();
       scaleHltLeg2FIV[idx] = hScaleHltLeg2FIV[idx]->GetMean();
     }
   }
-
-  /* superceded
-  for(int ibin = 0; ibin < DYTools::nMassBins; ibin++){
-    scaleMeanV[ibin] = 0;
-    scaleMeanErrV[ibin] = 0;
-    scaleMeanRecoV[ibin] = 0;
-    scaleMeanRecoErrV[ibin] = 0;
-    scaleMeanIdV[ibin] = 0;
-    scaleMeanIdErrV[ibin] = 0;
-    scaleMeanHltV[ibin] = 0;
-    scaleMeanHltErrV[ibin] = 0;
-    for(int iexp = 0; iexp < nexp; iexp++){
-      scaleMeanV[ibin] += systScale[ibin][iexp]->GetMean();
-      scaleMeanErrV[ibin] += SQR(systScale[ibin][iexp]->GetMean());
-
-      scaleMeanRecoV[ibin] += systScaleReco[ibin][iexp]->GetMean();
-      scaleMeanRecoErrV[ibin] += SQR(systScaleReco[ibin][iexp]->GetMean());
-
-      scaleMeanIdV[ibin] += systScaleId[ibin][iexp]->GetMean();
-      scaleMeanIdErrV[ibin] += SQR(systScaleId[ibin][iexp]->GetMean());
-
-      scaleMeanHltV[ibin] += systScaleHlt[ibin][iexp]->GetMean();
-      scaleMeanHltErrV[ibin] += SQR(systScaleHlt[ibin][iexp]->GetMean());
-    }
-    scaleRecoV[ibin] = hScaleRecoV[ibin]->GetMean();
-    scaleIdV [ibin] = hScaleIdV [ibin] ->GetMean();
-    scaleHltV[ibin] = hScaleHltV[ibin]->GetMean();
-    scaleV   [ibin] = hScaleV   [ibin]->GetMean();
-
-    scaleMeanV[ibin] = scaleMeanV[ibin]/double(nexp);
-    scaleMeanErrV[ibin] = sqrt( scaleMeanErrV[ibin] / double(nexp) 
-				- scaleMeanV[ibin]*scaleMeanV[ibin] ); 
-				
-    scaleMeanRecoV[ibin] = scaleMeanRecoV[ibin]/double(nexp);
-    scaleMeanRecoErrV[ibin] = sqrt( scaleMeanRecoErrV[ibin] / double(nexp)
-				- scaleMeanRecoV[ibin]*scaleMeanRecoV[ibin] ); 
-				
-    scaleMeanIdV[ibin] = scaleMeanIdV[ibin]/double(nexp);
-    scaleMeanIdErrV[ibin] = sqrt( scaleMeanIdErrV[ibin] / double(nexp) 
-				- scaleMeanIdV[ibin]*scaleMeanIdV[ibin] ); 
-				
-    scaleMeanHltV[ibin] = scaleMeanHltV[ibin]/double(nexp);
-    scaleMeanHltErrV[ibin] = sqrt( scaleMeanHltErrV[ibin] / double(nexp) 
-				- scaleMeanHltV[ibin]*scaleMeanHltV[ibin] ); 
-				
-  }
-  for(int idx = 0; idx < nUnfoldingBins; idx++){
-    scaleMeanFIV[idx] = 0;
-    scaleMeanErrFIV[idx] = 0;
-    scaleMeanRecoFIV[idx] = 0;
-    scaleMeanRecoErrFIV[idx] = 0;
-    scaleMeanIdFIV[idx] = 0;
-    scaleMeanIdErrFIV[idx] = 0;
-    scaleMeanHltFIV[idx] = 0;
-    scaleMeanHltErrFIV[idx] = 0;
-    for(int iexp = 0; iexp < nexp; iexp++){
-      scaleMeanFIV[idx] += systScaleFI[idx][iexp]->GetMean();
-      scaleMeanErrFIV[idx] += SQR(systScaleFI[idx][iexp]->GetMean());
-
-      scaleMeanRecoFIV[idx] += systScaleRecoFI[idx][iexp]->GetMean();
-      scaleMeanRecoErrFIV[idx] += SQR(systScaleRecoFI[idx][iexp]->GetMean());
-
-      scaleMeanIdFIV[idx] += systScaleIdFI[idx][iexp]->GetMean();
-      scaleMeanIdErrFIV[idx] += SQR(systScaleIdFI[idx][iexp]->GetMean());
-
-      scaleMeanHltFIV[idx] += systScaleHltFI[idx][iexp]->GetMean();
-      scaleMeanHltErrFIV[idx] += SQR(systScaleHltFI[idx][iexp]->GetMean());
-    }
-    scaleRecoFIV[idx] = hScaleRecoFIV[idx]->GetMean();
-    scaleIdFIV [idx] = hScaleIdFIV [idx] ->GetMean();
-    scaleHltFIV[idx] = hScaleHltFIV[idx]->GetMean();
-    scaleFIV   [idx] = hScaleFIV   [idx]->GetMean();
-
-    scaleMeanFIV[idx] = scaleMeanFIV[idx]/double(nexp);
-    scaleMeanErrFIV[idx] = sqrt( scaleMeanErrFIV[idx] / double(nexp) 
-				- scaleMeanFIV[idx]*scaleMeanFIV[idx] ); 
-				
-    scaleMeanRecoFIV[idx] = scaleMeanRecoFIV[idx]/double(nexp);
-    scaleMeanRecoErrFIV[idx] = sqrt( scaleMeanRecoErrFIV[idx] / double(nexp)
-				- scaleMeanRecoFIV[idx]*scaleMeanRecoFIV[idx] ); 
-				
-    scaleMeanIdFIV[idx] = scaleMeanIdFIV[idx]/double(nexp);
-    scaleMeanIdErrFIV[idx] = sqrt( scaleMeanIdErrFIV[idx] / double(nexp) 
-				- scaleMeanIdFIV[idx]*scaleMeanIdFIV[idx] ); 
-				
-    scaleMeanHltFIV[idx] = scaleMeanHltFIV[idx]/double(nexp);
-    scaleMeanHltErrFIV[idx] = sqrt( scaleMeanHltErrFIV[idx] / double(nexp) 
-				- scaleMeanHltFIV[idx]*scaleMeanHltFIV[idx] ); 
-				
-  }
-  */
 
   // Store constants in the file
 
@@ -1125,10 +968,6 @@ int calcEventEff_new(int analysisIs2D,
   for (int i=0; i<etaBinCount+1; ++i) vecEtaBins[i]=etaBinLimits[i];
 
   TFile fa(sfConstFileName, "recreate");
-#ifdef debug_systScaleArrs
-  scaleV.Write("scaleFactorMassIdxArray");
-  scaleMeanErrV.Write("scaleFactorErrMassIdxArray");
-#endif
   scaleFIV.Write("scaleFactorFlatIdxArray");
   scaleMeanErrFIV.Write("scaleFactorErrFlatIdxArray");
   scaleMatrix.Write("scaleFactor");
@@ -1173,7 +1012,7 @@ int calcEventEff_new(int analysisIs2D,
     // omit the underflow mass bin in 2D case
     const int iMmin=(DYTools::study2D==0) ? 0 : 1;
     const int idxMin= iMmin * DYTools::nYBins[0];
-    const int nCorrelationBins=nUnfoldingBins-idxMin;
+    const int nCorrelationBins=DYTools::nUnfoldingBins-idxMin;
 
     TH2D *hCorrelation=new TH2D("hCorrelation","hCorrelation",nCorrelationBins,0.5,nCorrelationBins+0.5,nCorrelationBins,0.5,nCorrelationBins+0.5);
     hCorrelation->SetDirectory(0);
@@ -1198,9 +1037,9 @@ int calcEventEff_new(int analysisIs2D,
     }
     
     for (int iM=iMmin, i=idxMin; iM<DYTools::nMassBins; ++iM) {
-      for (int iY=0; (iY<DYTools::nYBins[iM]) && (i<nUnfoldingBins); ++iY, ++i) {
+      for (int iY=0; (iY<DYTools::nYBins[iM]) && (i<DYTools::nUnfoldingBins); ++iY, ++i) {
 	for (int jM=iMmin, j=idxMin; jM<DYTools::nMassBins; ++jM) {
-	  for (int jY=0; (jY<DYTools::nYBins[jM]) && (j<nUnfoldingBins); ++jY, ++j) {
+	  for (int jY=0; (jY<DYTools::nYBins[jM]) && (j<DYTools::nUnfoldingBins); ++jY, ++j) {
 	    TString nameHESF= Form("hESF_%d_%d__iM%d_iY%d__jM%d_jY%d",i-idxMin,j-idxMin,iM-iMmin,iY,jM-iMmin,jY);
 	    TString nameHESF_Norm= Form("hESFNorm_%d_%d__iM%d_iY%d__jM%d_jY%d",i-idxMin,j-idxMin,iM-iMmin,iY,jM-iMmin,jY);
 	    if (DYTools::isDebugMode(runMode)) HERE(nameHESF.Data());
@@ -1548,7 +1387,8 @@ int calcEventEff_new(int analysisIs2D,
   saveVec(*faPlots,hElectronEtV,"electronEt");
   
   faPlots->Close();
-  gBenchmark->Show("calcEventEff");
+  //gBenchmark->Show("calcEventEff");
+  ShowBenchmarkTime("calcEventEff");
   return retCodeOk;
 }
 
@@ -1795,7 +1635,7 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 	  ec.numDielectronsGoodMass_inc();
 
 #ifdef DYee8TeV_reg
-	  if (systMode==DYTools::UNREGRESSED_ENERGY) {
+	  if (usesUnregEnergy(systMode)) {
 	    unregDielectron.assign(dielectron);
 	    //std::cout << "dielectron info    : " << dielectron->mass << ", " << dielectron->pt << ", " << dielectron->y << ", " << dielectron->phi << "\n";
 	    unregDielectron.replace2UncorrEn(0); // 0 - do replace, 1 - don't replace
@@ -2258,7 +2098,8 @@ double findScaleFactorSmeared(
        int scEtBin, int scEtaBin, 
        int iexp) {
 
-  return findScaleFactorSmeared(kind,scEtBin,scEtaBin,ro_Data[iexp],ro_MC[iexp]);
+  return findScaleFactorSmeared(kind,scEtBin,scEtaBin,
+				*ro_Data[iexp],*ro_MC[iexp]);
 
 }
 
@@ -2298,7 +2139,7 @@ double findScaleFactorHLTSmeared(int scEtBin1, int scEtaBin1, double scEt1,
 
   return findScaleFactorHLTSmeared(scEtBin1,scEtaBin1, scEt1,
 				   scEtBin2,scEtaBin2, scEt2,
-				   ro_Data[iexp],ro_MC[iexp]);
+				   *ro_Data[iexp],*ro_MC[iexp]);
 
 }
 
@@ -2957,8 +2798,8 @@ void drawEventScaleFactorsHLT(const TVectorD &scaleHltLeg1V, const TVectorD &sca
 
 TGraphErrors* createGraph_vsMassFI(const TVectorD &v, const TVectorD &vErr,
 				 int rapidityIndex) {
-  int nUnfoldingBins = DYTools::getTotalNumberOfBins();
-  if (v.GetNoElements()!=nUnfoldingBins) {
+  int nUnfoldingBins_loc = DYTools::getTotalNumberOfBins();
+  if (v.GetNoElements()!=nUnfoldingBins_loc) {
     std::cout << "\n\nERROR: createGraph_vsMassFI should be called for "
 	      << "flat-indexed vectors\n\n";
     assert(0);
@@ -3008,8 +2849,8 @@ void drawEventScaleFactorsFI(const TVectorD &scaleRecoFIV, const TVectorD &scale
 			     TFile *fRoot,
 			     std::vector<CPlot*> *cplotV)
 {
-  int nUnfoldingBins = DYTools::getTotalNumberOfBins();
-  if (scaleRecoFIV.GetNoElements()!=nUnfoldingBins) {
+  int nUnfoldingBins_loc = DYTools::getTotalNumberOfBins();
+  if (scaleRecoFIV.GetNoElements()!=nUnfoldingBins_loc) {
     std::cout << "\n\nERROR: drawEventScaleFactorsFI should be called for "
 	      << "flat-indexed vectors\n\n";
     return;
@@ -3072,8 +2913,8 @@ void drawEventScaleFactorsHltFI
     TFile *fRoot,
     std::vector<CPlot*> *cplotV)
 {
-  int nUnfoldingBins = DYTools::getTotalNumberOfBins();
-  if (scaleHltLeg1FIV.GetNoElements()!=nUnfoldingBins) {
+  int nUnfoldingBins_loc = DYTools::getTotalNumberOfBins();
+  if (scaleHltLeg1FIV.GetNoElements()!=nUnfoldingBins_loc) {
     std::cout << "\n\nERROR: drawEventScaleFactorsHltFI should be called for "
 	      << "flat-indexed vectors\n\n";
     return;
@@ -3174,7 +3015,6 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr, DYTools::TSystematic
 			  dataEff, dataEffErrLo, dataEffErrHi, dataEffAvgErr,
 			  weightedCnC);
   }
-
   for (int kind=0; res && (kind<NEffTypes); ++kind) {
     DYTools::TEtBinSet_t localEtBinning= etBinning;
     DYTools::TEfficiencyKind_t effKind=DYTools::TEfficiencyKind_t(kind);
@@ -3200,6 +3040,7 @@ int fillEfficiencyConstants(  const InputFileMgr_t &inpMgr, DYTools::TSystematic
   }
   if (res!=1) std::cout << "Error in fillEfficiencyConstants\n"; 
   else std::cout << "fillEfficiencyConstants ok\n";
+  std::cout << std::endl;
   return res;
 }
 
