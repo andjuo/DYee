@@ -9,7 +9,8 @@
 
 //=== MAIN MACRO =================================================================================================
 
-int calcCrossSection(TString conf,
+int calcCrossSection(int analysisIs2D,
+		     TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
 		     DYTools::TCrossSectionKind_t csKind=DYTools::_cs_preFsr) {
@@ -26,26 +27,21 @@ int calcCrossSection(TString conf,
     }
   }
 
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
 
-  if (conf==TString("default")) {
-    conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
-  }
-
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
 
   // Construct eventSelector, update mgr and plot directory
-  TString extraTag="R9"; // empty
+  TString extraTag=""; // empty
   TString plotExtraTag;
-
-  InputFileMgr_t inpMgrNoExtraTag(inpMgr);
-  EventSelector_t evtSelectorNoExtraTag(inpMgrNoExtraTag,runMode,systMode,
-					"",plotExtraTag,
-					EventSelector::_selectDefault);
 
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag,plotExtraTag,
@@ -55,14 +51,16 @@ int calcCrossSection(TString conf,
   inpMgr.crossSectionDir(systMode,1);
 
   InputArgs_t inpArgs("default",&inpMgr,systMode,csKind);
-  InputArgs_t inpArgsNET("noExtraTag",&inpMgrNoExtraTag,systMode,csKind);
-  //inpArgsNET.includeCorrError(0);
+
+  //codeDebugFilePath="/home/andriusj/cms/DYee8TeV-20140403/root_files/constants/DY_j22_19712pb/";
+  inpArgs.noSave(codeDebugFilePath.Length());
+
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
   //==============================================================================================================
 
-  TString yieldName=(inpMgr.userKeyValueAsInt("DDBKG")==1) ?
+  TString yieldName=(0 && (inpMgr.userKeyValueAsInt("DDBKG")==1)) ?
     "signalYieldDDbkg" : "signalYieldMCbkg";
   HistoPair2D_t hpSignalYield(yieldName);
 
@@ -78,14 +76,18 @@ int calcCrossSection(TString conf,
   int res=1;
   if (res) {
     const int loadNormalRunSelection=1;
-    TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode,loadNormalRunSelection);
+    DYTools::TSystematicsStudy_t yieldSystMode=systMode;
+    if (systMode==DYTools::NO_SYST) yieldSystMode=DYTools::ESCALE_DIFF_0000;
+    TString fnameBgSubtracted=
+          inpMgr.signalYieldFullFileName(yieldSystMode,loadNormalRunSelection);
     const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
     if ( ! load_debug_file ) {
       std::cout << "fnameBgSubtracted=<" << fnameBgSubtracted << ">\n";
       res=hpSignalYield.Load(fnameBgSubtracted,1);
     }
     else {
-      TString tmpFName=codeDebugFilePath + TString(Form("yields_bg-subtracted%dD.root",DYTools::study2D+1));
+      TString tmpFName=codeDebugFilePath +
+	    TString(Form("yields_bg-subtracted%dD.root",DYTools::study2D+1));
       tmpFName.ReplaceAll("constants","yields");
       std::cout << "debug fnameBgSubtracted=<" << tmpFName << ">\n";
       TString field="YieldsSignal";
@@ -105,11 +107,12 @@ int calcCrossSection(TString conf,
   if (res) res=saveResult(inpArgs,hpUnfoldedYield,"unf");
 
 
-  inpArgsNET.needsDetUnfolding(0);
+  inpArgs.needsDetUnfolding(0);
   //inpArgsNET.allNormErrorIsSyst(1);
-  if (res) res=calculateCS(inpArgsNET,hpUnfoldedYield,csKind,hpCS,csResult);
+  if (res) res=calculateCS(inpArgs,hpUnfoldedYield,csKind,hpCS,csResult);
 
-  gBenchmark->Show("calcCrossSection");
+  //gBenchmark->Show("calcCrossSection");
+  ShowBenchmarkTime("calcCrossSection");
   return (res) ? retCodeOk : retCodeError;
 }
 
