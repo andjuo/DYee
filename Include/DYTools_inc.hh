@@ -70,6 +70,8 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case PILEUP_5minus: name="Pileup5minus"; break;
   case UNREG_PU5plus: name="UnregEnPU5plus"; break;
   case UNREG_PU5minus: name="UnregEnPU5minus"; break;
+  case UNREG_FSR5plus: name="UnregEnFSR5plus"; break;
+  case UNREG_FSR5minus: name="UnregEnFSR5minus"; break;
   case UNREG_TagID: name="UnregTagID"; break;
   case UNREG_TagPt: name="UnregTagPt"; break;
   default: name="UNKNOWN_SYSTEMATICS_NAME";
@@ -243,6 +245,8 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   if (str.Contains("NORMALRUN_NOSYST") || str.Contains("NormalRun_noSyst")) { study=NO_SYST; }
   else if (str.Contains("RESOLUTION_STUDY") || str.Contains("ResolutionStudy")) study=RESOLUTION_STUDY;
   else if (str.Contains("FSR_STUDY") || str.Contains("FSRStudy")) study=FSR_STUDY;
+  else if (str.Contains("UNREG_FSR5PLUS") || str.Contains("UnregEnFSR5plus")) study=UNREG_FSR5plus;
+  else if (str.Contains("UNREG_FSR5MINUS") || str.Contains("UnregEnFSR5minus")) study=UNREG_FSR5minus;
   else if (str.Contains("FSR_5PLUS") || str.Contains("FSR_5plus")) study=FSR_5plus;
   else if (str.Contains("FSR_5MINUS") || str.Contains("FSR_5minus")) study=FSR_5minus;
   else if (str.Contains("APPLY_ESCALE") || str.Contains("ApplyEscale")) study=APPLY_ESCALE;
@@ -274,6 +278,56 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
     assert(0);
   }
   return study;
+}
+
+// ------------------------------------------------------------------
+
+int usesUnregEnergy(DYTools::TSystematicsStudy_t systMode) {
+  using namespace DYTools;
+  int yes=-1;
+  switch(systMode) {
+  case NO_SYST:
+  case RESOLUTION_STUDY:
+  case FSR_STUDY:
+  case FSR_5plus:
+  case FSR_5minus:
+  case ESCALE_RESIDUAL:
+  case LOWER_ET_CUT:
+  case NO_REWEIGHT:
+  case NO_REWEIGHT_PU:
+  case NO_REWEIGHT_FEWZ:
+  case SYST_RND:
+  case TAG_ID:
+  case TAG_PT:
+  case PU_STUDY:
+  case PILEUP_5plus:
+  case PILEUP_5minus:
+    yes=0;
+    break;
+  case UNREGRESSED_ENERGY:
+  case UNREG_PU5plus:
+  case UNREG_PU5minus:
+  case UNREG_FSR5plus:
+  case UNREG_FSR5minus:
+  case UNREG_TagID:
+  case UNREG_TagPt:
+    yes=1;
+    break;
+  case ESCALE_STUDY:
+  case ESCALE_STUDY_RND:
+  case APPLY_ESCALE:
+  case ESCALE_DIFF_0000:
+  case ESCALE_DIFF_0005:
+  case ESCALE_DIFF_0010:
+  case ESCALE_DIFF_0015:
+  case ESCALE_DIFF_0020:
+    yes=2;
+    break;
+  default:
+    std::cout << "usesUnregEn: unhandled case\n";
+    assert(0);
+  }
+  return yes;
 }
 
 // ------------------------------------------------------------------

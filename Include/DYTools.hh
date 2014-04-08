@@ -150,6 +150,7 @@ namespace DYTools {
 		 TAG_ID, TAG_PT,
 		 PU_STUDY, PILEUP_5plus, PILEUP_5minus,
 		 UNREG_PU5plus, UNREG_PU5minus,
+		 UNREG_FSR5plus, UNREG_FSR5minus,
 		 UNREG_TagID, UNREG_TagPt } TSystematicsStudy_t;
 
   typedef enum { NORMAL_RUN, LOAD_DATA, DEBUG_RUN, DEBUG_LOAD, NO_RUN } TRunMode_t;
@@ -713,6 +714,7 @@ TString MassBinningName(DYTools::TMassBinning_t set);
 TString CurrentMassBinningName();
 TString SystematicsStudyName(DYTools::TSystematicsStudy_t study);
 TString generateSystTag(DYTools::TSystematicsStudy_t systMode);
+int usesUnregEnergy(DYTools::TSystematicsStudy_t systMode);
 TString RunModeName(DYTools::TRunMode_t study);
 DYTools::TRunMode_t DebugInt2RunMode(int debug);
 TString generateRunTag(DYTools::TRunMode_t runMode);
