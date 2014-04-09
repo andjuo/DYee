@@ -165,6 +165,7 @@ TString getLabel(int sample, DYTools::TEfficiencyKind_t effType, int method,  DY
   using namespace DYTools;
 
   TString label = analysisTag;
+  if (analysisTag_binning.Length()) label.ReplaceAll(analysisTag_binning,"");
   if (analysisTag.Length()>0) label.Append("_");
 
   assert ( trigSet.isDefined() );
