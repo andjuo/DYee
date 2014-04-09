@@ -358,6 +358,7 @@ public:
     if ((fYmin==0) && (fYmax==0)) {
       double dy=0.05*(ymax-ymin);
       fYmin=ymin-dy; fYmax=ymax+dy;
+      if (fLogy && (fYmin<0.)) fYmin=0.95*ymin;
     }
     for (unsigned int i=0; i<fItems.size(); ++i) {
       if (fItems[i].hist1D!=0) {
