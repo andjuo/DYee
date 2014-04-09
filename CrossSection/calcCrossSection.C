@@ -111,6 +111,8 @@ int calcCrossSection(int analysisIs2D,
   //inpArgsNET.allNormErrorIsSyst(1);
   if (res) res=calculateCS(inpArgs,hpUnfoldedYield,csKind,hpCS,csResult);
 
+  if (res) res=saveResult(inpArgs,hpCS,"");
+
   //gBenchmark->Show("calcCrossSection");
   ShowBenchmarkTime("calcCrossSection");
   return (res) ? retCodeOk : retCodeError;
