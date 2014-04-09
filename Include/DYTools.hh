@@ -78,6 +78,7 @@ namespace DYTools {
  
   extern TString analysisTag_USER;
   extern TString analysisTag; // final, to be used in the macros
+  extern TString analysisTag_binning; // string describing the mass-y binning
 
   // For 8 TeV, we do unconventional 2.4 to match the muon channel
   extern const double electronEtaMax; // = (energy8TeV) ? 2.4 : 2.5;
