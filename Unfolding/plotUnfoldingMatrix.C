@@ -35,10 +35,12 @@ int plotUnfoldingMatrix(int analysisIs2D,
    {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,7, 
+    if (!DYTools::checkSystMode(systMode,debug_print,11,
 				DYTools::NO_SYST, DYTools::SYST_RND,
 				DYTools::RESOLUTION_STUDY, DYTools::FSR_STUDY,
 				DYTools::PU_STUDY,
+				DYTools::FSR_5plus, DYTools::FSR_5minus,
+				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
 				DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL))
       return retCodeError;
   }
@@ -94,6 +96,11 @@ int plotUnfoldingMatrix(int analysisIs2D,
   std::vector<EventWeight_t*> specEWeightsV;
   std::vector<double> specReweightsV;
   std::vector<EventSelector_t*> evtSelectorV;
+
+  double specWeight=1.;
+  int useSpecWeight=0;
+  if (systMode==DYTools::FSR_5plus) { specWeight=1.05; useSpecWeight=1; }
+  else if (systMode==DYTools::FSR_5minus) { specWeight=0.95; useSpecWeight=1; }
 
   random.SetSeed(-1);
   gRandom->SetSeed(-1);
@@ -412,6 +419,10 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	// .. here "false" = "not data"
 	evWeight.set_PU_and_FEWZ_weights(accessInfo,false);
 	evWeightNoPU.set_PU_and_FEWZ_weights(accessInfo,false);
+	if (useSpecWeight) {
+	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
+	  evWeightNoPU.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
+	}
 
 	// FSR study correction for weight
 	if (systMode==DYTools::FSR_STUDY) {
@@ -419,6 +430,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	    specEWeightsV[iSt]->setSpecWeightValue(accessInfo,FSRmassDiff,specReweightsV[iSt]);
 	  }
 	}
+
 	// setup spec weights
 	// .. here "false" = "not data"
 	for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
