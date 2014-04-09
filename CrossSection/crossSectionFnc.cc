@@ -264,14 +264,27 @@ int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp,
     CSResults_t zpResult;
     zpResult.assignZpeakCS(hpPerLumi);
     std::cout << "normalization factor: " << zpResult << "\n";
+    HistoPair2D_t hpNorm(hp.GetName() + TString("_norm"),hp);
+    hpNorm.scale(1./ia.inpMgr()->totalLumi());
+    zpResult.doNormalize(hpNorm,ia.allNormErrorIsSyst());
 
     if (!ia.noSave()) {
+      int res=1;
       TFile fout(fname,"recreate");
-      if (!hp.Write(fout)) return 0;
-      if (!hpPerLumi.Write(fout)) return 0;
-      writeBinningArrays(fout);
+      if (res) res=hp.Write(fout);
+      if (res) res=hpPerLumi.Write(fout);
+      // for plotting
+      if (res) {
+	res= (hp.Write(fout,"auto","count") &&
+	      hpPerLumi.Write(fout,"auto","xsec") &&
+	      hpNorm.Write(fout,"auto","xsecNorm") &&
+	      zpResult.write("auto/norm")) ? 1:0;
+      }
+      if (res) writeBinningArrays(fout);
       fout.Close();
+      if (!res) std::cout << "error while saving -- ";
       std::cout << "saved to file <" << fout.GetName() << ">\n";
+      return 0;
     }
   }
   return 1;
