@@ -52,8 +52,8 @@ int compareCS(int analysisIs2D,
   }
   else {
     theoryFilesV.push_back(theory_path +
-			   TString("1Dabsxsec_NNLO_CTEQ12NNLO.root"));
-    theory_field="invm_FEWZ";
+			   TString("1Dabsxsec_NNLO_CTEQ12NNLO-hack.root"));
+    theory_field="invm_FEWZ_hack";
   }
 
   // ------------------------------------------------
@@ -91,15 +91,17 @@ int compareCS(int analysisIs2D,
     }
     h->SetDirectory(0);
     theoryV.push_back(h);
-      finTh.Close();
+    finTh.Close();
       
-      TString hTitle=finTh.GetName();
-      Ssiz_t pos=hTitle.Last('/');
-      hTitle.Remove(0,pos+1);
-      pos=hTitle.Index(".root");
-      hTitle.Remove(pos,hTitle.Length());
-      std::cout << "hTitle=" << hTitle << "\n";
-      h->SetTitle(hTitle);
+    TString hTitle=finTh.GetName();
+    Ssiz_t pos=hTitle.Last('/');
+    hTitle.Remove(0,pos+1);
+    pos=hTitle.Index(".root");
+    hTitle.Remove(pos,hTitle.Length());
+    std::cout << "hTitle=" << hTitle << "\n";
+    h->SetTitle(hTitle);
+
+    if (DYTools::study2D==0) h->GetYaxis()->SetRangeUser(1e-8,1e4);
   }
 
   // ------------------------------------------------
@@ -115,7 +117,8 @@ int compareCS(int analysisIs2D,
     // load xsec
     HistoPair2D_t *hp= new HistoPair2D_t("xsec");
     if (!hp) res=0; else xsecHPV.push_back(hp);
-    if (res) res=hp->Read(fin,"auto","",1);
+    TString fieldName=(csFNameExtraTag.Length()) ? "xsec" : "count";
+    if (res) res=hp->Read(fin,"auto",fieldName,1);
     fin.Close();
     if (!res) {
       std::cout << "failed to get xsec\n";
@@ -146,14 +149,13 @@ int compareCS(int analysisIs2D,
     else {
       labelsTotErrV.push_back("totErr_");
       labelsStatErrV.push_back("statErr_");
-      std::vector<std::vector<TH1D*>*> totErrVV, statErrVV;
-      if (!createMassProfileVec(xsTotErrH2V,totErrVV,labelsTotErrV) ||
-	  !createMassProfileVec(xsStatErrH2V,statErrVV,labelsStatErrV)) {
+      if (!createMassProfileVec(xsTotErrH2V,xsecTotErrVV,labelsTotErrV) ||
+	  !createMassProfileVec(xsStatErrH2V,xsecStatErrVV,labelsStatErrV)) {
 	std::cout << "failed to create mass profiles\n";
 	return retCodeError;
       }
-      std::cout << "totErrVV.size=" << totErrVV.size() << "\n";
-      std::cout << "totErrVV[0]->size()=" << totErrVV[0]->size() << "\n";
+      std::cout << "xsecTotErrVV.size=" << xsecTotErrVV.size() << "\n";
+      std::cout << "xsecTotErrVV[0]->size()=" << xsecTotErrVV[0]->size() << "\n";
     }
     // clear total error vector, but not stat error vector
     ClearVec(xsTotErrH2V);
@@ -162,9 +164,33 @@ int compareCS(int analysisIs2D,
   // ------------------------------------------------
 
   if (DYTools::study2D) {
-    //std::vector<TH1D*> h
   }
   else {
+    ComparisonPlot_t *cp=NULL;
+    cp= new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,"cpXS",
+			     csFNameExtraTag,
+			     "M_{ee} [GeV]",TString("cross section"),
+			     "ratio");
+    cp->SetPrintValues(1);
+    cp->SetRatioLabelSize(0.11);
+    cp->SetLogx(1);
+    cp->SetLogy(1);
+
+    // theory
+    cp->AddHist1D(theoryV[0], "CTEQ12NNLO", "LP", kBlue, 1,0);
+
+    // calculation
+    int color1=kBlack;
+    int color2=46; // red-brown
+    cp->AddHist1D((*xsecTotErrVV[0])[0], "tot err", "LPE1", color2, 1,0);
+    cp->AddHist1D((*xsecStatErrVV[0])[0],"stat err", "LPE1", color1, 1,0);
+
+    TCanvas *cx=new TCanvas("cx","cx",700,800);
+    cp->Prepare2Pads(cx);
+    cp->Draw(cx);
+    cp->TransLegend(-0.05,0);
+    //cp->WidenLegend(0,0);
+    cx->Update();
   }
 
   return retCodeOk;
