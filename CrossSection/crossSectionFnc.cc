@@ -142,7 +142,12 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
 
 int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
   if (inpArg.silentMode()<2) HERE(" -- efficiencyScaleCorrection");
-  TString rhoCorrFName=inpArg.inpMgr()->correctionFullFileName("scale_factors_asymHLT",inpArg.systMode(),0);
+  DYTools::TSystematicsStudy_t systMode=inpArg.systMode();
+  if (1) {
+    std::cout << "Efficiency scale factors have built-in systMode\n";
+    systMode=DYTools::NO_SYST;
+  }
+  TString rhoCorrFName=inpArg.inpMgr()->correctionFullFileName("scale_factors_asymHLT",systMode,0);
   TH2D *hRho=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
@@ -284,7 +289,7 @@ int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp,
       fout.Close();
       if (!res) std::cout << "error while saving -- ";
       std::cout << "saved to file <" << fout.GetName() << ">\n";
-      return 0;
+      if (!res) return 0;
     }
   }
   return 1;
