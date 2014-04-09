@@ -171,6 +171,23 @@ public:
     return res;
   }
 
+  int write(TString fieldName) const {
+    int res=writeFlagValues(fieldName,3,fZXSec,fZXSecErr,fZXSecSystErr);
+    if (!res) std::cout << "error in CSResults_t::write\n";
+    return res;
+  }
+
+  int read(TFile &fin, TString fieldName) {
+    TVectorD* v=readFlagValues(fin,fieldName,3);
+    if (v) {
+      fZXSec=(*v)[0]; fZXSecErr=(*v)[1]; fZXSecSystErr=(*v)[2];
+      delete v;
+      return 1;
+    }
+    std::cout << "error in CSResults_t::read\n";
+    return 0;
+  }
+
   friend std::ostream& operator<<(std::ostream& out, const CSResults_t &r) {
     out << "CSResults(" << Form("%7.4lf +- %7.4lf +- %7.4lf",r.fZXSec,r.fZXSecErr,r.fZXSecSystErr) << ")";
     return out;
