@@ -31,7 +31,8 @@ public:
     Date20121003FEWZ_default, // FEWZ correction and MC backgroud were considered in derivation
     Date20121025FEWZPU_default, // FEWZ correction and PU reweighting were considered in derivation
     Date20130529_2012_j22_adhoc,  // a guess to what the calib. should be for Jan22 8 TeV data
-    Date20140220_2012_j22_peak_position, // scaling derived so that the peak in data and mc matches, another try
+    Date20140220_2012_j22_peak_position_IK, // scaling derived so that the peak in data and mc matches, another try. Suggested by Ilya K.
+    Date20140220_2012_j22_peak_position, // fewer eta ranges to closer match the EGamma binning
                                          // for reco with momentum regression. No MC smearing.
     CalSet_File_Gauss,
     CalSet_File_BreitWigner,
