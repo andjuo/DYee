@@ -205,11 +205,27 @@ confInputFile=${storeConfInputFile}
 if [ ${doFsrStudy} -eq 1 ] && [ ${noError} -eq 1 ] ; then
   systMode="DYTools::FSR_STUDY"
   runPlotDYUnfoldingMatrix
+  if [ ${noError} -eq 1 ] ; then
+      systMode="DYTools::FSR_5plus"
+      runPlotDYUnfoldingMatrix
+  fi
+  if [ ${noError} -eq 1 ] ; then
+      systMode="DYTools::FSR_5minus"
+      runPlotDYUnfoldingMatrix
+  fi
 fi
 
 if [ ${doPUStudy} -eq 1 ] && [ ${noError} -eq 1 ] ; then
   systMode="DYTools::PU_STUDY"
   runPlotDYUnfoldingMatrix
+  if [ ${noError} -eq 1 ] ; then
+      systMode="DYTools::PILEUP_5plus"
+      runPlotDYUnfoldingMatrix
+  fi
+  if [ ${noError} -eq 1 ] ; then
+      systMode="DYTools::PILEUP_5minus"
+      runPlotDYUnfoldingMatrix
+  fi
 fi
 
 if [ ${doShapeReweight} -eq 1 ] && [ ${noError} -eq 1 ] ; then
