@@ -118,10 +118,11 @@ int compareCS(int analysisIs2D,
     HistoPair2D_t *hp= new HistoPair2D_t("xsec");
     if (!hp) res=0; else xsecHPV.push_back(hp);
     TString fieldName=(csFNameExtraTag.Length()) ? "xsec" : "count";
+    std::cout << "loading field <" << fieldName << ">\n";
     if (res) res=hp->Read(fin,"auto",fieldName,1);
     fin.Close();
     if (!res) {
-      std::cout << "failed to get xsec\n";
+      std::cout << "failed to get field <" << fieldName << ">\n";
       return retCodeError;
     }
 
@@ -134,16 +135,41 @@ int compareCS(int analysisIs2D,
     std::vector<TString> labelsTotErrV, labelsStatErrV;
     if (DYTools::study2D) {
       for (int im=0; im<DYTools::nMassBins; ++im) {
-	TString mStr=Form("M_%1.0lf_%1.0lf",
-			  DYTools::massBinLimits[im],
-			  DYTools::massBinLimits[im]);
-	labelsTotErrV.push_back(TString("wTotErr_") + mStr);
-	labelsStatErrV.push_back(TString("wStatErr_") + mStr);
+	//TString mStr=Form("M_%1.0lf_%1.0lf",
+	//		  DYTools::massBinLimits[im],
+	//		  DYTools::massBinLimits[im]);
+	labelsTotErrV.push_back(TString("wTotErr_"));
+	labelsStatErrV.push_back(TString("wStatErr_"));
       }
       if (!createRapidityProfileVec(xsTotErrH2V,xsecTotErrVV,labelsTotErrV) ||
 	  !createRapidityProfileVec(xsStatErrH2V,xsecStatErrVV,labelsStatErrV)){
 	std::cout << "failed to create rapidity profiles\n";
 	return retCodeError;
+      }
+
+      std::cout << "xsecTotErrVV.size=" << xsecTotErrVV.size() << "\n";
+      std::cout << "xsecTotErrVV[0]->size()=" << xsecTotErrVV[0]->size() << "\n";
+      if (DYTools::massBinLimits[0]==double(0)) {
+	std::cout << "\ndeleting 1st mass bin ("
+		  << DYTools::massBinLimits[0] << " .. "
+		  << DYTools::massBinLimits[1] << ")\n";
+	std::vector<TH1D*> *vec1= xsecTotErrVV[0];
+	std::vector<TH1D*> *vec2= xsecStatErrVV[0];
+	xsecTotErrVV.erase( xsecTotErrVV.begin() );
+	xsecStatErrVV.erase( xsecStatErrVV.begin() );
+	if (1) {
+	  for (unsigned int i=0; i<vec1->size(); ++i) {
+	    std::cout << " - removing " << (*vec1)[i]->GetName() << "\n";
+	  }
+	  for (unsigned int i=0; i<vec2->size(); ++i) {
+	    std::cout << " - removing " << (*vec2)[i]->GetName() << "\n";
+	  }
+	}
+	std::cout << "\n";
+	ClearVec(*vec1);
+	ClearVec(*vec2);
+	delete vec1;
+	delete vec2;
       }
     }
     else {
@@ -164,6 +190,39 @@ int compareCS(int analysisIs2D,
   // ------------------------------------------------
 
   if (DYTools::study2D) {
+    for (unsigned int im=0; im<theoryV.size(); ++im) {
+      TString mStr=Form("M_%1.0lf_%1.0lf", DYTools::massBinLimits[im+1],
+			DYTools::massBinLimits[im+2]);
+      std::cout << "plotting " << mStr << "\n";
+      ComparisonPlot_t *cp=NULL;
+      cp= new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,
+			       TString("cp") + mStr,
+			       csFNameExtraTag + TString(" ") + mStr,
+			       "|y|",TString("cross section"),
+			       "ratio");
+      cp->SetPrintValues(0);
+      cp->SetRatioLabelSize(0.11);
+
+      // theory
+      cp->AddHist1D(theoryV[im], "CTEQ12NNLO", "LP", kBlue, 1,0);
+
+      std::cout << "theoryV[im]->GetNbinsX()=" << theoryV[im]->GetNbinsX() << "\n";
+      std::cout << "(*xsecTotErrVV[im])[0]->GetNbinsX()=" << (*xsecTotErrVV[im])[0]->GetNbinsX() << "\n";
+
+      // calculation
+      int color1=kBlack;
+      int color2=46; // red-brown
+      cp->AddHist1D((*xsecTotErrVV[im])[0], "tot err", "LPE1", color2, 1,0);
+      cp->AddHist1D((*xsecStatErrVV[im])[0],"stat err", "LPE1", color1, 1,0);
+
+      TString canvName=Form("cx%d",im);
+      TCanvas *cx=new TCanvas(canvName,canvName,700,800);
+      cp->Prepare2Pads(cx);
+      cp->Draw(cx);
+      cp->TransLegend(-0.05,0);
+      //cp->WidenLegend(0,0);
+      cx->Update();
+    }
   }
   else {
     ComparisonPlot_t *cp=NULL;
