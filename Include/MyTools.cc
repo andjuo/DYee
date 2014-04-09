@@ -270,6 +270,61 @@ TH2D* getRelDifference(const std::vector<TH2D*> &var, TString newName, int inclu
 //--------------------------------------------------
 //--------------------------------------------------
 
+// write flags to a file.
+// Assumes that the file is open
+int writeIntFlagValues(const TString &fieldName, int nFlags, int flag1, ...) {
+  TVectorD *v= new TVectorD(nFlags);
+  (*v)(0)=flag1;
+  if (nFlags>1) {
+    va_list vl;
+    va_start(vl,flag1);
+    // one flag is already specified
+    for (int i=0; i<nFlags-1; i++) {
+    (*v)(i+1)=va_arg(vl,int);
+    }
+    va_end(vl);
+  }
+  v->Write(fieldName);
+  return 1;
+}
+
+//--------------------------------------------------
+
+// write flags to a file.
+// Assumes that the file is open
+int writeFlagValues(const TString &fieldName, int nFlags, double flag1, ...) {
+  TVectorD *v= new TVectorD(nFlags);
+  (*v)(0)=flag1;
+  if (nFlags>1) {
+    va_list vl;
+    va_start(vl,flag1);
+    // one flag is already specified
+    for (int i=0; i<nFlags-1; i++) {
+    (*v)(i+1)=va_arg(vl,double);
+    }
+    va_end(vl);
+  }
+  v->Write(fieldName);
+  return 1;
+}
+
+//---------------------------------------------------------------
+
+TVectorD* readFlagValues(TFile &fin, const TString &fieldName, int nFlags) {
+  TVectorD* v=(TVectorD*)fin.Get(fieldName);
+  int got=(v) ? v->GetNoElements() : 0;
+  if (v && (got!=nFlags)) { delete v; v=NULL; }
+  if (!v) {
+    std::cout << "could get field=<" << fieldName << "> with " << got << " elements\n";
+  }
+  return v;
+}
+
+//------------------------------------------------------------------------------------------------------------------------
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TString getTimeStrForPrint(Float_t tf) {
   int t=int(tf);
   int mins=t/60;
