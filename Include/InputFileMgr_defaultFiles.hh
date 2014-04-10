@@ -19,6 +19,9 @@ TString getDefaultFileName(TString index) {
   else if (index=="defaultAdHoc") {
     fname="../config_files/data_vilnius8TeV_regSSD_adHoc.conf.py";
   }
+  else if (index=="cernRemote") {
+    fname="../config_files/data_cern8TeVremote.conf.py";
+  }
   else if (index=="defaultOld") {
     fname="../config_files/old-data_vilnius8TeV_regSSD.conf.py";
   }
