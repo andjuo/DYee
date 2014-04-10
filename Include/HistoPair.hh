@@ -538,7 +538,7 @@ public:
       return this->reportError("Write(fout=<%s>) object is not initialized",fout.GetName());
     }
     int res=saveHisto(fout,fHisto,subDir,saveWithName);
-    if (saveWithName.Length()) saveWithName.Append("_Syst");
+    if (saveWithName.Length()) saveWithName.Append("Syst");
     if (res) res=saveHisto(fout,fHistoSystErr,subDir,saveWithName);
     return (res) ? 1 : reportError("Write(fout=<%s>",fout.GetName());
   }
@@ -551,7 +551,7 @@ public:
     }
     TString loadHName=(loadWithName.Length()) ? loadWithName : TString(fHisto->GetName());
     TH2D *h2    =LoadHisto2D(fin,loadHName,subDir,checkBinning);
-    TString loadHSystName=(loadWithName.Length()) ? (loadWithName + TString("_Syst")) : TString(fHistoSystErr->GetName());
+    TString loadHSystName=(loadWithName.Length()) ? (loadWithName + TString("Syst")) : TString(fHistoSystErr->GetName());
     TH2D *h2syst=LoadHisto2D(fin,loadHSystName,subDir,checkBinning);
     int res=1;
     if (h2 && h2syst) {
