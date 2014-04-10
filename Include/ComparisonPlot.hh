@@ -322,7 +322,7 @@ public:
     
     std::vector<TString> savedTitles;
     savedTitles.reserve(fItems.size());
-    double ymin=1e9, ymax=-1e9;
+    double ymin=1e9, ymax=-1e9, ycMin=1e9;
     for (unsigned int i=0; i<fItems.size(); ++i) {
       if (fItems[i].hist1D!=0) {
 	fHRatioIndices.push_back(i);
@@ -334,6 +334,7 @@ public:
 	for (int ib=1; ib<=h->GetNbinsX(); ++ib) {
 	  double yc=h->GetBinContent(ib);
 	  double ye=h->GetBinError(ib);
+	  if (yc < ycMin) ycMin=yc;
 	  if (yc+ye > ymax) ymax=yc+ye;
 	  if (yc-ye < ymin) ymin=yc-ye;
 	}
@@ -347,6 +348,7 @@ public:
 	  double yc=gr->GetY()[ib];
 	  double yelo=gr->GetErrorYlow(ib);
 	  double yehi=gr->GetErrorYhigh(ib);
+	  if (yc < ycMin) ycMin=yc;
 	  if (yc+yehi > ymax) ymax=yc+yehi;
 	  if (yc-yelo < ymin) ymin=yc-yelo;
 	  //std::cout << "ib=" << ib << ", yc=" << yc << " +" << yehi << ", -" << yelo << "\n";
@@ -354,12 +356,14 @@ public:
       }
     }
     // update ymin,ymax
+    if (fLogy && (ymin<0.)) ymin=0.95*ycMin;
     //std::cout << "setting ymin=" << ymin << ", ymax=" << ymax << "\n";
     if ((fYmin==0) && (fYmax==0)) {
       double dy=0.05*(ymax-ymin);
       fYmin=ymin-dy; fYmax=ymax+dy;
       if (fLogy && (fYmin<0.)) fYmin=0.95*ymin;
     }
+    //std::cout << "fYmin=" << fYmin << ", fYmax=" << fYmax << "\n";
     for (unsigned int i=0; i<fItems.size(); ++i) {
       if (fItems[i].hist1D!=0) {
 	fItems[i].hist1D->GetYaxis()->SetRangeUser(ymin,ymax);
