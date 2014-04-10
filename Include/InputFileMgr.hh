@@ -202,6 +202,7 @@ public:
   const TString& constTag() const { return FConstTag; }
   const TString& xsecTag() const { return FXSecTag; }
   const TString& energyScaleTag() const { return FEnergyScaleTag; }
+  TString &editEnergyScaleTag() { return FEnergyScaleTag; }
   void clearEnergyScaleTag() { FEnergyScaleTag="UNCORRECTED"; }
   const TString& specTagDirUser() const { return FSpecTagDirUser; }
   const TString& specTagFileUser() const { return FSpecTagFileUser; }
