@@ -801,11 +801,11 @@ public:
       //saveIdxMin=0;
       //fnameTag+=seed;
       break;
+    */
     case DYTools::RESOLUTION_STUDY: 
       fnameTag=TString("_seed_") + DYTools::analysisTag;
       //fnameTag+=seed;
       break;
-    */
     case DYTools::FSR_STUDY:
     case DYTools::FSR_5plus:
     case DYTools::FSR_5minus:
