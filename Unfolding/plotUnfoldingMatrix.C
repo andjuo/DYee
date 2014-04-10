@@ -58,8 +58,16 @@ int plotUnfoldingMatrix(int analysisIs2D,
   if (!inpMgr.Load(conf)) return retCodeError;
 
   // plotDetResponse uses escale!
-  // no energy correction for this evaluation
-  inpMgr.clearEnergyScaleTag();
+  if (systMode!=DYTools::RESOLUTION_STUDY) {
+    // no energy correction for this evaluation
+    inpMgr.clearEnergyScaleTag();
+  }
+  else {
+    if (inpMgr.energyScaleTag() == "UNCORRECTED") {
+      std::cout << "SYST_RND needs energy scale correction\n";
+      return retCodeError;
+    }
+  }
 
   // Construct eventSelector, update mgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
@@ -76,9 +84,9 @@ int plotUnfoldingMatrix(int analysisIs2D,
   inpMgr.constDir(systMode,1);
 
 
-  //const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
-  //const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
-  const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : 0; //(seedMax-seedMin+1);
+  const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
+  const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
+  const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : (seedMax-seedMin+1);
 
   //std::cout << "seedMin..seedMax=" << seedMin << ".." << seedMax << "\n";
 
@@ -149,24 +157,33 @@ int plotUnfoldingMatrix(int analysisIs2D,
     }
   }
   */
-  /*
-  else if (systMode==DYTools::RESOLUTION_STUDY) {
-    if (randomSeedMax < seedMin) {
-      printf("error: randomSeedMax=%d, seedMin=%d\n",randomSeedMax,seedMin);
-      return;
+  if (systMode==DYTools::RESOLUTION_STUDY) {
+    if (seedMax < seedMin) {
+      printf("error: randomSeedMax=%d, seedMin=%d\n",seedMax,seedMin);
+      return retCodeError;
     }
-    specWeightsV.reserve(randomSeedMax-seedMin+1);
-    escaleV.reserve(randomSeedMax-seedMin+1);
-    for (int i=seedMin; i<randomSeedMax; ++i) {
-      ElectronEnergyScale *ees= new ElectronEnergyScale(escale);
-      random.SetSeed(i);
-      gRandom->SetSeed(i);
-      ees->randomizeSmearingWidth(i);
-      std::cout << "randomSeed=" << i << ". EScale="; ees->print(); std::cout<<"\n";
+    specEWeightsV.reserve(seedDiff); // not used, but needed as a check
+    escaleV.reserve(seedDiff);
+    for (int i=seedMin; i<=seedMax; ++i) {
+      TString escaleTag=inpMgr.energyScaleTag() +
+	TString(Form("_INVERTED_RANDOMIZED%d",i));
+      ElectronEnergyScale *ees= new ElectronEnergyScale(escaleTag);
+      if (1) {
+	std::cout << "randomSeed=" << i << ". EScale="; 
+	ees->print(); 
+	std::cout<<"\n";
+      }
       escaleV.push_back(ees);
-      specWeightsV.push_back(1.);
+      specEWeightsV.push_back(new EventWeight_t(evWeight));
+      EventSelector_t *evtSel=new EventSelector_t(evtSelector,ees);
+      // correction acts like on data!
+      evtSel->setEScaleCorrectionType(DYTools::DATA,DYTools::ESCALE_STUDY_RND);
+      //evtSel->editECName().Append(Form("_idx%d",i+seedMin));
+      evtSelectorV.push_back(evtSel);
     }
   }
+  /*
+    specWeightsV.reserve(randomSeedMax-seedMin+1);
   else if (systMode==DYTools::ESCALE_STUDY) {
     EScaleTagFileMgr_t mgr;
     assert(mgr.Load(escaleStudyDefs_FileName));
@@ -267,14 +284,14 @@ int plotUnfoldingMatrix(int analysisIs2D,
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix_t::_cDET_Response,name));
     }
   }
+  */
   else if (systMode==DYTools::RESOLUTION_STUDY) {
     detRespV.reserve(escaleV.size());
-    for (int i=seedMin; i<randomSeedMax; ++i) {
+    for (int i=seedMin; i<=seedMax; ++i) {
       TString name=Form("detResponse_seed%d",i);
-      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix_t::_cDET_Response,name));
+      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
   }
-  */
   else if (systMode==DYTools::FSR_STUDY) {
     detRespV.reserve(specReweightsV.size());
     for (unsigned int i=0; i<specReweightsV.size(); i++) {
@@ -440,8 +457,10 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	if (ientry<20) {
 	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(0); 
 	  //printf("reweight=%4.2lf, fewz_weight=%4.2lf,dE_fsr=%+6.4lf\n",reweight,fewz_weight,(gen->mass-gen->vmass));
-	  for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
-	    std::cout << " specEWeight[" << iSt << "] = "; specEWeightsV[iSt]->Print(0); //std::cout << "\n";
+	  if (systMode!=DYTools::RESOLUTION_STUDY) {
+	    for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
+	      std::cout << " specEWeight[" << iSt << "] = "; specEWeightsV[iSt]->Print(0); //std::cout << "\n";
+	    }
 	  }
 	  std::cout << "\n";
 	}
@@ -552,19 +571,33 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	    detResponseExact.fillMigration(fiGenPostFsr, fiReco, diWeight);
 	  }
 
-	  //if (systMode==DYTools::FSR_STUDY) {
-	  for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
-	    double studyWeight=specEWeightsV[iSt]->totalWeight();
-	    detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
-	    detRespV[iSt]->fillFin( fiReco      , studyWeight );
-	    if (bothFIValid) {
-	      detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco, studyWeight );
+	  if (systMode != DYTools::RESOLUTION_STUDY) {
+	    for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
+	      double studyWeight=specEWeightsV[iSt]->totalWeight();
+	      detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
+	      detRespV[iSt]->fillFin( fiReco      , studyWeight );
+	      if (bothFIValid) {
+		detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco, 
+					      studyWeight );
+	      }
 	    }
 	  }
-	  //}
 
-	  if (escaleV.size()) {
-	    dielectron->restoreEScaleModifiedValues(uncorrDielectron);
+	  if (escaleV.size() && (systMode==DYTools::RESOLUTION_STUDY)) {
+	    for (unsigned int iESc=0; iESc<escaleV.size(); ++iESc) {
+	      dielectron->restoreEScaleModifiedValues(uncorrDielectron);
+	      if (evtSelectorV[iESc]->testDielectron(dielectron,
+						accessInfo.evtInfoPtr())) {
+		FlatIndex_t fiRecoMdf;
+		fiRecoMdf.setRecoIdx(dielectron);
+		detRespV[iESc]->fillIni(fiGenPostFsr, diWeight);
+		detRespV[iESc]->fillFin(fiRecoMdf   , diWeight);
+		if (fiGenPostFsr.isValid() && fiRecoMdf.isValid()) {
+		  detRespV[iESc]->fillMigration(fiGenPostFsr,fiRecoMdf,
+						diWeight);
+		}
+	      }
+	    }
 	    /*
 	  for (unsigned int iESc=0; iESc<escaleV.size(); ++iESc) {
 	    double massCorr= (systMode == DYTools::RESOLUTION_STUDY) ?
@@ -964,7 +997,11 @@ int plotUnfoldingMatrix(int analysisIs2D,
   fsrDET.prepareHResponse();
   fsrDETexact.prepareHResponse();
   fsrDET_good.prepareHResponse();
-   
+
+  for (unsigned int iESc=0; iESc<detRespV.size(); ++iESc) {
+    detRespV[iESc]->prepareHResponse();
+  }
+
   /*
   // Create a plot of detector resolution without mass binning
   TCanvas *g = MakeCanvas("canvMassDiff","canvMassDiff",600,600);
