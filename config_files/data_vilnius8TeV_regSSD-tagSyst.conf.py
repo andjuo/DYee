@@ -75,6 +75,7 @@ DDBkg=1
 DDBkgVersion=20140312  # from Manny through Alexey
 
 #T&P_ESF_extra=_etaMax24
+#ScaleFactorTag = DY_j22_19712pb_egamma_Unregressed_energy
 
 [TAG_AND_PROBE]
 # Tag and probe options
