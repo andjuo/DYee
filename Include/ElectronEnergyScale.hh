@@ -114,6 +114,9 @@ public:
   // within their errors.
   int   randomizeEnergyScaleCorrections(int seed);
   double getEnergyScaleCorrectionRandomized(double eta) const;
+  // for systematics studies with 2012 data, MC has to be scaled by the
+  // inverse factors as compared to data
+  int   invertRandomizedEnergyScaleCorrections();
 
   void   randomizeSmearingWidth(int seed);
 

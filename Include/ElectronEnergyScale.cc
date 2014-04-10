@@ -208,6 +208,12 @@ void ElectronEnergyScale::init(const TString &stringWithEScaleTagName, int debug
       int seed=atoi(stringWithEScaleTagName.Data()+pos+shift);
       std::cout << "randomization with seed=" << seed << "\n";
       int res=this->randomizeEnergyScaleCorrections(seed);
+      if (res) {
+	if (stringWithEScaleTagName.Index("INVERT_RAND")!=0) {
+	  std::cout << "inverting scale factors\n";
+	  res=this->invertRandomizedEnergyScaleCorrections();
+	}
+      }
       if (!res) _isInitialized=false;
     }
   }
@@ -1109,6 +1115,23 @@ int   ElectronEnergyScale::randomizeEnergyScaleCorrections(int seed){
     }
   }
 
+  return 1;
+}
+
+//------------------------------------------------------
+
+// for systematics studies with 2012 data, MC has to be scaled by the
+// inverse factors as compared to data
+
+int ElectronEnergyScale::invertRandomizedEnergyScaleCorrections() {
+  if (!_energyScaleCorrectionRandomizationDone) {
+    std::cout << "invertRandomizedEnergyScaleCorrections: first call randomizeEnergyScaleCorrections\n";
+    return 0;
+  }
+  for (int i=0; i<_nEtaBins; ++i) {
+    double s=_dataConstRandomized[i];
+    _dataConstRandomized[i] = 1/s;
+  }
   return 1;
 }
 
