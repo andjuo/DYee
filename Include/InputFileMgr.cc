@@ -233,10 +233,17 @@ int InputFileMgr_t::CountDibosonSamples() const {
 
 std::string InputFileMgr_t::userKeyValue(const std::string &key_input) const {
   std::string key=key_input;
-  for (unsigned int i=0; i<key.size(); ++i) key[i]=toupper(key[i]);
   std::string value;
+  // check the supplied version
   for (unsigned int i=0; !value.size() && (i<FUserKeys.size()); ++i) {
     if (FUserKeys[i] == key) value=FUserValues[i];
+  }
+  // check the capitalized version
+  if (!value.size()) {
+    for (unsigned int i=0; i<key.size(); ++i) key[i]=toupper(key[i]);
+    for (unsigned int i=0; !value.size() && (i<FUserKeys.size()); ++i) {
+      if (FUserKeys[i] == key) value=FUserValues[i];
+    }
   }
   return value;
 }
