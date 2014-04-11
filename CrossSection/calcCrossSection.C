@@ -13,7 +13,8 @@ int calcCrossSection(int analysisIs2D,
 		     TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
-		     DYTools::TCrossSectionKind_t csKind=DYTools::_cs_preFsr) {
+		     DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None,
+		     int special_case=-1) {
 
   gBenchmark->Start("calcCrossSection");
 
@@ -32,17 +33,26 @@ int calcCrossSection(int analysisIs2D,
     return retCodeError;
   }
 
+  if (csKind==DYTools::_cs_None) {
+    csKind=(DYTools::study2D) ? DYTools::_cs_preFsrDet : DYTools::_cs_preFsr;
+    std::cout << "default csKind " << CrossSectionKindName(csKind) << "\n";
+  }
+
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
   //==============================================================================================================
 
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
+  InputFileMgr_t inpMgrEScale(inpMgr);
 
   // Construct eventSelector, update mgr and plot directory
   TString extraTag=""; // empty
   TString plotExtraTag;
 
+  EventSelector_t evtSelectorEScale(inpMgrEScale,runMode,DYTools::APPLY_ESCALE,
+				    extraTag,plotExtraTag,
+				    EventSelector::_selectDefault);
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag,plotExtraTag,
 			      EventSelector::_selectDefault);
@@ -55,12 +65,41 @@ int calcCrossSection(int analysisIs2D,
   //codeDebugFilePath="/home/andriusj/cms/DYee8TeV-20140403/root_files/constants/DY_j22_19712pb/";
   inpArgs.noSave(codeDebugFilePath.Length());
 
+  // additional manipulation
+  if (special_case!=-1) {
+    if (special_case<10) {
+      //covRhoFileSF_nMB41_asymHLT_FSR_5minus-allSyst_100.root
+      //covRhoFileSF_nMB41_asymHLT_FSR_5plus-allSyst_100.root
+      //covRhoFileSF_nMB41_asymHLT_Pileup5minus-allSyst_100.root
+      //covRhoFileSF_nMB41_asymHLT_Pileup5plus-allSyst_100.root
+      //covRhoFileSF_nMB41_asymHLT_regEn-allSyst_100.root
+      //covRhoFileSF_nMB41_asymHLT_Unregressed_energy-allSyst_100.root
+      TString tag;
+      TString id;
+      switch(special_case) {
+      case 0: tag="Unregressed_energy-allSyst_100"; id="-ESFUnregEn"; break;
+      case 1: tag="regEn-allSyst_100"; id="-ESFregEn"; break;
+      case 2: tag="FSR_5minus-allSyst_100"; id="-ESFFSR5m"; break;
+      case 3: tag="FSR_5plus-allSyst_100"; id="-ESFFSR5p"; break;
+      case 4: tag="Pileup5minus-allSyst_100"; id="-ESFPU5m"; break;
+      case 5: tag="Pileup5plus-allSyst_100"; id="-ESFPU5p"; break;
+      default: ;
+      }
+      if (!tag.Length()) {
+	std::cout << "special_case for event efficiency scale factors failed\n";
+	return retCodeError;
+      }
+      inpArgs.resNameBaseAppend(id);
+      std::cout << "event efficiency scale factor tag=<" << tag << ">\n";
+      inpMgr.addUserKey("SpecialESFTag",tag);
+    }
+  }
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
   //==============================================================================================================
 
-  TString yieldName=(0 && (inpMgr.userKeyValueAsInt("DDBKG")==1)) ?
+  TString yieldName=(1 && (inpMgr.userKeyValueAsInt("DDBKG")==1)) ?
     "signalYieldDDbkg" : "signalYieldMCbkg";
   HistoPair2D_t hpSignalYield(yieldName);
 
@@ -77,9 +116,19 @@ int calcCrossSection(int analysisIs2D,
   if (res) {
     const int loadNormalRunSelection=1;
     DYTools::TSystematicsStudy_t yieldSystMode=systMode;
-    if (systMode==DYTools::NO_SYST) yieldSystMode=DYTools::ESCALE_DIFF_0000;
-    TString fnameBgSubtracted=
+    TString fnameBgSubtracted;
+    if (0) {
+      yieldSystMode=DYTools::ESCALE_DIFF_0000;
+      inpArgs.resNameBaseAppend("-regEn");
+      fnameBgSubtracted=
           inpMgr.signalYieldFullFileName(yieldSystMode,loadNormalRunSelection);
+    }
+    else {
+      yieldSystMode=DYTools::APPLY_ESCALE;
+      //inpArgs.resNameBaseAppend("-peakPosCorr");
+      fnameBgSubtracted=inpMgrEScale.signalYieldFullFileName(yieldSystMode,
+						     loadNormalRunSelection);
+    }
     const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
     if ( ! load_debug_file ) {
       std::cout << "fnameBgSubtracted=<" << fnameBgSubtracted << ">\n";
