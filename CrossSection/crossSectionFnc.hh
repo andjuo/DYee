@@ -92,6 +92,8 @@ public:
   DYTools::TCrossSectionKind_t csKind() const { return fCSKind; }
   void csKind(DYTools::TCrossSectionKind_t set_csKind) { fCSKind=set_csKind; }
   TString resNameBase() const { return fResNameBase; }
+  void resNameBase(TString set_resNameBase) { fResNameBase = set_resNameBase; }
+  void resNameBaseAppend(TString add) { fResNameBase.Append(add); }
 
   void needsDetUnfolding(int yes) { fNeedsDETUnfolding=yes; }
   int  needsDetUnfolding() const { return fNeedsDETUnfolding; }
