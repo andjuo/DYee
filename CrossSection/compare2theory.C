@@ -5,16 +5,24 @@
 
 //=== MAIN MACRO =================================================================================================
 
-int compareCS(int analysisIs2D,
-	      TString confFile,
-	      TString csFNameExtraTag="",
-	      DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
-	      DYTools::TCrossSectionKind_t csKind=DYTools::_cs_preFsr)
+int compare2theory(int analysisIs2D,
+		   TString confFile,
+		   TString csFNameExtraTag="",
+		   TString loadDataField="auto",
+		   int savePlots=0,
+		   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+		   DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None
+		   )
 {
 
   if (!DYTools::setup(analysisIs2D)) {
     std::cout << "failed to initialize the analysis\n";
     return retCodeError;
+  }
+
+  if (csKind==DYTools::_cs_None) {
+    csKind=(analysisIs2D) ? DYTools::_cs_preFsrDet : DYTools::_cs_preFsr;
+    std::cout << "default csKind " << CrossSectionKindName(csKind) << "\n";
   }
 
   //--------------------------------------------------------------------------------------------------------------
@@ -34,6 +42,14 @@ int compareCS(int analysisIs2D,
 			      extraTag,plotExtraTag,
 			      EventSelector::_selectDefault);
 
+  TString figNameTag= CrossSectionKindName(csKind);
+  if (csFNameExtraTag.Length()) {
+    figNameTag.Append(TString("-") + csFNameExtraTag);
+  }
+  if (loadDataField!="auto") {
+    figNameTag.Append(TString("-") + loadDataField);
+  }
+
   // ------------------------------------------------
 
   std::vector<TString> theoryFilesV;
@@ -43,17 +59,17 @@ int compareCS(int analysisIs2D,
     theoryFilesV.reserve(6);
     TString path=theory_path;
     theory_field="xsec";
-    theoryFilesV.push_back(path + TString("2Dabsxsec20to30_NNLO_cuts_CTEQ12NNLO.root"));
-    theoryFilesV.push_back(path + TString("2Dabsxsec30to45_NNLO_cuts_CTEQ12NNLO.root"));
-    theoryFilesV.push_back(path + TString("2Dabsxsec45to60_NNLO_cuts_CTEQ12NNLO.root"));
-    theoryFilesV.push_back(path + TString("2Dabsxsec60to120_NNLO_cuts_CTEQ12NNLO.root"));
-    theoryFilesV.push_back(path + TString("2Dabsxsec120to200_NNLO_cuts_CTEQ12NNLO.root"));
-    theoryFilesV.push_back(path + TString("2Dabsxsec200to1500_NNLO_cuts_CTEQ12NNLO.root"));
+    theoryFilesV.push_back(path + TString("2Dabsxsec20to30_NNLO_cuts_CTEQ12NNLO-mdf.root"));
+    theoryFilesV.push_back(path + TString("2Dabsxsec30to45_NNLO_cuts_CTEQ12NNLO-mdf.root"));
+    theoryFilesV.push_back(path + TString("2Dabsxsec45to60_NNLO_cuts_CTEQ12NNLO-mdf.root"));
+    theoryFilesV.push_back(path + TString("2Dabsxsec60to120_NNLO_cuts_CTEQ12NNLO-mdf.root"));
+    theoryFilesV.push_back(path + TString("2Dabsxsec120to200_NNLO_cuts_CTEQ12NNLO-mdf.root"));
+    theoryFilesV.push_back(path + TString("2Dabsxsec200to1500_NNLO_cuts_CTEQ12NNLO-mdf.root"));
   }
   else {
     theoryFilesV.push_back(theory_path +
-			   TString("1Dabsxsec_NNLO_CTEQ12NNLO-hack.root"));
-    theory_field="invm_FEWZ_hack";
+			   TString("1Dabsxsec_NNLO_CTEQ12NNLO_41.root"));
+    theory_field="invm_FEWZ_41";
   }
 
   // ------------------------------------------------
@@ -90,6 +106,8 @@ int compareCS(int analysisIs2D,
       return retCodeError;
     }
     h->SetDirectory(0);
+    h->SetMarkerStyle(24);
+    h->SetMarkerSize(0.7);
     theoryV.push_back(h);
     finTh.Close();
       
@@ -107,6 +125,9 @@ int compareCS(int analysisIs2D,
   // ------------------------------------------------
 
   int res=1;
+  int dataMarkerStyle=20;
+  double dataMarkerSize=0.8;
+
   if (res) {
     TFile fin(inpFName,"read");
     if (!fin.IsOpen()) {
@@ -117,9 +138,16 @@ int compareCS(int analysisIs2D,
     // load xsec
     HistoPair2D_t *hp= new HistoPair2D_t("xsec");
     if (!hp) res=0; else xsecHPV.push_back(hp);
-    TString fieldName=(csFNameExtraTag.Length()) ? "xsec" : "count";
-    std::cout << "loading field <" << fieldName << ">\n";
-    if (res) res=hp->Read(fin,"auto",fieldName,1);
+    TString fieldName=loadDataField;
+    if (loadDataField=="auto") {
+      fieldName=(csFNameExtraTag.Length()) ? "xsec" : "count";
+      std::cout << "loading field <" << fieldName << ">\n";
+      if (res) res=hp->Read(fin,"auto",fieldName,1);
+    }
+    else {
+      std::cout << "loading field <" << fieldName << ">\n";
+      if (res) res=hp->Read(fin,"",fieldName,1);
+    }
     fin.Close();
     if (!res) {
       std::cout << "failed to get field <" << fieldName << ">\n";
@@ -141,15 +169,19 @@ int compareCS(int analysisIs2D,
 	labelsTotErrV.push_back(TString("wTotErr_"));
 	labelsStatErrV.push_back(TString("wStatErr_"));
       }
-      if (!createRapidityProfileVec(xsTotErrH2V,xsecTotErrVV,labelsTotErrV) ||
-	  !createRapidityProfileVec(xsStatErrH2V,xsecStatErrVV,labelsStatErrV)){
+      if (!createRapidityProfileVec(xsTotErrH2V,xsecTotErrVV,labelsTotErrV,
+				    dataMarkerStyle,dataMarkerSize) ||
+	  !createRapidityProfileVec(xsStatErrH2V,xsecStatErrVV,labelsStatErrV,
+				    dataMarkerStyle,dataMarkerSize)){
 	std::cout << "failed to create rapidity profiles\n";
 	return retCodeError;
       }
 
       std::cout << "xsecTotErrVV.size=" << xsecTotErrVV.size() << "\n";
       std::cout << "xsecTotErrVV[0]->size()=" << xsecTotErrVV[0]->size() << "\n";
+      int firstBinRemoved=0;
       if (DYTools::massBinLimits[0]==double(0)) {
+	firstBinRemoved=1;
 	std::cout << "\ndeleting 1st mass bin ("
 		  << DYTools::massBinLimits[0] << " .. "
 		  << DYTools::massBinLimits[1] << ")\n";
@@ -171,12 +203,29 @@ int compareCS(int analysisIs2D,
 	delete vec1;
 	delete vec2;
       }
+
+      for (int ivv=0; ivv<2; ++ivv) {
+	std::vector<std::vector<TH1D*>*>* vv=NULL;
+	vv= (ivv==0) ? &xsecTotErrVV : &xsecStatErrVV;
+	for (unsigned int ivec=0; ivec < vv->size(); ++ivec) {
+	  double factor=
+	    (DYTools::nYBins[ivec+firstBinRemoved]==24) ? 10. : 5.;
+	  std::vector<TH1D*> *vec= (*vv)[ivec];
+	  for (unsigned int ii=0; ii < vec->size(); ++ii) {
+	    std::cout << " " << (*vec)[ii]->GetName()
+		      << " scaled by factor 1/" << (1./factor) << "\n";
+	    (*vec)[ii]->Scale(factor);
+	  }
+	}
+      }
     }
     else {
       labelsTotErrV.push_back("totErr_");
       labelsStatErrV.push_back("statErr_");
-      if (!createMassProfileVec(xsTotErrH2V,xsecTotErrVV,labelsTotErrV) ||
-	  !createMassProfileVec(xsStatErrH2V,xsecStatErrVV,labelsStatErrV)) {
+      if (!createMassProfileVec(xsTotErrH2V,xsecTotErrVV,labelsTotErrV,
+				dataMarkerStyle,dataMarkerSize) ||
+	  !createMassProfileVec(xsStatErrH2V,xsecStatErrVV,labelsStatErrV,
+				dataMarkerStyle,dataMarkerSize)) {
 	std::cout << "failed to create mass profiles\n";
 	return retCodeError;
       }
@@ -222,6 +271,13 @@ int compareCS(int analysisIs2D,
       cp->TransLegend(-0.05,0);
       //cp->WidenLegend(0,0);
       cx->Update();
+
+      if (savePlots) {
+	TString figName=TString("fig-2D-") + figNameTag +
+	  TString("-") + mStr;
+	eliminateSeparationSigns(figName);
+	SaveCanvas(cx,figName);
+      }
     }
   }
   else {
@@ -236,7 +292,7 @@ int compareCS(int analysisIs2D,
     cp->SetLogy(1);
 
     // theory
-    cp->AddHist1D(theoryV[0], "CTEQ12NNLO", "LP", kBlue, 1,0);
+    cp->AddHist1D(theoryV[0], "CTEQ12NNLO", "L", kBlue, 1,0);
 
     // calculation
     int color1=kBlack;
@@ -250,6 +306,12 @@ int compareCS(int analysisIs2D,
     cp->TransLegend(-0.05,0);
     //cp->WidenLegend(0,0);
     cx->Update();
+
+    if (savePlots) {
+      TString figName=TString("fig-1D-") + figNameTag;
+      eliminateSeparationSigns(figName);
+      SaveCanvas(cx,figName);
+    }
   }
 
   return retCodeOk;
