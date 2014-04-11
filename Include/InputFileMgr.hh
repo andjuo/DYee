@@ -258,6 +258,14 @@ public:
   int userKeyValueAsInt(const std::string &key) const { return AsInt(this->userKeyValue(key)); }
   double userKeyValueAsDouble(const std::string &key) const { return AsDouble(this->userKeyValue(key)); }
 
+  void addUserKey(const std::string &key, const std::string &value) {
+    FUserKeys.push_back(key); FUserValues.push_back(value);
+  }
+
+  void addUserKey(const TString &key, const TString &value) {
+    FUserKeys.push_back(std::string(key.Data()));
+    FUserValues.push_back(std::string(value.Data()));
+  }
 
   void autosetRootDir() {
 #ifdef DYee8TeV
