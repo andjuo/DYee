@@ -50,7 +50,7 @@ int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, His
   // for the construction of
   // the class instance as well as autoLoadFromFile
   TString constDir= inpArg.inpMgr()->constDir(inpArg.systMode(),0);
-  TString fnameTag= DYTools::analysisTag;
+  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode());
   TMatrixD *UnfM=NULL;
   int inverse=1;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -75,7 +75,7 @@ int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Histo
   // for the construction of
   // the class instance as well as autoLoadFromFile
   TString constDir= inpArg.inpMgr()->constDir(inpArg.systMode(),0);
-  TString fnameTag= DYTools::analysisTag;
+  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode());
   TMatrixD *UnfM=NULL;
   int inverse=1;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -100,7 +100,7 @@ int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini,
   // for the construction of
   // the class instance as well as autoLoadFromFile
   TString constDir= inpArg.inpMgr()->constDir(inpArg.systMode(),0);
-  TString fnameTag= DYTools::analysisTag;
+  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode());
   TMatrixD *UnfM=NULL;
   int inverse=1;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -130,6 +130,7 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
   else {
     TString constDir=codeDebugFilePath;
     effCorrFName=constDir + TString(Form("event_efficiency_constants%dD.root",DYTools::study2D+1));
+    std::cout << "loading from <" << effCorrFName << ">\n";
     hEff=LoadMatrixFields(effCorrFName,0,"efficiencyArray","efficiencyErrArray",1);
   }
   //std::cout << "effCorrFName=<" << effCorrFName << ">\n";
@@ -151,11 +152,25 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   TH2D *hRho=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
-    TString sfTag=inpArg.inpMgr()->userKeyValueAsTString("ScaleFactorTag");
+    TString sfTag=inpArg.inpMgr()->userKeyValueAsTString("SpecialESFTag");
+    std::cout << "\n\n\tsfTag=<" << sfTag << ">\n\n";
     if (sfTag.Length()) {
-      std::cout << "special scale factor tag=<" << sfTag << ">\n";
-      TString constTag=inpArg.inpMgr()->constTag();
-      rhoCorrFName.ReplaceAll(constTag,sfTag);
+      // special
+      rhoCorrFName="/home/andriusj/cms/DYee-20140407-ESF-systVars/Covariance/";
+      //covRhoFileSF_nMB7_asymHLT_FSR_5plus-allSyst_100.root
+      rhoCorrFName.Append(Form("covRhoFileSF_nMB%d_asymHLT_%s.root",
+			       DYTools::nMassBins,sfTag.Data()));
+      std::cout << "special name of scale factor file <" << rhoCorrFName
+		<< ">\n";
+    }
+    else {
+      // default manipulation
+      sfTag=inpArg.inpMgr()->userKeyValueAsTString("ScaleFactorTag");
+      if (sfTag.Length()) {
+	std::cout << "special scale factor tag=<" << sfTag << ">\n";
+	TString constTag=inpArg.inpMgr()->constTag();
+	rhoCorrFName.ReplaceAll(constTag,sfTag);
+      }
     }
     //hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
     int checkBinning=0;
@@ -177,7 +192,13 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
 
 int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
   if (inpArg.silentMode()<2) HERE(" -- acceptanceCorrection");
-  TString accCorrFName=inpArg.inpMgr()->correctionFullFileName("acceptance",inpArg.systMode(),0);
+  DYTools::TSystematicsStudy_t systMode=inpArg.systMode();
+  if ((systMode==DYTools::PILEUP_5plus) ||
+      (systMode==DYTools::PILEUP_5minus)) {
+    std::cout << "correction! acceptance does not depend on pile-up\n";
+    systMode=DYTools::NO_SYST;
+  }
+  TString accCorrFName=inpArg.inpMgr()->correctionFullFileName("acceptance",systMode,0);
   TH2D* hAcc=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
@@ -186,6 +207,7 @@ int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
   else {
     TString constDir=codeDebugFilePath;
     accCorrFName=constDir + TString(Form("acceptance_constants%dD.root",DYTools::study2D+1));
+    std::cout << "loading from <" << accCorrFName << ">\n";
     hAcc=LoadMatrixFields(accCorrFName,1,"acceptanceMatrix","acceptanceErrMatrix",1);
   }
   //std::cout << "accCorrFName=<" << accCorrFName << ">\n";
@@ -264,8 +286,8 @@ int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp,
 
     HistoPair2D_t hpPerLumi(hp.GetName() + TString("_divLumi"),hp);
     hpPerLumi.scale(1./ia.inpMgr()->totalLumi());
-    hpPerLumi.print();
-    std::cout << "\n\n";
+    //hpPerLumi.print();
+    //std::cout << "\n\n";
     CSResults_t zpResult;
     zpResult.assignZpeakCS(hpPerLumi);
     std::cout << "normalization factor: " << zpResult << "\n";
@@ -275,6 +297,7 @@ int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp,
 
     if (!ia.noSave()) {
       int res=1;
+      CreateDir(fname,1);
       TFile fout(fname,"recreate");
       if (res) res=hp.Write(fout);
       if (res) res=hpPerLumi.Write(fout);
