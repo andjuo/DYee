@@ -94,6 +94,12 @@ void compareESF(int iBr=0,
   //path2="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/tag_and_probe/DY_j22_19789pb/";
   //path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
 
+  int analysisIs2D=nDim-1;
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return;
+  }
+
   if (((nDim==1) &&  DYTools::study2D) ||
       ((nDim==2) && !DYTools::study2D)) {
     std::cout << "the macro uses basic implementations that require nDim info to match study2D in DYTools.hh\n";
@@ -357,7 +363,7 @@ void compareESF(int iBr=0,
     //setYRanges2D=enforceYRanges(1);
   }
 
-  if (1) { // added 2014.03.19
+  if (0) { // added 2014.03.19
     path1="../Covariance/";
     path2="../Covariance/";
     path3="../Covariance/";
@@ -381,6 +387,39 @@ void compareESF(int iBr=0,
     set_ratio_y_max=set_ratio_y_min; // force auto-setup of range
     transLegendX=-0.2;
     compSet=15;
+    swapColors=0;
+    //setYRanges2D=enforceYRanges(1);
+  }
+
+  if (1) { // added 2014.04.11
+    path1="../Covariance/";
+    path2="../Covariance/";
+    path3="../Covariance/";
+    fnameBase1="covRhoFileSF";
+    fnameBase2="covRhoFileSF";
+    fnameBase3="covRhoFileSF";
+    esfLongStr1="_nMB41_asymHLT_Unregressed_energy-allSyst_100";
+    esfLongStr2="_nMB41_asymHLT_FSR_5plus-allSyst_100";
+    esfLongStr3="_nMB41_asymHLT_FSR_5minus-allSyst_100";
+    label1="default";
+    label2="FSR 5plus";
+    label3="FSR 5minus";
+    fnameTag="-fsrStudy";
+    saveDirTag="-fsrStudy--";
+    if (iBr==10) {
+      path4="../Covariance/";
+      fnameBase4="covRhoFileSF";
+      esfLongStr4="_nMB41_asymHLT_Pileup5minus-allSyst_100";
+      label4="Pileup 5minus";
+    }
+    //if (nDim==2) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
+    //else { set_ratio_y_min=0.95; set_ratio_y_max=1.15; }
+    set_ratio_y_max=set_ratio_y_min; // force auto-setup of range
+    set_ratio_y_min=0.999;
+    set_ratio_y_max=1.001;
+    transLegendX=-0.2;
+    if (nDim==2) transLegendX=-0.4;
+    compSet=16;
     swapColors=0;
     //setYRanges2D=enforceYRanges(1);
   }
@@ -465,6 +504,38 @@ void compareESF(int iBr=0,
 	  label3="EtaBins9 var.3";
 	  fnameTag="-varEtaBins-var3";
 	}
+      }
+    }
+    else if (compSet==16) {
+      if (iBr==1) {
+	esfLongStr2.ReplaceAll("FSR_5plus","Pileup5plus");
+	esfLongStr3.ReplaceAll("FSR_5minus","Pileup5minus");
+	label2="Pile-up 5plus";
+	label3="Pile-up 5minus";
+	fnameTag="-pileupStudy";
+	saveDirTag="-pileupStudy--";
+      }
+      if (iBr==2) {
+	esfLongStr2="_nMB41_asymHLT_regEn-allSyst_100";
+	label2="reg.en";
+	fnameBase3.Clear();
+	fnameTag="-regVsUnReg";
+	saveDirTag="-regVsUnReg--";
+      }
+      else if (iBr==3) {
+	esfLongStr1.ReplaceAll("Unregressed_energy","regEn");
+	label1="reg.en";
+	fnameTag="-fsrStudy-regEn";
+      }
+      else if (iBr==4) {
+	esfLongStr1.ReplaceAll("Unregressed_energy","regEn");
+	esfLongStr2.ReplaceAll("FSR_5plus","Pileup5plus");
+	esfLongStr3.ReplaceAll("FSR_5minus","Pileup5minus");
+	label1="reg.en";
+	label2="Pile-up 5plus";
+	label3="Pile-up 5minus";
+	fnameTag="-pileupStudy-regEn";
+	saveDirTag="-pileupStudy--";
       }
     }
   }
@@ -586,9 +657,11 @@ void compareESF(int iBr=0,
       int showLegend=1;
       if ((compSet==-10) && (i!=4)) showLegend=-1;
 
+      int color3=45;
+
       cp->AddHist1D(hProfEsf1[i],label1,"LPE1",kBlack,1,0,showLegend);
       cp->AddHist1D(hProfEsf2[i],label2,"PE3",kBlue ,2,0,showLegend);
-      if (i<hProfEsf3.size()) cp->AddHist1D(hProfEsf3[i],label3,"PE3",kRed+1, 3,0,showLegend);
+      if (i<hProfEsf3.size()) cp->AddHist1D(hProfEsf3[i],label3,"PE3",color3, 3,0,showLegend);
       if (i<hProfEsf4.size()) cp->AddHist1D(hProfEsf4[i],label4,"PE3",kGreen+2, 3,0,showLegend);
       //cp->AddHist1D(hProfEsf2[i],label2,"LPE3",kBlue ,2,0);
       cp->AddLine(0.,1.0, 2.4,1.0, kBlue+1,kDashed);
@@ -633,6 +706,7 @@ void compareESF(int iBr=0,
 
     int color1=kBlack;
     int color2=46; // red-brown
+    int color3=45;
     if (h3) color2=kBlue;
     if (swapColors) { int icol=color1; color1=color2; color2=icol; }
     if (swapColors==2) color1=kRed;
@@ -645,7 +719,7 @@ void compareESF(int iBr=0,
     cp->AddHist1D(h1, label1,"LPE1",color1,1,0);
     TString opt2=(h3) ? "LPE3" : "LPE1";
     cp->AddHist1D(h2, label2,opt2,color2,1,0);
-    if (h3) cp->AddHist1D(h3, label3, "LPE3",kRed+1,1,0);
+    if (h3) cp->AddHist1D(h3, label3, "LPE3",color3,1,0);
     if (h4) cp->AddHist1D(h4, label4, "LPE3",kGreen+2,1,0);
 
     cp->AddLine(DYTools::massBinLimits[0],1.,DYTools::massBinLimits[DYTools::nMassBins],1., kBlack,kDashed);
