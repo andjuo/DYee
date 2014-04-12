@@ -17,6 +17,7 @@
 #include "../Include/CPlot.hh"
 #include "../Include/DYTools.hh"
 #include "../Include/colorPalettes.hh"
+#include "../Include/ComparisonPlot.hh"
 
 //----------------------------------------
 
@@ -1674,7 +1675,10 @@ TCanvas* plotProfiles(TString canvName,
 		      const std::vector<TString> &labelsV,
 		      std::vector<int> *colorsV=NULL,
 		      int do_removeError=1,
-		      std::vector<std::vector<TH1D*>*> *hProfV=NULL);
+		      TString yAxisLabel="signal yield",
+		      std::vector<std::vector<TH1D*>*> *hProfV=NULL,
+		      std::vector<ComparisonPlot_t*> *cpV=NULL,
+		      int delayDraw=0);
 
 //--------------------------------------------------
 //--------------------------------------------------

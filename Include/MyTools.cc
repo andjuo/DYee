@@ -1,5 +1,4 @@
 #include "../Include/MyTools.hh"
-#include "../Include/ComparisonPlot.hh"
 #include <TBenchmark.h>
 
 //--------------------------------------------------
@@ -986,7 +985,10 @@ TCanvas* plotProfiles(TString canvName,
 		      const std::vector<TString> &labelsV,
 		      std::vector<int> *colorsV,
 		      int do_removeError,
-		      std::vector<std::vector<TH1D*>*> *hProfV) {
+		      TString yAxisLabel,
+		      std::vector<std::vector<TH1D*>*> *hProfV,
+		      std::vector<ComparisonPlot_t*> *cpV,
+		      int delayDraw) {
   if (!hProfV) hProfV= new std::vector<std::vector<TH1D*>*>();
 
   const unsigned int colorCount=6;
@@ -1001,7 +1003,7 @@ TCanvas* plotProfiles(TString canvName,
     }
   }
 
-  int canvWidth=(DYTools::study2D==1) ? 1100 : 700;
+  int canvWidth=(DYTools::study2D==1) ? 1200 : 700;
   TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,900);
 
   if (DYTools::study2D==1) {
@@ -1017,7 +1019,8 @@ TCanvas* plotProfiles(TString canvName,
       TString mStr=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
       TString cpName="cp_" + mStr;
       TString cpTitle=mStr;
-      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|","signal yield","ratio");
+      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|",yAxisLabel,"ratio");
+      if (cpV) cpV->push_back(cp);
       if (im==1) cp->Prepare6Pads(c1,1);
 	  
       for (unsigned int ih=0; ih<(*hProfV)[im]->size(); ++ih) {
@@ -1028,7 +1031,7 @@ TCanvas* plotProfiles(TString canvName,
 	}
 	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
       }
-      cp->Draw6(c1,1,im);
+      if (!delayDraw) cp->Draw6(c1,1,im);
     }
   }
   else {
@@ -1045,7 +1048,8 @@ TCanvas* plotProfiles(TString canvName,
       TString yStr=Form("iy_%d",iy);
       TString cpName=TString("cp_") + yStr;
       TString cpTitle; //=yStr;
-      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]","signal yield","ratio");
+      ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]",yAxisLabel,"ratio");
+      if (cpV) cpV->push_back(cp);
       cp->SetLogx(1);
       if (iy==0) cp->Prepare2Pads(c1);
       
@@ -1057,7 +1061,7 @@ TCanvas* plotProfiles(TString canvName,
 	}
 	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
       }
-      cp->Draw(c1);
+      if (!delayDraw) cp->Draw(c1);
     }
   }
   c1->Update();
