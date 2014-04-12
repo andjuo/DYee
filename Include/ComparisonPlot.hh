@@ -5,9 +5,40 @@
 #include <TLatex.h>
 #include "../Include/CPlot.hh"
 #include "../Include/DYTools.hh"
-#include "../Include/MyTools.hh"
+//#include "../Include/MyTools.hh"
 //#include <TGraphAsymmErrors.h>
 
+// -------------------------------------------------------------
+// -------------------------------------------------------------
+
+inline
+int printHisto_loc(const TH1D* histo, int exponent=0, int maxLines=-1) {
+  if (!histo) {
+    std::cout << "printHisto: histo is null\n";
+    return 0;
+  }
+  char buf[100];
+  const char *format= (exponent) ?
+    " %5.2f-%5.2f    %e    %e\n" :
+    " %5.2f-%5.2f    %f    %f\n";
+
+  std::cout << "values of " << histo->GetName() << "\n";
+  int imax=histo->GetNbinsX();
+  int truncated=0;
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  for(int i=1; i<=imax; i++) {
+    double x=histo->GetBinLowEdge(i);
+    double w=histo->GetBinWidth(i);
+    sprintf(buf,format,
+	    x,x+w,histo->GetBinContent(i),histo->GetBinError(i));
+    std::cout << buf;
+  }
+  if (truncated) std::cout << "... output truncated to " << maxLines << " lines\n";
+  return 1;
+}
+
+
+// -------------------------------------------------------------
 // -------------------------------------------------------------
 
 class ComparisonPlot_t : public CPlot {
@@ -137,6 +168,14 @@ public:
   }
 
   void Skip(TH1D* h) { SkipInRatioPlots(h); }
+
+  TH1D* GetFirstHisto() {
+    TH1D* h=NULL;
+    for (unsigned int i=0; !h && (i<fItems.size()); ++i) {
+      h= fItems[i].hist1D;
+    }
+    return h;
+  }
 
   void AddHist1D(TH1D *h, TString label, TString drawopt, int color=kBlack, int linesty=1, int fillsty=0, int legendSymbolLP=0) {
     TAxis *ax=h->GetXaxis();
@@ -392,7 +431,7 @@ public:
       }
       std::cout << "imin=" << imin << "\n";
 
-      if (fPrintValues) printHisto(fItems[fRefIdx].hist1D);
+      if (fPrintValues) printHisto_loc(fItems[fRefIdx].hist1D);
 
       // prepare ratios
       double yrMin=1e9, yrMax=-1e9;
@@ -417,7 +456,7 @@ public:
 	  continue;
 	}
 
-	if (fPrintValues) printHisto(histo,1);
+	if (fPrintValues) printHisto_loc(histo,1);
 
 	switch(fRatioType) {
 	case _ratioPlain: 
@@ -438,7 +477,7 @@ public:
 	    hratio->SetBinError(ibin,0);
 	  }
 	}
-	//printHisto(std::cout,hratio);
+	//printHisto_loc(std::cout,hratio);
 	if (yrMin > hratio->GetMinimum()) yrMin = hratio->GetMinimum();
 	if (yrMax < hratio->GetMaximum()) yrMax = hratio->GetMaximum();
       }
@@ -488,7 +527,7 @@ public:
 	hratio->GetYaxis()->SetRangeUser(yrMin,yrMax);
 	//hratio->SetMarkerStyle(kFullCircle);
 
-	if (fPrintRatios) printHisto(std::cout,hratio);
+	if (fPrintRatios) printHisto_loc(hratio);
 	TString opt=item->drawopt;
 	if (!opt.Contains("P")) opt.Append("P");
 	if (first) {
