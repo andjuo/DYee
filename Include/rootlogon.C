@@ -27,6 +27,8 @@
   gROOT->ProcessLine(".L ../Include/EventWeight.cc+");
   gROOT->ProcessLine(".L ../Include/ZeeData.hh+");
 
+  //
+  // ComparisonPlot.hh
   gROOT->ProcessLine(".L ../Include/MyTools.cc+");
   gROOT->ProcessLine(".L ../Include/InputFileMgr.cc+");
 
