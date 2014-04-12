@@ -35,7 +35,8 @@ int PrepareEtEtaIdx(const esfSelectEvent_t &selData, EtEtaIndexer_t &fidx1, EtEt
 int studyEffCov_SFsyst(int analysisIs2D,
 		       int debugMode,
 		       TString systCode="111",
-		       int scaleFactorKind=-1, TString variant="") {
+		       int scaleFactorKind=-1, TString variant="",
+	     DYTools::TSystematicsStudy_t systMode_user=DYTools::NO_SYST) {
   gBenchmark->Start("studyEffCov");
 
   if (!DYTools::setup(analysisIs2D)) {
@@ -61,7 +62,12 @@ int studyEffCov_SFsyst(int analysisIs2D,
   if (variant.Length()) confFileName=Form("toy_%s.conf.py",variant.Data());
 
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
-  systMode=DYTools::UNREGRESSED_ENERGY;
+  //systMode=DYTools::UNREGRESSED_ENERGY;
+  if (systMode_user!=DYTools::NO_SYST) {
+    std::cout << "\n\tChanging systematics mode to systMode_user="
+	      << SystematicsStudyName(systMode_user) << "\n\n";
+    systMode=systMode_user;
+  }
   CovariantEffMgr_t mgr;
 
   TString recoSystFName, idSystFName, hltSystFName;
@@ -655,6 +661,6 @@ int studyEffCov_SFsyst(int analysisIs2D,
   }
 
   //gBenchmark->Show("studyEffCov");
-  ShowBenchmarkTime("selectEvents");
+  ShowBenchmarkTime("studyEffCov");
   return retCodeOk;
 }
