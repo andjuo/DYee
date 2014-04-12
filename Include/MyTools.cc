@@ -234,7 +234,7 @@ TH2D* getRelDifference(const std::vector<const TH2D*> &var, TString newName, int
   removeError2D(hRes);
 
   // If includeVariants is 1, then differences between all histograms are
-  // considered. The j index will run from 0 (baseValue) to 
+  // considered. The j index will run from 0 (baseValue) to
   // hV.size(). If j>0, the reference is the variant histogram
   unsigned int imax=(includeVariants) ? (var.size()+1) : 1;
 
@@ -488,10 +488,10 @@ int createRapidityProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::
   for (int im=0; res && (im<DYTools::nMassBins); im++) {
     std::vector<TH1D*> *hPVec = new std::vector<TH1D*>();
     hProfV.push_back(hPVec);
-    
+
     TString mStr=Form("_m%1.0f_%1.0f",DYTools::massBinLimits[im],
 		      DYTools::massBinLimits[im+1]);
-    
+
     for (unsigned int i=0; res && (i<h2SrcV.size()); ++i) {
       TH1D* hProf=NULL;
       if (h2SrcV[i]) {
@@ -536,9 +536,9 @@ int createMassProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::vect
   for (int iy=0; res && (iy<DYTools::nYBins[0]); iy++) {
     std::vector<TH1D*> *hPVec = new std::vector<TH1D*>();
     hProfV.push_back(hPVec);
-    
+
     TString yStr=Form("_y%1.0f_%1.0f",(*ybinLimits)(0,iy),(*ybinLimits)(0,iy+1));
-    
+
     for (unsigned int i=0; res && (i<h2SrcV.size()); ++i) {
       TH1D* hProf=NULL;
       if (h2SrcV[i]) {
@@ -566,7 +566,7 @@ int createMassProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::vect
 TH1D* removeLastBin(const TH1D* hOrig, TString newName, int setTitle, const char *newTitle) {
   // prepare the range info
   int nxBins=hOrig->GetNbinsX()-1; // we will remove last bin
-  double *xv=new double[nxBins+1]; 
+  double *xv=new double[nxBins+1];
   TAxis *ax=hOrig->GetXaxis();
   for (int i=1; i<=nxBins; i++) {
     xv[i-1] = ax->GetBinLowEdge(i);
@@ -636,7 +636,7 @@ TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int c
 
 TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(file=<") + fin.GetName() + TString(">,<") + histoName + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
-  
+
   if (checkBinning && !checkBinningArrays(fin)) {
     std::cout << theCall << ": binning test failed\n";
     return NULL;
@@ -645,7 +645,7 @@ TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinnin
   TString loadHistoName;
   if (subDir.Length()) {
     if (subDir[subDir.Length()-1]!='/') subDir.Append("/");
-    loadHistoName=subDir + histoName; 
+    loadHistoName=subDir + histoName;
   }
   else loadHistoName=histoName;
   //std::cout << "loadHistoName=<" << loadHistoName << ">\n";
@@ -694,35 +694,35 @@ int checkBinningArrays(TFile &fin) {
 int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, const TString &fname) {
   const char *fncname="unfolding::checkBinningRanges: ";
   TString fileInfo=TString("on file <") + fname + ">";
-  
+
   bool massOk=true, rapidityOk=true;
   int first_err=1;
   if (mass.GetNoElements() != DYTools::nMassBins+1) {
     std::cout << errdash; first_err=0;
-    std::cout << "\n" << fncname 
+    std::cout << "\n" << fncname
 	      << " number of mass bins " << fileInfo
-	      << " is " << mass.GetNoElements() 
+	      << " is " << mass.GetNoElements()
 	      << " while " << (DYTools::nMassBins+1) << " is expected\n";
     massOk=false;
   }
-  
+
   if (rapidityCounts.GetNoElements() != DYTools::nMassBins ) {
     if (first_err) { first_err=0; std::cout << errdash; }
     std::cout << "\n" << fncname
 	      << "number of mass bins in rapidityCounts " << fileInfo
-		<< " is " << rapidityCounts.GetNoElements() 
+		<< " is " << rapidityCounts.GetNoElements()
 	      << " while " << DYTools::nMassBins << " is expected\n";
     rapidityOk=false;
   }
-  
+
   if (massOk) {
     for(int i=0; i<DYTools::nMassBins+1; i++){
       if( DYTools::massBinLimits[i] != mass[i] ) {
 	if (first_err) { first_err=0; std::cout << errdash; }
 	std::cout << fncname
 		  << " mass limit " << fileInfo
-		  << " at i=" << i 
-		  << " is " << mass[i] 
+		  << " at i=" << i
+		  << " is " << mass[i]
 		  << " instead of expected " << DYTools::massBinLimits[i] << "\n";
 	massOk=false;
       }
@@ -732,10 +732,10 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
     for (int i=0; i<DYTools::nMassBins; i++) {
       if ( DYTools::nYBins[i] != rapidityCounts[i] ) {
 	if (first_err) { first_err=0; std::cout << errdash; }
-	std::cout << fncname 
+	std::cout << fncname
 		  << "y bin count " << fileInfo
-		  << " at i=" << i 
-		  << " is " << rapidityCounts[i] 
+		  << " at i=" << i
+		  << " is " << rapidityCounts[i]
 		  << " instead of expected " << DYTools::nYBins[i] << "\n";
 	rapidityOk=false;
       }
@@ -748,7 +748,7 @@ int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, con
       std::cout << " " << mass[i];
     }
     std::cout << "\n";
-    std::cout << "file info: rapidityCounts[" 
+    std::cout << "file info: rapidityCounts["
 	      << rapidityCounts.GetNoElements() << "]: ";
     for (int i=0; i<rapidityCounts.GetNoElements(); ++i) {
       std::cout << " " << rapidityCounts[i];
@@ -829,7 +829,7 @@ TH2D* LoadMatrixFields(TFile &fin, const TString &field, const TString &fieldErr
   TMatrixD* val= NULL;
   if (field.Length()) val=(TMatrixD*)fin.Get(field);
   TMatrixD* err=(loadErr) ? (TMatrixD*)fin.Get(fieldErr) : NULL;
-  if (   (field.Length() && !val) 
+  if (   (field.Length() && !val)
 	 || (loadErr && !err)
 	 || (val && !checkMatrixSize(*val,field))
 	 || (err && !checkMatrixSize(*err,fieldErr))
@@ -892,8 +892,8 @@ int LoadThreeMatrices(TFile &fin, TH2D **h2, TH2D **h2syst, const TString &field
 
 int LoadThreeMatrices(const TString &fileName, TH2D **h2, TH2D **h2syst, const TString &field, const TString &fieldErr, const TString &fieldSystErr, int checkBinning, int absoluteRapidity) {
   TFile file(fileName,"read");
-  if (!file.IsOpen()) { 
-    std::cout << "failed to open <" << fileName << ">\n"; 
+  if (!file.IsOpen()) {
+    std::cout << "failed to open <" << fileName << ">\n";
     return 0;
   }
   int res=1;
@@ -933,10 +933,10 @@ TH2D* extractSubArea(const TH2D *histo,
     std::cout << std::endl;
     return NULL;
   }
-  
+
   const TAxis *ax=histo->GetXaxis();
   const TAxis *ay=histo->GetYaxis();
-  
+
   double *xnew=new double[xbin2-xbin1+2];
   double *ynew=new double[ybin2-ybin1+2];
   if (resetAxis) {
@@ -948,7 +948,7 @@ TH2D* extractSubArea(const TH2D *histo,
     for (int i=0; i<lastYbin; ++i) ynew[i]=ay->GetBinLowEdge(i+1);
     ynew[lastYbin]= ay->GetBinLowEdge(lastYbin) + ay->GetBinWidth(lastYbin);
   }
-  else { 
+  else {
     // keep original labels of the axis
     for (int i=0; i<xbin2-xbin1+1; ++i) xnew[i]= ax->GetBinLowEdge(i+xbin1);
     xnew[xbin2-xbin1+1]= ax->GetBinLowEdge(xbin2) + ax->GetBinWidth(xbin2);
@@ -1013,16 +1013,16 @@ TCanvas* plotProfiles(TString canvName,
       return NULL;
     }
     std::cout << "there are " << hProfV->size() << " profiles\n";
-      
+
     for (int im=1; im<7; ++im) {
-	  
+
       TString mStr=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
       TString cpName="cp_" + mStr;
       TString cpTitle=mStr;
       ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|",yAxisLabel,"ratio");
       if (cpV) cpV->push_back(cp);
       if (im==1) cp->Prepare6Pads(c1,1);
-	  
+
       for (unsigned int ih=0; ih<(*hProfV)[im]->size(); ++ih) {
 	TH1D* h=(*(*hProfV)[im])[ih];
 	if (do_removeError) removeError1D(h);
@@ -1036,15 +1036,15 @@ TCanvas* plotProfiles(TString canvName,
   }
   else {
     // 1D
-    
+
     if (!createMassProfileVec(histosV,*hProfV,labelsV)) {
       std::cout << "failed to create profiles\n";
       return NULL;
     }
     std::cout << "there are " << hProfV->size() << " profiles\n";
-      
+
     for (int iy=0; iy<DYTools::nYBinsMax; ++iy) {
-      
+
       TString yStr=Form("iy_%d",iy);
       TString cpName=TString("cp_") + yStr;
       TString cpTitle; //=yStr;
@@ -1052,7 +1052,7 @@ TCanvas* plotProfiles(TString canvName,
       if (cpV) cpV->push_back(cp);
       cp->SetLogx(1);
       if (iy==0) cp->Prepare2Pads(c1);
-      
+
       for (unsigned int ih=0; ih<(*hProfV)[iy]->size(); ++ih) {
 	TH1D* h=(*(*hProfV)[iy])[ih];
 	if (do_removeError) removeError1D(h);

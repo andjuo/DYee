@@ -36,9 +36,9 @@ Double_t deltaR(Double_t eta1, Double_t phi1, Double_t eta2, Double_t phi2)
   Double_t dphi = fabs(phi1-phi2);
   while (dphi>pi)
     dphi = fabs(dphi - 2.0*pi);
-    
+
   Double_t deta = eta1-eta2;
-  
+
   return sqrt(dphi*dphi + deta*deta);
 }
 
@@ -47,8 +47,7 @@ Double_t deltaR(Double_t eta1, Double_t phi1, Double_t eta2, Double_t phi2)
 namespace toolbox {
 
 inline
-Double_t deltaPhi(Double_t phi1, Double_t phi2) 
-{
+Double_t deltaPhi(Double_t phi1, Double_t phi2){
   // Compute dPhi between two given angles. Results is in [0,pi].
   const Double_t pi = 3.14159265358979;
   Double_t dphi = fabs(phi1-phi2);
@@ -84,7 +83,6 @@ double errOnRatio(double a, double da, double b, double db){
   double result = zero;
   if(a == zero || b == zero)
     return result;
- 
   result = (a/b)*sqrt( (da/a)*(da/a) + (db/b)*(db/b) );
   return result;
 }
@@ -107,8 +105,7 @@ void PrintVec(const char *msg, const std::vector<T>& vec, int prneol=0) {
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-void SaveCanvas(TCanvas* canv, const TString &canvName, TString destDir=CPlot::sOutDir) 
-{
+void SaveCanvas(TCanvas* canv, const TString &canvName, TString destDir=CPlot::sOutDir){
   gSystem->mkdir(destDir,kTRUE);
   gSystem->mkdir(destDir+TString("/png"),kTRUE);
   gSystem->mkdir(destDir+TString("/pdf"),kTRUE);
@@ -194,8 +191,8 @@ inline bool PosOk(size_t pos) { return (pos==std::string::npos) ? 0 : 1; }
 //----------------------------------------------------------------------
 
 template<class T>
-inline bool PosOk(const std::string &s, const T& substr) { 
-  return (s.find(substr)==std::string::npos) ? 0 : 1; 
+inline bool PosOk(const std::string &s, const T& substr) {
+  return (s.find(substr)==std::string::npos) ? 0 : 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -207,8 +204,8 @@ int printHisto(std::ostream& out, const TH1D* histo, int exponent=0, int maxLine
     return 0;
   }
   char buf[100];
-  const char *format= (exponent) ? 
-    " %5.2f-%5.2f    %e    %e\n" : 
+  const char *format= (exponent) ?
+    " %5.2f-%5.2f    %e    %e\n" :
     " %5.2f-%5.2f    %f    %f\n";
 
   out << "values of " << histo->GetName() << "\n";
@@ -239,8 +236,8 @@ int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr
     return 0;
   }
   char buf[100];
-  const char *format= (exponent) ? 
-    " %5.2f-%5.2f    %e    %e    %e\n" : 
+  const char *format= (exponent) ?
+    " %5.2f-%5.2f    %e    %e    %e\n" :
     " %5.2f-%5.2f    %f    %f    %f\n";
 
   out << "values of " << histo->GetName() << "\n";
@@ -259,7 +256,7 @@ int printHistoErr(std::ostream& out, const TH1D* histo, const TH1D* histoSystErr
 }
 
 //------------------------------------------------------------------------------------------------------------------------
- 
+
 inline int printHistoErr(const TH1D* histo, const TH1D* histoSystErr, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent,maxLines); }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -271,8 +268,8 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
     return 0;
   }
   char buf[200];
-  const char *format_char= (exponent) ? 
-    " %5.2f-%5.2f  %5.2f-%5.2f    %e    %e    %e\n" : 
+  const char *format_char= (exponent) ?
+    " %5.2f-%5.2f  %5.2f-%5.2f    %e    %e    %e\n" :
     " %5.2f-%5.2f  %5.2f-%5.2f    %f    %f    %f\n";
   std::string format=format_char;
   if (!histoSystErr) {
@@ -305,7 +302,7 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
 }
 
 //------------------------------------------------------------------------------------------------------------------------
- 
+
 inline int printHistoErr(const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent, maxLines); }
 
 inline int printHisto(const TH2D* histo, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, NULL, exponent, maxLines); }
@@ -325,7 +322,7 @@ TH1D *extractRapidityDependence(const TString &name, const TString &title,
   h->SetDirectory(0);
   h->Sumw2();
   for (int iY=0; iY<DYTools::nYBins[iMassBin]; ++iY) {
-    double factor= (perMassBinWidth==0) ? 
+    double factor= (perMassBinWidth==0) ?
       1 : 1/(DYTools::massBinLimits[iMassBin+1] - DYTools::massBinLimits[iMassBin]);
     h->SetBinContent(iY+1, m[iMassBin][iY]*factor);
     h->SetBinError(iY+1, fabs(mErr[iMassBin][iY])*factor);
@@ -338,7 +335,7 @@ TH1D *extractRapidityDependence(const TString &name, const TString &title,
 inline
 TH1D *extractMassDependence(const TString &name, const TString &title,
 			    const TMatrixD &m, const TMatrixD &mErr,
-			    int iYBin, 
+			    int iYBin,
 			    int perMassBinWidth=1, int perRapidityBinWidth=0) {
   if (perRapidityBinWidth) std::cout << "\n\tWARNING: extractMassDependence: perRapidityBinWidth=1 is experimental\n\n";
   std::cout << "dims  m[" << m.GetNrows() << ',' << m.GetNcols() << "], "
@@ -349,8 +346,8 @@ TH1D *extractMassDependence(const TString &name, const TString &title,
       (mErr.GetNrows()!=DYTools::nMassBins) ||
       (mErr.GetNcols()!=DYTools::nYBinsMax)) {
     std::cout << "extractMassDependence: expecting matrices "
-	      << DYTools::nMassBins << "x" << DYTools::nYBinsMax 
-	      << "  instead of  " 
+	      << DYTools::nMassBins << "x" << DYTools::nYBinsMax
+	      << "  instead of  "
 	      << m.GetNrows() << "x" << m.GetNcols() << "\n";
     assert(0);
   }
@@ -360,7 +357,7 @@ TH1D *extractMassDependence(const TString &name, const TString &title,
   h->SetDirectory(0);
   h->Sumw2();
   for (int iM=0; iM<DYTools::nMassBins; ++iM) {
-    bool lastBin= (iM==DYTools::nMassBins-1) ? true : false;  
+    bool lastBin= (iM==DYTools::nMassBins-1) ? true : false;
     if (lastBin && (iYBin!=0)) {
       double yc=DYTools::findAbsYValue(0,iYBin);
       iYBin=DYTools::findAbsYBin(iM,yc);
@@ -410,7 +407,7 @@ TH1D *extractMassDependenceSpec(const TString &name, const TString &title,
       (mErr.GetNcols()!=1)) {
     std::cout << "extractMassDependenceSpec: expecting matrices "
 	      << massGrid.GetNoElements() << "x" << 1
-	      << "  instead of  " 
+	      << "  instead of  "
 	      << m.GetNrows() << "x" << m.GetNcols() << "\n";
     assert(0);
   }
@@ -525,14 +522,14 @@ void printSanityCheck(const TMatrixD &val, const TMatrixD &err, const TString &n
     }
   std::cout<<"Nan values of "<<name<<" or/and "<<name<<"Err:"<<std::endl;
   for(int i=0; i<DYTools::nMassBins; i++)
-    for (int yi=0; yi<nYBins[i]; ++yi) 
+    for (int yi=0; yi<nYBins[i]; ++yi)
       {
         if ( (val(i,yi)!=val(i,yi)) || (err(i,yi)!=err(i,yi)) )
            std::cout<<name<<"("<<i<<","<<yi<<")="<<val(i,yi)<<", "<<name<<"Err("<<i<<","<<yi<<")="<<err(i,yi)<<std::endl;
       }
   std::cout<<"Large errors ("<<name<<"Errv>0.1*"<<name<<" or "<<name<<"Err>0.1) :"<<std::endl;
   for(int i=0; i<DYTools::nMassBins; i++)
-    for (int yi=0; yi<nYBins[i]; ++yi) 
+    for (int yi=0; yi<nYBins[i]; ++yi)
       {
         if ( fabs(err(i,yi))>0.1*fabs(val(i,yi)) || fabs(err(i,yi))>0.1)
            std::cout<<name<<"("<<i<<","<<yi<<")="<<val(i,yi)<<", "<<name<<"Err("<<i<<","<<yi<<")="<<err(i,yi)<<std::endl;
@@ -662,7 +659,7 @@ void unsquareBinContent2D(histo_t* h) {
 
 //---------------------------------------------------------------
 
-inline void unsquareBinContent(TH2F *h, int removeErr) { 
+inline void unsquareBinContent(TH2F *h, int removeErr) {
   if (removeErr) removeError2D(h);
   unsquareBinContent2D(h);
 }
@@ -806,7 +803,7 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
       }
     }
   }
-  
+
   for (unsigned int i=0; i<rndV.size(); i++) {
     const histo_t *hi=rndV[i];
 
@@ -837,7 +834,7 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<const histo_t*> &rndV,
 	    double val2=hi->GetBinContent(ibr2,ibc2);
 	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
 	    if (idxFlat1 != idxFlat2) {
-	      // due to the optimization ibr2=ibr1, we have to 
+	      // due to the optimization ibr2=ibr1, we have to
 	      // fill the mirrored term
 	      (*MSumXY)(idxFlat2,idxFlat1) += val1*val2;
 	    }
@@ -916,18 +913,18 @@ TMatrixD* createMatrixD(const TH2D *h2, int useErr=0);
 // and put the differences in the central values as an error of this central value
 //
 
-//TH2D *getRelDifferenceVA(const TH2D *baseValue, TString newName, 
+//TH2D *getRelDifferenceVA(const TH2D *baseValue, TString newName,
 //		       int nVariations, TH2D *hVar1, ...);
 
 // if includeVariants<>0, the differences among the variants are considered
-TH2D *getRelDifference(const TH2D *baseValue, TString newName, 
+TH2D *getRelDifference(const TH2D *baseValue, TString newName,
 		       int includeVariants,
 		       const TH2D *hVar1, const TH2D *hVar2=NULL,
 		       const TH2D *hVar3=NULL, const TH2D *hVar4=NULL);
 
-TH2D *getRelDifference(const std::vector<TH2D*> &vec, TString newName, 
+TH2D *getRelDifference(const std::vector<TH2D*> &vec, TString newName,
 		       int includeVariants);
-TH2D *getRelDifference(const std::vector<const TH2D*> &vec, TString newName, 
+TH2D *getRelDifference(const std::vector<const TH2D*> &vec, TString newName,
 		       int includeVariants);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -941,11 +938,11 @@ TVectorD* readFlagValues(TFile &fin, const TString &fieldName, int nFlags);
 //------------------------------------------------------------------------------------------------------------------------
 
 /*
-inline 
+inline
 void subdivideBinWeightByLinearApprox(
-   double m_1, double wsigma_1to0, 
+   double m_1, double wsigma_1to0,
    double m0, double wsigma0to1, double wsigma0to1Err,
-   double m1, 
+   double m1,
    double wsigma1to2, // needed if m2>0
    double m2,
    double mStar,
@@ -956,7 +953,7 @@ void subdivideBinWeightByLinearApprox(
   // the cross section is per bin!
   // (m_1,m0, wsigma_1to0); (m0,m1, wsigma0to1) ; (m1,m2, wsigma1to2)
   // We want to divide (m0,m1) to (m0,mStar), (mStar,m2)
-  // The cross section at the center of a bin 
+  // The cross section at the center of a bin
   // ( mc_05, wsigma_1to0/w0 ); ( mc05, wsigma0to1/w1 ) ; ( mc15, wsigma1to2/w2 )
   // or
   // ( mc_05, sigma_1to0 ) ; ( mc05, sigma0to1 ); ( mc15, sigma1to2 )
@@ -1021,7 +1018,7 @@ void subdivideBinWeightByLinearApprox(
       if (warn_on_branches) std::cout << " branch: taking remaining area\n";
       wSigmaStar2= wsigma0to1 - wSigmaStar1;
     }
-    
+
     // Error calculation
     double err=wsigma0to1Err/w1;
     double frac1=  wStar1 / sqrt( wStar1*wStar1 + wStar2*wStar2 );
@@ -1058,7 +1055,7 @@ void subdivideBinWeightByLinearApprox(
 inline
 TH1D* createZpeakHisto(const char *hname="hZpeak_mass", const char *htitle="Z-peak region") {
   const int mbCount=13;
-  const double mbins[mbCount+1]={  60,  64,  68,  72, 76, 
+  const double mbins[mbCount+1]={  60,  64,  68,  72, 76,
 				   81,  86,  91,  96,101,
 				  106, 110, 115, 120 };
   TH1D *h= new TH1D(hname,htitle,mbCount,mbins);
@@ -1363,10 +1360,10 @@ TH1D* createAnyTH1D(const TString &hname, const TString &htitle, int nBins, doub
 // -------------------------------------------
 
 inline
-int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase, 
-		   const std::vector<TString> &sample_labels, 
-		   int nBins, const double xMin, const double xMax, 
-		   const TString &xAxisLabel="x", 
+int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase,
+		   const std::vector<TString> &sample_labels,
+		   int nBins, const double xMin, const double xMax,
+		   const TString &xAxisLabel="x",
 		   const TString &yAxisLabel="counts", int setHistoTitle=1) {
   int res=1;
   if (sample_labels.size()==0) return 0;
@@ -1419,11 +1416,11 @@ int createAnyH1Vec(std::vector<TH1D*> &histosV, const TString &histoNameBase,
 // -------------------------------------------
 
 inline
-int createAnyH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase, 
-		   const std::vector<TString> &sample_labels, 
-		   int nxBins, double xMin, double xMax, 
+int createAnyH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase,
+		   const std::vector<TString> &sample_labels,
+		   int nxBins, double xMin, double xMax,
 		   int nyBins, double yMin, double yMax,
-		   const TString &xAxisLabel="x", 
+		   const TString &xAxisLabel="x",
 		   const TString &yAxisLabel="y", int setHistoTitle=1) {
   int res=1;
   if (sample_labels.size()==0) return 0;
@@ -1492,7 +1489,7 @@ template<class tObject_t>
 inline
 int loadVec(TFile &file, std::vector<tObject_t*> &vec, TString subDir="") {
   file.cd();
-  if (vec.size()==0) { 
+  if (vec.size()==0) {
     HERE("loadVec(%s,vec,%s): vec.size=0",TString(file.GetName()),subDir);
     return 0;
   }
@@ -1587,7 +1584,7 @@ TH2D* Clone(const TH2D* histo, const TString &newName, int setTitle=0) {
 
 //--------------------------------------------------
 
-// Histo has bins (1,Nx) x (1,Ny). 
+// Histo has bins (1,Nx) x (1,Ny).
 // Select a histogram (xbin1,xbin2) x (ybin1,ybin2).
 //   If the axes are divided at integers (e.g. indices are used), the option
 // resetAxis=1 might be useful. It ignores
@@ -1620,7 +1617,7 @@ double ZpeakCount(TH2D* h2, double *err=NULL) {
   const int ZpeakIdx2=DYTools::findMassBin(120.);
   const int yIdx1=1;
   const int yIdx2=DYTools::nYBins[ZpeakIdx1];
-    
+
   double val=0;
   if (!err) { val=h2->Integral(ZpeakIdx1,ZpeakIdx2,yIdx1,yIdx2); }
   else { val=h2->IntegralAndError(ZpeakIdx1,ZpeakIdx2,yIdx1,yIdx2,*err); }
@@ -1649,7 +1646,7 @@ TH2D* LoadMatrixFields(const TString &fname, int checkBinning, const TString &fi
 
 // LoadThreeMatrices loads (value,valueErr) into h2, and (valueSystErr,value^2) into h2syst
 
-// Load one matrix. 
+// Load one matrix.
 // If reportFieldError=0, no msg is printed, although null ptr is returned
 TMatrixD* loadMatrix(const TString &fname, const TString &fieldName, int expect_nRows, int expect_nCols, int reportFieldError=1);
 
