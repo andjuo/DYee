@@ -102,7 +102,7 @@ public:
 
   // ----------------
 
-  TH2D* createHistoWithFullError(const TString histoName) const {
+  TH2D* createHistoWithFullError(const TString &histoName) const {
     TH2D* h=Clone(fHisto,histoName);
     for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
       for (int jbin=1; jbin<=h->GetNbinsY(); ++jbin) {
@@ -112,6 +112,14 @@ public:
       }
     }
     return h;
+  }
+
+  // ----------------
+
+  TH2D* createHistoClone(TString newName="") const {
+    if (newName.Length()==0) newName=fHisto->GetName() + TString("_clone");
+    TH2D* h2=Clone(fHisto,newName);
+    return h2;
   }
 
   // ----------------
@@ -706,5 +714,67 @@ int createRandomizedVec(const HistoPair2D_t &hp, int iSyst, int nExps, TString n
 
 // ---------------------------------------------
 
+inline
+int loadHistoPairV(const std::vector<TString> &pathV,
+		   const std::vector<TString> &fnameV,
+		   const std::vector<TString> &fieldV,
+		   const std::vector<TString> &nameV,
+		   std::vector<HistoPair2D_t*> &csV) {
+  unsigned int size=pathV.size();
+  if ((size!=fnameV.size()) ||
+      (size!=fieldV.size()) ||
+      (size!=nameV.size())) {
+    std::cout <<"loadHistoPairV: size mismatch:\n"
+	      << " - pathV[" << pathV.size() << "]\n"
+	      << " - fnameV[" << fnameV.size() << "]\n"
+	      << " - fieldV[" << fieldV.size() << "]\n"
+	      << " - nameV[" << nameV.size() << "]\n";
+    return 0;
+  }
+  ClearVec(csV);
+  csV.reserve(size);
+
+  int res=1;
+  for (unsigned int i=0; res && (i<size); ++i) {
+    HistoPair2D_t *hp=new HistoPair2D_t(fieldV[i]);
+    TString loadFName= pathV[i] + fnameV[i];
+    res=hp->Load(loadFName,1,"");
+    if (!res) {
+      std::cout << "loadHistoPairV: failed to load from file <"
+		<< loadFName << ">\n";
+      return 0;
+    }
+    TString newName=nameV[i];
+    eliminateSeparationSigns(newName);
+    hp->changeName(newName);
+    csV.push_back(hp);
+  }
+  return res;
+}
+
+// ---------------------------------------------
+// ---------------------------------------------
+
+inline
+int convertHistoPairVec2HistoVec(const std::vector<HistoPair2D_t*> &iniV,
+				 std::vector<TH2D*> &finV, int totalErr) {
+  ClearVec(finV);
+  finV.reserve(iniV.size());
+  for (unsigned int i=0; i<iniV.size(); ++i) {
+    const HistoPair2D_t *hp=iniV[i];
+    TString newName=hp->GetName();
+    newName.Append( (totalErr) ? "_totErr" : "_clone" );
+    TH2D* h2=(totalErr) ? hp->createHistoWithFullError(newName) : hp->createHistoClone(newName);
+    if (!h2) {
+      std::cout << "convertHistoPairVec2HistoVec creation error\n";
+      return 0;
+    }
+    finV.push_back(h2);
+  }
+  return 1;
+}
+
+// ---------------------------------------------
+// ---------------------------------------------
 
 #endif
