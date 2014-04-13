@@ -523,6 +523,7 @@ public:
     if (!this->isInitialized()) return 0;
     if (fieldName.Length()==0) fieldName=fHisto->GetName();
     if (fieldErrName.Length()==0) fieldErrName=fHistoSystErr->GetName();
+    std::cout << "Read (" << fieldName << ", " << fieldErrName << ")\n";
     bool ok=fHisto->Read(fieldName);
     if (ok) ok=fHistoSystErr->Read(fieldErrName);
     if (!ok) { 
@@ -575,7 +576,8 @@ public:
   // ----------------
   // ----------------
 
-  int Load(const TString &fname, int checkBinning, TString subDir="") {
+  int Load(const TString &fname, int checkBinning, TString subDir="",
+	   int loadSyst=1) {
     if (!isInitialized()) return this->reportError("Load(%s): object is not initialized",fname);
     TFile file(fname,"read");
     if (!file.IsOpen()) return this->reportError("Load(%s): failed to open file");
@@ -588,7 +590,28 @@ public:
       fieldName=subDir + TString(fHisto->GetName());
       fieldErrName=subDir + TString(fHistoSystErr->GetName());
     }
-    if (res) res=this->Read(fieldName,fieldErrName);
+    else {
+      fieldName=fHisto->GetName();
+      fieldErrName=fHistoSystErr->GetName();
+    }
+    //if (res) res=this->Read(fieldName,fieldErrName);
+    if (res) {
+      fHisto=(TH2D*)file.Get(fieldName);
+      if (loadSyst) fHistoSystErr=(TH2D*)file.Get(fieldErrName);
+      else {
+	if (fHistoSystErr) delete fHistoSystErr;
+	TString systName=TString(fHisto->GetName()) + TString("Syst");
+	fHistoSystErr=(TH2D*)fHisto->Clone(systName);
+	fHistoSystErr->Reset();
+      }
+      if (!fHisto || !fHistoSystErr) {
+	res=0;
+	if (!fHisto) std::cout << " .. failed to load " << fieldName << "\n";
+	if (loadSyst && !fHistoSystErr) std::cout << " .. failed to load " << fieldErrName << "\n";
+      }
+      fHisto->SetDirectory(0);
+      fHistoSystErr->SetDirectory(0);
+    }
     file.Close();
     return (res) ? 1 : this->reportError("Load(%s): failed to load <%s>",fname,fHisto->GetName());
   }
@@ -719,7 +742,8 @@ int loadHistoPairV(const std::vector<TString> &pathV,
 		   const std::vector<TString> &fnameV,
 		   const std::vector<TString> &fieldV,
 		   const std::vector<TString> &nameV,
-		   std::vector<HistoPair2D_t*> &csV) {
+		   std::vector<HistoPair2D_t*> &csV,
+		   int loadSyst=1) {
   unsigned int size=pathV.size();
   if ((size!=fnameV.size()) ||
       (size!=fieldV.size()) ||
@@ -738,7 +762,7 @@ int loadHistoPairV(const std::vector<TString> &pathV,
   for (unsigned int i=0; res && (i<size); ++i) {
     HistoPair2D_t *hp=new HistoPair2D_t(fieldV[i]);
     TString loadFName= pathV[i] + fnameV[i];
-    res=hp->Load(loadFName,1,"");
+    res=hp->Load(loadFName,1,"",loadSyst);
     if (!res) {
       std::cout << "loadHistoPairV: failed to load from file <"
 		<< loadFName << ">\n";
