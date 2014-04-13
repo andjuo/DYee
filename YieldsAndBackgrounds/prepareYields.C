@@ -67,9 +67,10 @@ void SomeHistAttributes (TH1F* hist, TString samplename);
 //=== MAIN MACRO =================================================================================================
 
 int prepareYields(int analysisIs2D,
-		    const TString conf  = "default",
-		    DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
+		  const TString conf  = "default",
+		  DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+		  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+		  int iSeed=-1)
 {  
   gBenchmark->Start("prepareYields");
 
@@ -77,9 +78,13 @@ int prepareYields(int analysisIs2D,
     using namespace DYTools;
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,8, 
+    int systModeCount=3;
+#ifdef ZeeData_storeUnregEn
+    systModeCount+=6;
+#endif
+    if (!DYTools::checkSystMode(systMode,debug_print,systModeCount,
 				DYTools::NO_SYST, //DYTools::ESCALE_STUDY, 
-				//DYTools::ESCALE_STUDY_RND,
+				DYTools::ESCALE_STUDY_RND,
 				DYTools::APPLY_ESCALE,
 #ifdef ZeeData_storeUnregEn
 	        DYTools::UNREGRESSED_ENERGY,
@@ -97,10 +102,8 @@ int prepareYields(int analysisIs2D,
 #endif
     systMode=DYTools::NO_SYST;  // input files have no sytematics
   }
-  //else if (systMode==DYTools::APPLY_ESCALE) {
-  systMode=DYTools::NO_SYST; // assume input files have no systematics applied
-  //}
  
+  int applyEScale=0;
   int applyEtEtaCut=0;
   double mdfEnFactor=0.;
   switch(outputSystMode) {
@@ -111,6 +114,16 @@ int prepareYields(int analysisIs2D,
   case DYTools::ESCALE_DIFF_0020:
     systMode=DYTools::LOWER_ET_CUT;
     applyEtEtaCut=1;
+    break;
+  case DYTools::APPLY_ESCALE:
+    systMode=DYTools::LOWER_ET_CUT;
+    applyEtEtaCut=1;
+    applyEScale=1;
+    break;
+  case DYTools::ESCALE_STUDY_RND:
+    systMode=DYTools::LOWER_ET_CUT;
+    applyEtEtaCut=1;
+    applyEScale=2; // randomized scale factors
     break;
   default: ;
   }
@@ -134,6 +147,9 @@ int prepareYields(int analysisIs2D,
 
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
+
+  InputFileMgr_t inpMgr_forOutput(inpMgr);
+
   //mgr.Print();
 
   // no energy correction for this evaluation
@@ -144,15 +160,22 @@ int prepareYields(int analysisIs2D,
   TString plotExtraTag;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 		      extraTag, plotExtraTag, EventSelector::_selectDefault);
+
+  if (outputSystMode==DYTools::ESCALE_STUDY_RND) {
+    inpMgr_forOutput.editEnergyScaleTag().Append(Form("_RANDOMIZED%d",iSeed));
+  }
+  EventSelector_t evtSelector_forOutput(inpMgr_forOutput,runMode,
+					outputSystMode,
+		      extraTag, plotExtraTag, EventSelector::_selectDefault);
   // However, the plots should be saved according to the outputSystMode
-  evtSelector.SetPlotOutDir(runMode,outputSystMode,plotExtraTag,1);
+  // note: this is taken case by evtSelector_forOutput
+  //evtSelector.SetPlotOutDir(runMode,outputSystMode,plotExtraTag,1);
 
   int createDir=DYTools::processData(runMode);
-  TString yieldFullName= inpMgr.yieldFullFileName(-1,outputSystMode,createDir);
+  TString yieldFullName= inpMgr_forOutput.yieldFullFileName(-1,outputSystMode,createDir);
   std::cout << "will (work with)/(produce) yieldFile=<" 
 	    << yieldFullName << ">\n";
 
-    
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
   //============================================================================================================== 
@@ -280,22 +303,25 @@ int prepareYields(int analysisIs2D,
 	std::cout << "outputSystMode=UNREGRESSED_ENERGY needs that the values are stored in ZeeData\n";
 #endif
       }
-      if (applyEtEtaCut) {
-	if (!DYTools::goodEtEtaPair(data->scEt_1, data->scEta_1,
-				    data->scEt_2, data->scEta_2)) continue;
-      }
-      Double_t weight = data->weight;
 
       // If This is MC, add extra smearing to the mass
       // We apply extra smearing to all MC samples: it is may be
       // not quite right for fake electron backgrounds, but these
       // are not dominant, and in any case we do not have corrections
       // for fake electrons.
-      if (outputSystMode==DYTools::APPLY_ESCALE) {
-	if (!evtSelector.applyEScale(data,isData,0)) {
+      if (applyEScale) {
+	int randomized=(isData) ? (applyEScale-1) : 0;
+	if (!evtSelector_forOutput.applyEScale(data,isData,randomized)) {
 	  std::cout << "error when smearing/scaling an event\n";
 	}
       }
+
+      if (applyEtEtaCut) {
+	if (!DYTools::goodEtEtaPair(data->scEt_1, data->scEta_1,
+				    data->scEt_2, data->scEta_2)) continue;
+      }
+      Double_t weight = data->weight;
+
 
       // Find the 2D bin for this event:
       int massBin = DYTools::findMassBin(data->mass);
@@ -1000,6 +1026,7 @@ int prepareYields(int analysisIs2D,
   }
     */
 
+  std::cout << "produced yieldFile=<" << yieldFullName << ">\n";
 
   //gBenchmark->Show("prepareYields");
   ShowBenchmarkTime("prepareYields");
