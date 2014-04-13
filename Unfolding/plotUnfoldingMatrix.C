@@ -84,9 +84,10 @@ int plotUnfoldingMatrix(int analysisIs2D,
   inpMgr.constDir(systMode,1);
 
 
-  const int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
-  const int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
-  const int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : (seedMax-seedMin+1);
+  int seedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
+  int seedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
+  int dSeed=1;
+  int seedDiff=(systMode==DYTools::FSR_STUDY) ? 3 : (seedMax-seedMin+1);
 
   //std::cout << "seedMin..seedMax=" << seedMin << ".." << seedMax << "\n";
 
@@ -158,13 +159,19 @@ int plotUnfoldingMatrix(int analysisIs2D,
   }
   */
   if (systMode==DYTools::RESOLUTION_STUDY) {
+    if (seedMax==-111) {
+      seedMin=-111;
+      seedMax= 111;
+      dSeed=seedMax-seedMin;
+      seedDiff=2;
+    }
     if (seedMax < seedMin) {
       printf("error: randomSeedMax=%d, seedMin=%d\n",seedMax,seedMin);
       return retCodeError;
     }
     specEWeightsV.reserve(seedDiff); // not used, but needed as a check
     escaleV.reserve(seedDiff);
-    for (int i=seedMin; i<=seedMax; ++i) {
+    for (int i=seedMin; i<=seedMax; i+=dSeed) {
       TString escaleTag=inpMgr.energyScaleTag() +
 	TString(Form("_INVERTED_RANDOMIZED%d",i));
       ElectronEnergyScale *ees= new ElectronEnergyScale(escaleTag);
@@ -287,7 +294,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   */
   else if (systMode==DYTools::RESOLUTION_STUDY) {
     detRespV.reserve(escaleV.size());
-    for (int i=seedMin; i<=seedMax; ++i) {
+    for (int i=seedMin; i<=seedMax; i+=dSeed) {
       TString name=Form("detResponse_seed%d",i);
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
