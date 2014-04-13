@@ -1,10 +1,17 @@
 #include "prepareYields.C"
 
+//
+// cases
+// 0: no energy scale, regressed or unregressed energy (systModeFlag)
+// 1: energy scale applied
+// 2: energy scale applied, randomized study
+// 3: energy scale applied, special seed  +-111
+//
+
 int run_prepareYields(int analysisIs2D,
-		      int the_case, int systModeFlag=0, int loadData=1) {
+		      int the_case, int systModeFlag=0, int debug=-1) {
   TString confName="default";
-  DYTools::TRunMode_t runMode=(loadData) ? 
-    DYTools::LOAD_DATA : DYTools::NORMAL_RUN;
+  DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
 
   // Default systematics will be ESCALE_DIFF_0000 to apply the selection cuts
   //DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
@@ -21,6 +28,11 @@ int run_prepareYields(int analysisIs2D,
     confName="defaultAdHoc";
     systMode=DYTools::APPLY_ESCALE;
     break;
+  case 2:
+  case 3:
+    confName="defaultAdHoc";
+    systMode=DYTools::ESCALE_STUDY_RND;
+    break;
   default:
     std::cout << "the_case=" << the_case << " is not ready\n";
     return retCodeError;
@@ -33,6 +45,32 @@ int run_prepareYields(int analysisIs2D,
   }
 
   analysisIs2D=-111; // further calls to DYTools::setup do nothing
-  int res=prepareYields(analysisIs2D,confName,runMode,systMode);
+  int res=1;
+
+  if (systMode!=DYTools::ESCALE_STUDY_RND) {
+    res=prepareYields(analysisIs2D,confName,runMode,systMode);
+  }
+  else {
+    gBenchmark->Start("run_prepareYields");
+    int iSeedMin=-1;
+    int iSeedMax=-1;
+    int dSeed=1;
+    if (the_case!=3) {
+      InputFileMgr_t inpMgr;
+      if (!inpMgr.Load(confName)) return retCodeError;
+      iSeedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
+      iSeedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
+    }
+    else {
+      iSeedMin=-111;
+      iSeedMax= 111;
+      dSeed=iSeedMax-iSeedMin;
+    }
+    for (int iSeed=iSeedMin; res && (iSeed<=iSeedMax); iSeed+=dSeed) {
+      std::cout << "\n\n\tstarting iSeed=" << iSeed << "\n\n";
+      res=prepareYields(analysisIs2D,confName,runMode,systMode,iSeed);
+    }
+    ShowBenchmarkTime("run_prepareYields");
+  }
   return res;
 }
