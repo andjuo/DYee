@@ -209,7 +209,7 @@ void ElectronEnergyScale::init(const TString &stringWithEScaleTagName, int debug
       std::cout << "randomization with seed=" << seed << "\n";
       int res=this->randomizeEnergyScaleCorrections(seed);
       if (res) {
-	if (stringWithEScaleTagName.Index("INVERT_RAND")!=0) {
+	if (stringWithEScaleTagName.Index("INVERT_RAND")>=0) {
 	  std::cout << "inverting scale factors\n";
 	  res=this->invertRandomizedEnergyScaleCorrections();
 	}
@@ -1101,16 +1101,27 @@ int   ElectronEnergyScale::randomizeEnergyScaleCorrections(int seed){
   _energyScaleCorrectionRandomizationDone = true;
   if (_calibrationSet==UNCORRECTED) return 1;
 
+  int specialSeed=0;
+  if (abs(seed)==111) {
+    std::cout << "ElectronEnergyScale::randomizeEnergyScaleCorrections\n";
+    std::cout << " - Randomization superseded by a special |seed|=111\n";
+    std::cout << " - The fixed extreme error values will be taken\n";
+    specialSeed=(seed>0) ? 1:-1;
+  }
+
   if (_calibrationSet!=Date20140220_2012_j22_peak_position) {
     for(int i=0; i<_nEtaBins; i++){
-      _dataConstRandomized[i] =
-	_dataConst[i] + rand.Gaus(0.0,_dataConstErr[i]);
+      double delta=(specialSeed==0) ?
+	rand.Gaus(0.0,_dataConstErr[i]) : specialSeed*_dataConstErr[i];
+      _dataConstRandomized[i] = _dataConst[i] + delta;
     }
   }
   else {
     std::cout << "symmetrizing the randomized corrections\n";
     for(int i=0; i<_nEtaBins/2; i++){
-      _dataConstRandomized[i] = _dataConst[i] + rand.Gaus(0.0,_dataConstErr[i]);
+      double delta=(specialSeed==0) ?
+	rand.Gaus(0.0,_dataConstErr[i]) : specialSeed*_dataConstErr[i];
+      _dataConstRandomized[i] = _dataConst[i] + delta;
       _dataConstRandomized[_nEtaBins-i-1]= _dataConstRandomized[i];
     }
   }
