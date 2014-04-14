@@ -173,7 +173,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     escaleV.reserve(seedDiff);
     for (int i=seedMin; i<=seedMax; i+=dSeed) {
       TString escaleTag=inpMgr.energyScaleTag() +
-	TString(Form("_INVERTED_RANDOMIZED%d",i));
+	TString(Form("_MIRROR_RANDOMIZED%d",i));
       ElectronEnergyScale *ees= new ElectronEnergyScale(escaleTag);
       if (1) {
 	std::cout << "randomSeed=" << i << ". EScale="; 
