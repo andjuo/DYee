@@ -126,6 +126,8 @@ namespace mithep
     void restoreEScaleModifiedValues(const mithep::TDielectron &di) {
       pt_1 = di.pt_1; eta_1=di.eta_1; phi_1=di.phi_1;
       pt_2 = di.pt_2; eta_2=di.eta_2; phi_2=di.phi_2;
+      scEt_1 = di.scEt_1; scEta_1=di.scEta_1; scPhi_1=di.scPhi_1;
+      scEt_2 = di.scEt_2; scEta_2=di.scEta_2; scPhi_2=di.scPhi_2;
       mass = di.mass;
       pt= di.pt;
       y = di.y;
@@ -377,6 +379,8 @@ namespace mithep
     void restoreEScaleModifiedValues(const mithep::TDielectron &di) {
       pt_1 = di.pt_1; eta_1=di.eta_1; phi_1=di.phi_1;
       pt_2 = di.pt_2; eta_2=di.eta_2; phi_2=di.phi_2;
+      scEt_1 = di.scEt_1; scEta_1=di.scEta_1; scPhi_1=di.scPhi_1;
+      scEt_2 = di.scEt_2; scEta_2=di.scEta_2; scPhi_2=di.scPhi_2;
       mass = di.mass;
       pt= di.pt;
       y = di.y;
@@ -703,6 +707,8 @@ namespace mithep
     void restoreEScaleModifiedValues(const mithep::TDielectron &di) {
       pt_1 = di.pt_1; eta_1=di.eta_1; phi_1=di.phi_1;
       pt_2 = di.pt_2; eta_2=di.eta_2; phi_2=di.phi_2;
+      scEt_1 = di.scEt_1; scEta_1=di.scEta_1; scPhi_1=di.scPhi_1;
+      scEt_2 = di.scEt_2; scEta_2=di.scEta_2; scPhi_2=di.scPhi_2;
       mass = di.mass;
       pt= di.pt;
       y = di.y;
