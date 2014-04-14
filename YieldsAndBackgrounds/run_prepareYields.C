@@ -66,7 +66,9 @@ int run_prepareYields(int analysisIs2D,
       iSeedMax= 111;
       dSeed=iSeedMax-iSeedMin;
     }
-    for (int iSeed=iSeedMin; res && (iSeed<=iSeedMax); iSeed+=dSeed) {
+    if (res) res=retCodeOk;
+    for (int iSeed=iSeedMin; (res==retCodeOk) && (iSeed<=iSeedMax);
+	 iSeed+=dSeed) {
       std::cout << "\n\n\tstarting iSeed=" << iSeed << "\n\n";
       res=prepareYields(analysisIs2D,confName,runMode,systMode,iSeed);
     }
