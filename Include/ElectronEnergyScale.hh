@@ -162,13 +162,17 @@ public:
     ele2.SetPtEtaPhiM(data->pt_2,data->eta_2,data->phi_2,0.000511);
     ele1*=corr1;
     ele2*=corr2;
+    data->scEt_1 *= (ele1.Pt()/data->pt_1);
     data->pt_1 = ele1.Pt();
     data->scEta_1 *= (ele1.Eta()/data->eta_1);
     data->eta_1= ele1.Eta();
+    data->scPhi_1 *= (ele1.Phi()/data->scPhi_1);
     data->phi_1= ele1.Phi();
+    data->scEt_2 *= (ele2.Pt()/data->pt_2);
     data->pt_2 = ele2.Pt();
     data->scEta_2 *= (ele2.Eta()/data->eta_2);
     data->eta_2= ele2.Eta();
+    data->scPhi_2 *= (ele2.Phi()/data->scPhi_2);
     data->phi_2= ele2.Phi();
     ee = ele1 + ele2;
     data->mass = ee.M();
