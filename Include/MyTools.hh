@@ -1667,6 +1667,16 @@ void CreateDir(const TString &fname, int printDir=1) {
 
 //--------------------------------------------------
 
+void prepare(int count,
+	     std::vector<TString> &pathV,
+	     std::vector<TString> &fnameV,
+	     std::vector<TString> &fieldV,
+	     std::vector<TString> &labelV,
+	     int clear=1,
+	     int addEmptyElements=1);
+
+//--------------------------------------------------
+
 TCanvas* plotProfiles(TString canvName,
 		      const std::vector<TH2D*> &histosV,
 		      const std::vector<TString> &labelsV,

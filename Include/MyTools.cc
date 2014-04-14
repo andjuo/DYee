@@ -980,6 +980,40 @@ TH2D* extractSubArea(const TH2D *histo,
 //--------------------------------------------------
 //--------------------------------------------------
 
+void prepare(int count,
+	     std::vector<TString> &pathV,
+	     std::vector<TString> &fnameV,
+	     std::vector<TString> &fieldV,
+	     std::vector<TString> &labelV,
+	     int clear,
+	     int addEmptyElements) {
+  if (clear) {
+    pathV.clear();
+    fnameV.clear();
+    fieldV.clear();
+    labelV.clear();
+  }
+  else count+=int(pathV.size());
+
+  pathV.reserve(count);
+  fnameV.reserve(count);
+  fieldV.reserve(count);
+  labelV.reserve(count);
+
+  if (addEmptyElements) {
+    for (int i=0; i<count; ++i) {
+      TString empty=Form("empty_%d",i);
+      pathV.push_back(empty);
+      fnameV.push_back(empty);
+      fieldV.push_back(empty);
+      labelV.push_back(empty);
+    }
+  }
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TCanvas* plotProfiles(TString canvName,
 		      const std::vector<TH2D*> &histosV,
 		      const std::vector<TString> &labelsV,
