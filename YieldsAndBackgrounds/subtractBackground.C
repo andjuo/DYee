@@ -30,7 +30,8 @@ void bkgTablesToLatex(TMatrixD true2eBackground, TMatrixD true2eBackgroundError,
 int subtractBackground(int analysisIs2D,
 		       const TString conf = "default",
 		       DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		       DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST){
+		       DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+		       int iSeed=-1) {
 
 
   gBenchmark->Start("subtractBackground");
@@ -39,9 +40,9 @@ int subtractBackground(int analysisIs2D,
     using namespace DYTools;
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,8, 
+    if (!DYTools::checkSystMode(systMode,debug_print,9,
 				DYTools::NO_SYST, //DYTools::ESCALE_STUDY, 
-				//DYTools::ESCALE_STUDY_RND,
+				DYTools::ESCALE_STUDY_RND,
 	        DYTools::UNREGRESSED_ENERGY,DYTools::APPLY_ESCALE,
 		ESCALE_DIFF_0000, ESCALE_DIFF_0005, ESCALE_DIFF_0010, ESCALE_DIFF_0015, ESCALE_DIFF_0020
 				)) 
@@ -61,13 +62,16 @@ int subtractBackground(int analysisIs2D,
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) 
     return retCodeError;
+  if (systMode==DYTools::ESCALE_STUDY_RND) {
+    inpMgr.editEnergyScaleTag().Append(Form("_RANDOMIZED%d",iSeed));
+  }
   //inpMgr.Print();
 
   // Construct eventSelector, update inpMgr and plot directory
   TString extraTag;
   TString plotExtraTag;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extraTag, plotExtraTag, EventSelector::_selectDefault);
+		       extraTag, plotExtraTag, EventSelector::_selectDefault);
 
   //std::cout <<" " << inpMgr.yieldFullName(-1,systMode,0) << "\n";
   //std::cout <<" " << inpMgr.signalYieldFullName(systMode) << "\n";
@@ -97,6 +101,7 @@ int subtractBackground(int analysisIs2D,
     file.Close();
     if (!res) {
       std::cout << "error occurred during load of file <" << yieldFullName << ">\n";
+      return retCodeError;
     }
     std::cout << dashline;
   }
@@ -666,6 +671,7 @@ int subtractBackground(int analysisIs2D,
 	  TString cpTitle; //=yStr;
 	  ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]","uncorrected yield","ratio");
 	  cp->SetLogx(1);
+	  //cp->SetLogy(1);
 	  if (iy==0) cp->Prepare2Pads(c1);
 	  
 	  TString hName=Form("hSumMC_%d",iy);
