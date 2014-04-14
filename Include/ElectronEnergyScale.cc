@@ -1169,8 +1169,8 @@ bool ElectronEnergyScale::setCalibrationSet(CalibrationSet calSet) {
 
 //------------------------------------------------------
 
-TH1F* ElectronEnergyScale::createParamHisto(const TString &namebase, const TString &nameTag, const double *params, const double *paramErrs) const {
-  int includeGap=1;
+TH1D* ElectronEnergyScale::createParamHisto(const TString &namebase, const TString &nameTag, const double *params, const double *paramErrs) const {
+  int includeGap=0;
   const double gapHi=1.566;
   const double gapLo=1.4442;
   TString name=namebase; name+=nameTag;
@@ -1211,7 +1211,7 @@ TH1F* ElectronEnergyScale::createParamHisto(const TString &namebase, const TStri
   vals[_nEtaBins+shift]=0;
   valErrs[_nEtaBins+shift]=0;
   bins[_nEtaBins+shift+1]=3.;
-  TH1F* h=new TH1F(name.Data(),name.Data(), binCount-1, bins);
+  TH1D* h=new TH1D(name.Data(),name.Data(), binCount-1, bins);
   h->SetStats(0);
   for (int i=0; i<binCount-2; ++i) {
     h->SetBinContent(i+1,vals[i]);
@@ -1222,8 +1222,8 @@ TH1F* ElectronEnergyScale::createParamHisto(const TString &namebase, const TStri
 
 //------------------------------------------------------
 
-TH1F* ElectronEnergyScale::createScaleHisto(const TString &namebase) const {
-  TH1F* h= createParamHisto(namebase,"Scale",_dataConst,_dataConstErr);
+TH1D* ElectronEnergyScale::createScaleHisto(const TString &namebase) const {
+  TH1D* h= createParamHisto(namebase,"Scale",_dataConst,_dataConstErr);
   if (!h) {
     std::cout << "error in ElectornEnergyScale::createScaleHisto(" << namebase << ")\n";
   }
@@ -1232,12 +1232,12 @@ TH1F* ElectronEnergyScale::createScaleHisto(const TString &namebase) const {
 
 //------------------------------------------------------
 
-TH1F* ElectronEnergyScale::createSmearHisto(const TString &namebase, int parameterNo) const {
+TH1D* ElectronEnergyScale::createSmearHisto(const TString &namebase, int parameterNo) const {
   char buf[10];
   sprintf(buf,"Smear%d",parameterNo);
   const double *data=(parameterNo==0) ? _mcConst1 : _mcConst2;
   const double *dataErr=(parameterNo==0) ? _mcConst1Err : _mcConst2Err;
-  TH1F* h= createParamHisto(namebase,buf,data,dataErr);
+  TH1D* h= createParamHisto(namebase,buf,data,dataErr);
   if (!h) {
     std::cout << "error in ElectornEnergyScale::createSmearHisto(" << namebase << ", " << parameterNo << ")\n";
   }
@@ -1516,7 +1516,7 @@ double ElectronEnergyScale::generateMCSmearAnySingleEle(double eta, bool randomi
 
 //------------------------------------------------------
 
-bool ElectronEnergyScale::addSmearedWeightAny(TH1F *hMass, int eta1Bin, int eta2Bin, double mass, double weight, bool randomize) const {
+bool ElectronEnergyScale::addSmearedWeightAny(TH1D *hMass, int eta1Bin, int eta2Bin, double mass, double weight, bool randomize) const {
   
   //std::cout << "mass=" << mass << ", weight=" << weight << "\n";
   if( !_isInitialized ){
@@ -1544,7 +1544,7 @@ bool ElectronEnergyScale::addSmearedWeightAny(TH1F *hMass, int eta1Bin, int eta2
     smearingFunctionGridRandomized[eta1Bin][eta2Bin] :
     smearingFunctionGrid[eta1Bin][eta2Bin];
 
-  TH1F *h=hMass;
+  TH1D *h=hMass;
   for (int i=1; i<=h->GetNbinsX(); i++) {
     const double xa=h->GetBinLowEdge(i);
     const double xw=h->GetBinWidth(i);
@@ -1558,7 +1558,7 @@ bool ElectronEnergyScale::addSmearedWeightAny(TH1F *hMass, int eta1Bin, int eta2
 
 //------------------------------------------------------
 
-void ElectronEnergyScale::smearDistributionAny(TH1F *destination, int eta1Bin, int eta2Bin, const TH1F *source, bool randomize) const {
+void ElectronEnergyScale::smearDistributionAny(TH1D *destination, int eta1Bin, int eta2Bin, const TH1D *source, bool randomize) const {
   assert(source); assert(destination);
   for (int i=1; i<source->GetNbinsX(); ++i) {
     assert(addSmearedWeightAny(destination,eta1Bin,eta2Bin,source->GetBinCenter(i),source->GetBinContent(i),randomize));
@@ -2228,27 +2228,27 @@ int ElectronEnergyScale::ProcessZeeDataFileApproximateMCWeight(const char *mc_fi
   int debug=3; // the distributions
   int debug3testMC=1; 
   int debug2=0; // adding up remaining weights
-  TH1F *hraw=0; //(debug==0) ? 0 : new TH1F("hraw","hraw",60,60.,120.);
-  TH1F *h1=0; //(debug==0) ? 0 : new TH1F("h1","h1",60,60.,120.);
-  TH1F *h2=0; //(debug==0) ? 0 : new TH1F("h2","h2",60,60.,120.);
+  TH1D *hraw=0; //(debug==0) ? 0 : new TH1D("hraw","hraw",60,60.,120.);
+  TH1D *h1=0; //(debug==0) ? 0 : new TH1D("h1","h1",60,60.,120.);
+  TH1D *h2=0; //(debug==0) ? 0 : new TH1D("h2","h2",60,60.,120.);
   if (h1) { h1->SetLineColor(kGreen); h1->SetMarkerColor(kGreen); }
   if (h2) { h2->SetLineColor(kRed);  h2->SetMarkerColor(kRed) ; }
   //if (debug) { assert(hraw); assert(h1); assert(h2); }
-  std::vector<TH1F*> hrawV, hfinV;
+  std::vector<TH1D*> hrawV, hfinV;
   const int etaEtaCount=this->numberOfEtaEtaBins();
 
   if (debug==3) {
     int etaCount=this->numberOfEtaBins();
     hrawV.reserve(etaEtaCount);
     hfinV.reserve(etaEtaCount);
-    TH1F *hbase=new TH1F("hbase","hbase",120,60.,120.);
+    TH1D *hbase=new TH1D("hbase","hbase",120,60.,120.);
     hbase->SetDirectory(0);
     hbase->GetXaxis()->SetTitle("m_{ee}");
     hbase->GetYaxis()->SetTitle("counts");
     for (int i=0; i<etaCount; ++i) {
       for (int j=i; j<etaCount; ++j) {
 	TString hname=Form("hraw_%d_%d",i,j);
-	TH1F *h=(TH1F*)hbase->Clone(hname);
+	TH1D *h=(TH1D*)hbase->Clone(hname);
 	hbase->SetTitle(hname);
 	hrawV.push_back(h);
       }
@@ -2256,7 +2256,7 @@ int ElectronEnergyScale::ProcessZeeDataFileApproximateMCWeight(const char *mc_fi
     for (int i=0; i<etaCount; ++i) {
       for (int j=i; j<etaCount; ++j) {
 	TString hname=Form("hfin_%d_%d",i,j);
-	TH1F *h=(TH1F*)hbase->Clone(hname);
+	TH1D *h=(TH1D*)hbase->Clone(hname);
 	hbase->SetTitle(hname);
 	hfinV.push_back(h);
       }
@@ -2472,8 +2472,8 @@ int ElectronEnergyScale::ProcessZeeDataFileApproximateMCWeight(const char *mc_fi
     std::vector<double> diff(hrawV[0]->GetNbinsX());
     std::vector<double> diffratio(hrawV[0]->GetNbinsX());
     for (unsigned int i=0; i<hrawV.size(); ++i) {
-      TH1F *h1r=(TH1F*)hrawV[i]->Clone("h1r");
-      TH1F *h2f=(TH1F*)hfinV[i]->Clone("h2f");
+      TH1D *h1r=(TH1D*)hrawV[i]->Clone("h1r");
+      TH1D *h2f=(TH1D*)hfinV[i]->Clone("h2f");
       h1r->SetDirectory(0);
       h2f->SetDirectory(0);
       std::cout << "h1r->GetName=" << hrawV[i]->GetName() << std::endl;
