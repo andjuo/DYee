@@ -163,8 +163,9 @@ bool EventSelector_t::testDielectron_default(mithep::TDielectron *dielectron,
   // Energy scale corrections for data
   // NOTE: the electrons and dielectron 4-vectors are updated, the supercluster quantities are not
   //
-  Double_t scEt1 = dielectron->scEt_1;
-  Double_t scEt2 = dielectron->scEt_2;
+  //Double_t scEt1 = dielectron->scEt_1; // replacement
+  //Double_t scEt2 = dielectron->scEt_2; // replacement
+
   // Electron energy scale correction
   if((fEScaleCorrType==EventSelector::_escaleData) || 
      (fEScaleCorrType==EventSelector::_escaleDataRnd)) {
@@ -172,6 +173,12 @@ bool EventSelector_t::testDielectron_default(mithep::TDielectron *dielectron,
       return this->reportError("testDielectron_default: escaleData is requested, but the pointer is null");
     }
 
+    // replacement for e-scale correction
+    int randomized=(fEScaleCorrType==EventSelector::_escaleDataRnd) ? 1:0;
+    if (!fEScale->applyDataEnergyScale(dielectron,randomized)) {
+      return this->reportError("testDielectron_default: failed to apply escale on data");
+    }
+    /* // Replaced by a direct call to EScale
     double corr1 = 1, corr2= 1;
     if (fEScaleCorrType==EventSelector::_escaleData) {
       corr1=fEScale->getEnergyScaleCorrection(dielectron->scEta_1);
@@ -203,12 +210,15 @@ bool EventSelector_t::testDielectron_default(mithep::TDielectron *dielectron,
     dielectron->pt   = vDiEle.Pt();
     dielectron->y    = vDiEle.Rapidity();
     dielectron->phi  = vDiEle.Phi(); 
+    */
   }
        	  
   // requirements on BOTH electrons
   // For DY ET cuts are asymmetric.
-  if( !DYTools::goodEtEtaPair(scEt1, dielectron->scEta_1,
-			      scEt2, dielectron->scEta_2) ) return false;
+  if( !DYTools::goodEtEtaPair(dielectron->scEt_1, dielectron->scEta_1,
+			      dielectron->scEt_2, dielectron->scEta_2) ) {
+    return false;
+  }
 
   if (ec) ec->numDielectronsGoodEtEta_inc();
   fEC.numDielectronsGoodEtEta_inc();
@@ -258,15 +268,22 @@ bool EventSelector_t::testDielectron_lowerEtCut(
   // Energy scale corrections for data
   // NOTE: the electrons and dielectron 4-vectors are updated, the supercluster quantities are not
   //
-  Double_t scEt1 = dielectron->scEt_1;
-  Double_t scEt2 = dielectron->scEt_2;
+  //Double_t scEt1 = dielectron->scEt_1; // replacement
+  //Double_t scEt2 = dielectron->scEt_2; // replacement
   // Electron energy scale correction
   if((fEScaleCorrType==EventSelector::_escaleData) || 
      (fEScaleCorrType==EventSelector::_escaleDataRnd)) {
     if (!fEScale) {
-      return this->reportError("testDielectron_default: escaleData is requested, but the pointer is null");
+      return this->reportError("testDielectron_lowerEtCut: escaleData is requested, but the pointer is null");
     }
 
+    // replacement for e-scale correction
+    int randomized=(fEScaleCorrType==EventSelector::_escaleDataRnd) ? 1:0;
+    if (!fEScale->applyDataEnergyScale(dielectron,randomized)) {
+      return this->reportError("testDielectron_lowerEtCut: failed to apply escale on data");
+    }
+
+    /* // Replaced by a direct call to EScale
     double corr1 = 1, corr2= 1;
     if (fEScaleCorrType==EventSelector::_escaleData) {
       corr1=fEScale->getEnergyScaleCorrection(dielectron->scEta_1);
@@ -298,17 +315,20 @@ bool EventSelector_t::testDielectron_lowerEtCut(
     dielectron->pt   = vDiEle.Pt();
     dielectron->y    = vDiEle.Rapidity();
     dielectron->phi  = vDiEle.Phi(); 
+    */
   }
   
   // requirements on BOTH electrons
   // For DY ET cuts are asymmetric.
+  Double_t scEt1 = dielectron->scEt_1;
+  Double_t scEt2 = dielectron->scEt_2;
   if ( !DYTools::goodEtaPair(dielectron->scEta_1, dielectron->scEta_2) ||
        (scEt1<DYTools::etMinTrail-5.) || (scEt2<DYTools::etMinTrail-5.) ||
-       ((scEt1<DYTools::etMinLead-5.) && (scEt2<DYTools::etMinLead-5.)) ) 
+       ((scEt1<DYTools::etMinLead-5.) && (scEt2<DYTools::etMinLead-5.)) )
     return false;
   //
   //if( !DYTools::goodEtEtaPair(scEt1, dielectron->scEta_1,
-  //			      scEt2, dielectron->scEta_2) ) return false;
+  //			        scEt2, dielectron->scEta_2) ) return false;
 
   if (ec) ec->numDielectronsGoodEtEta_inc();
   fEC.numDielectronsGoodEtEta_inc();
@@ -361,15 +381,22 @@ bool EventSelector_t::testDielectron_HLT_ordered(mithep::TDielectron *dielectron
   // Energy scale corrections for data
   // NOTE: the electrons and dielectron 4-vectors are updated, the supercluster quantities are not
   //
-  Double_t scEt1 = dielectron->scEt_1;
-  Double_t scEt2 = dielectron->scEt_2;
+  //Double_t scEt1 = dielectron->scEt_1; // replacement
+  //Double_t scEt2 = dielectron->scEt_2; // replacement
+
   // Electron energy scale correction
   if((fEScaleCorrType==EventSelector::_escaleData) || 
      (fEScaleCorrType==EventSelector::_escaleDataRnd)) {
     if (!fEScale) {
-      return this->reportError("testDielectron_default: escaleData is requested, but the pointer is null");
+      return this->reportError("testDielectron_HLT_ordered: escaleData is requested, but the pointer is null");
     }
 
+    // replacement for e-scale correction
+    int randomized=(fEScaleCorrType==EventSelector::_escaleDataRnd) ? 1:0;
+    if (!fEScale->applyDataEnergyScale(dielectron,randomized)) {
+      return this->reportError("testDielectron_HLT_ordered: failed to apply escale on data");
+    }
+    /* // Replaced by a direct call to EScale
     double corr1 = 1, corr2= 1;
     if (fEScaleCorrType==EventSelector::_escaleData) {
       corr1=fEScale->getEnergyScaleCorrection(dielectron->scEta_1);
@@ -401,12 +428,13 @@ bool EventSelector_t::testDielectron_HLT_ordered(mithep::TDielectron *dielectron
     dielectron->pt   = vDiEle.Pt();
     dielectron->y    = vDiEle.Rapidity();
     dielectron->phi  = vDiEle.Phi(); 
+    */
   }
        	  
   // requirements on BOTH electrons
   // For DY ET cuts are asymmetric.
-  if( !DYTools::goodEtEtaPair(scEt1, dielectron->scEta_1,
-			      scEt2, dielectron->scEta_2) ) {
+  if( !DYTools::goodEtEtaPair(dielectron->scEt_1, dielectron->scEta_1,
+			      dielectron->scEt_2, dielectron->scEta_2) ) {
     if (trace) std::cout << "failed (et,eta)\n";
     return false;
   }
@@ -467,7 +495,7 @@ bool EventSelector_t::testDielectron_HLT_ordered_nonRegressed(mithep::TDielectro
   if((fEScaleCorrType==EventSelector::_escaleData) || 
      (fEScaleCorrType==EventSelector::_escaleDataRnd)) {
     if (!fEScale) {
-      return this->reportError("testDielectron_default: escaleData is requested, but the pointer is null");
+      return this->reportError("testDielectron_HLT_ordered_nonRegressed: escaleData is requested, but the pointer is null");
     }
 
     double corr1 = 1, corr2= 1;
