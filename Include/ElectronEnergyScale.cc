@@ -213,6 +213,10 @@ void ElectronEnergyScale::init(const TString &stringWithEScaleTagName, int debug
 	  std::cout << "inverting scale factors\n";
 	  res=this->invertRandomizedEnergyScaleCorrections();
 	}
+	else if (stringWithEScaleTagName.Index("MIRROR_RAND")>=0) {
+	  std::cout << "inverting scale factors\n";
+	  res=this->mirrorRandomizedEnergyScaleCorrections();
+	}
       }
       if (!res) _isInitialized=false;
     }
@@ -1142,6 +1146,24 @@ int ElectronEnergyScale::invertRandomizedEnergyScaleCorrections() {
   for (int i=0; i<_nEtaBins; ++i) {
     double s=_dataConstRandomized[i];
     _dataConstRandomized[i] = 1/s;
+  }
+  return 1;
+}
+
+//------------------------------------------------------
+
+// for systematics studies with 2012 data, MC has to be scaled by the
+// inverse factors as compared to data
+
+int ElectronEnergyScale::mirrorRandomizedEnergyScaleCorrections() {
+  if (!_energyScaleCorrectionRandomizationDone) {
+    std::cout << "mirrorRandomizedEnergyScaleCorrections: first call randomizeEnergyScaleCorrections\n";
+    return 0;
+  }
+  for (int i=0; i<_nEtaBins; ++i) {
+    double s0=_dataConst[i];
+    double s1=_dataConstRandomized[i];
+    _dataConstRandomized[i] = 1. + (s1-s0);
   }
   return 1;
 }

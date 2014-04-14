@@ -117,6 +117,7 @@ public:
   // for systematics studies with 2012 data, MC has to be scaled by the
   // inverse factors as compared to data
   int   invertRandomizedEnergyScaleCorrections();
+  int   mirrorRandomizedEnergyScaleCorrections();
 
   void   randomizeSmearingWidth(int seed);
 
