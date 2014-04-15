@@ -131,7 +131,7 @@ void compareRndYields(TString conf="defaultAdHoc",
       //if (iseed<0) continue;
       //if (iseed-seedMin>2) break;
       InputFileMgr_t inpMgrRnd(inpMgrRemote);
-      inpMgrRnd.editEnergyScaleTag().Append(Form("_INVERTED_RANDOMIZED%d",iseed));
+      inpMgrRnd.editEnergyScaleTag().Append(Form("_MIRROR_RANDOMIZED%d",iseed));
       EventSelector_t evtSelectorRnd(inpMgrRnd,runMode,systModeV,
 		       extraTag, plotExtraTag, EventSelector::_selectDefault);
       TString nameRnd=Form("detResponse_seed%d",iseed);
@@ -210,7 +210,7 @@ void compareRndYields(TString conf="defaultAdHoc",
       //if (iseed<0) continue;
       //if (iseed-seedMin>2) break;
       InputFileMgr_t inpMgrRnd(inpMgrRemote);
-      inpMgrRnd.editEnergyScaleTag().Append(Form("_INVERTED_RANDOMIZED%d",iseed));
+      inpMgrRnd.editEnergyScaleTag().Append(Form("_MIRROR_RANDOMIZED%d",iseed));
       EventSelector_t evtSelectorRnd(inpMgrRnd,runMode,systModeV,
 		       extraTag, plotExtraTag, EventSelector::_selectDefault);
       TString nameRnd=Form("detResponse_seed%d",iseed);
