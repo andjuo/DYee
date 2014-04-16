@@ -189,6 +189,17 @@ public:
     CPlot::AddHist1D(h,label,drawopt,color,linesty,fillsty,legendSymbolLP);
   }
 
+  void AddHist1D(TH1D *h, TString label, TString drawopt,
+		 const TAttMarker &marker,
+		 int linesty=1, int fillsty=0, int legendSymbolLP=0) {
+    h->SetMarkerStyle(marker.GetMarkerStyle());
+    h->SetMarkerSize (marker.GetMarkerSize());
+    h->SetLineColor  (marker.GetMarkerColor());
+    h->SetMarkerColor(marker.GetMarkerColor());
+    this->AddHist1D(h,label,drawopt,marker.GetMarkerColor(),
+		    linesty,fillsty,legendSymbolLP);
+  }
+
   void AddToStack(TH1D *h, TString label, int color) {
     CPlot::AddToStack(h,label,color);
     SkipInRatioPlots(h);
