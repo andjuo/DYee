@@ -1,6 +1,6 @@
 {
-  gROOT->Macro("../DYTools.cc+");
-  gROOT->Macro("../DYTools.hh+");
+  gROOT->ProcessLine(".L ../DYTools.cc+");
+  gROOT->ProcessLine(".L ../DYTools.hh+");
 
   // to run chkExtractHisto
   gROOT->ProcessLine(".L ../CPlot.cc+");
