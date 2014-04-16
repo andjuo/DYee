@@ -235,17 +235,32 @@ int PUReweight_t::initializeTwoHistoWeights(TH1F* hTarget, TH1F* hSource) {
     std::cout << "hSource: "; printHisto_local(std::cout, hSource);
     return 0;
   }
-  
+
   if (hWeight) delete hWeight; // may be unsafe!! But we also may end-up without memory
   hWeight= (TH1F*)hTarget->Clone( hSource->GetName() + TString("_puWeights") );
   assert(hWeight);
   hWeight->SetDirectory(0);
-  hWeight->Scale( hSource->GetSumOfWeights() / hTarget->GetSumOfWeights() );
+  double scale=hSource->GetSumOfWeights() / hTarget->GetSumOfWeights();
+  hWeight->Scale( scale );
+  std::cout << "PUReweight::initializeTwoHistoWeights. ROOT might issue a warning about bin limits" << std::endl;
   hWeight->Divide(hSource);
+  std::cout << " .. division done\n";
+  if (0) {
+    for (int ibin=1; ibin<=hActive->GetNbinsX(); ++ibin) {
+      std::cout << "ibin=" << ibin << ", hTarget/hSource="
+		<< scale*hTarget->GetBinContent(ibin)/hSource->GetBinContent(ibin)
+		<< ", hWeight=" << hWeight->GetBinContent(ibin)
+		<< "\n";
+    }
+  }
   // correction for pu=0
   if ((hWeight->GetBinLowEdge(1)==-0.5) && (hWeight->GetBinWidth(1)==1.)) {
     hWeight->SetBinContent(1,0.); hWeight->SetBinError(1,0.);
   }
+  //for (int ibin=1; ibin<=hWeight->GetNbinsX(); ++ibin) {
+  //  std::cout << "ibin=" << ibin << ", hWeight[i]=" << hWeight->GetBinContent(ibin) << "\n";
+  //}
+  FActiveMethod=_TwoHistos;
   return 1;
 }
 
@@ -307,7 +322,7 @@ int PUReweight_t::setSimpleWeights(const TString &targetFile,
   }
   hTarget->SetDirectory(0);
   hSource->SetDirectory(0);
-  
+
   f1.Close(); 
   f2.Close();
 
