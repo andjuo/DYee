@@ -13,10 +13,6 @@ int calcCSCov(TString conf, int nExps=100,
   // Settings 
   //==============================================================================================================
 
-  if (conf==TString("default")) {
-    conf="../config_files/data_vilnius8TeV_regSSD.conf.py";
-  }
-
   DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
 
