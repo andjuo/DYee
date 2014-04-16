@@ -24,7 +24,8 @@ EventWeight_t::~EventWeight_t() {
 
 // --------------------------------------------------------
 
-int EventWeight_t::init(int do_puReweight, int do_fewzCorr, DYTools::TSystematicsStudy_t systMode) {
+int EventWeight_t::init(int do_puReweight, int do_fewzCorr,
+	         DYTools::TSystematicsStudy_t systMode, TString rndStudyStr) {
   fDoPUReweight=0;
   fFewzCorr=0;
 
@@ -46,10 +47,45 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr, DYTools::TSystematic
   }
 
   int ok=1;
-  if (do_puReweight) {
+  if (ok && do_puReweight) {
 
-    fPUReweight=new PUReweight_t(systMode);
-    if (!fPUReweight) ok=0; else fDoPUReweight=do_puReweight;
+    int regularPileup=1;
+    int idxPU=-1;
+    if (rndStudyStr.Length()!=0) {
+      int idx=rndStudyStr.Index("PU_RND_");
+      if (idx>=0) {
+	idxPU=atoi(rndStudyStr.Data() + idx + strlen("PU_RND_"));
+	std::cout << "PU_RND detected. idx=" << idxPU << "\n";
+	regularPileup=0;
+      }
+    }
+
+    if (regularPileup) {
+      fPUReweight=new PUReweight_t(systMode);
+    }
+    else {
+#ifndef DYee8TeV_reg
+      std::cout << "non-regular pileup reweight is ready for DYee_8TeV_reg\n";
+      ok=0;
+#else
+      fPUReweight=new PUReweight_t(PUReweight_t::_none);
+      if (fPUReweight) {
+	TString targetFile="../root_files_reg/pileup/8TeV_reg/randomized_pileup_20140415.root";
+	TString targetField=Form("hRnd_lumibased_data_%d",idxPU);
+	if (idxPU==0) targetField="pileup_lumibased_data_base";
+	else if (idxPU== 111) targetField="pileup_lumibased_data_111";
+	else if (idxPU==-111) targetField="pileup_lumibased_data_-111";
+	TString sourceFile="../root_files_reg/pileup/8TeV_reg/mcPileupHildreth_mean_full2012_20131106_repacked.root";
+	ok=fPUReweight->setSimpleWeights(targetFile,targetField,
+					 sourceFile,"pileup_simulevel_mc");
+	if (!ok) {
+	  std::cout << "error setting simple weights\n";
+	}
+      }
+#endif
+    }
+
+    if (ok && !fPUReweight) ok=0; else fDoPUReweight=do_puReweight;
 
     // hard-coded check
 #ifndef DYee8TeV_reg
@@ -61,7 +97,7 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr, DYTools::TSystematic
 #endif
   }
 
-  if (do_fewzCorr) {
+  if (ok && do_fewzCorr) {
     bool cutZPt100= ((do_fewzCorr && 2)!=0) ? true : false;
     fFEWZ = new FEWZ_t(true, cutZPt100);
     if (!fFEWZ || !fFEWZ->isInitialized()) ok=0;

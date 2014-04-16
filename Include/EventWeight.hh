@@ -49,7 +49,8 @@ public:
 
   ~EventWeight_t();
 
-  int init(int do_puReweight, int do_fewzCorr, DYTools::TSystematicsStudy_t systMode);
+  int init(int do_puReweight, int do_fewzCorr,
+	   DYTools::TSystematicsStudy_t systMode, TString rndStudyStr="");
 
   void setFewzWeight(const mithep::TGenInfo* gen) {
     fewzW=(gen && fFEWZ) ? fFEWZ->getWeight(gen->vmass,gen->vpt,gen->vy) : 1.0;
