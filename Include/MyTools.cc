@@ -91,7 +91,7 @@ TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr, const char *histoNa
       double *mbins=new double[DYTools::nMassBins+1];
       for (int i=0; i<=DYTools::nMassBins; ++i)
 	mbins[i]=DYTools::massBinLimits[i];
-      mbins[DYTools::nMassBins] += 5e-1;
+      //mbins[DYTools::nMassBins] += 5e-1;
       h= new TH2D(histoName,histoTitle,
 		  DYTools::nMassBins, mbins,
 		  DYTools::nMassBins, mbins);
