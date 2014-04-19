@@ -1096,13 +1096,16 @@ void ShowBenchmarkTime(const char *clock_name);
 // --------------------------------
 
 inline
-TString DayAndTimeTag()
+TString DayAndTimeTag(int eliminateSigns=1)
 {
    time_t ltime;
    ltime=time(NULL);
    TString str = TString(asctime(localtime(&ltime)));
-   str.ReplaceAll(" ","_");
-   str.ReplaceAll(":","");
+   if (str[str.Length()-1]=='\n') str.Remove(str.Length()-1,1);
+   if (eliminateSigns) {
+     str.ReplaceAll(" ","_");
+     str.ReplaceAll(":","");
+   }
    return str;
 }
 
@@ -1628,8 +1631,8 @@ double ZpeakCount(TH2D* h2, double *err=NULL) {
 //--------------------------------------------------
 //--------------------------------------------------
 
-void writeBinningArrays(TFile &fout);
-int checkBinningArrays(TFile &fin);
+void writeBinningArrays(TFile &fout, TString producedBy="");
+int checkBinningArrays(TFile &fin, int printMetaData=0);
 int checkBinningRanges(const TVectorD &massBinEdges, const TVectorD &rapidityCounts, const TString &fname);
 int checkMatrixSize(const TMatrixD &m, const TString &infoName);
 

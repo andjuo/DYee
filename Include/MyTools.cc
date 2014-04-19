@@ -661,22 +661,44 @@ TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinnin
 //--------------------------------------------------
 //--------------------------------------------------
 
-void writeBinningArrays(TFile &fout) {
+void writeBinningArrays(TFile &fout, TString producedBy) {
   fout.cd();
   TVectorD mass(DYTools::nMassBins+1);
   TVectorD rapidityCounts(DYTools::nMassBins);
   for (int i=0; i<DYTools::nMassBins+1; i++) mass[i]=DYTools::massBinLimits[i];
   for (int i=0; i<DYTools::nMassBins  ; i++) rapidityCounts[i]=DYTools::nYBins[i];
-  mass.Write("massBinLimits"); // was 'massBinning'
+  mass.Write("massBinLimits");
   rapidityCounts.Write("rapidityCounts");
+
+  // meta data
+  TObjString info(producedBy);
+  TObjString timeTag(DayAndTimeTag(0));
+  TObjString explain="productionTime";
+  info.Write("producedBy");
+  timeTag.Write("timeTag");
+  info.Write(TString("infoProducedBy: ") + producedBy);
+  explain.Write(timeTag.String());
 }
 
 //--------------------------------------------------
 
-int checkBinningArrays(TFile &fin) {
-  const char *fncname="unfolding::checkBinningArrays: ";
+int checkBinningArrays(TFile &fin, int printMetaData) {
+  const char *fncname="checkBinningArrays: ";
   TString fileInfo=TString("on file <") + fin.GetName() + ">";
   fin.cd();
+  if (printMetaData) {
+    std::cout << "Meta data " << fileInfo << "\n";
+    TObjString *info=(TObjString*)fin.Get("producedBy");
+    TObjString *timeTag=(TObjString*)fin.Get("timeTag");
+    if (info) {
+      std::cout << " - producedBy <" << info->String() << ">\n";
+      delete info;
+    }
+    if (timeTag) {
+      std::cout << " - timeTag <" << timeTag->String() << ">\n";
+      delete timeTag;
+    }
+  }
   TVectorD* mass= (TVectorD*)fin.FindObjectAny("massBinLimits");
   TVectorD* rapidityCounts= (TVectorD*)fin.FindObjectAny("rapidityCounts");
   if (!mass || !rapidityCounts) {
