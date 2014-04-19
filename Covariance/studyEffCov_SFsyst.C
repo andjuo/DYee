@@ -320,7 +320,7 @@ int studyEffCov_SFsyst(int analysisIs2D,
     saveVec(rhoFile,hScaleFIV_150,"esf_histos_150");
     saveVec(rhoFile,hScaleFIV_1500,"esf_histos_1500");
 
-    writeBinningArrays(rhoFile);
+    writeBinningArrays(rhoFile,"studyEffCov_SFsyst");
     rhoFile.Close();
   }
   else {
@@ -599,8 +599,8 @@ int studyEffCov_SFsyst(int analysisIs2D,
     covRhoRho.Write(fCov,"covRhoRho");
     corrRhoRho.Write(fCov,"corrRhoRho");
     cx->Write("canvRhoRho");
-    avgRhoMean.Write("scaleFactorFlatIdxArray");
-    avgRhoRMS.Write("scaleFactorErrFlatIdxArray");
+    avgRhoMean.Write("avgRhoMean");
+    avgRhoRMS.Write("avgRhoRMS");
     esfM.Write("scaleFactor");
     esfMerr.Write("scaleFactorErr_stat");
     esfMpseudo.Write("scaleFactor_pseudo");
@@ -610,7 +610,7 @@ int studyEffCov_SFsyst(int analysisIs2D,
     esfMFromHisto150err.Write("scaleFactor_hb150err");
     esfMFromHisto1500.Write("scaleFactor_hb1500");
     esfMFromHisto1500err.Write("scaleFactor_hb1500err");
-    writeBinningArrays(fCov);
+    writeBinningArrays(fCov,"studyEffCov_SFsyst");
     fCov.Close();
     std::cout << "file <" << covFileName << "> recreated\n";
 
@@ -630,7 +630,7 @@ int studyEffCov_SFsyst(int analysisIs2D,
     h2covSave->Write("covRhoRho");
     h2corrSave->Write("corrRhoRho");
     h2ScaleFactors->Write("scaleFactors");
-    writeBinningArrays(fResult);
+    writeBinningArrays(fResult,"studyEffCov_SFsyst");
     fResult.Close();
     std::cout << "file <" << fResult.GetName() << "> saved\n";
 
