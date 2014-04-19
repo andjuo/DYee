@@ -116,6 +116,19 @@ public:
 
   // ----------------
 
+  TH2D* createHistoWithSystError(const TString &histoName) const {
+    TH2D* h=Clone(fHisto,histoName);
+    for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=h->GetNbinsY(); ++jbin) {
+	double systErr=fHistoSystErr->GetBinError(ibin,jbin);
+	h->SetBinError(ibin,jbin,systErr);
+      }
+    }
+    return h;
+  }
+
+  // ----------------
+
   TH2D* createHistoClone(TString newName="") const {
     if (newName.Length()==0) newName=fHisto->GetName() + TString("_clone");
     TH2D* h2=Clone(fHisto,newName);
