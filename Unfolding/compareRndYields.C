@@ -15,9 +15,9 @@ void swapStr(TString &a, TString &b) {
 // --------------------------------------------------------
 // --------------------------------------------------------
 
-void compareRndYields(TString conf="defaultAdHoc",
+void compareRndYields(int analysisIs2D=1,
+		      TString conf="defaultAdHoc",
 		      int iBr=0,
-		      int analysisIs2D=1,
 		      int doSave=0,
 		      TString *figName=NULL,
 		      TString *dirName=NULL) {
