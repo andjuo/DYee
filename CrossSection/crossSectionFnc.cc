@@ -145,7 +145,9 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   if (inpArg.silentMode()<2) HERE(" -- efficiencyScaleCorrection");
   DYTools::TSystematicsStudy_t systMode=inpArg.systMode();
   if (1) {
-    std::cout << "Efficiency scale factors have built-in systMode\n";
+    if (!inpArg.silentMode()) {
+      std::cout << "Efficiency scale factors have built-in systMode\n";
+    }
     systMode=DYTools::NO_SYST;
   }
   TString rhoCorrFName=inpArg.inpMgr()->correctionFullFileName("scale_factors_asymHLT",systMode,0);
@@ -153,7 +155,9 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
     TString sfTag=inpArg.inpMgr()->userKeyValueAsTString("SpecialESFTag");
-    std::cout << "\n\n\tsfTag=<" << sfTag << ">\n\n";
+    if (!inpArg.silentMode())  std::cout << "\n\n";
+    std::cout << "\tsfTag=<" << sfTag << ">\n";
+    if (!inpArg.silentMode()) std::cout << "\n";
     if (sfTag.Length()) {
       // special
       rhoCorrFName="/home/andriusj/cms/DYee-20140407-ESF-systVars/Covariance/";
