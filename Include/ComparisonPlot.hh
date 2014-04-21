@@ -169,10 +169,15 @@ public:
 
   void Skip(TH1D* h) { SkipInRatioPlots(h); }
 
-  TH1D* GetFirstHisto() {
+  TH1D* GetHisto(int no=0) {
     TH1D* h=NULL;
+    int count=0;
     for (unsigned int i=0; !h && (i<fItems.size()); ++i) {
       h= fItems[i].hist1D;
+      if ((h!=NULL) && (count<no)) {
+	count++;
+	h=NULL;
+      }
     }
     return h;
   }
