@@ -104,7 +104,7 @@ void compareRndYields(TString conf="defaultAdHoc",
     systModeV=DYTools::ESCALE_STUDY_RND;
     idxRndVec=pathV.size();
     for (int iseed=seedMin; iseed<=seedMax; iseed+=dSeed) {
-      if ((1 || (dSeed==1)) && (iseed-seedMin>79)) break;
+      //if ((1 || (dSeed==1)) && (iseed-seedMin>79)) break;
       //if (iseed-seedMin>2) break;
       InputFileMgr_t inpMgrRnd(inpMgr);
       inpMgrRnd.editEnergyScaleTag().Append(Form("_RANDOMIZED%d",iseed));
