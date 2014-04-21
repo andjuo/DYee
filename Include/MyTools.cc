@@ -37,6 +37,21 @@ TMatrixD* corrFromCov(const TMatrixD &cov) {
 
 //--------------------------------------------------
 
+TH2D* errorFromCov(const TMatrixD &cov, TString newName) {
+  TH2D* h2=createBaseH2(newName,newName,1);
+  int iflat=0;
+  for (int xbin=1; xbin<=h2->GetNbinsX(); ++xbin) {
+    for (int ybin=1; ybin<=h2->GetNbinsY(); ++ybin, ++iflat) {
+      if (iflat >= cov.GetNrows()) break;
+      h2->SetBinContent(xbin,ybin, sqrt(cov(iflat,iflat)));
+      h2->SetBinError(xbin,ybin, 0.);
+    }
+  }
+  return h2;
+}
+
+//--------------------------------------------------
+
 TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov) {
   TMatrixD *corr= new TMatrixD(cov);
   if (!corr) {
@@ -671,7 +686,8 @@ void writeBinningArrays(TFile &fout, TString producedBy) {
   rapidityCounts.Write("rapidityCounts");
 
   // meta data
-  TObjString info(producedBy);
+  TObjString info((producedBy.Length()) ?
+		  producedBy : TString("Non-specified macro"));
   TObjString timeTag(DayAndTimeTag(0));
   TObjString explain="productionTime";
   info.Write("producedBy");
@@ -1034,6 +1050,35 @@ void prepare(int count,
 }
 
 //--------------------------------------------------
+
+void prepare(int count,
+	     std::vector<TString> &pathV,
+	     std::vector<TString> &fieldV,
+	     std::vector<TString> &labelV,
+	     int clear,
+	     int addEmptyElements) {
+  if (clear) {
+    pathV.clear();
+    fieldV.clear();
+    labelV.clear();
+  }
+  else count+=int(pathV.size());
+
+  pathV.reserve(count);
+  fieldV.reserve(count);
+  labelV.reserve(count);
+
+  if (addEmptyElements) {
+    for (int i=0; i<count; ++i) {
+      TString empty=Form("empty_%d",i);
+      pathV.push_back(empty);
+      fieldV.push_back(empty);
+      labelV.push_back(empty);
+    }
+  }
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 TCanvas* plotProfiles(TString canvName,
@@ -1060,7 +1105,7 @@ TCanvas* plotProfiles(TString canvName,
   }
 
   int canvWidth=(DYTools::study2D==1) ? 1200 : 700;
-  TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,900);
+  TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,800);
 
   if (DYTools::study2D==1) {
 
@@ -1085,7 +1130,7 @@ TCanvas* plotProfiles(TString canvName,
 	if (ih==0) {
 	  h->SetMarkerStyle(20);
 	}
-	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
+	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],1,0,1);
       }
       if (!delayDraw) cp->Draw6(c1,1,im);
     }
@@ -1115,7 +1160,7 @@ TCanvas* plotProfiles(TString canvName,
 	if (ih==0) {
 	  h->SetMarkerStyle(20);
 	}
-	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih]);
+	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],(ih+1)%3,0,1);
       }
       if (!delayDraw) cp->Draw(c1);
     }

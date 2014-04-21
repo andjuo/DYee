@@ -699,6 +699,14 @@ void swapContentAndError2D(histo_t* h) {
 inline void swapContentAndError(TH2F *h) { swapContentAndError2D(h); }
 inline void swapContentAndError(TH2D *h) { swapContentAndError2D(h); }
 
+//---------------------------------------------------------------
+
+inline int setErrorAsContent(TH2D *h) {
+  if (!h) return 0;
+  swapContentAndError2D(h);
+  removeError2D(h);
+  return 1;
+}
 
 //---------------------------------------------------------------
 
@@ -891,6 +899,9 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<histo_t*> &rndVinp,
 
 // Calculate correlation matrix
 TMatrixD* corrFromCov(const TMatrixD &cov);
+
+// Extract error from matrix diagonal
+TH2D* errorFromCov(const TMatrixD &cov, TString newName);
 
 // Calculate partial correlation matrix
 // assuming that cov is a part of totCov
@@ -1497,11 +1508,17 @@ int loadVec(TFile &file, std::vector<tObject_t*> &vec, TString subDir="") {
     HERE("loadVec(%s,vec,%s): vec.size=0",TString(file.GetName()),subDir);
     return 0;
   }
-  if (subDir.Length() && (subDir[subDir.Length()-1]!='/')) {
+  int isHisto=(vec[0]->InheritsFrom("TH1")) ? 1:0;
+  //if (!isHisto) isHisto=(vec[0]->InheritsFrom("TH2")) ? 1:0;
+  if (isHisto && subDir.Length()) {
+    if (!file.cd(subDir)) {
+      std::cout << "loadVec: failed to change subdir=<" << subDir << ">\n";
+      return 0;
+    }
+  }
+  if (!isHisto && subDir.Length() && (subDir[subDir.Length()-1]!='/')) {
     subDir.Append("/");
   }
-  int isHisto=(vec[0]->InheritsFrom("TH1")) ? 1:0;
-  if (isHisto && subDir.Length()) file.cd(subDir);
   for (unsigned int i=0; i<vec.size(); i++) {
     TString name=vec[i]->GetName();
     if (!isHisto && subDir.Length()) name.Prepend(subDir);
@@ -1674,6 +1691,13 @@ void CreateDir(const TString &fname, int printDir=1) {
 void prepare(int count,
 	     std::vector<TString> &pathV,
 	     std::vector<TString> &fnameV,
+	     std::vector<TString> &fieldV,
+	     std::vector<TString> &labelV,
+	     int clear=1,
+	     int addEmptyElements=1);
+
+void prepare(int count,
+	     std::vector<TString> &pathV,
 	     std::vector<TString> &fieldV,
 	     std::vector<TString> &labelV,
 	     int clear=1,
