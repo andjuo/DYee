@@ -4,10 +4,21 @@
 
 //=== MAIN MACRO =================================================================================================
 
-int calcCSCov(TString conf, int nExps=100,
-	      DYTools::TCrossSectionKind_t csKind=DYTools::_cs_preFsr,
+int calcCSCov(int analysisIs2D,
+	      TString conf, int nExps=100,
+	      DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None,
 	      TString outFileExtraTag_UserInput="") {
   gBenchmark->Start("calcCSCov");
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
+
+  if (csKind==DYTools::_cs_None) {
+    csKind=(DYTools::study2D) ? DYTools::_cs_preFsrDet : DYTools::_cs_preFsr;
+    std::cout << "default csKind " << CrossSectionKindName(csKind) << "\n";
+  }
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -15,11 +26,12 @@ int calcCSCov(TString conf, int nExps=100,
 
   DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  DYTools::TSystematicsStudy_t yieldSystMode=DYTools::APPLY_ESCALE;
 
   int storeDetails=1;
 
-  int calc_YieldStat=0;
-  int calc_YieldSyst=0;
+  int calc_YieldStat=1;
+  int calc_YieldSyst=1;
   int calc_YieldUnregEn=0;
   int calc_YieldEScale=0;
   int calc_YieldApplyEScale=0;
@@ -50,7 +62,7 @@ int calcCSCov(TString conf, int nExps=100,
   int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
 
   int calc_FsrFSR=0; // not ready
-  int calc_FsrRnd=1;
+  int calc_FsrRnd=0;
 
   int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
 
@@ -72,6 +84,9 @@ int calcCSCov(TString conf, int nExps=100,
   UnfoldingMatrix_t *fsrResponseExact=NULL; //(UnfoldingMatrix::_cFSR, "fsrExact");
   UnfoldingMatrix_t *fsrResponseDetExact=NULL; //(UnfoldingMatrix::_cFSR_DET, "fsrDETexact");
 
+  InputFileMgr_t inpMgrEScale;
+  if (!inpMgrEScale.Load(conf)) return retCodeError;
+
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
 
@@ -79,6 +94,9 @@ int calcCSCov(TString conf, int nExps=100,
   TString extraTag; // empty
   TString plotExtraTag;
 
+  EventSelector_t evtSelectorEScale(inpMgrEScale,runMode,yieldSystMode,
+			      extraTag,plotExtraTag,
+			      EventSelector::_selectDefault);
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag,plotExtraTag,
 			      EventSelector::_selectDefault);
@@ -91,6 +109,7 @@ int calcCSCov(TString conf, int nExps=100,
   int systFileFlag=1;
   TString outFileName=inpMgr.crossSectionFullFileName(systMode,
 					       csKind,0,systFileFlag);
+  if (nExps!=100) outFileExtraTag_UserInput.Append(Form("_nExps%d",nExps));
   if (outFileExtraTag_UserInput.Length()) {
     std::cout << "applying extra tag from input= " << outFileExtraTag_UserInput << "\n";
     outFileName.ReplaceAll(".root",outFileExtraTag_UserInput);
@@ -110,7 +129,7 @@ int calcCSCov(TString conf, int nExps=100,
   int useDDBkg=(inpMgr.userKeyValueAsInt("DDBKG")==1) ? 1:0;
   TString yieldName=(useDDBkg) ? "signalYieldDDbkg" : "signalYieldMCbkg";
   HistoPair2D_t hpSignalYield(yieldName);
-  
+
   TString resCSName=yieldName;
   resCSName.ReplaceAll("signal","cs");
   HistoPair2D_t hpCS(resCSName);
@@ -123,7 +142,7 @@ int calcCSCov(TString conf, int nExps=100,
 
   // Load basic distribution
   const int loadNormalRunSelection=1;
-  TString fnameBgSubtracted=inpMgr.signalYieldFullFileName(systMode,loadNormalRunSelection);
+  TString fnameBgSubtracted=inpMgrEScale.signalYieldFullFileName(yieldSystMode,loadNormalRunSelection);
   std::cout << "fnameBgSubtracted=<" << fnameBgSubtracted << ">\n";
   res=hpSignalYield.Load(fnameBgSubtracted,1);
   printHisto(hpSignalYield,6);
@@ -171,11 +190,26 @@ int calcCSCov(TString conf, int nExps=100,
     inpArgs.silentMode(2);
     TMatrixD *covYieldTot=NULL;
 
+    if (1 && res) { // propagate error
+      int includeCorrError=0;
+      InputArgs_t iaYield("iaYield",inpArgs,
+			  "yieldErrOnly_", 1,
+			  1,includeCorrError);
+      HistoPair2D_t hpFinal("hpFinal_yieldErrOnly");
+      CSResults_t csRes;
+      iaYield.silentMode(0);
+      res=calculateCS(iaYield,hpSignalYield,csKind,hpFinal,csRes);
+      if (res) {
+	outFile.cd();
+	hpFinal.Write();
+      }
+    }
+
     for (int iSyst=0; res && (iSyst<5); ++iSyst) {
       int run=0;
       HistoPair2D_t *hpIni=NULL;
       DYTools::TSystematicsStudy_t runSystMode=DYTools::NO_SYST;
-      TString csCovName;
+      TString csCovName, covDetailsDir;
       switch(iSyst) {
       case 0:
 	run=calc_YieldStat; hpIni=&hpSignalYield;
@@ -201,6 +235,7 @@ int calcCSCov(TString conf, int nExps=100,
 	std::cout << "not ready for yields iSyst=" << iSyst << "\n";
 	return retCodeError;
       }
+      covDetailsDir=csCovName + TString("_details");
 
       if (!run) continue;
       std::cout << " - will produce " << csCovName << "\n";
@@ -235,6 +270,11 @@ int calcCSCov(TString conf, int nExps=100,
       TMatrixD* cov= deriveCovMFromRndStudies(vecRnd,unbiasedEstimate,avgDistr);
       TMatrixD* csCov=NULL;
 
+      if (1 && avgDistr) {
+	printHisto(hpSignalYield);
+	printHisto(avgDistr);
+      }
+
       if (cov) {
 	if (!covYieldTot) covYieldTot=new TMatrixD(*cov);
 	else (*covYieldTot) += (*cov);
@@ -247,6 +287,18 @@ int calcCSCov(TString conf, int nExps=100,
 	csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
 	if (!csCov) res=0;
 
+	// save details of the cross-section randomization
+	if (1 && storeDetails && res) {
+	  outFile.cd();
+	  res=hpSignalYield.Write(outFile,covDetailsDir,"");
+	  if (res) res=saveHisto(outFile,avgDistr,covDetailsDir,"");
+	  if (res) res=saveHisto(outFile,csAvgDistr,covDetailsDir,"");
+	  if (res) res=saveVec(outFile,vecRnd,covDetailsDir);
+	  if (res) res=saveVec(outFile,csRndV,covDetailsDir);
+	}
+	if (!res) return retCodeError;
+
+	/// accumulate covariance from yield
 	if (csCov) {
 	  if (!covCS_fromYield) covCS_fromYield=new TMatrixD(*csCov);
 	  else (*covCS_fromYield) += (*csCov);
@@ -1149,9 +1201,11 @@ int calcCSCov(TString conf, int nExps=100,
   }
 
 
+  writeBinningArrays(outFile,"calcCSCov");
   outFile.Close();
   std::cout << "output file <" << outFile.GetName() << "> created\n";
-  gBenchmark->Show("calcCSCov");
+  //gBenchmark->Show("calcCSCov");
+  ShowBenchmarkTime("calcCSCov");
   return retCodeOk;
 
 }
