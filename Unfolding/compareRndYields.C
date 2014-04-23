@@ -156,26 +156,30 @@ void compareRndYields(int analysisIs2D=1,
 
   // ----------------------------------------------
   // Check that MC reco yields are similar to data _signal_ yields
-  if (iBr==1) { // added on 2014.04.14
+  if ((iBr==1) || (iBr==2)) { // added on 2014.04.14
     loadSyst=0;
-    if (0) {
-    prepare(2,pathV,fnameV,fieldV,labelV);
+    if (1 && (iBr!=2)) {
+      //prepare(2,pathV,fnameV,fieldV,labelV);
     // Construct eventSelector, update mgr and plot directory
-    systModeRef=DYTools::APPLY_ESCALE;
-    EventSelector_t evtSelector1(inpMgr,runMode,systModeRef,
+      if (1) {
+	systModeRef=DYTools::APPLY_ESCALE;
+	EventSelector_t evtSelector1(inpMgr,runMode,systModeRef,
 		       extraTag, plotExtraTag, EventSelector::_selectDefault);
-    pathV [0]="";
-    fnameV[0]=inpMgr.signalYieldFullFileName(systModeRef,0);
-    fieldV[0]="signalYieldDDbkg";
-    labelV[0]="Data signal with peak corr.";
+	pathV .push_back("");
+	fnameV.push_back(inpMgr.signalYieldFullFileName(systModeRef,0));
+	fieldV.push_back("signalYieldDDbkg");
+	labelV.push_back("Data signal with peak corr.");
+      }
 
-    systMode2=DYTools::ESCALE_DIFF_0000;
-    EventSelector_t evtSelector2(inpMgr,runMode,systMode2,
+      if (1) {
+	systMode2=DYTools::ESCALE_DIFF_0000;
+	EventSelector_t evtSelector2(inpMgr,runMode,systMode2,
 		       extraTag, plotExtraTag, EventSelector::_selectDefault);
-    pathV [1]="";
-    fnameV[1]=inpMgr.signalYieldFullFileName(systMode2,0);
-    fieldV[1]="signalYieldDDbkg";
-    labelV[1]="Data signal (regressed)";
+	pathV .push_back("");
+	fnameV.push_back(inpMgr.signalYieldFullFileName(systMode2,0));
+	fieldV.push_back("signalYieldDDbkg");
+	labelV.push_back("Data signal (regressed)");
+      }
     }
 
     // vectors for matrices
@@ -206,6 +210,7 @@ void compareRndYields(int analysisIs2D=1,
     // add space
     prepare(int((seedMax-seedMin)/dSeed),m_pathV,m_fnameV,m_fieldV,m_labelV,0,0);
     systModeV=DYTools::RESOLUTION_STUDY;
+    if (iBr==2)
     for (int iseed=seedMin; iseed<=seedMax; iseed+=dSeed) {
       //if (iseed<0) continue;
       //if (iseed-seedMin>2) break;
