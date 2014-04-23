@@ -24,9 +24,9 @@ int nUnfoldingBins = DYTools::getTotalNumberOfBins();
 void computeNormalizedBinContent(double subset, double subsetErr,
 				 double total, double totalErr,
 				 double& ratio, double& ratioErr);
-void calculateInvertedMatrixErrors(const TMatrixD &T, 
+void calculateInvertedMatrixErrors(const TMatrixD &T,
           const TMatrixD &TErrPos, const TMatrixD &TErrNeg,
-				   TMatrixD &TinvErr);
+				   TMatrixD &TinvErr, int NsmearingExps);
 */
 
 /*
@@ -72,8 +72,8 @@ int computeNormalizedBinContent(double subset, double subsetErr,
 
 inline
 void calculateInvertedMatrixErrors(const TMatrixD &T, 
-	  const TMatrixD &TErrPos, const TMatrixD &TErrNeg,
-				   TMatrixD &TinvErr){
+	      const TMatrixD &TErrPos, const TMatrixD &TErrNeg,
+		    TMatrixD &TinvErr, int Nsmearings=1000){
 
   // Calculate errors on the inverted matrix by the Monte Carlo
   // method
@@ -90,8 +90,11 @@ void calculateInvertedMatrixErrors(const TMatrixD &T,
   TinvErr        = 0;
 
   // Do many tries, accumulate RMS
-  int N = 10000;
-  N=1000; std::cout << "\ncalculateInvertedMatrixErrors: setting Ntries=" << N << "\n\n";
+  //int N = 10000;
+  //N=1000; std::cout << "\ncalculateInvertedMatrixErrors: setting Ntries=" << N << "\n\n";
+  int N=Nsmearings;
+  std::cout << "\tcalculateInvertedMatrixErrors: Nsmearings=" << Nsmearings
+	    << "\n";
   for(int iTry = 0; iTry<N; iTry++){
     // Find the smeared matrix
     TMatrixD Tsmeared = T;
@@ -118,12 +121,12 @@ void calculateInvertedMatrixErrors(const TMatrixD &T,
   }
 
   // Calculate the error matrix
-  TMatrixD TinvAverage = TinvSum;
+  //TMatrixD TinvAverage = TinvSum; // average values
   for(int i = 0; i<nRow; i++){
     for(int j = 0; j<nCol; j++){
       TinvErr(i,j) = sqrt( TinvSumSquares(i,j)/double(N) 
 			   - (TinvSum(i,j)/double(N))*(TinvSum(i,j)/double(N)) );
-      TinvAverage(i,j) = TinvSum(i,j)/double(N);
+      //TinvAverage(i,j) = TinvSum(i,j)/double(N);
     }
   }
 
@@ -469,25 +472,31 @@ public:
     }
   }
 
-  int randomizeMigrationMatrix(const UnfoldingMatrix_t &U, 
-			       const UnfoldingMatrix_t *Uexact=NULL) {
+  int randomizeMigrationMatrix(const UnfoldingMatrix_t &U,
+			       const UnfoldingMatrix_t *Uexact=NULL,
+			       int NsmearingsForError=1000) {
     if (!this->sizesMatch(U)) {
       std::cout << "UnfoldingMatrix_t::randomizeMigrationMatrix(U) sizes do not match\n";
       return 0;
     }
-    if (Uexact && !this->sizesMatch(*Uexact)) {
-      std::cout << "UnfoldingMatrix_t::randomizeMigrationMatrix(U,*Uexact) sizes do not match\n";
-      return 0;
+
+    if (Uexact) {
+      if (!this->sizesMatch(*Uexact)) {
+	std::cout << "UnfoldingMatrix_t::randomizeMigrationMatrix(U,*Uexact) sizes do not match\n";
+	return 0;
+      }
     }
+
     for (int ir=0; ir<U.DetMigration->GetNrows(); ++ir) {
       for (int ic=0; ic<U.DetMigration->GetNcols(); ++ic) {
 	(*this->DetMigration)(ir,ic) = (*U.DetMigration)(ir,ic) + 
 	  (*U.DetMigrationErr)(ir,ic) * gRandom->Gaus(0,1);
       }
     }
+
     *DetMigrationErr= (*U.DetMigrationErr);
     this->computeResponseMatrix();
-    this->invertResponseMatrix();
+    this->invertResponseMatrix(NsmearingsForError);
     if (Uexact) {
       // this is a FSR matrix
       *yieldsIni= (*U.yieldsIni);
@@ -708,14 +717,17 @@ public:
     }
   }
 
-  void invertResponseMatrix(int info=DYTools::study2D) {
+  void invertResponseMatrix(int NsmearingExperiments=1000) {
   // Find inverted response matrix
     (*DetInvertedResponse) = (*DetResponse);
     Double_t det;
+    int info=DYTools::study2D; // slower calculation, so keep the user informed
     (*DetInvertedResponse).Invert(&det);
     if (info) std::cout << name << " inverted" << std::endl;
     //calculateInvertedMatrixErrors(*DetResponse, *DetResponseErrPos, *DetResponseErrNeg, *DetInvertedResponseErr);
-    calculateInvertedMatrixErrors(*DetResponse, *DetResponseErrPos, *DetResponseErrPos, *DetInvertedResponseErr);
+    calculateInvertedMatrixErrors(*DetResponse,
+			 *DetResponseErrPos, *DetResponseErrPos,
+			 *DetInvertedResponseErr, NsmearingExperiments);
     if (info) std::cout << name << " inverted errs calculated" << std::endl;
   }
 
