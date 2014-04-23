@@ -4,23 +4,11 @@
 #include "../Include/HistoPair.hh"
 
 // --------------------------------------------------------
-
-void prepare(int count,
-	     std::vector<TString> &pathV,
-	     std::vector<TString> &fnameV,
-	     std::vector<TString> &fieldV,
-	     std::vector<TString> &labelV);
-
-//int load(const std::vector<TString> &pathV,
-//	 const std::vector<TString> &fnameV,
-//	 const std::vector<TString> &fieldV,
-//	 std::vector<HistoPair2D_t*> &csV);
-
 // --------------------------------------------------------
 // --------------------------------------------------------
 
-void compareCS(int iBr=0,
-	       int analysisIs2D=1,
+void compareCS(int analysisIs2D=1,
+	       int iBr=0,
 	       int doSave=0,
 	       TString *figName=NULL,
 	       TString *dirName=NULL) {
@@ -90,7 +78,7 @@ void compareCS(int iBr=0,
     set_ratio_y[1]=(DYTools::study2D==1) ? 1.02 : 1.03;
   }
 
-  if (1) { // added on 2014.04.11
+  if (0) { // added on 2014.04.11
     prepare(3,pathV,fnameV,fieldV,labelV);
     pathV[0]=gen_path + TString("-ESFregEn/");
     pathV[1]=gen_path + TString("_Pileup5plus-ESFPU5p/");
@@ -106,6 +94,50 @@ void compareCS(int iBr=0,
     labelV[2]="PU 5minus";
     canvasSaveName="fig-puStudy-";
     canvasSaveDir="plots-puStudy";
+    transLegendX=(DYTools::study2D==1) ? -0.35 : -0.1;
+    transLegendY=(DYTools::study2D==1) ? -0.55 : -0.0;
+    set_ratio_y[0]=(DYTools::study2D==1) ? 0.9 : 0.96;
+    set_ratio_y[1]=(DYTools::study2D==1) ? 1.1 : 1.04;
+  }
+
+  if (0) { // added on 2014.04.23
+    prepare(3,pathV,fnameV,fieldV,labelV);
+    pathV[0]=gen_path + TString("/");
+    pathV[1]=gen_path + TString("_Pileup5plus/");
+    pathV[2]=gen_path + TString("_Pileup5minus/");
+    fnameV[0]="xSec_preFsr_1D.root";
+    fnameV[1]="xSec_preFsr_1D.root";
+    fnameV[2]="xSec_preFsr_1D.root";
+    fieldV[0]=csDDBkg;
+    fieldV[1]=csDDBkg;
+    fieldV[2]=csDDBkg;
+    labelV[0]="ESF unreg.en";
+    labelV[1]="PU 5plus";
+    labelV[2]="PU 5minus";
+    canvasSaveName="fig-puStudy-";
+    canvasSaveDir="plots-puStudy";
+    transLegendX=(DYTools::study2D==1) ? -0.35 : -0.1;
+    transLegendY=(DYTools::study2D==1) ? -0.55 : -0.0;
+    set_ratio_y[0]=(DYTools::study2D==1) ? 0.9 : 0.96;
+    set_ratio_y[1]=(DYTools::study2D==1) ? 1.1 : 1.04;
+  }
+
+  if (1) { // added on 2014.04.23
+    prepare(3,pathV,fnameV,fieldV,labelV);
+    pathV[0]=gen_path + TString("/");
+    pathV[1]=gen_path + TString("_FSR_5plus/");
+    pathV[2]=gen_path + TString("_FSR_5minus/");
+    fnameV[0]="xSec_preFsr_1D.root";
+    fnameV[1]="xSec_preFsr_1D.root";
+    fnameV[2]="xSec_preFsr_1D.root";
+    fieldV[0]=csDDBkg;
+    fieldV[1]=csDDBkg;
+    fieldV[2]=csDDBkg;
+    labelV[0]="ESF unreg.en";
+    labelV[1]="FSR 5plus";
+    labelV[2]="FSR 5minus";
+    canvasSaveName="fig-fsrStudy-";
+    canvasSaveDir="plots-fsrStudy";
     transLegendX=(DYTools::study2D==1) ? -0.35 : -0.1;
     transLegendY=(DYTools::study2D==1) ? -0.55 : -0.0;
     set_ratio_y[0]=(DYTools::study2D==1) ? 0.9 : 0.96;
@@ -129,6 +161,39 @@ void compareCS(int iBr=0,
   if (!convertHistoPairVec2HistoVec(csV, histoV, totalErr)) {
     std::cout << "failed to prepare histos\n";
     return;
+  }
+
+  if (1) {
+    TH2D* h2Diff=getRelDifference(histoV,"h2diff",1);
+    TMatrixD covDiag(DYTools::nUnfoldingBins,DYTools::nUnfoldingBins);
+    int iflat=0;
+    for (int ir=1; ir<=h2Diff->GetNbinsX(); ++ir) {
+      for (int ic=1; ic<=h2Diff->GetNbinsY(); ++ic, ++iflat) {
+	if (iflat>=DYTools::nUnfoldingBins) break;
+	double e=h2Diff->GetBinError(ir,ic);
+	covDiag(iflat,iflat) = e*e;
+	if (ic==1) {
+	  std::cout << "ir=" << ir << ", values : ";
+	  for (unsigned int ii=0; ii<histoV.size(); ++ii) {
+	    std::cout << " " << histoV[ii]->GetBinContent(ir,ic);
+	  }
+	  std::cout << "; err=" << e << "\n";
+	}
+      }
+    }
+    TString fname=canvasSaveName;
+    fname.ReplaceAll("fig-","csSyst-");
+    fname.Append(DYTools::analysisTag);
+    fname.Append(".root");
+    TString fieldName=canvasSaveName;
+    fieldName.ReplaceAll("fig-","covCS_");
+    fieldName.Remove(fieldName.Length()-1,1);
+    TFile fout(fname,"recreate");
+    covDiag.Write(fieldName);
+    writeBinningArrays(fout,"CrossSection/compareCS");
+    fout.Close();
+    std::cout << "saved <" << fieldName << "> to a file <"
+	      << fout.GetName() << ">\n";
   }
 
   std::vector<ComparisonPlot_t*> cpV;
@@ -165,29 +230,6 @@ void compareCS(int iBr=0,
 
 // --------------------------------------------------------
 // --------------------------------------------------------
-
-void prepare(int count,
-		    std::vector<TString> &pathV,
-		    std::vector<TString> &fnameV,
-		    std::vector<TString> &fieldV,
-		    std::vector<TString> &labelV) {
-  pathV.clear();
-  fnameV.clear();
-  fieldV.clear();
-  labelV.clear();
-  pathV.reserve(count);
-  fnameV.reserve(count);
-  fieldV.reserve(count);
-  labelV.reserve(count);
-  for (int i=0; i<count; ++i) {
-    TString empty=Form("empty_%d",i);
-    pathV.push_back(empty);
-    fnameV.push_back(empty);
-    fieldV.push_back(empty);
-    labelV.push_back(empty);
-  }
-}
-
 // --------------------------------------------------------
 // --------------------------------------------------------
 
