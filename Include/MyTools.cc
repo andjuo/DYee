@@ -261,7 +261,7 @@ TH2D* getRelDifference(const std::vector<const TH2D*> &var, TString newName, int
 	  double err=hRes->GetBinError(ibin,jbin);
 	  // get diff
 	  double diff=fabs(var[j]->GetBinContent(ibin,jbin) -
-			   hRes->GetBinContent(ibin,jbin));
+			   var[i]->GetBinContent(ibin,jbin));
 	  if (diff>err) hRes->SetBinError(ibin,jbin, diff);
 	}
       }
@@ -1130,6 +1130,10 @@ TCanvas* plotProfiles(TString canvName,
 	if (ih==0) {
 	  h->SetMarkerStyle(20);
 	}
+	if ( ourColors && (ih/colorCount > 0) ) {
+	  std::cout << "changing the marker\n";
+	  h->SetMarkerStyle(5);
+	}
 	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],1,0,1);
       }
       if (!delayDraw) cp->Draw6(c1,1,im);
@@ -1159,6 +1163,10 @@ TCanvas* plotProfiles(TString canvName,
 	if (do_removeError) removeError1D(h);
 	if (ih==0) {
 	  h->SetMarkerStyle(20);
+	}
+	if ( ourColors && (ih/colorCount > 0) ) {
+	  std::cout << "changing the marker\n";
+	  h->SetMarkerStyle(5);
 	}
 	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],(ih+1)%3,0,1);
       }
