@@ -13,6 +13,7 @@
 //   iSyst=2, statError and systError
 //   iSyst=3, statError randomized vectors
 //   iSyst=4, systError randomized vectors
+// For iSyst=3 and 4, the error plots have no meaning
 int plotSignalYieldRndResults(TString fname, TString histoDirName,
 			      TString yieldName, int iSyst, int saveCanvas,
 			      TString extraTagForSaving,
