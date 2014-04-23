@@ -30,8 +30,8 @@ int calcCSCov(int analysisIs2D,
 
   int storeDetails=1;
 
-  int calc_YieldStat=1;
-  int calc_YieldSyst=1;
+  int calc_YieldStat=0;
+  int calc_YieldSyst=0;
   int calc_YieldUnregEn=0;
   int calc_YieldEScale=0;
   int calc_YieldApplyEScale=0;
@@ -42,8 +42,10 @@ int calcCSCov(int analysisIs2D,
   int calc_UnfPU=0;
   int calc_UnfFSR=0;
   int calc_UnfRnd=0;
+  int calc_UnfEScale=0;
 
-  int doCalcUnfCov=(calc_UnfPU + calc_UnfFSR + calc_UnfRnd) ? 1:0;
+  int doCalcUnfCov=(calc_UnfPU + calc_UnfFSR +
+		    calc_UnfRnd + calc_UnfEScale) ? 1:0;
 
   int calc_EffPU=0;
   int calc_EffFSR=0;
@@ -51,13 +53,13 @@ int calcCSCov(int analysisIs2D,
 
   int doCalcEffCov=(calc_EffPU + calc_EffFSR + calc_EffRnd) ? 1:0;
 
-  int calc_ESFtot=0; // wrong correlations
+  int calc_ESFtot=0;
   int calc_ESFtotCheck=0;
 
   int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
 
   int calc_AccFSR=0;
-  int calc_AccRnd=0;
+  int calc_AccRnd=1;
 
   int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
 
@@ -240,26 +242,64 @@ int calcCSCov(int analysisIs2D,
       if (!run) continue;
       std::cout << " - will produce " << csCovName << "\n";
 
-      if (!hpIni) {
-	int checkBinning=0;
-	int ignoreDebugFlag=1;
-	TString loadFileName= inpMgr.signalYieldFullFileName(runSystMode,ignoreDebugFlag,0,1);
-	TH2D *h2=LoadHisto2D(yieldFieldExtraSyst,loadFileName,"",checkBinning);
-	if (!h2) {
-	  std::cout << "failed to load systematics\n";
+      std::vector<TH2D*> vecRnd;
+
+      if (hpIni) {
+	// Immediate randomization within errors
+	if (!createRandomizedVec(hpSignalYield,iSyst,nExps,"hRnd_yield_",vecRnd)) {
+	  std::cout << "failed to create randomized esemble for iSyst=" << iSyst << "\n";
 	  return retCodeError;
 	}
-	h2->SetName("h2tmp");
-	hpIni=new HistoPair2D_t(yieldFieldExtraSyst);
-	hpIni->add(h2,1.);
-	delete h2;
-	std::cout << "Loaded "; printHisto(*hpIni,6);
       }
-      
-      std::vector<TH2D*> vecRnd;
-      if (!createRandomizedVec(hpSignalYield,iSyst,nExps,"hRnd_yield_",vecRnd)) {
-	std::cout << "failed to create randomized esemble for iSyst=" << iSyst << "\n";
-	return retCodeError;
+      else {
+	// More work is needed
+	if (iSyst==3) {
+	  // escale randomized
+	  InputFileMgr_t inpMgrLocal;
+	  if (!inpMgrLocal.Load("defaultAdHoc")) return retCodeError;
+	  DYTools::TSystematicsStudy_t systModeV=DYTools::ESCALE_STUDY_RND;
+	  int seedMin=inpMgrLocal.userKeyValueAsInt("SEEDMIN");
+	  int seedMax=inpMgrLocal.userKeyValueAsInt("SEEDMAX");
+	  int dSeed=1;
+	  int count=int((seedMax-seedMin)/dSeed);
+	  vecRnd.reserve(count);
+
+	  for (int iseed=seedMin; iseed<=seedMax; iseed+=dSeed) {
+	    if (iseed-seedMin>=nExps) {
+	      std::cout << "\n\tthere are more seeds than requested "
+			<< "experiments. Stoping consideration\n";
+	      break;
+	    }
+	    InputFileMgr_t inpMgrRnd(inpMgrLocal);
+	    inpMgrRnd.editEnergyScaleTag().Append(Form("_RANDOMIZED%d",iseed));
+	    EventSelector_t evtSelector3(inpMgrRnd,runMode,systModeV,
+		       extraTag, plotExtraTag, EventSelector::_selectDefault);
+	    TString fnameRndBgSubtracted=
+	                    inpMgrRnd.signalYieldFullFileName(systModeV,0);
+	    TH2D* h2=LoadHisto2D("signalYieldDDbkg",fnameRndBgSubtracted,"");
+	    if (!h2) {
+	      std::cout << "failed to load randomized yield\n";
+	      return retCodeError;
+	    }
+	    h2->SetName(Form("h2SignalYieldDDbkg_%d",iseed));
+	    vecRnd.push_back(h2);
+	  }
+	}
+	else {
+	  int checkBinning=0;
+	  int ignoreDebugFlag=1;
+	  TString loadFileName= inpMgr.signalYieldFullFileName(runSystMode,ignoreDebugFlag,0,1);
+	  TH2D *h2=LoadHisto2D(yieldFieldExtraSyst,loadFileName,"",checkBinning);
+	  if (!h2) {
+	    std::cout << "failed to load systematics\n";
+	    return retCodeError;
+	  }
+	  h2->SetName("h2tmp");
+	  hpIni=new HistoPair2D_t(yieldFieldExtraSyst);
+	  hpIni->add(h2,1.);
+	  delete h2;
+	  std::cout << "Loaded "; printHisto(*hpIni,6);
+	}
       }
 
       //printHisto(vecRnd,0,5,2);
@@ -323,7 +363,7 @@ int calcCSCov(int analysisIs2D,
       if (cov  ) delete cov;
       if (csAvgDistr) delete csAvgDistr;
       if (avgDistr  ) delete avgDistr;
-      if (runSystMode!=DYTools::NO_SYST) {
+      if ((runSystMode!=DYTools::NO_SYST) && hpIni) {
 	hpIni->clear();
 	delete hpIni;
       }
@@ -351,7 +391,7 @@ int calcCSCov(int analysisIs2D,
     inpArgs.silentMode(2);
     TMatrixD *covUnfTot=NULL;
 
-    for (int iSyst=0; res && (iSyst<3); ++iSyst) {
+    for (int iSyst=0; res && (iSyst<4); ++iSyst) {
       int run=0;
       DYTools::TSystematicsStudy_t runSystMode=DYTools::NO_SYST;
       TString csCovName;
@@ -380,6 +420,11 @@ int calcCSCov(int analysisIs2D,
 	uNamePlus ="detResponse_105"; smPlus =DYTools::FSR_5plus;
 	uNameMinus="detResponse_095"; smMinus=DYTools::FSR_5minus;
 	csCovName="covCS_UnfFSR";
+	break;
+      case 3:
+	run=calc_UnfEScale;
+	runSystMode=DYTools::RESOLUTION_STUDY;
+	csCovName="covCS_UnfEScale";
 	break;
       default:
 	std::cout << "not ready for unf iSyst=" << iSyst << "\n";
@@ -414,12 +459,13 @@ int calcCSCov(int analysisIs2D,
       }
 
       std::vector<TH2D*> vecUnfRnd;
-      if (res) {
+      if (res && (iSyst!=3)) {
 	UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,"detResponseRnd");
 	HistoPair2D_t hpUnf("hpUnf");
 
 	for (int iexp=0; res && (iexp<nExps); ++iexp) {
-	  res=Urnd.randomizeMigrationMatrix(*Uref);
+	  if (DYTools::study2D==1) printProgress(10,"rndExp ",iexp,nExps);
+	  res=Urnd.randomizeMigrationMatrix(*Uref,NULL,100);
 	  if (res) res=unfold_reco2true(hpUnf,Urnd,hpSignalYield);
 	  if (res) {
 	    TString rndVec=Form("h2unfRnd_%d",iexp);
@@ -429,6 +475,53 @@ int calcCSCov(int analysisIs2D,
 	  }
 	}
 	hpUnf.clear(); // delete histos
+      }
+      else if (res && (iSyst==3)) {
+	// escale rnd study
+	InputFileMgr_t inpMgrLocal;
+	if (!inpMgrLocal.Load("defaultAdHoc")) return retCodeError;
+	DYTools::TSystematicsStudy_t systModeV=DYTools::ESCALE_STUDY_RND;
+	int seedMin=inpMgrLocal.userKeyValueAsInt("SEEDMIN");
+	int seedMax=inpMgrLocal.userKeyValueAsInt("SEEDMAX");
+	int dSeed=1;
+	int count=int((seedMax-seedMin)/dSeed);
+	vecUnfRnd.reserve(count);
+
+	HistoPair2D_t hpYield("signalYieldDDbkg");
+	HistoPair2D_t hpUnfYield("hpUnfYield");
+
+	for (int iseed=seedMin; res && (iseed<=seedMax); iseed+=dSeed) {
+	  if (iseed-seedMin>=nExps) {
+	    std::cout << "\n\tthere are more seeds than requested "
+		      << "experiments. Stoping consideration\n";
+	    break;
+	  }
+	  InputFileMgr_t inpMgrRnd(inpMgrLocal);
+	  inpMgrRnd.editEnergyScaleTag().Append(Form("_RANDOMIZED%d",iseed));
+	  EventSelector_t evtSelector3(inpMgrRnd,runMode,systModeV,
+		       extraTag, plotExtraTag, EventSelector::_selectDefault);
+	  TString fnameRndBgSubtracted=
+	    inpMgrRnd.signalYieldFullFileName(systModeV,0);
+
+	  res=hpYield.Load(fnameRndBgSubtracted,1,"");
+	  if (!res) {
+	    std::cout << "failed to load randomized yield\n";
+	    return retCodeError;
+	  }
+	  //printHisto(hpYield);
+
+	  TString name=Form("detResponse_seed%d",iseed);
+	  UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,name);
+	  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(runSystMode);
+	  TString outputDir=inpMgr.constDir(runSystMode,0);
+	  res=Urnd.autoLoadFromFile(outputDir,fnameTag);
+	  if (res) res= unfold_reco2true(hpUnfYield,Urnd,hpYield);
+	  if (res) {
+	    TH2D* h2=Clone(hpUnfYield.histo(),Form("h2unfRnd_%d",iseed));
+	    if (!h2) res=0;
+	    vecUnfRnd.push_back(h2);
+	  }
+	}
       }
 
       //printHisto(vecUnfRnd,0,5,2);
@@ -659,6 +752,9 @@ int calcCSCov(int analysisIs2D,
   //////////////////////////////////////////////
 
   if (res && doCalcESFCov) {
+    HERE("\n\n");
+    std::cout << dashline;
+
     int saveSilentMode=inpArgs.silentMode();
     inpArgs.silentMode(2);
     TMatrixD *covESFTot=NULL;
@@ -668,6 +764,7 @@ int calcCSCov(int analysisIs2D,
     HistoPair2D_t hpUnfEff("hpUnfEff");
     if (res) {
       InputArgs_t iaNoRho("iaRhoSyst",inpArgs,"rhoSyst");
+      iaNoRho.silentMode(0);
       iaNoRho.needsEffScaleCorr(0);
       res=calculateCSdistribution(iaNoRho,hpSignalYield,
 				  DYTools::_cs_postFsrDet,
@@ -702,26 +799,61 @@ int calcCSCov(int analysisIs2D,
 
       if (iSyst==0) {
 	// load the scale factors and their total errors
-	int checkBinning=0;
+	// get file location
 	TString rhoCorrFName=inpMgr.correctionFullFileName("scale_factors",DYTools::NO_SYST,0);
-	TH2D* hRho=LoadMatrixFields(rhoCorrFName,checkBinning,"scaleFactor","scaleFactorErr",1);
-	if (!hRho) res=0;
+	Ssiz_t idx=rhoCorrFName.Last('/');
+	TString rhoPath=rhoCorrFName(0,idx);
+	rhoPath.Append("_egamma_Unregressed_energy/");
+	//std::cout << "rhoPath=<" << rhoPath << ">\n";
+	int expOnFile=100;
+	rhoCorrFName=rhoPath +
+	  Form("rhoFileSF_nMB%d_asymHLT_Unregressed_energy-allSyst_%d_v2.root",
+	       DYTools::nMassBins,expOnFile);
+	std::cout << "rhoCorrFName=<" << rhoCorrFName << ">\n";
 
-	HistoPair2D_t hpRho("hpRho");
-	if (res) {
-	  hpRho.add(hRho,1.);
-	  delete hRho;
+	if (expOnFile<nExps) {
+	  std::cout << "available number of rho experiments on file ("
+		    << expOnFile
+		    << ") is smaller than nExps=" << nExps << "\n";
+	  res=0;
+	  continue;
 	}
-	else continue;
 
-	std::cout << "Loaded "; printHisto(hpRho,6);
+	//int checkBinning=0;
+	//TH2D* hRhoRnd=LoadMatrixFields(rhoCorrFName,checkBinning,
+	//		        "sumWeightRho_Rnd","sumWeightRhoSqr_Rnd",1);
+	//if (!hRhoRnd) res=0;
+	//std::cout << "Loaded "; printHisto(hRhoRnd,0,6);
 
-	int useSystErr=0; // randomize within statistical error
-	if (!createRandomizedVec(hpRho,useSystErr,nExps,TString("hRnd_esf")+systTag,vecRnd)) {
-	  std::cout << "failed to create randomized esemble for iSyst=" << iSyst << "\n";
-	  return retCodeError;
+	TMatrixD* mRhoRnd=loadMatrix(rhoCorrFName,"sumWeightRho_Rnd",
+				     expOnFile,DYTools::nUnfoldingBins,1);
+	if (!mRhoRnd) { res=0; continue; }
+
+	TFile fin(rhoCorrFName,"read");
+	if (!fin.IsOpen()) { res=0; continue; }
+	TVectorD* sumW=(TVectorD*)fin.Get("sumWeight");
+	fin.Close();
+	if (!sumW) {
+	  std::cout << "failed to load sumWeight\n";
+	  res=0;
+	  continue;
 	}
-	hpRho.clear();
+
+	for (int iexp=0; iexp<nExps; ++iexp) {
+	  TString hName=Form("hRhoRnd_%d",iexp);
+	  TH2D *hRho=createBaseH2(hName,hName,1);
+	  int flatIdx=0;
+	  for (int im=0; im<DYTools::nMassBins; ++im) {
+	    for (int iy=0; iy<DYTools::nYBins[im]; ++iy, ++flatIdx) {
+	      double sf=(*mRhoRnd)(iexp,flatIdx)/(*sumW)[flatIdx];
+	      hRho->SetBinContent(im+1,iy+1, sf);
+	    }
+	  }
+	  //printHisto(hRho);
+	  vecRnd.push_back(hRho);
+	}
+	delete sumW;
+	delete mRhoRnd;
       }
       else if (iSyst==1) {
 	// load the randomized vectors
@@ -734,7 +866,8 @@ int calcCSCov(int analysisIs2D,
 	  vecRnd.push_back(h2);
 	}
 	if (res) {
-	  TString fname=inpMgr.correctionSystFullFileName("scale_factors",DYTools::NO_SYST,0);
+	  TString fname=inpMgr.correctionSystFullFileName("scale_factors",
+							  DYTools::NO_SYST,0);
 	  TFile inpF(fname,"read");
 	  if (!inpF.IsOpen()) {
 	    std::cout << "failed to open a file <" << inpF.GetName() << ">\n";
@@ -793,7 +926,7 @@ int calcCSCov(int analysisIs2D,
 	hpUnfEffSFYield.clear();
       }
 
-      //if (nExps==2) printHisto(vecRnd,0,5,2);
+      if (nExps==2) printHisto(vecRnd,0,5,2);
 
       if (res) {
 	std::vector<TH2D*> csRndV;
@@ -801,6 +934,8 @@ int calcCSCov(int analysisIs2D,
 	inpArgsRho.needsDetUnfolding(0);
 	inpArgsRho.needsEffCorr(0);
 	inpArgsRho.needsEffScaleCorr(0);
+	inpArgsRho.needsAccCorr(1);
+	inpArgsRho.needsFsrCorr(1);
 	res=calcVecOfCSdistributions(inpArgsRho,vecRnd,csKind,csRndV);
 	csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
 	if (!csCov) res=0;
@@ -810,9 +945,6 @@ int calcCSCov(int analysisIs2D,
 	if (csCov) {
 	  if (!covCS_fromESF) covCS_fromESF=new TMatrixD(*csCov);
 	  else (*covCS_fromESF) += (*csCov);
-
-	  outFile.cd();
-	  csCov->Write(Form("covESF_iSyst_%d",iSyst));
 	}
 
 	//printHisto(csRndV,0,5,2);
@@ -945,10 +1077,10 @@ int calcCSCov(int analysisIs2D,
 	HistoPair2D_t *hpFinal=(csKind==DYTools::_cs_preFsr) ? &hpFullSpPreFsr : &hpFullSpPostFsr;
 	TString newName;
 	for (unsigned int i=0; res && (i<vecRnd.size()); ++i) {
-	  TH2D *rndEff=vecRnd[i];
-	  removeError(rndEff);
+	  TH2D *rndAcc=vecRnd[i];
+	  removeError(rndAcc);
 	  if (res) {
-	    res=hpFullSpPostFsr.divide(hpPostFsrCS,rndEff);
+	    res=hpFullSpPostFsr.divide(hpPostFsrCS,rndAcc);
 	    //printHisto(hpFullSp,6);
 	  }
 	  if (csKind == DYTools::_cs_preFsr) {
@@ -963,6 +1095,9 @@ int calcCSCov(int analysisIs2D,
 	    // swap pointers to histograms, since
 	    // vecRnd has to contain final yields
 	    hpFinal->swapHistoPtr(&vecRnd[i]);
+
+	    // convert counts to the cross-section
+	    vecRnd[i]->Scale(1/DYTools::lumiAtECMS);
 
 	    // To avoid confusion, rename the histo
 	    newName+=systTag;
@@ -1072,6 +1207,7 @@ int calcCSCov(int analysisIs2D,
 	run=calc_FsrRnd;
 	csCovName="covCS_FsrRnd";
 	Uref=fsrU;
+	//Uref=fsrUexact; std::cout << "\n\trandomizing exact fsr matrix\n\n";
 	break;
       case 1:
 	run=calc_FsrFSR;
@@ -1127,7 +1263,8 @@ int calcCSCov(int analysisIs2D,
 
 	for (int iexp=0; res && (iexp<nExps); ++iexp) {
 
-	  res=Urnd.randomizeMigrationMatrix(*Uref, fsrUexact);
+	  // calculate error in 100 smearings. We do not need it
+	  res=Urnd.randomizeMigrationMatrix(*Uref, fsrUexact, 100);
 	  if (res) {
 	    res=unfold_reco2true(hpUnf,Urnd,hpPostFsrCS);
 	    printHisto(hpUnf,5);
@@ -1136,6 +1273,7 @@ int calcCSCov(int analysisIs2D,
 	    TString rndVec=Form("h2fsrUnfRnd_%d",iexp);
 	    TH2D* h2=Clone(hpUnf.histo(),rndVec);
 	    if (!h2) res=0;
+	    else h2->Scale(1/DYTools::lumiAtECMS);
 	    vecUnfRnd.push_back(h2);
 	  }
 	}
