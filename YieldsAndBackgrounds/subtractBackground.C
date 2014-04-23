@@ -324,6 +324,13 @@ int subtractBackground(int analysisIs2D,
   signalYieldDDbkg.print();
   zeeMCShapeReweight_mcBkg->Print("range");
 
+  HistoPair2D_t hpMCSignal("hpMCsignal");
+  if (!hpMCSignal.cloneHisto(mcSignal)) {
+    std::cout << "failed to create hpMCSignal\n";
+    return retCodeError;
+  }
+
+
   std::cout << "outFileName=<" << outFileName << ">\n";
 
   TFile fileOut(outFileName,"recreate");
@@ -347,6 +354,7 @@ int subtractBackground(int analysisIs2D,
   ddbkgTrue2e.Write();
   ddbkgFake.Write();
   ddbkgTotal.Write();
+  hpMCSignal.Write();
   writeBinningArrays(fileOut);
   fileOut.Close();
   std::cout << "file <" << fileOut.GetName() << "> saved\n";
