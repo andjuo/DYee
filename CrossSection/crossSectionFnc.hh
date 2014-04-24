@@ -32,6 +32,7 @@ struct InputArgs_t {
   int fIncludeCorrError; // whether add the error of each correction
   int fSilentMode;
   int fNoSave;
+  int fExternalSeed; // a value needed for the unfolding matrices
 public:
   InputArgs_t(TString set_name,
 	      InputFileMgr_t *set_InpMgr,
@@ -54,7 +55,8 @@ public:
     fAllNormErrorIsSyst(set_allNormErrorIsSyst),
     fIncludeCorrError(set_includeCorrErr),
     fSilentMode(0),
-    fNoSave(0)
+    fNoSave(0),
+    fExternalSeed(-1)
   {}
 
   InputArgs_t(TString set_name,
@@ -75,7 +77,8 @@ public:
     fAllNormErrorIsSyst(ia.fAllNormErrorIsSyst),
     fIncludeCorrError(ia.fIncludeCorrError),
     fSilentMode(ia.fSilentMode),
-    fNoSave(ia.fNoSave)
+    fNoSave(ia.fNoSave),
+    fExternalSeed(ia.fExternalSeed)
   {
     if (set_needsDetUnfolding!=-1) fNeedsDETUnfolding=set_needsDetUnfolding;
     if (set_allNormErrorIsSyst!=-1) fAllNormErrorIsSyst=set_allNormErrorIsSyst;
@@ -115,6 +118,8 @@ public:
   int  silentMode() const { return fSilentMode; }
   void noSave(int yes) { fNoSave=yes; }
   int  noSave() const { return fNoSave; }
+  void externalSeed(int seed) { fExternalSeed=seed; }
+  int externalSeed() const { return fExternalSeed; }
 
   friend std::ostream& operator<<(std::ostream &out, const InputArgs_t &ia) {
     out << "InputArgs(name=" << ia.fName << "):\n";
@@ -129,8 +134,9 @@ public:
     out << "  - needsFsrCorr  =" << ia.fNeedsFsrCorr << "\n";
     out << "  allNormErrorIsSyst=" << ia.fAllNormErrorIsSyst << "\n";
     out << "  includeCorrError=" << ia.fIncludeCorrError << "\n";
-    out << "  silentMode=" << ia.fSilentMode << "\n";
-    out << "  noSave    =" << ia.fNoSave << "\n";
+    out << "  silentMode   =" << ia.fSilentMode << "\n";
+    out << "  noSave       =" << ia.fNoSave << "\n";
+    out << "  externalSeed =" << ia.fExternalSeed << "\n";
     return out;
   }
 

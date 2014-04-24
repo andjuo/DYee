@@ -50,7 +50,8 @@ int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, His
   // for the construction of
   // the class instance as well as autoLoadFromFile
   TString constDir= inpArg.inpMgr()->constDir(inpArg.systMode(),0);
-  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode());
+  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode(),
+							inpArg.externalSeed());
   TMatrixD *UnfM=NULL;
   int inverse=1;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -75,7 +76,8 @@ int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Histo
   // for the construction of
   // the class instance as well as autoLoadFromFile
   TString constDir= inpArg.inpMgr()->constDir(inpArg.systMode(),0);
-  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode());
+  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode(),
+							inpArg.externalSeed());
   TMatrixD *UnfM=NULL;
   int inverse=1;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
@@ -100,7 +102,8 @@ int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini,
   // for the construction of
   // the class instance as well as autoLoadFromFile
   TString constDir= inpArg.inpMgr()->constDir(inpArg.systMode(),0);
-  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode());
+  TString fnameTag= UnfoldingMatrix_t::generateFNameTag(inpArg.systMode(),
+							inpArg.externalSeed());
   TMatrixD *UnfM=NULL;
   int inverse=1;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
