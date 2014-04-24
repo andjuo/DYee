@@ -12,7 +12,8 @@
 int plotUnfoldingMatrix(int analysisIs2D,
 			const TString conf,
 			DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST
+			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+			TString rndStudyStr=""
 			//, double FSRreweight=1.0, double FSRmassDiff=1.
 			) {
 //systematicsMode 0 (NORMAL) - no systematic calc
@@ -35,13 +36,14 @@ int plotUnfoldingMatrix(int analysisIs2D,
    {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,11,
+    if (!DYTools::checkSystMode(systMode,debug_print,13,
 				DYTools::NO_SYST, DYTools::SYST_RND,
 				DYTools::RESOLUTION_STUDY, DYTools::FSR_STUDY,
 				DYTools::PU_STUDY,
 				DYTools::FSR_5plus, DYTools::FSR_5minus,
 				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
-				DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL))
+				DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL,
+				DYTools::FSR_RND_STUDY, DYTools::PU_RND_STUDY))
       return retCodeError;
   }
 
@@ -70,15 +72,27 @@ int plotUnfoldingMatrix(int analysisIs2D,
   }
 
   // Construct eventSelector, update mgr and plot directory
+  TString extraTag=rndStudyStr;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", "", EventSelector::_selectDefault);
+			      extraTag, "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
+
+  // PU and FSR RND studies have to provide the seed externally
+  int globalSeed=-1;
+  for (int i=0; (globalSeed<=0) && (i<rndStudyStr.Length()); ++i) {
+    globalSeed=atoi(rndStudyStr.Data() + i);
+  }
 
   // Event weight handler
   EventWeight_t evWeight;
-  evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
+  int res=evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),
+			systMode,rndStudyStr);
   EventWeight_t evWeightNoPU; // for FSR unfolding weights
-  evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode);
+  if (res) res=evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode,rndStudyStr);
+  if (!res) {
+    std::cout << "failed to prepare weights\n";
+    return retCodeError;
+  }
 
   // Prepare output directory
   inpMgr.constDir(systMode,1);
@@ -134,7 +148,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     for (int i=0; i<2; ++i) {
       DYTools::TSystematicsStudy_t study=(i==0) ? DYTools::PILEUP_5minus : DYTools::PILEUP_5plus;
       EventWeight_t *ew=new EventWeight_t();
-      if (!ew->init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),study)) {
+      if (!ew->init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),study,rndStudyStr)) {
 	std::cout << "in plotUnfoldingMatrix.C\n";
 	return retCodeError;
       }
@@ -719,7 +733,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   TString outputDir=inpMgr.constDir(systMode,0);
 
   //int saveIdxMin=-1;
-  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(systMode);
+  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(systMode,globalSeed);
   /*
   {
     TString u="_";
@@ -780,15 +794,19 @@ int plotUnfoldingMatrix(int analysisIs2D,
     // additional saving for systematics
     if (systMode==DYTools::FSR_STUDY) {
       detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5minus,0),
-		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus));
+	  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus,globalSeed));
       detRespV[2]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5plus,0),
-		  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5plus));
+	  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5plus,globalSeed));
     }
     else if (systMode==DYTools::PU_STUDY) {
-      detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::PILEUP_5minus,0),
-		  UnfoldingMatrix_t::generateFNameTag(DYTools::PILEUP_5minus));
-      detRespV[1]->autoSaveToFile(inpMgr.constDir(DYTools::PILEUP_5plus,0),
-		  UnfoldingMatrix_t::generateFNameTag(DYTools::PILEUP_5plus));
+      TString dir0=inpMgr.constDir(DYTools::PILEUP_5minus,0);
+      TString tag0=UnfoldingMatrix_t::generateFNameTag(DYTools::PILEUP_5minus,
+						       globalSeed);
+      TString dir1=inpMgr.constDir(DYTools::PILEUP_5plus,0);
+      TString tag1=UnfoldingMatrix_t::generateFNameTag(DYTools::PILEUP_5plus,
+						       globalSeed);
+      detRespV[0]->autoSaveToFile(dir0,tag0);
+      detRespV[1]->autoSaveToFile(dir1,tag1);
     }
   }
   else {
