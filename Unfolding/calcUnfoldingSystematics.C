@@ -418,14 +418,15 @@ int unfoldDET_local(const HistoPair2D_t &iniYields,
   
   UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,umName);
   TString constDir=inpMgr.constDir(dirSystMode,0);
-  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(dirSystMode);
+  int iseed=-1;
+  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(dirSystMode,iseed);
   int res=detResponse.autoLoadFromFile(constDir,fnameTag);
   //std::cout << "autoLoad of " << umName << " from " << constDir << " with fnameTag=" << fnameTag << " has res=" << res << "\n";
   //std::cout << "iniYields"; iniYields.print();
   //std::cout << "detResponse.getDetInvResponse(): "; detResponse.getDetInvResponse()->Print();
   if (!res) res=-1;
   if ((res==1) && ptrDetResponse) {
-    TString setName=TString("detResponse_") + UnfoldingMatrix_t::generateFNameTag(systMode);
+    TString setName=TString("detResponse_") + UnfoldingMatrix_t::generateFNameTag(systMode,iseed);
     (*ptrDetResponse)=new UnfoldingMatrix_t(detResponse,setName);
   }
 
