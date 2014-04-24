@@ -137,7 +137,7 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr,
 #else
       fPUReweight=new PUReweight_t(PUReweight_t::_none);
       if (fPUReweight) {
-	TString targetFile="../root_files_reg/pileup/8TeV_reg/randomized_pileup_20140415.root";
+	TString targetFile="../root_files_reg/pileup/8TeV_reg/randomized_pileup_20140424.root";
 	TString targetField=Form("hRnd_lumibased_data_%d",idxPU);
 	if (idxPU==0) targetField="pileup_lumibased_data_base";
 	else if (idxPU== 111) targetField="pileup_lumibased_data_111";
