@@ -69,11 +69,14 @@ int computeNormalizedBinContent(double subset, double subsetErr,
 }
 
 // -----------------------------------------------
+// Note 2014.04.24
+// Currently, in DYee, the inverted matrix errors are not used
+// setting the default value of Nsmearings to 100
 
 inline
 void calculateInvertedMatrixErrors(const TMatrixD &T, 
 	      const TMatrixD &TErrPos, const TMatrixD &TErrNeg,
-		    TMatrixD &TinvErr, int Nsmearings=1000){
+		    TMatrixD &TinvErr, int Nsmearings=100){
 
   // Calculate errors on the inverted matrix by the Monte Carlo
   // method
@@ -717,7 +720,7 @@ public:
     }
   }
 
-  void invertResponseMatrix(int NsmearingExperiments=1000) {
+  void invertResponseMatrix(int NsmearingExperiments=100) {
   // Find inverted response matrix
     (*DetInvertedResponse) = (*DetResponse);
     Double_t det;
