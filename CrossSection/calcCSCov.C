@@ -155,7 +155,7 @@ int calcCSCov(int analysisIs2D,
   // load the needed unfolding matrices
   if (res && (needsDetResUnfM || needsFSRUnfM || needsFSRUnfM_det)) {
     TString constDirDef=inpMgr.constDir(DYTools::NO_SYST,0);
-    TString fnameTagDef=UnfoldingMatrix_t::generateFNameTag(DYTools::NO_SYST);
+    TString fnameTagDef=UnfoldingMatrix_t::generateFNameTag(DYTools::NO_SYST,-1);
     if (res && needsDetResUnfM) {
       detResponse= new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,"detResponse");
       if (!detResponse) res=0;
@@ -439,9 +439,9 @@ int calcCSCov(int analysisIs2D,
 	Uminus=new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,uNameMinus);
 	if (!Uplus || !Uminus) res=0;
 	if (res) res= Uplus->autoLoadFromFile(inpMgr.constDir(runSystMode,0),
-				 UnfoldingMatrix_t::generateFNameTag(smPlus));
+			      UnfoldingMatrix_t::generateFNameTag(smPlus,-1));
 	if (res) res= Uminus->autoLoadFromFile(inpMgr.constDir(runSystMode,0),
-				 UnfoldingMatrix_t::generateFNameTag(smMinus));
+			      UnfoldingMatrix_t::generateFNameTag(smMinus,-1));
 	if (res) {
 	  Uref=new UnfoldingMatrix_t(*detResponse,"detResponseRef");
 	  if (!Uref) res=0;
@@ -512,7 +512,7 @@ int calcCSCov(int analysisIs2D,
 
 	  TString name=Form("detResponse_seed%d",iseed);
 	  UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,name);
-	  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(runSystMode);
+	  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(runSystMode,-1);
 	  TString outputDir=inpMgr.constDir(runSystMode,0);
 	  res=Urnd.autoLoadFromFile(outputDir,fnameTag);
 	  if (res) res= unfold_reco2true(hpUnfYield,Urnd,hpYield);
@@ -876,8 +876,10 @@ int calcCSCov(int analysisIs2D,
 	  if (res) res=loadVec(inpF,vecRnd,"rndSF");
 	  inpF.Close();
 	}
-	if (vecRnd.size()<21) TCanvas *cx=plotProfiles("cx",vecRnd,namesV);
-	//cx->
+	if (vecRnd.size()<21) {
+	  TCanvas *cx=plotProfiles("cx",vecRnd,namesV);
+	  cx->Update();
+	}
       }
       else {
 	std::cout << "not ready for the ESF systematics iSyst=" << iSyst << "\n";
@@ -1230,9 +1232,9 @@ int calcCSCov(int analysisIs2D,
 	Uminus=new UnfoldingMatrix_t(fsrUnfKind,uNameMinus);
 	if (!Uplus || !Uminus) res=0;
 	if (res) res= Uplus->autoLoadFromFile(inpMgr.constDir(runSystMode,0),
-				 UnfoldingMatrix_t::generateFNameTag(smPlus));
+			      UnfoldingMatrix_t::generateFNameTag(smPlus,-1));
 	if (res) res= Uminus->autoLoadFromFile(inpMgr.constDir(runSystMode,0),
-				 UnfoldingMatrix_t::generateFNameTag(smMinus));
+			      UnfoldingMatrix_t::generateFNameTag(smMinus,-1));
 	if (res) {
 	  Uref=new UnfoldingMatrix_t(*fsrU,"fsrResponseRef");
 	  if (!Uref) res=0;
