@@ -53,17 +53,19 @@
 
 int plotDYEfficiency(int analysisIs2D,
 		     const TString conf,
-		  DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		  DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
+		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
+		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+		     TString rndStudyStr="")
 {
   gBenchmark->Start("plotDYEfficiency");
 
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST,
+    if (!DYTools::checkSystMode(systMode,debug_print,7, DYTools::NO_SYST,
 				DYTools::FSR_5plus, DYTools::FSR_5minus,
-				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus))
+				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
+				DYTools::FSR_RND_STUDY, DYTools::PU_RND_STUDY))
       return retCodeError;
   }
   //
@@ -87,8 +89,9 @@ int plotDYEfficiency(int analysisIs2D,
   inpMgr.clearEnergyScaleTag();
 
   // Construct eventSelector, update mgr and plot directory
+  TString extraTag=rndStudyStr;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "", "", EventSelector::_selectDefault);
+			      extraTag, "", EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
   // Event weight handler
@@ -97,12 +100,21 @@ int plotDYEfficiency(int analysisIs2D,
   // without the PU-reweighting, since this number is related to the
   // generator-level quantity
   EventWeight_t evWeightWPU, evWeightNoPU;
-  evWeightWPU .init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
-  evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode);
+  {
+    int res=1;
+    if (res) res=evWeightWPU .init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),
+				   systMode,rndStudyStr);
+    if (res) res=evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode,rndStudyStr);
+    if (!res) {
+      std::cout << "failed to prepare evWeights\n";
+      return retCodeError;
+    }
+  }
 
   int useSpecWeight=1;
   double specWeight=1.0;
   const double FSRmassDiff=1.0;
+  // FSR_RND_STUDY sets own special weights
   if (systMode==DYTools::FSR_5plus) { specWeight=1.05; useSpecWeight=1; }
   else if (systMode==DYTools::FSR_5minus) { specWeight=0.95; useSpecWeight=1; }
 
