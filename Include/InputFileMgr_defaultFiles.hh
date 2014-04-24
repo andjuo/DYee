@@ -10,9 +10,6 @@ TString getDefaultFileName(TString index) {
   else if (index=="default") {
     fname="../config_files/data_vilnius8TeV_regSSD.conf.py";
   }
-  else if (index=="defaultRnd") {
-    fname="../config_files/data_vilnius8TeV_regSSD_rndStudy.conf.py";
-  }
   else if (index=="defaultEgamma") {
     fname="../config_files/data_vilnius8TeV_regSSD_egamma.conf.py";
   }
