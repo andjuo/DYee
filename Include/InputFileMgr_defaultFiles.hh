@@ -10,6 +10,9 @@ TString getDefaultFileName(TString index) {
   else if (index=="default") {
     fname="../config_files/data_vilnius8TeV_regSSD.conf.py";
   }
+  else if (index=="defaultRnd") {
+    fname="../config_files/data_vilnius8TeV_regSSD_rndStudy.conf.py";
+  }
   else if (index=="defaultEgamma") {
     fname="../config_files/data_vilnius8TeV_regSSD_egamma.conf.py";
   }
@@ -21,6 +24,12 @@ TString getDefaultFileName(TString index) {
   }
   else if (index=="defaultAdHoc") {
     fname="../config_files/data_vilnius8TeV_regSSD_adHoc.conf.py";
+  }
+  else if (index=="cernDefault") {
+    fname="../config_files/data_cern8TeV.conf.py";
+  }
+  else if (index=="cernRnd") {
+    fname="../config_files/data_cern8TeV_rndStudy.conf.py";
   }
   else if (index=="cernRemote") {
     fname="../config_files/data_cern8TeVremote.conf.py";
