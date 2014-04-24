@@ -6,7 +6,8 @@ int run_generateRndNumFile(int iSeedMin, int iSeedMax,
 {
   int ok=1;
   for (int iSeed=iSeedMin; (ok==1) && (iSeed<=iSeedMax); ++iSeed) {
-    TString fname=outFNameBase + TString(Form("%d",iSeed));
+    TString fname=outFNameBase + TString(Form("%d.root",iSeed));
+    std::cout << "create " << fname << "\n";
     ok=generateRndNumFile(iSeed,nNumbers,fname);
   }
   return ok;
