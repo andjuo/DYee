@@ -124,6 +124,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   int useSpecWeight=0;
   if (systMode==DYTools::FSR_5plus) { specWeight=1.05; useSpecWeight=1; }
   else if (systMode==DYTools::FSR_5minus) { specWeight=0.95; useSpecWeight=1; }
+  else if (systMode==DYTools::FSR_RND_STUDY) useSpecWeight=1;
 
   random.SetSeed(-1);
   gRandom->SetSeed(-1);
