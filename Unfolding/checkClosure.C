@@ -21,7 +21,8 @@ void checkClosure() {
  M=new UnfoldingMatrix_t(kind, "detResponseExact");
  M=new UnfoldingMatrix_t(kind, "detResponse");
 
- TString fnameTag=UnfoldingMatrix_t::generateFNameTag(dirSystMode);
+ int iseed=-1;
+ TString fnameTag=UnfoldingMatrix_t::generateFNameTag(dirSystMode,iseed);
  M->autoLoadFromFile(dir,DYTools::analysisTag);
  
  TVectorD ini= * (M->getIniVec());
