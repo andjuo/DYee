@@ -800,7 +800,10 @@ public:
       fileTag + TString(".root");
   }
 
-  static TString generateFNameTag(DYTools::TSystematicsStudy_t systMode) {
+  // - ------------------
+
+  static TString generateFNameTag(DYTools::TSystematicsStudy_t systMode,
+				  int seed) {
     TString u="_";
     TString fnameTag="UNKNOWN";
     switch(systMode) {
@@ -817,6 +820,10 @@ public:
     case DYTools::RESOLUTION_STUDY: 
       fnameTag=TString("_seed_") + DYTools::analysisTag;
       //fnameTag+=seed;
+      break;
+    case DYTools::FSR_RND_STUDY:
+    case DYTools::PU_RND_STUDY:
+      fnameTag=TString(Form("seed%d_",seed)) + DYTools::analysisTag;
       break;
     case DYTools::FSR_STUDY:
     case DYTools::FSR_5plus:
