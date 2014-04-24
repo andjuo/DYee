@@ -58,15 +58,17 @@
 int plotDYAcceptance(int analysisIs2D,
 		     const TString conf,
 		     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
-		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
+		     DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
+		     TString rndStudyStr="")
 {
   gBenchmark->Start("plotDYAcceptance");
 
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,5, DYTools::NO_SYST,
+    if (!DYTools::checkSystMode(systMode,debug_print,6, DYTools::NO_SYST,
 				DYTools::FSR_5plus, DYTools::FSR_5minus,
+				DYTools::FSR_RND_STUDY,
 				DYTools::NO_REWEIGHT, DYTools::NO_REWEIGHT_FEWZ))
       return retCodeError;
   }
@@ -90,19 +92,25 @@ int plotDYAcceptance(int analysisIs2D,
   inpMgr.clearEnergyScaleTag();
 
   // Construct eventSelector, update mgr and plot directory
+  TString extraTag=rndStudyStr;
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "","",EventSelector::_selectDefault);
+			      extraTag,"",EventSelector::_selectDefault);
   evtSelector.setTriggerActsOnData(false);
 
   // Acceptance is generator-level quantity and should not
   // depend on the pile-up. The flag is disabled.
   EventWeight_t evWeight;
-  evWeight.init(0*inpMgr.puReweightFlag(),inpMgr.fewzFlag(),systMode);
+  if (!evWeight.init(0*inpMgr.puReweightFlag(),inpMgr.fewzFlag(),
+		     systMode,rndStudyStr)) {
+    std::cout << "failed to prepare evWeight\n";
+    return retCodeError;
+  }
   std::cout << "evWeight: "; evWeight.PrintDetails();
 
   int useSpecWeight=1;
   double specWeight=1.0;
   const double FSRmassDiff=1.0;
+  // FSR_RND_STUDY sets own special weights
   if (systMode==DYTools::FSR_5plus) { specWeight=1.05; useSpecWeight=1; }
   else if (systMode==DYTools::FSR_5minus) { specWeight=0.95; useSpecWeight=1; }
 
@@ -251,6 +259,10 @@ int plotDYAcceptance(int analysisIs2D,
 	// FSR study correction for weight
 	if (useSpecWeight) {
 	  evWeight.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
+	  if ((systMode==DYTools::FSR_RND_STUDY) && (ientry<100)) {
+	    std::cout << "ientry=" << ientry << ", ";
+	    evWeight.PrintDetails();
+	  }
 	}
 
 	// Adjust event weight
