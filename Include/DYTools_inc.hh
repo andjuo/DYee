@@ -46,6 +46,7 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case NO_SYST: name="NormalRun_noSyst"; break;
   case RESOLUTION_STUDY: name="ResolutionStudy"; break;
   case FSR_STUDY: name="FSRStudy"; break;
+  case FSR_RND_STUDY: name="FSRRndStudy"; break;
   case FSR_5plus: name="FSR_5plus"; break;
   case FSR_5minus: name="FSR_5minus"; break;
   case APPLY_ESCALE: name="ApplyEscale"; break;
@@ -66,6 +67,7 @@ TString SystematicsStudyName(DYTools::TSystematicsStudy_t study) {
   case TAG_ID: name="TagID"; break;
   case TAG_PT: name="TagPt"; break;
   case PU_STUDY: name="PUStudy"; break;
+  case PU_RND_STUDY: name="PURndStudy"; break;
   case PILEUP_5plus: name="Pileup5plus"; break;
   case PILEUP_5minus: name="Pileup5minus"; break;
   case UNREG_PU5plus: name="UnregEnPU5plus"; break;
@@ -245,6 +247,7 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   if (str.Contains("NORMALRUN_NOSYST") || str.Contains("NormalRun_noSyst")) { study=NO_SYST; }
   else if (str.Contains("RESOLUTION_STUDY") || str.Contains("ResolutionStudy")) study=RESOLUTION_STUDY;
   else if (str.Contains("FSR_STUDY") || str.Contains("FSRStudy")) study=FSR_STUDY;
+  else if (str.Contains("FSR_RND_STUDY") || str.Contains("FSRRndStudy")) study=FSR_RND_STUDY;
   else if (str.Contains("UNREG_FSR5PLUS") || str.Contains("UnregEnFSR5plus")) study=UNREG_FSR5plus;
   else if (str.Contains("UNREG_FSR5MINUS") || str.Contains("UnregEnFSR5minus")) study=UNREG_FSR5minus;
   else if (str.Contains("FSR_5PLUS") || str.Contains("FSR_5plus")) study=FSR_5plus;
@@ -265,6 +268,7 @@ DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   else if (str.Contains("NO_REWEIGHT") || str.Contains("NoReweight")) study=NO_REWEIGHT;
   else if (str.Contains("SYST_RND") || str.Contains("SYST_RANDOM") || str.Contains("Syst_random")) study=SYST_RND;
   else if (str.Contains("PU_STUDY") || str.Contains("PUStudy")) study=PU_STUDY;
+  else if (str.Contains("PU_RND_STUDY") || str.Contains("PURndStudy")) study=PU_RND_STUDY;
   else if (str.Contains("PILEUP_5plus") || str.Contains("PILEUP_5PLUS")) study=PILEUP_5plus;
   else if (str.Contains("PILEUP_5minus") || str.Contains("PILEUP_5MINUS")) study=PILEUP_5minus;
   else if (str.Contains("UNREG_PU5plus") || str.Contains("UnregEnPU5plus")) study=UNREG_PU5plus;
@@ -289,6 +293,7 @@ int usesUnregEnergy(DYTools::TSystematicsStudy_t systMode) {
   case NO_SYST:
   case RESOLUTION_STUDY:
   case FSR_STUDY:
+  case FSR_RND_STUDY:
   case FSR_5plus:
   case FSR_5minus:
   case ESCALE_RESIDUAL:
@@ -300,6 +305,7 @@ int usesUnregEnergy(DYTools::TSystematicsStudy_t systMode) {
   case TAG_ID:
   case TAG_PT:
   case PU_STUDY:
+  case PU_RND_STUDY:
   case PILEUP_5plus:
   case PILEUP_5minus:
     yes=0;

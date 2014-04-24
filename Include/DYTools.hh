@@ -141,7 +141,7 @@ namespace DYTools {
 
   // Systematics modes for unfolding and acceptance
   typedef enum { SYST_MODE_FAILURE=0, NO_SYST, RESOLUTION_STUDY,
-		 FSR_STUDY, FSR_5plus, FSR_5minus,
+		 FSR_STUDY, FSR_RND_STUDY, FSR_5plus, FSR_5minus,
 		 APPLY_ESCALE, ESCALE_RESIDUAL,
 		 ESCALE_STUDY, ESCALE_STUDY_RND, UNREGRESSED_ENERGY,
 		 LOWER_ET_CUT,
@@ -149,7 +149,7 @@ namespace DYTools {
 		 NO_REWEIGHT, NO_REWEIGHT_PU, NO_REWEIGHT_FEWZ,
 		 SYST_RND,
 		 TAG_ID, TAG_PT,
-		 PU_STUDY, PILEUP_5plus, PILEUP_5minus,
+		 PU_STUDY, PU_RND_STUDY, PILEUP_5plus, PILEUP_5minus,
 		 UNREG_PU5plus, UNREG_PU5minus,
 		 UNREG_FSR5plus, UNREG_FSR5minus,
 		 UNREG_TagID, UNREG_TagPt } TSystematicsStudy_t;
