@@ -7,14 +7,14 @@
 #include <TRandom.h>
 #include <iostream>
 
-void generateRndNumFile(int iSeed, int nNumbers, TString outFName) {
+int generateRndNumFile(int iSeed, int nNumbers, TString outFName) {
   gRandom->SetSeed(iSeed);
 
 
   TFile fout(outFName,"recreate");
   if (!fout.IsOpen()) {
     std::cout << "failed to create the file <" << outFName << ">\n";
-    return;
+    return 0;
   }
 
   double r;
@@ -29,6 +29,6 @@ void generateRndNumFile(int iSeed, int nNumbers, TString outFName) {
   TObjString info(Form("seed_%d__%d",iSeed,nNumbers));
   info.Write();
   fout.Close();
-  return;
+  return 1;
 }
 
