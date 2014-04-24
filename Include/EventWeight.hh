@@ -9,11 +9,97 @@
 #include "../Include/TGenInfo.hh"
 #include "../Include/AccessOrigNtuples.hh"
 
+#include <TFile.h>
+#include <TTree.h>
+#include <TBranch.h>
+
 
 // The class EventWeigh_t has four fields:
 //  baseW -- determined from input of the file
 //  puW, fewzW -- correction factors are set automatically
 //  specW -- user can control this factor (e.g. FSR reweight)
+
+// ----------------------------------------------------
+// ----------------------------------------------------
+
+struct TFSRSystematics_t {
+  TString fRndStudyStr;
+  UInt_t fEntry, fAvailableEntries;
+  int fSeed;
+  double fRnd;
+  TFile *fFile;
+  TTree *fTree;
+  TBranch *fBr;
+  int fReady;
+public:
+  TFSRSystematics_t(TString setSystStr) :
+    fRndStudyStr(setSystStr),
+    fEntry(0), fAvailableEntries(0), fSeed(0),
+    fRnd(0.),
+    fFile(NULL), fTree(NULL), fBr(NULL),
+    fReady(0)
+  {
+    this->init();
+  }
+
+  // --------------------
+
+  TFSRSystematics_t(const TFSRSystematics_t &a) :
+    fRndStudyStr(a.fRndStudyStr),
+    fEntry(0), fAvailableEntries(0), fSeed(0),
+    fRnd(0.),
+    fFile(NULL), fTree(NULL), fBr(NULL),
+    fReady(0)
+  {
+    this->init();
+  }
+
+  // --------------------
+
+  ~TFSRSystematics_t() {
+    std::cout << "FSRSystematics_t with rndStudyStr=<"
+	      << fRndStudyStr << ">\n   used " << fEntry
+	      << " entries out of "
+	      << fAvailableEntries << " available\n";
+    if (fBr) delete fBr;
+    if (fTree) delete fTree;
+    if (fFile) { fFile->Close(); delete fFile; }
+  }
+
+  // --------------------
+
+  int ready() const { return fReady; }
+  TString rndStudyStr() const { return fRndStudyStr; }
+  UInt_t iEntry() const { return fEntry; }
+  UInt_t maxEntries() const { return fAvailableEntries; }
+
+  // -------------------
+
+  double nextValue() {
+    if (!fReady) { std::cout << "not ready!\n"; return 0.; }
+    if (abs(fSeed)==111) {
+      fEntry++;
+      fRnd=(fSeed<0) ? -1 : 1;
+    }
+    else {
+      fBr->GetEntry(fEntry);
+      fEntry++;
+      if (fEntry>fAvailableEntries) std::cout << "entry count exceeded\n";
+    }
+    return fRnd;
+  }
+
+  // -------------------
+
+  void printDetails() const;
+
+  // -------------------
+
+private:
+  int init();
+
+
+};
 
 // ----------------------------------------------------
 // ----------------------------------------------------
@@ -32,6 +118,7 @@ protected:
   double puW;
   double fewzW;
   double specW;
+  TFSRSystematics_t *fFSR;
 public:
   EventWeight_t() :
     fDoPUReweight(1),
@@ -42,7 +129,8 @@ public:
     baseW(1.),
     puW(1.),
     fewzW(1.),
-    specW(1.)
+    specW(1.),
+    fFSR(NULL)
   {}
 
   EventWeight_t(const EventWeight_t &ev);
@@ -67,7 +155,10 @@ public:
   int setSpecWeightValue(const AccessOrigNtuples_t &accessInfo, double massDiff, double specWeight_val) {
     const mithep::TGenInfo* gen=accessInfo.genPtr();
     //specW = (gen->vmass - gen->mass <= massDiff) ? 1.0 : specWeight_val;
-    int largeFSR=(gen->vmass - gen->mass > massDiff) ? 1:0;
+    int largeFSR= (gen->vmass - gen->mass > massDiff) ? 1:0;
+    if (fFSR && largeFSR) {
+      specWeight_val = 1+ 0.05 * fFSR->nextValue();
+    }
     specW= (largeFSR) ? specWeight_val : 1.0;
     return largeFSR;
   }
@@ -129,6 +220,7 @@ public:
 
   void PrintDetails() const {
     std::cout << " baseW=" << baseW << ", specW=" << specW << ", flag_puReweight=" << fDoPUReweight << ", flag_FewzReweight=" << fFewzCorr << "\n";
+    if (fFSR) fFSR->printDetails();
   }
 
 

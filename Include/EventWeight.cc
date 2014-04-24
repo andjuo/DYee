@@ -2,6 +2,67 @@
 
 
 // --------------------------------------------------------
+// --------------------------------------------------------
+
+int TFSRSystematics_t::init() {
+  fReady=0;
+  if (DetermineSystematicsStudy(fRndStudyStr)==DYTools::FSR_RND_STUDY) {
+    // determine seed
+    fSeed=0;
+    for (int i=0; (fSeed==0) && (i<fRndStudyStr.Length()); i++) {
+      fSeed=atoi(fRndStudyStr.Data() + i);
+    }
+    if (fSeed==0) {
+      std::cout << "TFSRSystematics::init - failed to determine seed\n";
+      return 0;
+    }
+    // got seed
+    if (abs(fSeed)!=111) {
+      TString fname=Form("../root_files_reg/theory/rndSequence_%d.root",fSeed);
+      fFile = new TFile(fname,"read");
+      if (!fFile || !fFile->IsOpen()) {
+	std::cout << "failed to open the file <" << fname << ">\n";
+	return 0;
+      }
+      fTree= (TTree*)fFile->Get("rndSequence");
+      if (!fTree) {
+	std::cout << "failed to get the tree\n";
+	return 0;
+      }
+      fTree->SetBranchAddress("rnd",&fRnd);
+      fBr= fTree->GetBranch("rnd");
+      if (!fBr) {
+	std::cout << "failed to get the branch\n";
+	return 0;
+      }
+
+      fAvailableEntries= fTree->GetEntries();
+      fEntry=0;
+    }
+    else {
+      fAvailableEntries=-1;
+      fEntry=0;
+    }
+    fReady=1;
+  }
+  return fReady;
+}
+
+// --------------------------------------------------------
+
+void TFSRSystematics_t::printDetails() const {
+  std::cout << "FSRSystematics(str=" << fRndStudyStr << "):\n";
+  if (!fReady) std::cout << "  NOT READY\n";
+  else {
+    std::cout << " - seed       = " << fSeed << "\n";
+    std::cout << " - entry(max) = " << fEntry << "("
+	      << fAvailableEntries << ")\n";
+    std::cout << " - current rnd= " << fRnd << "\n";
+  }
+}
+
+// --------------------------------------------------------
+// --------------------------------------------------------
 
 EventWeight_t::EventWeight_t(const EventWeight_t &ev) :
   fDoPUReweight(ev.fDoPUReweight),
@@ -12,14 +73,18 @@ EventWeight_t::EventWeight_t(const EventWeight_t &ev) :
   baseW(ev.baseW),
   puW(ev.puW),
   fewzW(ev.fewzW),
-  specW(ev.specW)
-{}
+  specW(ev.specW),
+  fFSR(NULL)
+{
+  if (ev.fFSR) fFSR=new TFSRSystematics_t(*ev.fFSR);
+}
 
 // --------------------------------------------------------
 
 EventWeight_t::~EventWeight_t() {
   if (fPtrOwner && fPUReweight) delete fPUReweight;
   if (fPtrOwner && fFEWZ) delete fFEWZ;
+  if (fFSR) delete fFSR;
 }
 
 // --------------------------------------------------------
@@ -51,11 +116,13 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr,
 
     int regularPileup=1;
     int idxPU=-1;
-    if (rndStudyStr.Length()!=0) {
-      int idx=rndStudyStr.Index("PU_RND_");
-      if (idx>=0) {
-	idxPU=atoi(rndStudyStr.Data() + idx + strlen("PU_RND_"));
-	std::cout << "PU_RND detected. idx=" << idxPU << "\n";
+    if ((rndStudyStr.Length()!=0) &&
+	(DetermineSystematicsStudy(rndStudyStr)==DYTools::PU_RND_STUDY)) {
+      for (int i=0; (idxPU<=0) && (i<rndStudyStr.Length()); ++i) {
+	idxPU=atoi(rndStudyStr.Data() + i);
+      }
+      if (idxPU>=0) {
+	std::cout << "PU_RND_STUDY detected. idx=" << idxPU << "\n";
 	regularPileup=0;
       }
     }
@@ -103,6 +170,14 @@ int EventWeight_t::init(int do_puReweight, int do_fewzCorr,
     if (!fFEWZ || !fFEWZ->isInitialized()) ok=0;
     else fFewzCorr=do_fewzCorr;
   }
+
+  if (ok && rndStudyStr.Length()
+      && (DetermineSystematicsStudy(rndStudyStr)==DYTools::FSR_RND_STUDY)) {
+    fFSR= new TFSRSystematics_t(rndStudyStr);
+    if (!fFSR) ok=0;
+    if (ok && !fFSR->ready()) ok=0;
+  }
+
   return ok;
 }
 
