@@ -108,8 +108,9 @@ void compareRndYields(int analysisIs2D=1,
     UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,"detResponse");
     TString matrixFName,yieldsFName;
     TString yieldGenName, yieldRecName;
+    int noSeed=-1;
     detResponse.getFileNames(inpMgrRemote.constDir(systMode3,0),
-			     UnfoldingMatrix_t::generateFNameTag(systMode3),
+			 UnfoldingMatrix_t::generateFNameTag(systMode3,noSeed),
 			     matrixFName,yieldsFName);
     detResponse.getYieldNames(UnfoldingMatrix::_cDET_Response,
 			      yieldGenName,yieldRecName);
@@ -139,7 +140,7 @@ void compareRndYields(int analysisIs2D=1,
       TString matrixFNameRnd,yieldsFNameRnd;
       TString yieldGenNameRnd, yieldRecNameRnd;
       detResponseRnd.getFileNames(inpMgrRnd.constDir(systModeV,0),
-			    UnfoldingMatrix_t::generateFNameTag(systModeV),
+			  UnfoldingMatrix_t::generateFNameTag(systModeV,iseed),
 				  matrixFNameRnd,yieldsFNameRnd);
       detResponseRnd.getYieldNames(UnfoldingMatrix::_cDET_Response,
 				   yieldGenNameRnd,yieldRecNameRnd);
@@ -191,8 +192,9 @@ void compareRndYields(int analysisIs2D=1,
     UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,"detResponse");
     TString matrixFName,yieldsFName;
     TString yieldGenName, yieldRecName;
+    int noSeed=-1;
     detResponse.getFileNames(inpMgrRemote.constDir(systMode3,0),
-			     UnfoldingMatrix_t::generateFNameTag(systMode3),
+		        UnfoldingMatrix_t::generateFNameTag(systMode3,noSeed),
 			     matrixFName,yieldsFName);
     detResponse.getYieldNames(UnfoldingMatrix::_cDET_Response,
 			      yieldGenName,yieldRecName);
@@ -223,7 +225,7 @@ void compareRndYields(int analysisIs2D=1,
       TString matrixFNameRnd,yieldsFNameRnd;
       TString yieldGenNameRnd, yieldRecNameRnd;
       detResponseRnd.getFileNames(inpMgrRnd.constDir(systModeV,0),
-			    UnfoldingMatrix_t::generateFNameTag(systModeV),
+			  UnfoldingMatrix_t::generateFNameTag(systModeV,iseed),
 				  matrixFNameRnd,yieldsFNameRnd);
       detResponseRnd.getYieldNames(UnfoldingMatrix::_cDET_Response,
 				   yieldGenNameRnd,yieldRecNameRnd);
