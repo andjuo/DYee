@@ -716,6 +716,7 @@ TString CurrentMassBinningName();
 TString SystematicsStudyName(DYTools::TSystematicsStudy_t study);
 TString generateSystTag(DYTools::TSystematicsStudy_t systMode);
 int usesUnregEnergy(DYTools::TSystematicsStudy_t systMode);
+int isGlobalRndStudy(DYTools::TSystematicsStudy_t systMode);
 TString RunModeName(DYTools::TRunMode_t study);
 DYTools::TRunMode_t DebugInt2RunMode(int debug);
 TString generateRunTag(DYTools::TRunMode_t runMode);
@@ -733,7 +734,8 @@ DYTools::TDataKind_t DetermineDataKind(const TString &str);
 TString CrossSectionKindName(DYTools::TCrossSectionKind_t kind);
 DYTools::TCrossSectionKind_t DetermineCrossSectionKind(const TString &str);
 TString CrossSectionKindLongName(DYTools::TCrossSectionKind_t kind);
-
+void AdjustFileNameEnding(TString &fname,DYTools::TSystematicsStudy_t systMode,
+			  int iSeed);
 
 // ------------------------------------------------------------------
 //     Printing

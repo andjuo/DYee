@@ -338,6 +338,56 @@ int usesUnregEnergy(DYTools::TSystematicsStudy_t systMode) {
 
 // ------------------------------------------------------------------
 
+int isGlobalRndStudy(DYTools::TSystematicsStudy_t systMode) {
+  using namespace DYTools;
+  int yes=0;
+  switch(systMode) {
+  case NO_SYST:
+  case RESOLUTION_STUDY:
+  case FSR_STUDY:
+  case FSR_5plus:
+  case FSR_5minus:
+  case ESCALE_RESIDUAL:
+  case LOWER_ET_CUT:
+  case NO_REWEIGHT:
+  case NO_REWEIGHT_PU:
+  case NO_REWEIGHT_FEWZ:
+  case SYST_RND:
+  case TAG_ID:
+  case TAG_PT:
+  case PU_STUDY:
+  case PILEUP_5plus:
+  case PILEUP_5minus:
+  case UNREGRESSED_ENERGY:
+  case UNREG_PU5plus:
+  case UNREG_PU5minus:
+  case UNREG_FSR5plus:
+  case UNREG_FSR5minus:
+  case UNREG_TagID:
+  case UNREG_TagPt:
+  case ESCALE_STUDY:
+  case ESCALE_STUDY_RND:
+  case APPLY_ESCALE:
+  case ESCALE_DIFF_0000:
+  case ESCALE_DIFF_0005:
+  case ESCALE_DIFF_0010:
+  case ESCALE_DIFF_0015:
+  case ESCALE_DIFF_0020:
+    yes=0;
+    break;
+  case FSR_RND_STUDY:
+  case PU_RND_STUDY:
+    yes=1;
+    break;
+  default:
+    std::cout << "isGlobalRndStudy: unhandled case\n";
+    assert(0);
+  }
+  return yes;
+}
+
+// ------------------------------------------------------------------
+
 //inline
 DYTools::TTnPMethod_t DetermineTnPMethod(const TString &str) {
   using namespace DYTools;
@@ -531,6 +581,18 @@ TString CrossSectionKindLongName(DYTools::TCrossSectionKind_t kind) {
 }
 
 // ------------------------------------------------------------------
+
+void AdjustFileNameEnding(TString &fname,DYTools::TSystematicsStudy_t systMode,
+			  int iSeed) {
+  TString ending;
+  if (systMode==DYTools::FSR_RND_STUDY) {
+    ending=Form("__FSR_RND_STUDY%d.root",iSeed);
+  }
+  else if (systMode==DYTools::PU_RND_STUDY) {
+    ending=Form("__PU_RND_STUDY%d.root",iSeed);
+  }
+  if (ending.Length()) fname.ReplaceAll(".root",ending);
+}
 
 // ------------------------------------------------------------------
 //     Printing
