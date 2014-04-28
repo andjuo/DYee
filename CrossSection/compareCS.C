@@ -70,8 +70,8 @@ void compareCS(int analysisIs2D=1,
     labelV[0]="ESF reg.en";
     labelV[1]="FSR 5plus";
     labelV[2]="FSR 5minus";
-    canvasSaveName="fig-fsrStudy-";
-    canvasSaveDir="plots-fsrStudy";
+    canvasSaveName="fig-fsrRndStudy-";
+    canvasSaveDir="plots-fsrRndStudy";
     transLegendX=(DYTools::study2D==1) ? -0.35 : -0.1;
     transLegendY=(DYTools::study2D==1) ? -0.55 : -0.0;
     set_ratio_y[0]=(DYTools::study2D==1) ? 0.98 : 0.97;
@@ -92,15 +92,15 @@ void compareCS(int analysisIs2D=1,
     labelV[0]="ESF reg.en";
     labelV[1]="PU 5plus";
     labelV[2]="PU 5minus";
-    canvasSaveName="fig-puStudy-";
-    canvasSaveDir="plots-puStudy";
+    canvasSaveName="fig-puRndStudy-";
+    canvasSaveDir="plots-puRndStudy";
     transLegendX=(DYTools::study2D==1) ? -0.35 : -0.1;
     transLegendY=(DYTools::study2D==1) ? -0.55 : -0.0;
     set_ratio_y[0]=(DYTools::study2D==1) ? 0.9 : 0.96;
     set_ratio_y[1]=(DYTools::study2D==1) ? 1.1 : 1.04;
   }
 
-  if (0) { // added on 2014.04.23
+  if (1) { // added on 2014.04.23
     prepare(3,pathV,fnameV,fieldV,labelV);
     pathV[0]=gen_path + TString("/");
     pathV[1]=gen_path + TString("_Pileup5plus/");
@@ -114,15 +114,15 @@ void compareCS(int analysisIs2D=1,
     labelV[0]="ESF unreg.en";
     labelV[1]="PU 5plus";
     labelV[2]="PU 5minus";
-    canvasSaveName="fig-puStudy-";
-    canvasSaveDir="plots-puStudy";
+    canvasSaveName="fig-puRndStudy-";
+    canvasSaveDir="plots-puRndStudy";
     transLegendX=(DYTools::study2D==1) ? -0.35 : -0.1;
     transLegendY=(DYTools::study2D==1) ? -0.55 : -0.0;
     set_ratio_y[0]=(DYTools::study2D==1) ? 0.9 : 0.96;
     set_ratio_y[1]=(DYTools::study2D==1) ? 1.1 : 1.04;
   }
 
-  if (1) { // added on 2014.04.23
+  if (0) { // added on 2014.04.23
     prepare(3,pathV,fnameV,fieldV,labelV);
     pathV[0]=gen_path + TString("/");
     pathV[1]=gen_path + TString("_FSR_5plus/");
@@ -136,8 +136,8 @@ void compareCS(int analysisIs2D=1,
     labelV[0]="ESF unreg.en";
     labelV[1]="FSR 5plus";
     labelV[2]="FSR 5minus";
-    canvasSaveName="fig-fsrStudy-";
-    canvasSaveDir="plots-fsrStudy";
+    canvasSaveName="fig-fsrRndStudy-";
+    canvasSaveDir="plots-fsrRndStudy";
     transLegendX=(DYTools::study2D==1) ? -0.35 : -0.1;
     transLegendY=(DYTools::study2D==1) ? -0.55 : -0.0;
     set_ratio_y[0]=(DYTools::study2D==1) ? 0.9 : 0.96;
@@ -164,7 +164,8 @@ void compareCS(int analysisIs2D=1,
   }
 
   if (1) {
-    TH2D* h2Diff=getRelDifference(histoV,"h2diff",1);
+    int includeVariants=0;
+    TH2D* h2Diff=getRelDifference(histoV,"h2diff",includeVariants);
     TMatrixD covDiag(DYTools::nUnfoldingBins,DYTools::nUnfoldingBins);
     int iflat=0;
     for (int ir=1; ir<=h2Diff->GetNbinsX(); ++ir) {
