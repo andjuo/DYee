@@ -59,7 +59,7 @@ int calcCSCov(int analysisIs2D,
   int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
 
   int calc_AccFSR=0;
-  int calc_AccRnd=1;
+  int calc_AccRnd=0;
 
   int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
 
@@ -68,12 +68,21 @@ int calcCSCov(int analysisIs2D,
 
   int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
 
+  int calc_globalFSR=1;
+  int calc_globalPU=0;
+  int calc_globalFEWZ=0;
+
+  int doCalcGlobalCov=(calc_globalFSR + calc_globalPU + calc_globalFEWZ) ? 1:0;
+
   TMatrixD* covCS_fromYield=NULL;
   TMatrixD* covCS_fromUnf=NULL;
   TMatrixD* covCS_fromEff=NULL;
   TMatrixD* covCS_fromESF=NULL;
   TMatrixD* covCS_fromAcc=NULL;
   TMatrixD* covCS_fromFSR=NULL;
+  TMatrixD* covCS_fromGlobalFSR=NULL;
+  TMatrixD* covCS_fromGlobalPU=NULL;
+  TMatrixD* covCS_fromGlobalFEWZ=NULL;
 
   int needsDetResUnfM= (doCalcUnfCov + doCalcEffCov) ? 1:0;
   int needsFSRUnfM   = ((doCalcAccCov + doCalcFSRCov) && DYTools::isFullSpaceCS(csKind)) ? 1:0;
@@ -416,7 +425,7 @@ int calcCSCov(int analysisIs2D,
 	break;
       case 2:
 	run=calc_UnfFSR;
-	runSystMode=DYTools::FSR_STUDY;;
+	runSystMode=DYTools::FSR_STUDY;
 	uNamePlus ="detResponse_105"; smPlus =DYTools::FSR_5plus;
 	uNameMinus="detResponse_095"; smMinus=DYTools::FSR_5minus;
 	csCovName="covCS_UnfFSR";
@@ -1272,8 +1281,8 @@ int calcCSCov(int analysisIs2D,
 	    printHisto(hpUnf,5);
 	  }
 	  if (res) {
-	    TString rndVec=Form("h2fsrUnfRnd_%d",iexp);
-	    TH2D* h2=Clone(hpUnf.histo(),rndVec);
+	    TString rndName=Form("h2fsrUnfRnd_%d",iexp);
+	    TH2D* h2=Clone(hpUnf.histo(),rndName);
 	    if (!h2) res=0;
 	    else h2->Scale(1/DYTools::lumiAtECMS);
 	    vecUnfRnd.push_back(h2);
@@ -1322,6 +1331,167 @@ int calcCSCov(int analysisIs2D,
 
   HERE("after calculating FSR cov res=%d",res);
 
+  //////////////////////////////////////////////////////
+  // Global uncertainties, like FSR, Pile-up, and FEWZ
+  //////////////////////////////////////////////////////
+
+  if (res && doCalcGlobalCov) {
+    int saveSilentMode=inpArgs.silentMode();
+    inpArgs.silentMode(0);
+    //TMatrixD *covGlobalTot=NULL;
+
+    for (int iSyst=0; res && (iSyst<3); ++iSyst) {
+      int run=0;
+      DYTools::TSystematicsStudy_t runSystMode=DYTools::NO_SYST;
+      TString csCovName;
+      // unf matrices for bounds
+      int seedMin=1001, seedMax=1100;
+      int dSeed=1;
+      switch(iSyst) {
+      case 0:
+	run=calc_globalFSR;
+	runSystMode=DYTools::FSR_RND_STUDY;
+	csCovName="covCS_fsrRndStudy";
+	break;
+      case 1:
+	run=calc_globalPU;
+	runSystMode=DYTools::PU_RND_STUDY;
+	csCovName="covCS_puRndStudy";
+	seedMin -= 1000;
+	seedMax -= 1000;
+	break;
+      case 2:
+	run=calc_globalFEWZ;
+	runSystMode=DYTools::SYST_MODE_FAILURE; // not ready
+	csCovName="covCS_fewzRndStudy";
+	break;
+      default:
+	std::cout << "not ready for unf iSyst=" << iSyst << "\n";
+	return retCodeError;
+      }
+      TString covDetailsDir=csCovName + TString("_details");
+
+      if (!run) continue;
+      std::cout << " - will produce " << csCovName << "\n";
+
+      InputFileMgr_t inpMgrLocal(inpMgr);
+      TString dir=inpMgrLocal.rootFileBaseDir();
+      dir.ReplaceAll("Results-DYee","Results-rnd-studies");
+      inpMgrLocal.rootFileBaseDir(dir);
+      // remove ESF tag
+      inpMgrLocal.addUserKey(std::string("SCALEFACTORTAG"),"");
+      // add info on the ESF file
+      inpMgrLocal.addUserKey(std::string("SpecFile_EffScaleFactor"),
+	  Form("../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/scale_factors_asymHLT_%dD.root",DYTools::study2D+1));
+      // no PU-reweight for acceptance
+      if (runSystMode==DYTools::PU_RND_STUDY) {
+	inpMgrLocal.addUserKey(std::string("SpecFile_acceptance"),
+	  Form("../../Results-DYee/root_files_reg/constants/DY_j22_19712pb/acceptance_%dD.root",DYTools::study2D+1));
+      }
+
+      // handles for special studies ("where the effect comes from")
+      // to use unmodified corrections
+      if (0) {
+	TString baseResultPath=
+	  "../../Results-DYee/root_files_reg/constants/DY_j22_19712pb/";
+	TString str2D=Form("%dD",DYTools::study2D+1);
+	TString baseEnding=str2D+TString(".root");
+	if (1) {
+	  inpMgrLocal.addUserKey(TString("SpecFNameTag_detResolution"), str2D);
+	  inpMgrLocal.addUserKey(TString("SpecConstDir_detResolution"),
+				 baseResultPath);
+	}
+	if (1) {
+	  inpMgrLocal.addUserKey(TString("SpecFNameTag_fsrCorrection"), str2D);
+	  inpMgrLocal.addUserKey(TString("SpecConstDir_fsrCorrection"),
+				 baseResultPath);
+	}
+	if (1) {
+	  inpMgrLocal.addUserKey(TString("SpecFile_efficiency"),
+				 baseResultPath + TString("efficiency_") +
+				 baseEnding);
+	}
+	if (1) {
+	  inpMgrLocal.addUserKey(TString("SpecFile_acceptance"),
+				 baseResultPath + TString("acceptance_") +
+				 baseEnding);
+	}
+      }
+
+      InputArgs_t inpArgsLocal(SystematicsStudyName(runSystMode),&inpMgrLocal,
+			       runSystMode,csKind);
+      inpArgsLocal.noSave(1);
+
+      std::vector<TH2D*> csRndV;
+      csRndV.reserve(int(seedMax-seedMin)/dSeed+1);
+      HistoPair2D_t hpCSrnd("rndCS");
+      CSResults_t csResultLocal;
+      for (int iseed=seedMin; res && (iseed<=seedMax); iseed+=dSeed) {
+	if (iseed-seedMin>nExps) {
+	  std::cout << "\n\tmore seeds than requested nExps=" << nExps << "\n";
+	  break;
+	}
+	inpArgsLocal.externalSeed(iseed);
+	res=calculateCS(inpArgsLocal,hpSignalYield,csKind,hpCSrnd,
+			csResultLocal);
+	if (res) {
+	  TString hname=Form("h%s_%d",
+			     SystematicsStudyName(runSystMode).Data(),
+			     iseed);
+	  TH2D* h2=Clone(hpCSrnd.histo(),hname);
+	  if (!h2) res=0;
+	  csRndV.push_back(h2);
+	}
+      }
+      hpCS.clear();
+      if (!res) continue;
+
+      //printHisto(vecUnfRnd,0,5,2);
+
+      int unbiasedEstimate=1;
+      TH2D* csAvgDistr=createBaseH2(Form("hCSUnfAvgDistr_%d",iSyst));
+      TMatrixD* csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,
+						csAvgDistr);
+      if (!csCov) res=0;
+
+      if (csCov) {
+	if (iSyst==0) {
+	  if (!covCS_fromGlobalFSR) covCS_fromGlobalFSR= new TMatrixD(*csCov);
+	  else (*covCS_fromGlobalFSR) += (*csCov);
+	}
+	else if (iSyst==1) {
+	  if (!covCS_fromGlobalPU) covCS_fromGlobalPU= new TMatrixD(*csCov);
+	  else (*covCS_fromGlobalPU) += (*csCov);
+	}
+	else if (iSyst==2) {
+	  if (!covCS_fromGlobalFEWZ) covCS_fromGlobalFEWZ= new TMatrixD(*csCov);
+	  else (*covCS_fromGlobalFEWZ) += (*csCov);
+	}
+
+	//printHisto(csRndV,0,5,2);
+      }
+
+      ClearVec(csRndV);
+
+      if (res) {
+	outFile.cd();
+	if (csCov) csCov->Write(csCovName);
+	if (storeDetails) {
+	  if (res) res=saveHisto(outFile,csAvgDistr,covDetailsDir,"");
+	  if (res) res=saveVec(outFile,csRndV,covDetailsDir);
+	}
+      }
+      if (!res) return retCodeError;
+
+      // release memory
+      if (csCov) delete csCov;
+      if (csAvgDistr) delete csAvgDistr;
+    }
+
+    inpArgs.silentMode(saveSilentMode);
+  }
+
+  HERE("after calculating global cov res=%d",res);
 
   ////////////////////////////
   // Finalize
@@ -1335,6 +1505,9 @@ int calcCSCov(int analysisIs2D,
     if (covCS_fromESF  ) covCS_fromESF  ->Write("covCStot_fromESF");
     if (covCS_fromAcc  ) covCS_fromAcc  ->Write("covCStot_fromAcc");
     if (covCS_fromFSR  ) covCS_fromFSR  ->Write("covCStot_fromFSR");
+    if (covCS_fromGlobalFSR) covCS_fromGlobalFSR->Write("covCStot_fromGlobalFSR");
+    if (covCS_fromGlobalPU ) covCS_fromGlobalPU ->Write("covCStot_fromGlobalPU");
+    if (covCS_fromGlobalFEWZ)covCS_fromGlobalFEWZ->Write("covCStot_fromGlobalFEWZ");
   }
   else {
     std::cout << "ERROR: res=" << res << "\n";
