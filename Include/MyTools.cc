@@ -625,6 +625,44 @@ int convertBaseH2actualVec(const std::vector<TH2D*> &baseV, std::vector<TH2D*> &
 //--------------------------------------------------
 //--------------------------------------------------
 
+int scaleHisto(TH1D *histoNom, const TH1D *histoDenom) {
+  if (histoNom->GetNbinsX() != histoDenom->GetNbinsX()) {
+    std::cout << "scaleHisto: different number of bins\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=histoNom->GetNbinsX(); ++ibin) {
+    double v=histoNom->GetBinContent(ibin);
+    double e=histoNom->GetBinError(ibin);
+    double x=histoDenom->GetBinContent(ibin);
+    histoNom->SetBinContent(ibin, v/x);
+    histoNom->SetBinError(ibin, e/x);
+  }
+  return 1;
+}
+
+//--------------------------------------------------
+
+int scaleHisto(TH2D *histoNom, const TH2D *histoDenom) {
+  if ((histoNom->GetNbinsX() != histoDenom->GetNbinsX()) ||
+      (histoNom->GetNbinsY() != histoDenom->GetNbinsY())) {
+    std::cout << "scaleHisto(2D): different number of bins\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=histoNom->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=histoNom->GetNbinsY(); ++jbin) {
+      double v=histoNom->GetBinContent(ibin,jbin);
+      double e=histoNom->GetBinError(ibin,jbin);
+      double x=histoDenom->GetBinContent(ibin,jbin);
+      histoNom->SetBinContent(ibin,jbin, v/x);
+      histoNom->SetBinError(ibin,jbin, e/x);
+    }
+  }
+  return 1;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
 

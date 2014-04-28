@@ -1480,6 +1480,12 @@ histo_t* addHistos(TString newName, const std::vector<histo_t*> &vec) {
   return h;
 }
 
+//-----------------------------------------------------------
+
+// error is ignored
+int scaleHisto(TH1D *histoNom, const TH1D *histoDenom);
+int scaleHisto(TH2D *histoNom, const TH2D *histoDenom);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class tObject_t>
