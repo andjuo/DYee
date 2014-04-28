@@ -59,6 +59,16 @@ int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, His
     constDir=codeDebugFilePath;
     fnameTag=DYTools::analysisTag + TString("_PU");
   }
+  {
+    // special file
+    TString specConstDir=inpArg.inpMgr()->userKeyValueAsTString("SpecConstDir_detResolution");
+    TString specFNameTag=inpArg.inpMgr()->userKeyValueAsTString("SpecFNameTag_detResolution");
+    if (specConstDir.Length()) {
+      fnameTag=specFNameTag;
+      constDir=specConstDir;
+      std::cout << "\nusing user-defined file for detResolution. constDir=" << constDir << ">, fnameTag=<" << specFNameTag << ">\n";
+    }
+  }
   UnfM=UnfoldingMatrix_t::LoadUnfM("detResponse", constDir, fnameTag, inverse);
   if (!UnfM) return 0;
   // unfolding does not include additional error of the unfolding matrix
@@ -84,6 +94,16 @@ int fsrCorrection_det(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Histo
   if ( load_debug_file ) {
     constDir=codeDebugFilePath;
     fnameTag=DYTools::analysisTag + TString("_PU");
+  }
+  {
+    // special file
+    TString specConstDir=inpArg.inpMgr()->userKeyValueAsTString("SpecConstDir_fsrCorrection");
+    TString specFNameTag=inpArg.inpMgr()->userKeyValueAsTString("SpecFNameTag_fsrCorrection");
+    if (specConstDir.Length()) {
+      fnameTag=specFNameTag;
+      constDir=specConstDir;
+      std::cout << "\nusing user-defined file for detResolution. constDir=" << constDir << ">, fnameTag=<" << specFNameTag << ">\n";
+    }
   }
   UnfM=UnfoldingMatrix_t::LoadUnfM("fsrDETgood", constDir, fnameTag, inverse);
   if (!UnfM) return 0;
@@ -111,6 +131,16 @@ int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini,
     constDir=codeDebugFilePath;
     fnameTag=DYTools::analysisTag + TString("_PU");
   }
+  {
+    // special file
+    TString specConstDir=inpArg.inpMgr()->userKeyValueAsTString("SpecConstDir_fsrCorrection");
+    TString specFNameTag=inpArg.inpMgr()->userKeyValueAsTString("SpecFNameTag_fsrCorrection");
+    if (specConstDir.Length()) {
+      fnameTag=specFNameTag;
+      constDir=specConstDir;
+      std::cout << "\nusing user-defined file for detResolution. constDir=" << constDir << ">, fnameTag=<" << specFNameTag << ">\n";
+    }
+  }
   UnfM=UnfoldingMatrix_t::LoadUnfM("fsrGood", constDir, fnameTag, inverse);
   if (!UnfM) return 0;
   // unfolding does not include additional error of the unfolding matrix
@@ -125,9 +155,21 @@ int fsrCorrection_fullSpace(const InputArgs_t &inpArg, const HistoPair2D_t &ini,
 int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, HistoPair2D_t &fin) {
   if (inpArg.silentMode()<2) HERE(" -- efficiencyCorrection");
   TString effCorrFName=inpArg.inpMgr()->correctionFullFileName("efficiency",inpArg.systMode(),0);
+  if (isGlobalRndStudy(inpArg.systMode())) {
+    AdjustFileNameEnding(effCorrFName,inpArg.systMode(),inpArg.externalSeed());
+  }
   TH2D *hEff=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
+    {
+      // special file
+      TString specFile=inpArg.inpMgr()->userKeyValueAsTString("SpecFile_efficiency");
+      if (specFile.Length()) {
+	effCorrFName=specFile;
+	std::cout << "\nusing user-defined file for efficiencyCorrection=<"
+		  << effCorrFName << ">\n";
+      }
+    }
     hEff=LoadHisto2D("hEfficiency",effCorrFName,"",1);
   }
   else {
@@ -159,7 +201,7 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   if ( ! load_debug_file ) {
     TString sfTag=inpArg.inpMgr()->userKeyValueAsTString("SpecialESFTag");
     if (!inpArg.silentMode())  std::cout << "\n\n";
-    std::cout << "\tsfTag=<" << sfTag << ">\n";
+    std::cout << "\tspec sfTag=<" << sfTag << ">\n";
     if (!inpArg.silentMode()) std::cout << "\n";
     if (sfTag.Length()) {
       // special
@@ -177,6 +219,13 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
 	std::cout << "special scale factor tag=<" << sfTag << ">\n";
 	TString constTag=inpArg.inpMgr()->constTag();
 	rhoCorrFName.ReplaceAll(constTag,sfTag);
+      }
+      else {
+	sfTag=inpArg.inpMgr()->userKeyValueAsTString("SpecFile_EffScaleFactor");
+	if (sfTag.Length()) {
+	  std::cout << "user-defined scale factor file <" << sfTag << ">\n";
+	  rhoCorrFName=sfTag;
+	}
       }
     }
     //hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
@@ -206,6 +255,20 @@ int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
     systMode=DYTools::NO_SYST;
   }
   TString accCorrFName=inpArg.inpMgr()->correctionFullFileName("acceptance",systMode,0);
+
+  if (isGlobalRndStudy(inpArg.systMode())) {
+    AdjustFileNameEnding(accCorrFName,inpArg.systMode(),inpArg.externalSeed());
+  }
+  // for PU_RND_STUDY expect that a location of the proper file
+  // w/o PU is specified
+  {
+    TString specFile=inpArg.inpMgr()->userKeyValueAsTString("SpecFile_acceptance");
+    if (specFile.Length()) {
+      std::cout << "\nusing user-defined file for acceptance <" << specFile << ">\n";
+      accCorrFName=specFile;
+    }
+  }
+
   TH2D* hAcc=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
@@ -286,6 +349,9 @@ int saveResult(const InputArgs_t &ia, const HistoPair2D_t &hp,
       Ssiz_t index=fname.Last('/');
       if (index==-1) fname.Prepend(ia.resNameBase());
       else fname.Insert(index,ia.resNameBase());
+    }
+    if (isGlobalRndStudy(ia.systMode())) {
+      AdjustFileNameEnding(fname,ia.systMode(),ia.externalSeed());
     }
     std::cout << "output fname would be <" << fname << ">\n";
 
