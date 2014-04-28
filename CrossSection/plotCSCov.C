@@ -28,7 +28,7 @@ int calc_EffRnd=1;
 
 int doCalcEffCov=(calc_EffPU + calc_EffFSR + calc_EffRnd) ? 1:0;
 
-int calc_ESFtot=0;
+int calc_ESFtot=1;
 int calc_ESFtotCheck=0;
 
 int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
@@ -77,6 +77,7 @@ TString corrCaseName(TCorrCase_t cs) {
   case _corrFSR: name="corrFSR"; break;
   case _corrGlobalFSR: name="corrGlobalFSR"; break;
   case _corrGlobalPU: name="corrGlobalPU"; break;
+  case _corrGlobalFEWZ: name="corrGlobalFEWZ"; break;
   case _corrLast: name="LAST"; break;
   default: name="UNKNOWN";
   }
@@ -264,6 +265,7 @@ int loadAccCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, s
 int loadFsrCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
 int loadGlobalCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
 
+TH2D *loadMainCSResult();
 int workWithData(TCovData_t &dt, const WorkFlags_t &wf);
 
 
@@ -320,8 +322,10 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int showCSCov=1,
     work.extraFileTag(_corrAcc, "-accRndOnly");
     work.extraFileTag(_corrFSR, "-fsrRndOnly");
     if (the_case==3) work.extraFileTag(_corrFSR, "-fsrRndOnly_nExps1000");
-    work.extraFileTag(_corrGlobalFSR, "");
-    work.extraFileTag(_corrGlobalPU, "");
+    //work.extraFileTag(_corrGlobalFSR, "-globalFSROnly_nExps20");
+    //work.extraFileTag(_corrGlobalPU, "-globalPUOnly_nExps20");
+    work.extraFileTag(_corrGlobalFSR, "-globalFSROnly");
+    work.extraFileTag(_corrGlobalPU, "-globalPUOnly");
     if (the_case==4) {
       std::cout << "\n\n\t EXCLUDING RNDs beyond rho\n";
       calc_EffRnd=0;
@@ -663,10 +667,17 @@ int loadGlobalCovMatrices(const TString &fnameBase,
   for (int i=0; i<3; ++i) {
     TString tag;
     int calc=0;
+    TCorrCase_t corrCase=_corrNone;
     switch(i) {
-    case 0: tag="puStudy"; calc=calc_globalPU; break;
-    case 1: tag="fsrStudy"; calc=calc_globalFSR; break;
-    case 2: tag="fewzStudy"; calc=calc_globalFEWZ; break;
+    case 0: tag="puRndStudy"; calc=calc_globalPU;
+            corrCase=_corrGlobalPU;
+	    break;
+    case 1: tag="fsrRndStudy"; calc=calc_globalFSR;
+            corrCase=_corrGlobalFSR;
+	    break;
+    case 2: tag="fewzRndStudy"; calc=calc_globalFEWZ;
+            corrCase=_corrGlobalFEWZ;
+	    break;
     default:
       std::cout << "loadGlobalCovMatrices: the case i=" << i
 		<< " is not ready\n";
@@ -674,14 +685,24 @@ int loadGlobalCovMatrices(const TString &fnameBase,
     }
     if (!calc) continue;
 
-    TString inpFileName=Form("csSyst-%s-%dD.root",tag.Data(),
-			     DYTools::study2D+1);
+    TString inpFileName;
+    if (0) {
+      // local file
+      inpFileName=Form("csSyst-%s-%dD.root",tag.Data(),
+		       DYTools::study2D+1);
+    }
+    else {
+      inpFileName=fnameBase;
+      wf.adjustFName(inpFileName,corrCase);
+    }
+
     TFile fin(inpFileName,"read");
     if (!fin.IsOpen()) {
       std::cout << "failed to open a file <" << inpFileName << ">\n";
       return 0;
     }
     TString field= TString("covCS_") + tag;
+    std::cout << "loading <" << field << "> from <" << inpFileName << ">\n";
     TMatrixD *ptr = (TMatrixD*)fin.Get(field);
     if (ptr) {
       covs.push_back(ptr);
@@ -700,6 +721,29 @@ int loadGlobalCovMatrices(const TString &fnameBase,
 }
 
 
+// -----------------------------------------------------------
+// -----------------------------------------------------------
+
+TH2D *loadMainCSResult() {
+  TString csFileName="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1DpreFsrFullSp.root";
+  TString fieldName="hpPreFsrFullSp";
+  if (DYTools::study2D) {
+    csFileName="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsrDet_2DpreFsrDet.root";
+    fieldName="hpPreFsrDet";
+  }
+  TFile fin(csFileName,"read");
+  if (!fin.IsOpen()) {
+    std::cout << "failed to open the cross-section file <"
+	      << fin.GetName() << ">\n";
+    return NULL;
+  }
+  TH2D *h2=LoadHisto2D(fin,fieldName,"",1);
+  fin.Close();
+  if (!h2) {
+    std::cout << "loadMainCSResult error\n";
+  }
+  return h2;
+}
 
 // -----------------------------------------------------------
 // -----------------------------------------------------------
@@ -809,10 +853,20 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 
   if (wf.showCSCov()) {
     // plot error profile
-    for (int iCorr=0; iCorr<1; ++iCorr) {
+    for (int iCorr=0; iCorr<2; ++iCorr) {
       TString covStr;
+      TH2D* h2Main=NULL;
+      TString yAxisLabel="uncertainty from cov";
       switch(iCorr) {
-      case 0: covStr="CSCov_"; break;
+      case 0:  covStr="CSCov_"; break;
+      case 1:
+	covStr="CSCov_";
+	h2Main=loadMainCSResult();
+	if (!h2Main) return;
+	removeError(h2Main);
+	h2Main->Scale(0.01);
+	yAxisLabel="relative uncertainty from cov (%)";
+	break;
       default:
 	std::cout << "plotAllCovs: unknown iCorr=" << iCorr << " /2nd loop/\n";
 	return;
@@ -837,20 +891,22 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 		      << histoLabel << "\n";
 	    return;
 	  }
+	  if (iCorr==1) {
+	    if (!scaleHisto(h2,h2Main)) return;
+	  }
 	  errFromCovV.push_back(h2);
 	  errFromCovLabelV.push_back((*labelV)[i]);
 	}
       }
 
-      TString canvName="canvErr";
+      TString canvName=Form("canvErr_%d",iCorr);
       std::vector<std::vector<TH1D*>*> hProfV;
       std::vector<ComparisonPlot_t*> cpV;
       int delayDraw=0;
 
       TCanvas *cx=plotProfiles(canvName,
 			       errFromCovV, errFromCovLabelV,
-			       NULL,1,
-			       "uncertainty from cov",
+			       NULL,1, yAxisLabel,
 			       &hProfV, &cpV,
 			       delayDraw);
       if (delayDraw) cx->Update();
@@ -915,30 +971,16 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
       histoTitle=TString("Total correlations");
     }
     else if (iCorr==3) {
-      TString csFileName="../root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1DpreFsrFullSp.root";
-      TString fieldName="hpPreFsrFullSp";
-      if (DYTools::study2D) {
-	csFileName="../root_files_reg/xsec/DY_j22_19712pb/xSec_preFsrDet_2DpreFsrDet.root";
-	fieldName="hpPreFsrDet";
-      }
-      TFile fin(csFileName,"read");
-      if (!fin.IsOpen()) {
-	std::cout << "failed to open the cross-section file <"
-		  << fin.GetName() << ">\n";
-	return;
-      }
-      TH2D *h2=LoadHisto2D(fin,fieldName,"",1);
-      fin.Close();
-      if (!h2) return;
+      TH2D *h2=loadMainCSResult();
       TMatrixD *csValAsM=createMatrixD(h2,0);
       if (!csValAsM) return;
       TVectorD csV(DYTools::nUnfoldingBins);
       if (!flattenMatrix(*csValAsM,csV)) return;
-      if (DYTools::study2D==0) {
-	std::cout << "changing last value\n";
-	csV(39)*=10;
-	csV(40)=70;
-      }
+      //if (DYTools::study2D==0) {
+      //	std::cout << "changing last value\n";
+      //	csV(39)*=10;
+      //	csV(40)=70;
+      //      }
       plotMatrix=relativeCov(csV,*totalCov);
       removePlotMatrix=1;
       if (!plotMatrix) return;
