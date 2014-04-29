@@ -99,7 +99,12 @@ TH1D* getHistoFromFile(const std::string &fname,
 
 // --------------------------------------------------------------
 
-void compareHLTesf() {
+void compareHLTesf(int analysisIs2D) {
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
 
   if (DYTools::study2D!=work2D) {
     std::cout << "DYTools::study2D=" << DYTools::study2D << ", work2D=" << work2D << "\n";

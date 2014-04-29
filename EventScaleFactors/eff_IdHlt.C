@@ -75,8 +75,9 @@ const int performOppositeSignTest=1;
 
 //=== MAIN MACRO =================================================================================================
 
-int eff_IdHlt(const TString configFile, 
-	      const TString effTypeString, 
+int eff_IdHlt(int analysisIs2D,
+	      const TString configFile,
+	      const TString effTypeString,
 	      int runOnData,
 	      DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 	      DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
@@ -84,7 +85,6 @@ int eff_IdHlt(const TString configFile,
 
   gBenchmark->Start("eff_IdHlt");
   
-
   //  ---------------------------------
   //       Preliminary checks
   //  ---------------------------------
@@ -99,6 +99,11 @@ int eff_IdHlt(const TString configFile,
 
   if (configFile.Contains("_check_")) {
     return retCodeStop;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
   }
 
   //--------------------------------------------------------------------------------------------------------------

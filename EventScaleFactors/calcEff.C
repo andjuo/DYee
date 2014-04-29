@@ -72,8 +72,12 @@ using namespace mithep;
 
 //=== MAIN MACRO =================================================================================================
 
-int calcEff(const TString configFile, const TString effTypeString, int runOnData, int puDependence=0,
-	    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST) 
+int calcEff(int analysisIs2D,
+	    const TString configFile,
+	    const TString effTypeString,
+	    int runOnData,
+	    int puDependence=0,
+	    DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
 {
 
   //  ---------------------------------
@@ -91,6 +95,11 @@ int calcEff(const TString configFile, const TString effTypeString, int runOnData
       !effTypeString.Contains("ID") &&
       !effTypeString.Contains("HLT")) {
     std::cout << "calcEff: effTypeString should be \"RECO\",\"ID\" or \"HLT*\"\n";
+    return retCodeError;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
     return retCodeError;
   }
 

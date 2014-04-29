@@ -73,7 +73,8 @@ const int evaluate_efficiencies=0;
 
 //=== MAIN MACRO =================================================================================================
 
-int eff_Reco(const TString configFile, 
+int eff_Reco(int analysisIs2D,
+	     const TString configFile, 
 	     const TString effTypeString, 
 	     int runOnData,
 	     DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
@@ -95,6 +96,11 @@ int eff_Reco(const TString configFile,
 
   if (configFile.Contains("_check_")) {
     return retCodeStop;
+  }
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
   }
 
   //--------------------------------------------------------------------------------------------------------------
