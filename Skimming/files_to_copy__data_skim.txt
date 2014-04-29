@@ -1,5 +1,5 @@
 README.md5sum.skims_and_trims
-PATH_SSD/r12a-del-j22-v1_tight-loose_skim.root
-PATH_SSD/r12b-del-j22-v1_tight-loose_skim.root
-PATH_SSD/r12c-del-j22-v1_tight-loose_skim.root
-PATH_SSD/r12d-del-j22-v1_tight-loose_skim.root
+r12a-del-j22-v1_tight-loose_skim.root
+r12b-del-j22-v1_tight-loose_skim.root
+r12c-del-j22-v1_tight-loose_skim.root
+r12d-del-j22-v1_tight-loose_skim.root

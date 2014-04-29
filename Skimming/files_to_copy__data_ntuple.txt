@@ -1,5 +1,5 @@
 README.md5sum.full_ntuples_with_regression
-PATH_SSD/r12a-del-j22-v1_ntuple.root
-PATH_SSD/r12b-del-j22-v1_ntuple.root
-PATH_SSD/r12c-del-j22-v1_ntuple.root
-PATH_SSD/r12d-del-j22-v1_ntuple.root
+r12a-del-j22-v1_ntuple.root
+r12b-del-j22-v1_ntuple.root
+r12c-del-j22-v1_ntuple.root
+r12d-del-j22-v1_ntuple.root
