@@ -760,7 +760,8 @@ int InputFileMgr_t::getTNP_ntuples(const TDescriptiveInfo_t &info,
   // obtain file names
   if (!runOnData) {
     for (unsigned int i=0; i<FMCSignal.size(); ++i) {
-      if (FMCSignal[i]->getFName(i).Index("zeem20to500")!=-1) {
+      if ((FMCSignal[i]->getFName(i).Index("zeem20to500")!=-1) ||
+	  (FMCSignal[i]->getFName(i).Index("zeem20to200")!=-1)) {
 	ntupleFileNames.push_back(FMCSignal[i]->getFName(i));
 	break;
       }
