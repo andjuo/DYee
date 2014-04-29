@@ -25,8 +25,8 @@ bool isTag(const mithep::TElectron *electron, ULong_t trigger, double rho);
 
 // to select for tag-systematics studies
 // reduce the requirements for the tag when selecting the events
-// systMode=RESOLUTION_STUDY : lower tag pt cut
-// systMODE=FSR_STUDY : mediumID instead of tightID
+// systMode=RESOLUTION_STUDY : lower tag pt cut. Better use TAG_PT
+// systMODE=FSR_STUDY : mediumID instead of tightID. Better use TAG_ID
 bool isTag_systStudy(const mithep::TElectron *electron, ULong_t trigger, double rho, DYTools::TSystematicsStudy_t systMode);
 
 TString getLabel(int sample, DYTools::TEfficiencyKind_t effType, int method, 
