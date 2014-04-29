@@ -4,6 +4,9 @@ filename="../config_files/fall8TeV-vilnius.input"
 filename="../config_files/data_vilnius8TeV_regSSD_etaMax25.conf.py"
 triggerSet="Full2012_hltEffOld"
 
+analysisIs2D=0
+anTag="-$((${analysisIs2D}+1))D"
+
 tnpFullRun_eval=1
 
 tnpFullRun_recalc="data11111mc11111sf0"
@@ -31,4 +34,4 @@ systMode="DYTools::NO_SYST"
 systMode="DYTools::UNREGRESSED_ENERGY"
 
 source evaluateESF.sh ${filename} ${debugMode} ${tnpFullRun_eval} ${systMode} | tee ${logDir}/out${timeStamp}-12-evaluateESF-efficiencyScaleFactors${anTag}.log
-source recalcESF.sh ${filename} ${debugMode} ${tnpFullRun_recalc} ${systMode} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}.log
+source recalcESF.sh ${analysisIs2D} ${filename} ${debugMode} ${tnpFullRun_recalc} ${systMode} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}.log

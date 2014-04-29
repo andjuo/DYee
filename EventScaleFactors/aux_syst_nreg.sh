@@ -3,6 +3,9 @@
 filename="../config_files/data_vilnius8TeV_regSSD-tagSyst.conf.py"
 triggerSet="Full2012_hltEffOld"
 
+analysisIs2D=0
+anTag="-$((${analysisIs2D}+1))D"
+
 tnpFullRun_eval=1
 tnpFullRun_eval="data00111mc00111sf0"
 tnpFullRun_eval="data00011mc00011sf0"
@@ -30,7 +33,7 @@ no_syst=0
 
 if [ ${no_syst} -eq 1 ] ; then
   systMode="DYTools::NO_SYST"; systName="noSyst";
-  source recalcESF.sh ${filename} ${debugMode} ${tnpFullRun_recalc} ${systMode} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}-${systName}.log
+  source recalcESF.sh ${analysisIs2D} ${filename} ${debugMode} ${tnpFullRun_recalc} ${systMode} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}-${systName}.log
 fi
 
 
@@ -39,6 +42,6 @@ systMode="DYTools::UNREGRESSED_ENERGY"; systName="-nonReg"
 
 
 source evaluateESF.sh ${filename} ${debugMode} ${tnpFullRun_eval} ${systMode} | tee ${logDir}/out${timeStamp}-12-evaluateESF-efficiencyScaleFactors${anTag}-${systName}.log
-source recalcESF.sh ${filename} ${debugMode} ${tnpFullRun_recalc} ${systMode} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}-${systName}.log
+source recalcESF.sh ${analysisIs2D} ${filename} ${debugMode} ${tnpFullRun_recalc} ${systMode} | tee ${logDir}/out${timeStamp}-12-recalcESF-efficiencyScaleFactors${anTag}-${systName}.log
 
 

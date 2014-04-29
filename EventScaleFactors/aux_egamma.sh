@@ -5,6 +5,9 @@ filename="../config_files/fall8TeV-vilnius.input"
 filename="../config_files/data_vilnius8TeV_egamma.conf.py"
 triggerSet="Full2012_hltEffOld"
 
+analysisIs2D=0
+anTag="-$((${analysisIs2D}+1))D"
+
 tnpFullRun_eval=1
 
 tnpFullRun_recalc="data11111mc11111sf0"
