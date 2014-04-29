@@ -4,6 +4,19 @@ debugMode="DYTools::NORMAL_RUN"
 systMode="DYTools::NO_SYST"
 fullRun=1
 
+
+if [ ${#1} -eq 0 ] ; then
+    inpArgs="config debugMode runStr [systMode]"
+    echo -e "\n\tevaluateESF.sh ${inpArgs}"
+    echo "  Note: analysisIs2D=0 is pre-set"
+    echo "  runStr=data12345mc12345sf6 (19 characters)"
+    echo "    1 - reco, 2 - id+iso, 3 - hlt, 4 - hltLeg1, 5 - hltLeg2, 6 - esf"
+    echo
+    exit
+fi
+
+analysisIs2D=0
+
 if [ ${#1} -gt 0 ] ; then confInputFile=$1; fi
 if [ ${#2} -gt 0 ] ; then debugMode=$2; fi
 
@@ -24,6 +37,7 @@ collectEvents=1 # recommended to have it set to 1. calcEventEff prepares skim fi
 # or set timeStamp=
 timeStamp="-`date +%Y%m%d-%H%M`"
 #timeStamp=
+timeStamp="${timeStamp}-$((${analysisIs2D}+1))D-"
 
 #
 # Check if the environment variables are set. Assign values if they are empty
@@ -38,6 +52,7 @@ fi
 echo
 echo
 echo "evaluateESF.sh:"
+echo "    analysisIs2D=${analysisIs2D} (pre-set)"
 echo "    confInputFile=${confInputFile}"
 echo "    timeStamp=${timeStamp}"
 echo "    debugMode=${debugMode}"
@@ -170,14 +185,14 @@ checkFile() {
 runEffReco() {
 # calculate
  effKind="RECO"
- root -b -q -l  eff_Reco.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode},${systMode}\) \
+ root -b -q -l  eff_Reco.C+\(${analysisIs2D},\"${inpFile}\",\"${effKind}\",${onData},${debugMode},${systMode}\) \
      | tee log${timeStamp}-${dataKind}-RECO.out
   if [ $? != 0 ] ; then noError=0;
   else
      checkFile eff_Reco_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: eff_Reco(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode},systMode=${systMode})"
+     echo "DONE: eff_Reco(${analysisIs2D},\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -187,14 +202,14 @@ runEffReco() {
 runEffIdHlt() {
  effKind=$1
 # calculate
- root -b -q -l  eff_IdHlt.C+\(\"${inpFile}\",\"${effKind}\",${onData},${debugMode},${systMode}\) \
+ root -b -q -l  eff_IdHlt.C+\(${analysisIs2D},\"${inpFile}\",\"${effKind}\",${onData},${debugMode},${systMode}\) \
      | tee log${timeStamp}-${dataKind}-${effKind}.out
   if [ $? != 0 ] ; then noError=0;
   else 
      checkFile eff_IdHlt_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: eff_IdHlt(\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode},systMode=${systMode})"
+     echo "DONE: eff_IdHlt(${analysisIs2D},\"$inpFile\",\"${effKind}\",onData=${onData},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -203,13 +218,13 @@ runEffIdHlt() {
 runCalcEventEff() {
   _collectEvents=$1
   if [ ${#_collectEvents} -eq 0 ] ; then _collectEvents=1; fi
-  root -b -q -l  calcEventEff.C+\(\"${inpFile}\",${_collectEvents},${debugMode},${systMode}\) \
+  root -b -q -l  calcEventEff.C+\(${analysisIs2D},\"${inpFile}\",${_collectEvents},${debugMode},${systMode}\) \
       | tee log${timeStamp}-calcEventEff.out
   if [ $? != 0 ] ; then noError=0;
   else 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEventEff(\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode},systMode=${systMode})"
+     echo "DONE: calcEventEff(${analysisIs2D},\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi

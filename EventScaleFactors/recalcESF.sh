@@ -9,11 +9,22 @@ debugMode="DYTools::NORMAL_RUN"
 systMode="DYTools::NO_SYST"
 fullRun=1
 
-if [ ${#1} -gt 0 ] ; then confInputFile=$1; fi
-if [ ${#2} -gt 0 ] ; then debugMode=$2; fi
+if [ ${#1} -eq 0 ] ; then
+    inpArgs="analysisIs2D config debugMode runStr [systMode]"
+    echo -e "\n\trecalcESF.sh ${inpArgs}"
+    echo "  runStr=data12345mc12345sf6 (19 characters)"
+    echo "    1 - reco, 2 - id+iso, 3 - hlt, 4 - hltLeg1, 5 - hltLeg2, 6 - esf"
+    echo
+    exit
+fi
 
-if [ ${#3} -gt 0 ] ; then 
-    fullRun=$3;
+analysisIs2D=$1
+
+if [ ${#2} -gt 0 ] ; then confInputFile=$2; fi
+if [ ${#3} -gt 0 ] ; then debugMode=$3; fi
+
+if [ ${#4} -gt 0 ] ; then 
+    fullRun=$4;
     echo "fullRun=<${fullRun}>"
     if [ ${#fullRun} -eq 2 ] && [ ${fullRun} -eq -1 ] ; then
 	echo -e "\n\t fullRun=-1. Skipping recalcESF.sh\n\n"
@@ -21,7 +32,7 @@ if [ ${#3} -gt 0 ] ; then
     fi
 fi
 
-if [ ${#4} -gt 0 ] ; then  systMode=$4;  fi
+if [ ${#5} -gt 0 ] ; then  systMode=$5;  fi
 
 collectEvents=0  # it is recommended to have collectEvents=1 in evaluateESF!
 
@@ -29,6 +40,8 @@ collectEvents=0  # it is recommended to have collectEvents=1 in evaluateESF!
 # or set timeStamp=
 timeStamp="-`date +%Y%m%d-%H%M`"
 #timeStamp=
+
+timeStamp="${timeStamp}-$((${analysisIs2D}+1))D-"
 
 #
 # Check if the environment variables are set. Assign values if they are empty
@@ -43,6 +56,7 @@ fi
 echo
 echo
 echo "recalcESF.sh:"
+echo "    analysisIs2D=${analysisIs2D}"
 echo "    confInputFile=${confInputFile}"
 echo "    timeStamp=${timeStamp}"
 echo "    debugMode=${debugMode}"
@@ -175,14 +189,14 @@ checkFile() {
 runCalcEff() {
  effKind=$1
 # calculate
- root -l -q -b  ${LXPLUS_CORRECTION} calcEff.C+\(\"${inpFile}\",\"${effKind}\",${onData},0,${systMode}\) \
+ root -l -q -b  ${LXPLUS_CORRECTION} calcEff.C+\(${analysisIs2D},\"${inpFile}\",\"${effKind}\",${onData},0,${systMode}\) \
      | tee log${timeStamp}-calcEff-${dataKind}-${effKind}.out
   if [ $? != 0 ] ; then noError=0;
   else 
      checkFile calcEff_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEff(\"$inpFile\",\"${effKind}\",${systMode})"
+     echo "DONE: calcEff(${analysisIs2D},\"$inpFile\",\"${effKind}\",${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
@@ -192,14 +206,14 @@ runCalcEventEff() {
  _collectEvents=$1
  echo "_collectEvents=${_collectEvents}"
  if [ ${#_collectEvents} -eq 0 ] ; then _collectEvents=0; fi
- root -l -q -b  ${LXPLUS_CORRECTION} calcEventEff.C+\(\"${inpFile}\",${_collectEvents},${debugMode},${systMode}\) \
+ root -l -q -b  ${LXPLUS_CORRECTION} calcEventEff.C+\(${analysisIs2D},\"${inpFile}\",${_collectEvents},${debugMode},${systMode}\) \
      | tee log${timeStamp}-calcEventEff.out
   if [ $? != 0 ] ; then noError=0;
   else 
       checkFile calcEventEff_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEventEff(\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode},systMode=${systMode})"
+     echo "DONE: calcEventEff(${analysisIs2D},\"${inpFile}\",collectEvents=${_collectEvents},debug=${debugMode},systMode=${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
