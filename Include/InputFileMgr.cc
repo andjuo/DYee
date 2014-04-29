@@ -759,11 +759,14 @@ int InputFileMgr_t::getTNP_ntuples(const TDescriptiveInfo_t &info,
   jsonFileNames.clear();
   // obtain file names
   if (!runOnData) {
-    for (unsigned int i=0; i<FMCSignal.size(); ++i) {
-      if ((FMCSignal[i]->getFName(i).Index("zeem20to500")!=-1) ||
-	  (FMCSignal[i]->getFName(i).Index("zeem20to200")!=-1)) {
-	ntupleFileNames.push_back(FMCSignal[i]->getFName(i));
-	break;
+    for (unsigned int is=0; is<FMCSignal.size(); ++is) {
+      CSample_t *sample=FMCSignal[is];
+      for (unsigned int i=0; i<sample->size(); ++i) {
+	if ((sample->getFName(i).Index("zeem20to500")!=-1) ||
+	    (sample->getFName(i).Index("zeem20to200")!=-1)) {
+	  ntupleFileNames.push_back(sample->getFName(i));
+	  break;
+	}
       }
     }
   }
@@ -787,7 +790,7 @@ int InputFileMgr_t::getTNP_ntuples(const TDescriptiveInfo_t &info,
   }
 
   res=(ntupleFileNames.size()>0) ? 1:0;
-  if (!res) res=reportError("getTNP_ntuples","no files found (runOnData=%d)",runOnData);
+  if (!res) res=reportError("getTNP_ntuples: no files found (runOnData=%d)",runOnData);
   return res;
 }
 
