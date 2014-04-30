@@ -8,7 +8,9 @@
 
 TH2D* loadESF(TString fname, TString label, TString fieldName, TString fieldErrName) {
   int checkBinning=0;
-  TH2D* h2=LoadMatrixFields(fname, checkBinning, fieldName, fieldErrName, 1, 1);
+  int loadError=(fieldErrName.Length()>0) ? 1:0;
+  TH2D* h2=LoadMatrixFields(fname, checkBinning, fieldName, fieldErrName,
+			    loadError, 1);
   h2->SetTitle(label);
   h2->GetXaxis()->SetMoreLogLabels();
   h2->GetXaxis()->SetNoExponent();
@@ -35,21 +37,20 @@ TMatrixD* enforceYRanges(int the_case) {
 // ------------------------------------------------------------
 
 
-void plot_ddBkg(int iBr=0,
-		int nDim=1,
+void plot_ddBkg(int analysisIs2D,
+		int iBr=0,
 		int doSave=0) {
+
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return;
+  }
+  int nDim=analysisIs2D+1;
 
   TString esfLongStr1, esfLongStr2;
   TString esfLongStr3,esfLongStr4;
   TString path1,path2;
   TString path3,path4;
-
-  if (((nDim==1) &&  DYTools::study2D) ||
-      ((nDim==2) && !DYTools::study2D)) {
-    std::cout << "the macro uses basic implementations that require nDim info to match study2D in DYTools.hh\n";
-    return;
-  }
-
 
   TString fnameBase1="fakeBkgDataPoints";
   TString fnameBase2=fnameBase1;
@@ -81,15 +82,23 @@ void plot_ddBkg(int iBr=0,
   if (1) { // added 2014.03.14
     path1="../root_files_reg/ddbkgYield/DY_j22_19712pb/";
     path2=path1;
-    esfLongStr1="_20131231_1D";
-    esfLongStr1="_20140301AJ_1D";
-    esfLongStr2="_20140312_1D";
-    label1="2013.12.31";
-    label2="2014.03.12";
-    fnameTag="-cmpDDBkg";
+    path3=path1;
+    esfLongStr1="_20140312_1D";
+    esfLongStr2="_20140428_1D";
+    esfLongStr3="_20140301AJ_1D";
+    fnameBase3=fnameBase1;
+    label1="2014.03.12";
+    label2="2014.04.28";
+    label3="2013.12.31"; if (analysisIs2D==0) label3.Append("(+extra pt)");
+    fnameTag="-fakeDDBkg";
     saveDirTag="-cmpDDBkg";
-    if (nDim==2) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
-    else { set_ratio_y_min=0.95; set_ratio_y_max=1.15; }
+    if (nDim==2) {
+      set_ratio_y_min=0.9; set_ratio_y_max=1.15;
+    }
+    else {
+      set_ratio_y_min=0.95; set_ratio_y_max=1.15;
+    }
+      set_ratio_y_max=set_ratio_y_min;
     compSet=-10;
     swapColors=0;
     //setYRanges2D=enforceYRanges(1);
@@ -103,16 +112,36 @@ void plot_ddBkg(int iBr=0,
     esfLongStr4.ReplaceAll("1D","2D");
   }
 
-  if (iBr==1) {
+  if ((iBr==1) || (iBr==3) || (iBr==5)) {
     fnameBase1="true2eBkgDataPoints";
     loadFieldName="true2eBackgroundFromData";
     fnameBase2=fnameBase1;
+    if (fnameBase3.Length()) fnameBase3=fnameBase1;
+    if (fnameBase4.Length()) fnameBase4=fnameBase1;
+    fnameTag="-trueDDBkg";
+  }
+
+  TString loadFieldErrName=loadFieldName + TString("Error");
+  if ((iBr==2) || (iBr==3) || (iBr==4) || (iBr==5)) {
+    if (iBr<4) {
+      std::cout << "will plot the error\n";
+      loadFieldName=loadFieldErrName;
+    }
+    else {
+      std::cout << "will plot the systematic error\n";
+      loadFieldName= loadFieldName + TString("ErrorSyst");
+    }
+    loadFieldErrName.Clear();
+  }
+
+  TString yAxisTitle=loadFieldName;
+  if (iBr>1) {
+    yAxisTitle.ReplaceAll("BackgroundFromData","_");
   }
 
   TString fname1=path1 + fnameBase1 + esfLongStr1 + TString(".root");
   TString fname2=path2 + fnameBase2 + esfLongStr2 + TString(".root");
 
-  TString loadFieldErrName=loadFieldName + TString("Error");
   TH2D *h2esf1= loadESF(fname1,label1, loadFieldName,loadFieldErrName);
   h2esf1->Print("range");
   TH2D *h2esf2= loadESF(fname2,label2, loadFieldName,loadFieldErrName);
@@ -196,7 +225,7 @@ void plot_ddBkg(int iBr=0,
       TString mRange=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[i+1],DYTools::massBinLimits[i+2]);
       ComparisonPlot_t *cp=NULL;
       //cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioRel,Form("cp_%s",mRange.Data()),mRange,"|y|","event scale factor","rel.ratio");
-      cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,Form("cp_%s",mRange.Data()),mRange,"|y|",loadFieldName,"ratio");
+      cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,Form("cp_%s",mRange.Data()),mRange,"|y|",yAxisTitle,"ratio");
       cp->SetRatioNdivisions(404);
       cp->SetYTitleSize(0.08,0.97);
       cp->SetYLabelSize(0.06);
@@ -251,7 +280,7 @@ void plot_ddBkg(int iBr=0,
 
     int relRatio=0;
     ComparisonPlot_t *cp=NULL;
-    if (!relRatio) cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,"cpESF","","M_{ee} [GeV]", loadFieldName,"ratio");
+    if (!relRatio) cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,"cpESF","","M_{ee} [GeV]", yAxisTitle,"ratio");
     else cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioRel,"cpESF","","M_{ee} [GeV]", loadFieldName,"rel.ratio");
     cp->SetYTitleSize(0.07,1.16);
     cp->SetRatioYTitleSize(0.17,0.47);
@@ -268,11 +297,11 @@ void plot_ddBkg(int iBr=0,
     if (relRatio) cp->SetRatioYRangeC(0.,0.01);
     cp->SetLogx();
     //h1->GetYaxis()->SetTitleOffset(1.47);
-    cp->AddHist1D(h1, label1,"LPE1",color1,1,0);
+    cp->AddHist1D(h1, label1,"LPE1",color1,1,0,1);
     TString opt2=(h3) ? "LPE3" : "LPE1";
-    cp->AddHist1D(h2, label2,opt2,color2,1,0);
-    if (h3) cp->AddHist1D(h3, label3, "LPE3",kRed+1,1,0);
-    if (h4) cp->AddHist1D(h4, label4, "LPE3",kGreen+2,1,0);
+    cp->AddHist1D(h2, label2,opt2,color2,1,0,1);
+    if (h3) cp->AddHist1D(h3, label3, "LPE3",kRed+1,1,0,1);
+    if (h4) cp->AddHist1D(h4, label4, "LPE3",kGreen+2,1,0,1);
 
     cp->AddLine(DYTools::massBinLimits[0],1.,DYTools::massBinLimits[DYTools::nMassBins],1., kBlack,kDashed);
 
