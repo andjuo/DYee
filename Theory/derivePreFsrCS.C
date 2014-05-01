@@ -20,6 +20,11 @@ int derivePreFsrCS(int analysisIs2D,
 		   RangeUser_t *rangeUser=NULL) 
 {
 
+  if (!DYTools::setup(analysisIs2D)) {
+    std::cout << "failed to initialize the analysis\n";
+    return retCodeError;
+  }
+
   if (DYTools::study2D==0) {
     std::cout << "call this macro for 2D case\n";
     return retCodeError;
@@ -31,11 +36,6 @@ int derivePreFsrCS(int analysisIs2D,
     const int debug_print=1;
     if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST, DYTools::NO_REWEIGHT))
       return retCodeError;
-  }
-
-  if (!DYTools::setup(analysisIs2D)) {
-    std::cout << "failed to initialize the analysis\n";
-    return retCodeError;
   }
 
   //-----------------------------------------------------
