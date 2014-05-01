@@ -79,7 +79,7 @@ void plot_ddBkg(int analysisIs2D,
 
   TMatrixD *setYRanges2D=NULL;
 
-  if (1) { // added 2014.03.14
+  if (0) { // added 2014.03.14
     path1="../root_files_reg/ddbkgYield/DY_j22_19712pb/";
     path2=path1;
     path3=path1;
@@ -90,6 +90,31 @@ void plot_ddBkg(int analysisIs2D,
     label1="2014.03.12";
     label2="2014.04.28";
     label3="2013.12.31"; if (analysisIs2D==0) label3.Append("(+extra pt)");
+    fnameTag="-fakeDDBkg";
+    saveDirTag="-cmpDDBkg";
+    if (nDim==2) {
+      set_ratio_y_min=0.9; set_ratio_y_max=1.15;
+    }
+    else {
+      set_ratio_y_min=0.95; set_ratio_y_max=1.15;
+    }
+      set_ratio_y_max=set_ratio_y_min;
+    compSet=-10;
+    swapColors=0;
+    //setYRanges2D=enforceYRanges(1);
+  }
+
+  if (1) { // added 2014.03.14
+    path1="../root_files_reg/ddbkgYield/DY_j22_19712pb/";
+    path2=path1;
+    path3="./";
+    esfLongStr1="_20140312_1D";
+    esfLongStr2="_20140428_1D";
+    esfLongStr3="_20140213_1D";
+    fnameBase3=fnameBase1;
+    label1="2014.03.12";
+    label2="2014.04.28";
+    label3="2014.02.13"; if (analysisIs2D==0) label3.Append("(+extra pt)");
     fnameTag="-fakeDDBkg";
     saveDirTag="-cmpDDBkg";
     if (nDim==2) {
@@ -116,7 +141,11 @@ void plot_ddBkg(int analysisIs2D,
     fnameBase1="true2eBkgDataPoints";
     loadFieldName="true2eBackgroundFromData";
     fnameBase2=fnameBase1;
-    if (fnameBase3.Length()) fnameBase3=fnameBase1;
+    if (fnameBase3.Length()) {
+      fnameBase3=fnameBase1;
+      esfLongStr3.ReplaceAll("20140213_1D","20140124_1Dmdf");
+      esfLongStr3.ReplaceAll("20140213","20140124");
+    }
     if (fnameBase4.Length()) fnameBase4=fnameBase1;
     fnameTag="-trueDDBkg";
   }
@@ -243,7 +272,7 @@ void plot_ddBkg(int analysisIs2D,
 
       cp->AddHist1D(hProfEsf1[i],label1,"LPE1",kBlack,1,0,showLegend);
       cp->AddHist1D(hProfEsf2[i],label2,"PE3",kBlue ,2,0,showLegend);
-      if (i<hProfEsf3.size()) cp->AddHist1D(hProfEsf3[i],label3,"PE3",kRed+1, 3,0,showLegend);
+      if (i<hProfEsf3.size()) cp->AddHist1D(hProfEsf3[i],label3,"PE3",TAttMarker(kRed+1,2,1.), 3,0,showLegend);
       if (i<hProfEsf4.size()) cp->AddHist1D(hProfEsf4[i],label4,"PE3",kGreen+2, 3,0,showLegend);
       //cp->AddHist1D(hProfEsf2[i],label2,"LPE3",kBlue ,2,0);
       cp->AddLine(0.,1.0, 2.4,1.0, kBlue+1,kDashed);
@@ -300,7 +329,7 @@ void plot_ddBkg(int analysisIs2D,
     cp->AddHist1D(h1, label1,"LPE1",color1,1,0,1);
     TString opt2=(h3) ? "LPE3" : "LPE1";
     cp->AddHist1D(h2, label2,opt2,color2,1,0,1);
-    if (h3) cp->AddHist1D(h3, label3, "LPE3",kRed+1,1,0,1);
+    if (h3) cp->AddHist1D(h3, label3, "LPE3",TAttMarker(kRed+1,3,1.),1,0,1);
     if (h4) cp->AddHist1D(h4, label4, "LPE3",kGreen+2,1,0,1);
 
     cp->AddLine(DYTools::massBinLimits[0],1.,DYTools::massBinLimits[DYTools::nMassBins],1., kBlack,kDashed);
