@@ -663,6 +663,52 @@ int scaleHisto(TH2D *histoNom, const TH2D *histoDenom) {
 //--------------------------------------------------
 //--------------------------------------------------
 
+template<class histo_t>
+double* getXrange(const histo_t *h) {
+  double *arr=new double[h->GetNbinsX()+1];
+  for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
+    double x1=h->GetBinLowEdge(ibin);
+    arr[ibin-1]=x1;
+  }
+  int i=h->GetNbinsX();
+  double x=h->GetBinLowEdge(i);
+  double w=h->GetBinWidth(i);
+  arr[i]=x+w;
+  return arr;
+}
+
+//--------------------------------------------------
+
+TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName) {
+  double *arr=getXrange(h);
+  int size=h->GetNbinsX();
+  TH1D *hd=new TH1D(newName,newName,size,arr);
+  hd->SetDirectory(0);
+  delete arr;
+  for (int ibin=1; ibin<=size; ++ibin) {
+    hd->SetBinContent(ibin, h->GetBinContent(ibin));
+    hd->SetBinError(ibin, h->GetBinError(ibin));
+  }
+  return hd;
+}
+
+//--------------------------------------------------
+
+TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName) {
+  double *arr=getXrange(h);
+  TH1F *hf=new TH1F(newName,newName,h->GetNbinsX(),arr);
+  hf->SetDirectory(0);
+  delete arr;
+  for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
+    hf->SetBinContent(ibin, h->GetBinContent(ibin));
+    hf->SetBinError(ibin, h->GetBinError(ibin));
+  }
+  return hf;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
 

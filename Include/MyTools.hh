@@ -1486,6 +1486,9 @@ histo_t* addHistos(TString newName, const std::vector<histo_t*> &vec) {
 int scaleHisto(TH1D *histoNom, const TH1D *histoDenom);
 int scaleHisto(TH2D *histoNom, const TH2D *histoDenom);
 
+TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
+TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class tObject_t>
@@ -1586,6 +1589,22 @@ TH2D* LoadHisto2D(TFile &fin, TString fieldName, TString subDir="", int checkBin
 //--------------------------------------------------
 
 inline
+TH1D* Clone(const TH1D* histo, const TString &newName, const TString &newTitle) {
+  TH1D *h2=(TH1D*)histo->Clone(newName);
+  if (!h2) {
+    std::cout << "failed to clone a histo" << std::endl;
+  }
+  else {
+    h2->SetDirectory(0);
+    //h2->Sumw2();
+    h2->SetTitle(newTitle);
+  }
+  return h2;
+}
+
+//--------------------------------------------------
+
+inline
 TH2D* Clone(const TH2D* histo, const TString &newName, const TString &newTitle) {
   TH2D *h2=(TH2D*)histo->Clone(newName);
   if (!h2) {
@@ -1598,6 +1617,7 @@ TH2D* Clone(const TH2D* histo, const TString &newName, const TString &newTitle) 
   }
   return h2;
 }
+
 //--------------------------------------------------
 
 inline
