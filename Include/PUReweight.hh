@@ -4,7 +4,7 @@
 #include <TROOT.h>
 #include <TString.h>
 #include <TFile.h>
-#include <TH1F.h>
+#include <TH1D.h>
 #include <iostream>
 #include <assert.h>
 #include "../Include/DYTools.hh"
@@ -13,7 +13,7 @@
 
 class PUReweight_t {
 public:
-  typedef enum { maxPVs=45 } TConst_t;
+  typedef enum { maxPVs=65 } TConst_t;
   typedef enum { _none, _Hildreth, 
 		 _Hildreth_plus5percent, _Hildreth_minus5percent,
 		 _TwoHistos } 
@@ -21,10 +21,10 @@ public:
 protected:
   TString FName; // file name
   TFile *FFile; // pointer to a file
-  TH1F *hRef;   // reference histogram -- what we want to have
-  TH1F *hActive; // active histogram (source distribution that needs reshaping)
-  TH1F *hWeight; // histogram of weights
-  TH1F *hWeightHildreth; // histogram of weights according to the Hildreth's method
+  TH1D *hRef;   // reference histogram -- what we want to have
+  TH1D *hActive; // active histogram (source distribution that needs reshaping)
+  TH1D *hWeight; // histogram of weights
+  TH1D *hWeightHildreth; // histogram of weights according to the Hildreth's method
   int FCreate; // whether a file is being created (1) or updated (2), otherwise - reading (0)
   TReweightMethod_t FActiveMethod;
 public:
@@ -43,9 +43,9 @@ public:
 
   // access
   const TString& fileName() const { return FName; }
-  const TH1F* getHRef() const { return hRef; }
-  const TH1F* getHActive() const { return hActive; }
-  const TH1F* getHWeigth() const { return hWeight; }
+  const TH1D* getHRef() const { return hRef; }
+  const TH1D* getHActive() const { return hActive; }
+  const TH1D* getHWeigth() const { return hWeight; }
   int getCreate() const { return FCreate; }
 
   int setActiveMethod(TReweightMethod_t method) {
@@ -122,7 +122,8 @@ public:
   int setSimpleWeights(const TString &targetFile, 
 		       const TString &targetHistoName,
 		       const TString &sourceFile, 
-		       const TString &sourceHistoName);
+		       const TString &sourceHistoName,
+		       int loadTH1F=1);
   
   int setDefaultFile(const TString &use_dirTag, const TString &analysisTag, 
 		     int create=0) {
@@ -135,13 +136,13 @@ public:
 
   int setFile(const TString &fname, int create=0);
   int setReference(const TString &setName);
-  int setReference(const TH1F *new_hRef) { 
-    hRef=(TH1F*)new_hRef->Clone(new_hRef->GetName()+TString("_clone")); 
+  int setReference(const TH1D *new_hRef) {
+    hRef=(TH1D*)new_hRef->Clone(new_hRef->GetName()+TString("_clone"));
     hRef->SetDirectory(0);
     return 1; 
   }
   int setActiveSample(const TString &setName); // set active sample and calculate weights
-  int prepareWeights(int save_weights); // needs to be called if setReference(TH1F) was called
+  int prepareWeights(int save_weights); // needs to be called if setReference(TH1D) was called
 
   int Fill(UInt_t nGoodPV, double weight) {
     if ((FCreate==0) || !hActive) {
@@ -171,20 +172,20 @@ public:
   }
 
 protected:
-  TH1F *newHisto(const TString &name) const {
+  TH1D *newHisto(const TString &name) const {
     // histogram: PUs from 0 to maxPVs with an overflow bin (maxPVs+1) 
-    TH1F *h= new TH1F(name,name,PUReweight_t::maxPVs+2,-0.5,Double_t(PUReweight_t::maxPVs+1.5));
+    TH1D *h= new TH1D(name,name,PUReweight_t::maxPVs+2,-0.5,Double_t(PUReweight_t::maxPVs+1.5));
     h->Sumw2();
     h->GetXaxis()->SetTitle("nGoodPVs"); h->GetYaxis()->SetTitle("weight (a.u.)");
     return h;
   }
 
-  int printHisto(std::ostream& out, const TH1F* histo, const TString &name) const;
+  int printHisto(std::ostream& out, const TH1D* histo, const TString &name) const;
 
   int initializeHildrethWeights(TReweightMethod_t method=_Hildreth);
 
   // weights=target/source
-  int initializeTwoHistoWeights(TH1F* hTarget, TH1F* hSource);
+  int initializeTwoHistoWeights(TH1D* hTarget, TH1D* hSource);
 };
 
 

@@ -1,4 +1,5 @@
 #include "../Include/PUReweight.hh"
+#include "../Include/MyTools.hh"
 #include "assert.h"
 
 // --------------------------------------------------------------
@@ -57,7 +58,7 @@ PUReweight_t::PUReweight_t(DYTools::TSystematicsStudy_t systMode, TReweightMetho
 // --------------------------------------------------------------
 // --------------------------------------------------------------
 
-int printHisto_local(std::ostream& out, const TH1F* histo) {
+int printHisto_local(std::ostream& out, const TH1D* histo) {
   if (!histo) {
     out << "printHisto: histo is null\n";
     return 0;
@@ -145,13 +146,14 @@ int PUReweight_t::initializeHildrethWeights(TReweightMethod_t method){
     printf("  See PUReweight.cc for more detail\n");
     assert(0);
   }
-  TH1F *target = (TH1F*)f1.Get("pileup_lumibased_data");
-  if( target == 0 ){
+  TH1F *targetF = (TH1F*)f1.Get("pileup_lumibased_data");
+  if( targetF == 0 ){
     printf("Failed to find the histogram for pileup in the file %s\n", 
 	   ftargetName.Data());
     printf("  See PUReweight.cc for more detail\n");
     assert(0);
   }
+  TH1D *target = convert_TH1F_to_TH1D(targetF,"hTarget");
 
   TString fsourceName = "../root_files7TeV/pileup/mcPileupHildreth_full2011_20121110_repacked.root";
 #ifdef DYee8TeV
@@ -169,13 +171,14 @@ int PUReweight_t::initializeHildrethWeights(TReweightMethod_t method){
     printf("  See PUReweight.cc for more detail\n");
     assert(0);
   }
-  TH1F *source = (TH1F*)f2.Get("pileup_simulevel_mc");
-  if( source == 0 ){
+  TH1F *sourceF = (TH1F*)f2.Get("pileup_simulevel_mc");
+  if( sourceF == 0 ){
     printf("Failed to find the histogram for pileup in the file %s\n", 
 	   fsourceName.Data());
     printf("  See PUReweight.cc for more detail\n");
     assert(0);
   }
+  TH1D* source= convert_TH1F_to_TH1D(sourceF,"hSource");
 
   // Make sure histograms have the same binning
   bool nBinsMatch = (source->GetNbinsX() == target->GetNbinsX());
@@ -195,7 +198,7 @@ int PUReweight_t::initializeHildrethWeights(TReweightMethod_t method){
   source->Scale(1/source->GetSumOfWeights());
 
   // Find the weights distribution
-  hWeightHildreth = (TH1F*)target->Clone("hWeightHildreth");
+  hWeightHildreth = (TH1D*)target->Clone("hWeightHildreth");
   hWeightHildreth->SetDirectory(0);
   hWeightHildreth->Divide(source);
   //printHisto_local(std::cout,hWeightHildreth);
@@ -215,7 +218,7 @@ int PUReweight_t::initializeHildrethWeights(TReweightMethod_t method){
 // --------------------------------------------------------------
 
 // weights = target/source
-int PUReweight_t::initializeTwoHistoWeights(TH1F* hTarget, TH1F* hSource) {
+int PUReweight_t::initializeTwoHistoWeights(TH1D* hTarget, TH1D* hSource) {
   assert(hTarget);
   assert(hSource);
   hRef=hTarget;
@@ -237,7 +240,7 @@ int PUReweight_t::initializeTwoHistoWeights(TH1F* hTarget, TH1F* hSource) {
   }
 
   if (hWeight) delete hWeight; // may be unsafe!! But we also may end-up without memory
-  hWeight= (TH1F*)hTarget->Clone( hSource->GetName() + TString("_puWeights") );
+  hWeight= (TH1D*)hTarget->Clone( hSource->GetName() + TString("_puWeights") );
   assert(hWeight);
   hWeight->SetDirectory(0);
   double scale=hSource->GetSumOfWeights() / hTarget->GetSumOfWeights();
@@ -299,7 +302,8 @@ int PUReweight_t::setFile(const TString &fname, int create) {
 int PUReweight_t::setSimpleWeights(const TString &targetFile, 
 				   const TString &targetHistoName,
 				   const TString &sourceFile, 
-				   const TString &sourceHistoName) {
+				   const TString &sourceHistoName,
+				   int loadTH1F) {
   TFile f1(targetFile);
   TFile f2(sourceFile);
 
@@ -311,8 +315,18 @@ int PUReweight_t::setSimpleWeights(const TString &targetFile,
     return 0;
   }
 
-  TH1F* hTarget=(TH1F*) f1.Get(targetHistoName);
-  TH1F* hSource=(TH1F*) f2.Get(sourceHistoName);
+  TH1D  *hTarget=NULL, *hSource=NULL;
+
+  if (loadTH1F) {
+    TH1F* hTargetF=(TH1F*) f1.Get(targetHistoName);
+    TH1F* hSourceF=(TH1F*) f2.Get(sourceHistoName);
+    hTarget= convert_TH1F_to_TH1D(hTargetF,"hTarget");
+    hSource= convert_TH1F_to_TH1D(hSourceF,"hSource");
+  }
+  else {
+    hTarget=(TH1D*) f1.Get(targetHistoName);
+    hSource=(TH1D*) f2.Get(sourceHistoName);
+  }
   if (!hTarget || !hSource) {
     std::cout << "Error in setSimpleWeights:\n";
     if (!hTarget) std::cout << "failed to get <" << targetHistoName << ">\n";
@@ -343,7 +357,7 @@ int PUReweight_t::setReference(const TString &name) {
     return 0;
   }
   if (hRef) delete hRef;
-  hRef = (TH1F*) FFile->Get(name);
+  hRef = (TH1D*) FFile->Get(name);
   if (!hRef) {
     std::cout << "PUReweight::setReference(" << name << "): failed to set reference\n";
     return 0;
@@ -371,7 +385,7 @@ int PUReweight_t::setActiveSample(const TString &name) {
     if (hActive) { delete hActive; hActive=0; }
     if (hWeight) { delete hWeight; hWeight=0; }
     
-    hActive = (TH1F*) FFile->Get(name);
+    hActive = (TH1D*) FFile->Get(name);
     if (!hActive) {
       std::cout << "PUReweight::setActiveSample(" << name << "): failed to set active sample\n";
       return 0;
@@ -453,7 +467,7 @@ void PUReweight_t::print(std::ostream& out) const {
 
 // --------------------------------------------------------------
 
-int PUReweight_t::printHisto(std::ostream& out, const TH1F* histo, const TString &name) const {
+int PUReweight_t::printHisto(std::ostream& out, const TH1D* histo, const TString &name) const {
   if (!histo) {
     out << "PUReweight::printHisto: " << name << " is not set\n";
     return 0;
