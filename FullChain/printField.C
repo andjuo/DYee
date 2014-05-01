@@ -41,6 +41,21 @@ void printField(TString fname="", TString fieldType="M", TString fieldName="")
 	delete m;
       }
     }
+    else if (fieldType==TString("TH1F")) {
+      TH1F* h=(TH1F*)f.Get(fieldName);
+      if (!h) {
+	std::cout << "failed to get the 1F histogram <" << fieldName << ">\n";
+      }
+      else {
+	h->SetName("tmp");
+	TH1D* h1d= convert_TH1F_to_TH1D(h,fieldName);
+	printHisto(h1d);
+	std::cout << "histogram field " << fieldName << "\n";
+	printHisto(h1d);
+	delete h;
+	delete h1d;
+      }
+    }
     else if (fieldType==TString("TH1D")) {
       TH1D* h=(TH1D*)f.Get(fieldName);
       if (!h) {
