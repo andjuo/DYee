@@ -7,8 +7,8 @@
 // --------------------------------------------------------
 
 int printHisto(const TH1F* histo, int exponent=0, int maxLines=-1);
-TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
-TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
+//TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
+//TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
 
 // --------------------------------------------------------
 
@@ -241,7 +241,7 @@ double* getXrangeCut(const histo_t *h, int &size, double cut=49.5) {
   return arr;
 }
 
-
+/*
 TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName) {
   int size=0;
   //double *arr=getXrangeCut(h,size,59.5);
@@ -268,6 +268,7 @@ TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName) {
   }
   return hf;
 }
+*/
 
 // --------------------------------------------------------
 // --------------------------------------------------------
