@@ -72,7 +72,8 @@ IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
 # Background type
 DDBkg=1
 #DDBkgVersion=20131231
-DDBkgVersion=20140312  # from Manny through Alexey
+#DDBkgVersion=20140312  # from Manny through Alexey
+DDBkgVersion=20140428 # from Manny
 
 
 [TAG_AND_PROBE]

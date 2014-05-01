@@ -76,7 +76,8 @@ IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
 DDBkg=1
 #DDBkgVersion=20131231
 #DDBkgVersion=20140301AJ  # AJ
-DDBkgVersion=20140312  # from Manny through Alexey
+#DDBkgVersion=20140312  # from Manny through Alexey
+DDBkgVersion=20140428 # from Manny
 
 #T&P_ESF_extra=_etaMax24
 ScaleFactorTag = DY_j22_19712pb_egamma_Unregressed_energy
