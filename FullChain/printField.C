@@ -3,6 +3,8 @@
 #include <TFile.h>
 #include <TMatrixD.h>
 #include <TVectorD.h>
+#include <TH1D.h>
+#include "../Include/MyTools.hh"
 #include <iostream>
 
 void printField(TString fname="", TString fieldType="M", TString fieldName="")
@@ -37,6 +39,28 @@ void printField(TString fname="", TString fieldType="M", TString fieldName="")
 	std::cout << "vector field " << fieldName << "\n";
 	m->Print();
 	delete m;
+      }
+    }
+    else if (fieldType==TString("TH1D")) {
+      TH1D* h=(TH1D*)f.Get(fieldName);
+      if (!h) {
+	std::cout << "failed to get the 1D histogram <" << fieldName << ">\n";
+      }
+      else {
+	std::cout << "histogram field " << fieldName << "\n";
+	printHisto(h);
+	delete h;
+      }
+    }
+    else if (fieldType==TString("TH2D")) {
+      TH2D* h=(TH2D*)f.Get(fieldName);
+      if (!h) {
+	std::cout << "failed to get the 2D histogram <" << fieldName << ">\n";
+      }
+      else {
+	std::cout << "histogram field " << fieldName << "\n";
+	printHisto(h);
+	delete h;
       }
     }
   }
