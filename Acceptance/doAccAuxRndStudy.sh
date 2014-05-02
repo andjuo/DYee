@@ -2,11 +2,31 @@
 
 analysisIs2D=$1
 config=$2
-runMode=$3
+systMode=$3
+runMode=$4
 
-if [ ${#config} -eq 0 ] ; then
-    echo "doAccAuxRndStudy.sh analysisIs2D configFile [runMode]"
+if [ ${#systMode} -eq 0 ] ; then
+    echo "doAccAuxRndStudy.sh analysisIs2D configFile systMode [runMode]"
     exit
+fi
+
+seedMin=1001
+seedMax=1020
+
+rndStudyStr=
+if [ "${systMode}" == "DYTools::FSR_RND_STUDY" ] || \
+    [ "${systMode}" == "FSR_RND_STUDY" ] ; then
+  rndStudyStr="FSR_RND_STUDY"
+  systMode=DYTools::FSR_RND_STUDY
+elif [ "${systMode}" == "DYTools::PU_RND_STUDY" ] || \
+    [ "${systMode}" == "PU_RND_STUDY" ] ; then
+  rndStudyStr="PU_RND_STUDY"
+  systMode=DYTools::PU_RND_STUDY
+  seedMin=$(($seedMin-1000))
+  seedMax=$(($seedMax-1000))
+else
+  echo "systMode=${systMode} is not expected"
+  exit
 fi
 
 if [ ${#runMode} -eq 0 ] ; then
@@ -19,12 +39,6 @@ if [ "${runMode}" == "DYTools::DEBUG_RUN" ] || \
     runModeStr="debugRun-"
     runMode=DYTools::DEBUG_RUN
 fi
-
-seedMin=1001
-seedMax=1020
-
-systMode=DYTools::FSR_RND_STUDY
-rndStudyStr="FSR_RND_STUDY"
 
 iSeed=$seedMin
 
