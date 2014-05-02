@@ -131,6 +131,9 @@ public:
   void SetPrintRatios(int yes=1) { fPrintRatios=yes; }
   void SetPrintRatioNames(int yes=1) { fPrintRatioNames=yes; }
 
+  int logX() const { return fLogx; }
+  int logY() const { return fLogy; }
+
   void SetRefIdx(const TH1D* h) {
     if (!h) { 
       std::cout << "error ComparisonPlot::SetRefIdx(ptr=NULL)\n";
@@ -418,7 +421,9 @@ public:
       fYmin=ymin-dy; fYmax=ymax+dy;
       if (fLogy && (fYmin<0.)) fYmin=0.95*ymin;
     }
+    if (fLogy && fStack) fStack->SetMinimum(1e-6);
     //std::cout << "fYmin=" << fYmin << ", fYmax=" << fYmax << "\n";
+
     for (unsigned int i=0; i<fItems.size(); ++i) {
       if (fItems[i].hist1D!=0) {
 	fItems[i].hist1D->GetYaxis()->SetRangeUser(ymin,ymax);
