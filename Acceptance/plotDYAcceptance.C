@@ -66,15 +66,18 @@ int plotDYAcceptance(int analysisIs2D,
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,6, DYTools::NO_SYST,
+    if (!DYTools::checkSystMode(systMode,debug_print,9, DYTools::NO_SYST,
 				DYTools::FSR_5plus, DYTools::FSR_5minus,
-				DYTools::FSR_RND_STUDY,
+				DYTools::FSR_RND_STUDY, DYTools::PU_RND_STUDY,
+				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
 				DYTools::NO_REWEIGHT, DYTools::NO_REWEIGHT_FEWZ))
       return retCodeError;
   }
   //
   // A note on systematics mode
   // - FSR_5plus, FSR_5minus should be taken care here
+  // - PU_5plus, PU_5minus are taken care by the eventWeight, through
+  //   the PUReweight class
 
   if (!DYTools::setup(analysisIs2D)) {
     std::cout << "failed to initialize the analysis\n";
