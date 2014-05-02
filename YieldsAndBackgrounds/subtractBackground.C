@@ -259,22 +259,25 @@ int subtractBackground(int analysisIs2D,
     ddbkgTotal.add(ddbkgFake);
   }
 
-  HistoPair2D_t signalYieldMCbkg("signalYieldMCbkg");
-  HistoPair2D_t signalYieldDDbkg("signalYieldDDbkg");
+  // Construct signalYield by first assigning the observedYield
+  HistoPair2D_t signalYieldMCbkg("signalYieldMCbkg",observedYield);
+  HistoPair2D_t signalYieldDDbkg("signalYieldDDbkg",observedYield);
 
-  signalYieldMCbkg.add(observedYield,1.);
-  signalYieldMCbkg.add(mcbkgTotal, -1.);
+  signalYieldMCbkg.add_allErrorIsSyst(mcbkgTotal, -1.);
 
   int negValSigMCbkg=signalYieldMCbkg.correctNegativeValues();
   std::cout << "corrected " << negValSigMCbkg << " negative entries in the signal after MCBkg\n";
 
   if (useTrue2eBkgDataDriven && useFakeBkgDataDriven) {
-    signalYieldDDbkg.add(observedYield,1.);
-    signalYieldDDbkg.add(ddbkgTotal,  -1.);
+    signalYieldDDbkg.add_allErrorIsSyst(ddbkgTotal,  -1.);
     int negValSigDDbkg=signalYieldDDbkg.correctNegativeValues();
     std::cout << "corrected " << negValSigDDbkg << " negative entries in the signal after DDBkg\n";
   }
-  
+  else {
+    // remove assigned observedYieldValues
+    signalYieldDDbkg.Reset();
+  }
+
 
   /*
   TMatrixD bkgRatesUsual(DYTools::nMassBins,nYBinsMax);
@@ -330,6 +333,12 @@ int subtractBackground(int analysisIs2D,
     return retCodeError;
   }
 
+  double observedInZpeak = observedYield.ZpeakCount(NULL);
+  double mcBkgInZpeak    = mcbkgTotal.ZpeakCount(NULL);
+  double ddBkgInZpeak    = ddbkgTotal.ZpeakCount(NULL);
+  double zeeSignalInZpeak= ZpeakCount(mcSignal,NULL);
+  double ratio_data2mcAll= observedInZpeak/(mcBkgInZpeak + zeeSignalInZpeak);
+  double ratio_data2ddZee= observedInZpeak/(ddBkgInZpeak + zeeSignalInZpeak);
 
   std::cout << "outFileName=<" << outFileName << ">\n";
 
@@ -338,6 +347,9 @@ int subtractBackground(int analysisIs2D,
   signalYieldMCbkg.Write();
   signalYieldDDbkg.Write();
   writeIntFlagValues("ddbkgUsed",1,int(useTrue2eBkgDataDriven && useFakeBkgDataDriven));
+  writeFlagValues("ZpeakCounts",4,observedInZpeak,mcBkgInZpeak,ddBkgInZpeak,
+		  zeeSignalInZpeak);
+  writeFlagValues("ZpeakRatios",2,ratio_data2mcAll,ratio_data2ddZee);
   // systematics studies
   fileOut.cd();
   fileOut.mkdir("ShapeReweight");
@@ -586,6 +598,7 @@ int subtractBackground(int analysisIs2D,
     std::cout << "Make yield distributions\n";
     std::cout << dashline;
 
+    int scale=1;
     for (int useDDBkg=0; useDDBkg<2; ++useDDBkg) {
 
       std::vector<TH2D*> histosV;
@@ -621,7 +634,7 @@ int subtractBackground(int analysisIs2D,
       std::vector<std::vector<TH1D*>*> hProfV;
       TString canvName=(useDDBkg) ? "cDD" : "cMC";
       int canvWidth=(DYTools::study2D==1) ? 1100 : 700;
-      TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,900);
+      TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,800);
 
       if (DYTools::study2D==1) {
 
@@ -647,6 +660,11 @@ int subtractBackground(int analysisIs2D,
 	  
 	  for (unsigned int ih=0; ih<hProfV[im]->size(); ++ih) {
 	    TH1D* h=(*hProfV[im])[ih];
+	    if (scale && (ih>0)) {
+	      const double scaleVal=(useDDBkg) ?
+		ratio_data2ddZee : ratio_data2mcAll;
+	      h->Scale(scaleVal);
+	    }
 	    if (ih==0) {
 	      h->SetMarkerStyle(20);
 	      cp->AddHist1D(h,labelsV[0],"LP",colorsV[ih]);
@@ -690,6 +708,13 @@ int subtractBackground(int analysisIs2D,
 	  
 	  for (unsigned int ih=0; ih<hProfV[iy]->size(); ++ih) {
 	    TH1D* h=(*hProfV[iy])[ih];
+	    if (cp->logY()) h->SetMinimum(1e-7);
+	    std::cout << "h->GetMinimum()=" << h->GetMinimum() << "\n";
+	    if (scale && (ih>0)) {
+	      const double scaleVal=(useDDBkg) ?
+		ratio_data2ddZee : ratio_data2mcAll;
+	      h->Scale(scaleVal);
+	    }
 	    if (ih==0) {
 	      h->SetMarkerStyle(20);
 	      cp->AddHist1D(h,labelsV[0],"LP",colorsV[ih]);
@@ -699,7 +724,13 @@ int subtractBackground(int analysisIs2D,
 	      hSum->Add(h,1.);
 	    }
 	  }
-	  cp->AddHist1D(hSum,"simulation","LP skip",kRed+1,1,1,-1);
+	  if (cp->logY()) hSum->SetMinimum(1e-7);
+	  cp->SkipInRatioPlots((*hProfV[iy])[0]);
+	  cp->AddHist1D(hSum,"simulation","LP skip",kRed+1,0,1,-1);
+	  cp->SetRefIdx(hSum);
+	  TH1D* hDataClone=Clone((*hProfV[iy])[0],"hDataClone","");
+	  cp->AddHist1D(hDataClone,"data","LP skip",TAttMarker(kBlack,20,1),0,1,-1);
+	  cp->SetLogy(0);
 	  cp->Draw(c1);
 	  if (!useDDBkg) cp->ChangeLegendPos(0.2,0.,0.,0.);
 	  c1->Update();
