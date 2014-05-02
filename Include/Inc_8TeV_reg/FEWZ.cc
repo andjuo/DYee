@@ -35,7 +35,7 @@ FEWZ_t::FEWZ_t(bool loadWeights, bool do_cutZPT100) : fInitialized(kFALSE), fCut
 // Constructor for 8 TeV analysis. Everything is defined in a macro
 FEWZ_t::FEWZ_t(bool loadWeights, bool do_cutZPT100)
   : fInitialized(loadWeights), fCutZPT100(do_cutZPT100) {
-  std::cout << "FEWZ weights for 8TeV ver.2\n";
+  std::cout << "FEWZ weights for 8TeV ver.2a (2014.04.23)\n";
   for (int i=0; i<_nMassBinsFEWZ; ++i) {
     weights[i]=NULL;
     weightErrors[i]=NULL;
