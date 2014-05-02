@@ -130,6 +130,10 @@ void ClearVec(std::vector<T*> &vec) {
   vec.clear();
 }
 
+//-----------------------------------------------------------
+
+std::vector<TString>* createMassRangeVec(TString prependStr="");
+
 //------------------------------------------------------------------------------------------------------------------------
 
 #ifndef BaseClass_HH

@@ -4,6 +4,21 @@
 //--------------------------------------------------
 //--------------------------------------------------
 
+std::vector<TString>* createMassRangeVec(TString prependStr) {
+  std::vector<TString>* vec=new std::vector<TString>();
+  vec->reserve(DYTools::nMassBins);
+  for (int im=0; im<DYTools::nMassBins; ++im) {
+    TString mStr=Form("M_%1.0lf_%1.0lf",
+		  DYTools::massBinLimits[im],DYTools::massBinLimits[im+1]);
+    if (prependStr.Length()) mStr.Prepend(prependStr);
+    vec->push_back(mStr);
+  }
+  return vec;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int maxEntries) {
   unsigned int imax=hV.size();
   if ((maxEntries>0) && (imax>(unsigned int)(maxEntries))) {
