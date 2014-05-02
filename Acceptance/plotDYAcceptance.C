@@ -99,8 +99,9 @@ int plotDYAcceptance(int analysisIs2D,
 
   // Acceptance is generator-level quantity and should not
   // depend on the pile-up. The flag is disabled.
+  // Correction on May 01, 2014: PU should be applied at all steps
   EventWeight_t evWeight;
-  if (!evWeight.init(0*inpMgr.puReweightFlag(),inpMgr.fewzFlag(),
+  if (!evWeight.init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),
 		     systMode,rndStudyStr)) {
     std::cout << "failed to prepare evWeight\n";
     return retCodeError;
