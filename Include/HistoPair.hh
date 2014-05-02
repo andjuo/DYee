@@ -8,6 +8,9 @@
 // Note that randomizeWithinErr requires that <TRandom.h> or similar
 // is included above "HistoPair.hh"
 //
+#ifndef ROOT_TRandom
+#include <TRandom.h>
+#endif
 
 // ---------------------------------------------
 
@@ -292,6 +295,22 @@ public:
 
   // ----------------
 
+  int assignCentralVals(const TH2D *hBase) {
+    if (!hBase) return this->reportError("assignCentralVals(TH2D*): pointer is null");
+    if ((fHisto->GetNbinsX() != hBase->GetNbinsX()) ||
+	(fHisto->GetNbinsY() != hBase->GetNbinsY())) {
+      return this->reportError("assignCentralVals: dim mismatch in the supplied hBase");
+    }
+    for (int ibin=1; ibin<=fHisto->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=fHisto->GetNbinsY(); ++jbin) {
+	fHisto->SetBinContent(ibin,jbin, hBase->GetBinContent(ibin,jbin));
+      }
+    }
+    return 1;
+  }
+
+  // ----------------
+
   int assign(const TMatrixD &val, const TMatrixD &valErr, const TMatrixD &valSystErr) {
     if (!isInitialized()) { return reportError("assign(TMatrixD): object is not initialized"); }
     if ((val.GetNrows() != fHisto->GetNbinsX()) ||
@@ -352,6 +371,30 @@ public:
   Bool_t add(const HistoPair2D_t &pair, double weight=1.) {
     return (fHisto->Add(pair.fHisto, weight) &&
 	    fHistoSystErr->Add(pair.fHistoSystErr, weight));
+  }
+
+  // ----------------
+
+  Bool_t add_allErrorIsSyst(const HistoPair2D_t &pair, double weight=1.) {
+    TH2D *hValue=Clone(pair.fHisto,"hValue","");
+    TH2D *hError  =Clone(pair.fHisto,"hError","");
+    int res=(hValue && hError) ? 1:0;
+    if (res) {
+      for (int ibin=1; ibin<=hValue->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=hValue->GetNbinsY(); ++jbin) {
+	  hValue->SetBinError(ibin,jbin,double(0));
+	  hError->SetBinContent(ibin,jbin,double(0));
+	}
+      }
+      res= (fHisto->Add(hValue, weight) &&
+	    fHistoSystErr->Add(hError, weight) &&
+	    fHistoSystErr->Add(pair.fHistoSystErr, weight)) ? 1:0;
+
+      delete hError;
+      delete hValue;
+    }
+    if (!res) return reportError("in method add_allErrorIsSyst");
+    return 1;
   }
 
   // ----------------
