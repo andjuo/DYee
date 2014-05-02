@@ -25,16 +25,16 @@ int derivePreFsrCS_PU(int analysisIs2D,
     return retCodeError;
   }
 
-  if (DYTools::study2D==0) {
-    std::cout << "call this macro for 2D case\n";
-    return retCodeError;
-  }
+  //if (DYTools::study2D==0) {
+  //  std::cout << "call this macro for 2D case\n";
+  //  return retCodeError;
+  //}
 
   gBenchmark->Start("derivePreFsrCS");
   {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,2, DYTools::NO_SYST, DYTools::NO_REWEIGHT))
+    if (!DYTools::checkSystMode(systMode,debug_print,1, DYTools::NO_SYST))
       return retCodeError;
   }
 
@@ -88,6 +88,8 @@ int derivePreFsrCS_PU(int analysisIs2D,
   std::vector<TH2D*> hMass2DwPUnoFEWZv;
   std::vector<TH2D*> hMass2DwPUwFEWZv;
   std::vector<TH2D*> hMass2DasymV;
+  std::vector<TH1D*> hNPV;
+
   PUReweight_t puNoPUNoFewz(PUReweight_t::_none);
   PUReweight_t puNoPUwFewz(PUReweight_t::_none);
   PUReweight_t puWPUNoFewz(PUReweight_t::_none);
@@ -122,6 +124,9 @@ int derivePreFsrCS_PU(int analysisIs2D,
   createBaseH2Vec(hMass2DwPUnoFEWZv,"hMass_wPU_noFewz_2D_",inpMgr.mcSampleNames(),1,1);
   createBaseH2Vec(hMass2DwPUwFEWZv,"hMass_wPU_wFewz_2D_",inpMgr.mcSampleNames(),1,1);
   createBaseH2Vec(hMass2DasymV,"hMass2Dasym_",inpMgr.mcSampleNames(),0,1);
+
+  std::vector<TString>* massStr=createMassRangeVec("genPostFsr");
+  createAnyH1Vec(hNPV,"hNPV_",*massStr,61,-0.5,60.5,"nPU","counts");
 
   for (unsigned int i=0; i<hMass1Dv.size(); ++i) {
     std::cout << i << "  " << hMass1Dv[i]->GetName() << "\n";
@@ -261,6 +266,11 @@ int derivePreFsrCS_PU(int analysisIs2D,
 	hMass2DwPUnoFEWZv[isample]->Fill(gen->vmass, fabs(gen->vy), evWeightPUNoFewz.totalWeight());
 	hMass2DwPUwFEWZv[isample]->Fill(gen->vmass, fabs(gen->vy), evWeightPUFewz.totalWeight());
 
+	int iMbin=DYTools::findMassBin(gen->mass);
+	if ((iMbin>=0) && (iMbin<int(hNPV.size()))) {
+	  hNPV[iMbin]->Fill(nPVs, evWeightPUFewz.totalWeight());
+	}
+
 	ec.numEventsPassedAcceptance_inc();
 
       } // loop over events
@@ -291,6 +301,7 @@ int derivePreFsrCS_PU(int analysisIs2D,
     if (res) res=saveVec(file,hMass2DwPUnoFEWZv,"mass_wPU_noFEWZ_2D_base");
     if (res) res=saveVec(file,hMass2DwPUwFEWZv,"mass_wPU_wFEWZ_2D_base");
     if (res) res=saveVec(file,hMass2DasymV,"mass_2D_asym_base");
+    if (res) res=saveVec(file,hNPV,"npv_mass_dep");
     if (res) writeBinningArrays(file);
     file.Close();
     if (!res) {
@@ -309,6 +320,7 @@ int derivePreFsrCS_PU(int analysisIs2D,
     if (res) res=loadVec(file,hMass2DwPUnoFEWZv,"mass_wPU_noFEWZ_2D_base");
     if (res) res=loadVec(file,hMass2DwPUwFEWZv,"mass_wPU_wFEWZ_2D_base");
     if (res) res=loadVec(file,hMass2DasymV,"mass_2D_asym_base");
+    if (res) res=loadVec(file,hNPV,"npv_mass_dep");
     file.Close();
     if (!res) {
       std::cout << "error occurred during load from file <" << outFileName << ">\n";
