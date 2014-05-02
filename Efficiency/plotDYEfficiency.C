@@ -99,12 +99,12 @@ int plotDYEfficiency(int analysisIs2D,
   // with the PU-reweighting, while the total event count should be
   // without the PU-reweighting, since this number is related to the
   // generator-level quantity
-  EventWeight_t evWeightWPU, evWeightNoPU;
+  EventWeight_t evWeightWPU;//, evWeightNoPU;
   {
     int res=1;
     if (res) res=evWeightWPU .init(inpMgr.puReweightFlag(),inpMgr.fewzFlag(),
 				   systMode,rndStudyStr);
-    if (res) res=evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode,rndStudyStr);
+    //if (res) res=evWeightNoPU.init(0,inpMgr.fewzFlag(),systMode,rndStudyStr);
     if (!res) {
       std::cout << "failed to prepare evWeights\n";
       return retCodeError;
@@ -214,7 +214,7 @@ int plotDYEfficiency(int analysisIs2D,
 	std::cout << "adjustMaxEvents failed\n";
 	return retCodeError;
       }
-      evWeightNoPU.setBaseWeight(evWeightWPU);
+      //evWeightNoPU.setBaseWeight(evWeightWPU);
       std::cout << "mcSample xsec=" << mcSample->getXsec(ifile) << ", nEntries=" << maxEvents << "\n";
       
 
@@ -256,13 +256,13 @@ int plotDYEfficiency(int analysisIs2D,
 	// FSR study correction for weight
 	if (useSpecWeight) {
 	  evWeightWPU .setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
-	  evWeightNoPU.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
+	  //evWeightNoPU.setSpecWeightValue(accessInfo,FSRmassDiff,specWeight);
 	}
 
 	// Adjust event weight
 	// .. here "false" = "not data"
 	evWeightWPU .set_PU_and_FEWZ_weights(accessInfo,false);
-	evWeightNoPU.setFewzWeight(accessInfo);
+	//evWeightNoPU.setFewzWeight(accessInfo);
 	//std::cout << "ientry=" << ientry << ", totalWeight=" << evWeight.totalWeight() << "\n";
 
 	// adjust the scale in the counter to include FEWZ 
@@ -271,9 +271,13 @@ int plotDYEfficiency(int analysisIs2D,
 
 	// accumulate denominator
 	const mithep::TGenInfo *gen= accessInfo.genPtr();
-	hvTotal[isample]->Fill(gen->mass, fabs(gen->y), evWeightNoPU.totalWeight());
-	hMassv[isample]->Fill(gen->vmass, evWeightNoPU.totalWeight());
-	hMassBinsv[isample]->Fill(gen->vmass, evWeightNoPU.totalWeight());
+	//hvTotal[isample]->Fill(gen->mass, fabs(gen->y), evWeightNoPU.totalWeight());
+	//hMassv[isample]->Fill(gen->vmass, evWeightNoPU.totalWeight());
+	//hMassBinsv[isample]->Fill(gen->vmass, evWeightNoPU.totalWeight());
+
+	hvTotal[isample]->Fill(gen->mass, fabs(gen->y), evWeightWPU.totalWeight());
+	hMassv[isample]->Fill(gen->vmass, evWeightWPU.totalWeight());
+	hMassBinsv[isample]->Fill(gen->vmass, evWeightWPU.totalWeight());
 
 	// check event trigger
 	if (!evtSelector.eventTriggerOk(accessInfo)) {
