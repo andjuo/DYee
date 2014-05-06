@@ -1,278 +1,19 @@
 #include "../Include/DYTools.hh"
 #include "../CrossSection/crossSectionFnc.hh"
 #include "../Include/colorPalettes.hh"
+#include "CSCovWorkFlags.hh"
 #include <TBenchmark.h>
 
-//=== Global flags =================================================================================================
+//================================================================================================================
 
-int calc_YieldStat=1;
-int calc_YieldSyst=1;
-int calc_YieldUnregEn=0; // EScale includes all escale uncertainty
-int calc_YieldEScale=0;
-int calc_YieldApplyEScale=0; // EScale include all escale uncertainty
-
-int doCalcYieldCov=(calc_YieldStat + calc_YieldSyst + calc_YieldUnregEn +
-		    calc_YieldEScale + calc_YieldApplyEScale) ? 1:0;
-
-int calc_UnfPU=0;
-int calc_UnfFSR=0;
-int calc_UnfRnd=1;
-int calc_UnfEScale=1;
-
-int doCalcUnfCov=(calc_UnfPU + calc_UnfFSR +
-		  calc_UnfRnd + calc_UnfEScale) ? 1:0;
-
-int calc_EffPU=0;
-int calc_EffFSR=0;
-int calc_EffRnd=1;
-
-int doCalcEffCov=(calc_EffPU + calc_EffFSR + calc_EffRnd) ? 1:0;
-
-int calc_ESFtot=1;
-int calc_ESFtotCheck=0;
-
-int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
-
-// acceptance correction is later adjusted once 1D/2D measurement is known
-int calc_AccFSR=0;
-int calc_AccRnd=1;
-
-int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
-
-int calc_FsrFSR=0; // not ready!
-int calc_FsrRnd=1;
-
-int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
-
-int calc_globalFSR=1;
-int calc_globalPU=1;
-int calc_globalFEWZ=0;
-
-int doCalcGlobalCov=(calc_globalFSR + calc_globalPU + calc_globalFEWZ) ? 1:0;
-
-// -----------------------------------------------------------
-
-typedef enum { _corrNone=0,
-	       _yield,
-	       _corrUnf,
-	       _corrEff,
-	       _corrESF,
-	       _corrAcc,
-	       _corrFSR,
-	       _corrGlobalFSR, _corrGlobalPU,
-	       _corrGlobalFEWZ,
-	       _corrLast } TCorrCase_t;
-
-// -----------------------------------------------------------
-
-TString corrCaseName(TCorrCase_t cs) {
-  TString name;
-  switch(cs) {
-  case _corrNone: name="NONE"; break;
-  case _yield: name="yield"; break;
-  case _corrUnf: name="corrUnf"; break;
-  case _corrEff: name="corrEff"; break;
-  case _corrESF: name="corrESF"; break;
-  case _corrAcc: name="corrAcc"; break;
-  case _corrFSR: name="corrFSR"; break;
-  case _corrGlobalFSR: name="corrGlobalFSR"; break;
-  case _corrGlobalPU: name="corrGlobalPU"; break;
-  case _corrGlobalFEWZ: name="corrGlobalFEWZ"; break;
-  case _corrLast: name="LAST"; break;
-  default: name="UNKNOWN";
-  }
-  return name;
-}
-
-// -----------------------------------------------------------
-
-struct WorkFlags_t {
-  int fCase;
-  int fCSCov;
-  TString fExtraTag;
-  std::vector<TString> fExtraTagV;
-public:
-  WorkFlags_t(int the_case=0, int set_showCSCov=1, TString set_extra_tag="") :
-    fCase(the_case), fCSCov(set_showCSCov),
-    fExtraTag(set_extra_tag),
-    fExtraTagV()
-  {
-    init_ExtraTagV(1);
-  }
-
-  WorkFlags_t(const WorkFlags_t &w) :
-    fCase(w.fCase), fCSCov(w.fCSCov),
-    fExtraTag(w.fExtraTag),
-    fExtraTagV(w.fExtraTagV)
-  {}
-
-  int theCase() const { return fCase; }
-  void theCase(int the_case) { fCase=the_case; }
-  int showCSCov() const { return fCSCov; }
-  void showCSCov(int show) { fCSCov=show; }
-  int hasExtraTag() const { return (fExtraTag.Length()>0) ? 1:0; }
-  TString extraFileTag() const { return fExtraTag; }
-  void extraFileTag(TString setTag) { fExtraTag=setTag; }
-
-  TString extraFileTag(TCorrCase_t idx1) const {
-    int idx=int(idx1);
-    return fExtraTagV[idx];
-  }
-
-  void extraFileTag(TCorrCase_t idx1, TString tag) {
-    int idx=int(idx1);
-    fExtraTagV[idx]=tag;
-  }
-
-  // the user should call with only_global=0, if different extraTags are needed
-  void init_ExtraTagV(int only_global) {
-    if (fExtraTagV.size()>0) fExtraTagV.clear();
-    if (!only_global) {
-      fExtraTagV.reserve(int(_corrLast));
-      for (int idx=0; idx<int(_corrLast); ++idx) {
-	fExtraTagV.push_back(TString());
-      }
-    }
-  }
-
-  TString fieldName(TString tag) const {
-    TString field=(fCSCov) ? "covCS_" : "cov_";
-    field.Append(tag);
-    return field;
-  }
-
-  void adjustFName(TString &fname) const {
-    if (fExtraTag.Length()) {
-      if (fname.Index(".root")>0) {
-	fname.ReplaceAll(".root",fExtraTag + TString(".root"));
-      }
-      else {
-	fname.Append(fExtraTag);
-      }
-      std::cout << "WorkFlags_t::adjustFName: fname=<" << fname << ">\n";
-    }
-  }
-
-  void adjustFName(TString &fname, TCorrCase_t cs) const {
-    int idx=int(cs);
-    TString eTag;
-    std::cout << "idx=" << idx << ", fExtraTagV.size=" << fExtraTagV.size() << "\n";
-    if (idx<int(fExtraTagV.size())) eTag=fExtraTagV[idx];
-    else eTag=fExtraTag;
-    std::cout << "eTag=<" << eTag << ">\n";
-    if (eTag.Length()) {
-      if (fname.Index(".root")>0) {
-	fname.ReplaceAll(".root",eTag + TString(".root"));
-      }
-      else {
-	fname.Append(eTag);
-      }
-      std::cout << "WorkFlags_t::adjustFName(corrCase="
-		<< corrCaseName(cs) << "): fname=<" << fname << ">\n";
-    }
-  }
-
-
-};
-
-// -----------------------------------------------------------
-
-struct TCovData_t {
-  std::vector<int> isActive;
-  std::vector<TMatrixD*> covYieldV, covUnfV, covEffV, covEsfV;
-  std::vector<TMatrixD*> covAccV, covFsrV, covGlobalV;
-  std::vector<TString> labelYieldV, labelUnfV, labelEffV, labelEsfV;
-  std::vector<TString> labelAccV, labelFsrV, labelGlobalV;
-public:
-
-  // ----------------
-
-  TCovData_t() : isActive(0),
-		 covYieldV(), covUnfV(), covEffV(), covEsfV(),
-		 covAccV(), covFsrV(), covGlobalV(),
-		 labelYieldV(), labelUnfV(), labelEffV(), labelEsfV(),
-		 labelAccV(), labelFsrV(), labelGlobalV()
-  {
-    isActive.reserve(7);
-    for (int i=0; i<7; ++i) isActive.push_back(0);
-  }
-
-
-  // ----------------
-
-  const std::vector<TMatrixD*>* getCovV(int i) const {
-    const std::vector<TMatrixD*>* ptr=NULL;
-    switch(i) {
-    case 0: ptr=&covYieldV; break;
-    case 1: ptr=&covUnfV; break;
-    case 2: ptr=&covEffV; break;
-    case 3: ptr=&covEsfV; break;
-    case 4: ptr=&covAccV; break;
-    case 5: ptr=&covFsrV; break;
-    case 6: ptr=&covGlobalV; break;
-    default:
-      std::cout << "index error in getCovV\n";
-    }
-    return ptr;
-  }
-
-  // ----------------
-
-  const std::vector<TString>* getLabelV(int i) const {
-    const std::vector<TString>* ptr=NULL;
-    switch(i) {
-    case 0: ptr=&labelYieldV; break;
-    case 1: ptr=&labelUnfV; break;
-    case 2: ptr=&labelEffV; break;
-    case 3: ptr=&labelEsfV; break;
-    case 4: ptr=&labelAccV; break;
-    case 5: ptr=&labelFsrV; break;
-    case 6: ptr=&labelGlobalV; break;
-    default:
-      std::cout << "index error in getLabelV\n";
-    }
-    return ptr;
-  }
-
-  // ----------------
-
-  TMatrixD* calcTotalCov() const {
-    TMatrixD* totcov=NULL;
-    for (unsigned int idx=0; idx<isActive.size(); ++idx) {
-      if (!isActive[idx]) continue;
-      const std::vector<TMatrixD*> *covs=this->getCovV(idx);
-      for (unsigned int i=0; i<covs->size(); ++i) {
-	TMatrixD *cov=(*covs)[i];
-	if (totcov==NULL) totcov = new TMatrixD(*cov);
-	else (*totcov) += (*cov);
-      }
-    }
-    return totcov;
-  }
-
-  // ----------------
-
-};
-
-
-//=== Functions =================================================================================================
-
-int loadYieldCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
-int loadUnfCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
-int loadEffCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
-int loadEsfCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
-int loadAccCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
-int loadFsrCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
-int loadGlobalCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf);
-
-TH2D *loadMainCSResult();
 int workWithData(TCovData_t &dt, const WorkFlags_t &wf);
 
 
 //=== MAIN MACRO =================================================================================================
 
 
-int plotCSCov(int analysisIs2D, TString conf, int the_case, int showCSCov=1,
+int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
+	      int showCSCov=1,
 	      TString outFileExtraTag_UserInput="")
 {
 
@@ -280,10 +21,6 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int showCSCov=1,
     std::cout << "failed to initialize the analysis\n";
     return retCodeError;
   }
-
-  calc_AccFSR*=(1-analysisIs2D);
-  calc_AccRnd*=(1-analysisIs2D);
-  doCalcAccCov*=(1-analysisIs2D);
 
   // Settings 
   //==============================================================================================================
@@ -295,6 +32,59 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int showCSCov=1,
 
   TCovData_t dt;
   WorkFlags_t work(the_case,showCSCov,outFileExtraTag_UserInput);
+
+  CSCovCalcFlags_t *cf= & work.editCalcFlags();
+
+  switch(abs(workBranch)) {
+  case 0:
+    cf->calc_YieldStatDetailed(1);
+    cf->calc_YieldSystDetailed(1);
+    break;
+  case 1:
+    cf->calc_YieldStatDetailed(1);
+    cf->calc_YieldSystDetailed(1);
+    cf->calc_YieldEscale(1);
+    break;
+  case 2:
+    cf->calc_UnfRnd(1);
+    break;
+  case 3:
+    cf->calc_UnfRnd(1);
+    cf->calc_UnfEScale(1);
+    break;
+  case 4:
+    cf->calc_UnfEScale(1);
+    break;
+  case 5:
+    cf->calc_ESFtot(1);
+    break;
+  case 6:
+    cf->calc_YieldStatDetailed(1);
+    cf->calc_YieldSystDetailed(1);
+    cf->calc_UnfRnd(1);
+    cf->calc_UnfEScale(1);
+    cf->calc_ESFtot(1);
+    cf->calc_EffRnd(1);
+    cf->calc_AccRnd(1);
+    cf->calc_FsrRnd(1);
+    cf->calc_globalFSR(1);
+    cf->calc_globalPU(1);
+    break;
+  case 7:
+    cf->calc_globalPU(1);
+    break;
+  case 8:
+    cf->calc_globalFSR(1);
+    break;
+  default:
+    std::cout << "workBranch=" << workBranch << " is not ready\n";
+    return retCodeError;
+  }
+
+  if (!work.finalizeFlags()) {
+    std::cout << "error from finalizeFlags\n";
+    return retCodeError;
+  }
 
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return retCodeError;
@@ -312,66 +102,62 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int showCSCov=1,
 					       csKind,0,systFileFlag);
   std::cout << "fnameBase=<" << fnameBase << ">\n";
 
-  if ((the_case==2) || (the_case==3) || (the_case==4)) {
+  if ((the_case==2) || (the_case==3) || (the_case==4)
+      || (the_case==5)) {
     // global study I
     work.init_ExtraTagV(0);
     work.extraFileTag(_yield, "-yieldOnly_nExps1000");
+    //work.extraFileTag(_yield, "-yieldOnly");
     work.extraFileTag(_corrUnf, "-unfOnly");
+    if ((workBranch==2) ||
+	(workBranch==5)) work.extraFileTag(_corrUnf, "-unfRndOnly_nExps1000");
+    if (workBranch==4) work.extraFileTag(_corrUnf, "-unfOnly_nExps20");
     work.extraFileTag(_corrEff, "-effRndOnly");
     work.extraFileTag(_corrESF, "-esfOnly");
     work.extraFileTag(_corrAcc, "-accRndOnly");
     work.extraFileTag(_corrFSR, "-fsrRndOnly");
-    if (the_case==3) work.extraFileTag(_corrFSR, "-fsrRndOnly_nExps1000");
+    //if (the_case==3) 
+    //work.extraFileTag(_corrFSR, "-fsrRndOnly_nExps1000");
     //work.extraFileTag(_corrGlobalFSR, "-globalFSROnly_nExps20");
     //work.extraFileTag(_corrGlobalPU, "-globalPUOnly_nExps20");
     work.extraFileTag(_corrGlobalFSR, "-globalFSROnly");
     work.extraFileTag(_corrGlobalPU, "-globalPUOnly");
+    /*
     if (the_case==4) {
       std::cout << "\n\n\t EXCLUDING RNDs beyond rho\n";
-      calc_EffRnd=0;
-      calc_AccRnd=0;
-      calc_FsrRnd=0;
+      cf->calc_EffRnd(0);
+      cf->calc_AccRnd(0);
+      cf->calc_FsrRnd(0);
     }
+    */
   }
 
   int res=1;
-  if (res && doCalcYieldCov) { 
+  if (res && cf->doCalcYieldCov()) {
     if (!loadYieldCovMatrices(fnameBase,dt.covYieldV,dt.labelYieldV,work)) return 0;
     dt.isActive[0]=1;
   }
-  if (res && doCalcUnfCov) { 
+  if (res && cf->doCalcUnfCov()) {
     if (!loadUnfCovMatrices(fnameBase,dt.covUnfV,dt.labelUnfV,work)) return 0;
     dt.isActive[1]=1;
   }
-  if (res && doCalcEffCov) { 
+  if (res && cf->doCalcEffCov()) {
     if (!loadEffCovMatrices(fnameBase,dt.covEffV,dt.labelEffV,work)) return 0;
     dt.isActive[2]=1;
   }
-  if (res && doCalcESFCov) {
+  if (res && cf->doCalcESFCov()) {
     if (!loadEsfCovMatrices(fnameBase,dt.covEsfV,dt.labelEsfV,work)) return 0;
     dt.isActive[3]=1;
   }
-  if (res && doCalcAccCov) { 
+  if (res && cf->doCalcAccCov()) {
     if (!loadAccCovMatrices(fnameBase,dt.covAccV,dt.labelAccV,work)) return 0;
     dt.isActive[4]=1;
   }
-  if (res && doCalcFSRCov) { 
+  if (res && cf->doCalcFSRCov()) {
     if (!loadFsrCovMatrices(fnameBase,dt.covFsrV,dt.labelFsrV,work)) return 0;
     dt.isActive[5]=1;
   }
-
-  if (res && doCalcGlobalCov) {
-    if (calc_globalFSR &&
-	(calc_FsrFSR || calc_AccFSR || calc_EffFSR || calc_UnfFSR)) {
-      std::cout << "since calc_globalFSR is on, "
-		<< "individual FSR studies have to be switched off\n";
-      return 0;
-    }
-    if (calc_globalPU && (calc_EffPU || calc_UnfPU)) {
-      std::cout << "since calc_globalPU is on, "
-		<< "individual PU studies have to be switched off\n";
-      return 0;
-    }
+  if (res && cf->doCalcGlobalCov()) {
     if(!loadGlobalCovMatrices(fnameBase,dt.covGlobalV,dt.labelGlobalV,work))
       return 0;
     dt.isActive[6]=1;
@@ -385,365 +171,6 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int showCSCov=1,
 // ---------------------------------------------------------------------------
   // Implementations
   //==============================================================================================================
-
-
-int loadYieldCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf) {
-
-  TString inpFileName=fnameBase;
-  //if (wf.extraFileTag().Index("-yield")==-1) {
-  //  inpFileName.ReplaceAll(".root","-yieldOnly.root");
-  //}
-  wf.adjustFName(inpFileName,_yield);
-  TFile fin(inpFileName,"read");
-  if (!fin.IsOpen()) {
-    std::cout << "failed to open a file <" << inpFileName << ">\n";
-    return 0;
-  }
-  TMatrixD *ptr;
-  if (calc_YieldStat) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldStat"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("signal stat");
-    }
-  }
-  if (calc_YieldSyst) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldSyst"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("signal syst");
-    }
-  }
-  if (calc_YieldUnregEn) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldUnregEn"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("signal unreg.en.");
-    }
-  }
-  if (calc_YieldEScale) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldEScale"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("signal EScale uncert.");
-    }
-  }
-  if (calc_YieldApplyEScale) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldApplyEScale"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("signal adhoc escale");
-      }
-  }
-  std::cout << "loaded " << covs.size() << " entries from file <" << fin.GetName() << ">\n";
-  fin.Close();
-  return 1;
-}
-
-
-// -----------------------------------------------------------
-
-
-int loadUnfCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf) {
-
-  TString inpFileName=fnameBase;
-  //if (wf.extraFileTag().Index("-unf")==-1) {
-  //  inpFileName.ReplaceAll(".root","-unfOnly.root");
-  //}
-  wf.adjustFName(inpFileName,_corrUnf);
-  TFile fin(inpFileName,"read");
-  if (!fin.IsOpen()) {
-    std::cout << "failed to open a file <" << inpFileName << ">\n";
-    return 0;
-  }
-  TMatrixD *ptr;
-  if (calc_UnfPU) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfPU"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("unf pile-up");
-    }
-  }
-  if (calc_UnfFSR) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfFSR"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("unf FSR");
-    }
-  }
-  if (calc_UnfRnd) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfRnd"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("unf stat");
-    }
-  }
-  if (calc_UnfEScale) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfEScale"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("unf e-scale");
-    }
-  }
-
-  std::cout << "loaded " << covs.size() << " entries from file <" << fin.GetName() << ">\n";
-  fin.Close();
-  return 1;
-}
-
-
-// -----------------------------------------------------------
-
-
-int loadEffCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf) {
-
-  TString inpFileName=fnameBase;
-  //if (wf.extraFileTag().Index("-eff")==-1) {
-  //  inpFileName.ReplaceAll(".root","-effOnly.root");
-  //}
-  wf.adjustFName(inpFileName,_corrEff);
-  TFile fin(inpFileName,"read");
-  if (!fin.IsOpen()) {
-    std::cout << "failed to open a file <" << inpFileName << ">\n";
-    return 0;
-  }
-  TMatrixD *ptr;
-  if (calc_EffPU) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("EffPU"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("eff pile-up");
-    }
-  }
-  if (calc_EffFSR) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("EffFSR"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("eff FSR");
-    }
-  }
-  if (calc_EffRnd) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("EffRnd"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("eff stat");
-    }
-  }
-
-  std::cout << "loaded " << covs.size() << " entries from file <" << fin.GetName() << ">\n";
-  fin.Close();
-  return 1;
-}
-
-
-// -----------------------------------------------------------
-
-
-int loadEsfCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf) {
-
-  TString inpFileName=fnameBase;
-  //if (wf.extraFileTag().Index("-esf")==-1) {
-  //  inpFileName.ReplaceAll(".root","-esfOnly.root");
-  //}
-  wf.adjustFName(inpFileName,_corrESF);
-  TFile fin(inpFileName,"read");
-  if (!fin.IsOpen()) {
-    std::cout << "failed to open a file <" << inpFileName << ">\n";
-    return 0;
-  }
-  TMatrixD *ptr;
-  if (calc_ESFtot) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("ESFtot"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("ESF tot");
-    }
-  }
-  else if (calc_ESFtotCheck) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("ESFtotCheck"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("ESF tot");
-    }
-  }
-
-  std::cout << "loaded " << covs.size() << " entries from file <" << fin.GetName() << ">\n";
-  fin.Close();
-  return 1;
-}
-
-
-
-// -----------------------------------------------------------
-
-
-int loadAccCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf) {
-
-  TString inpFileName=fnameBase;
-  //inpFileName.ReplaceAll(".root","-accOnly.root");
-  wf.adjustFName(inpFileName,_corrAcc);
-  TFile fin(inpFileName,"read");
-  if (!fin.IsOpen()) {
-    std::cout << "failed to open a file <" << inpFileName << ">\n";
-    return 0;
-  }
-  TMatrixD *ptr;
-  if (calc_AccFSR) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("AccFSR"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("acc FSR");
-    }
-  }
-  if (calc_AccRnd) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("AccRnd"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("acc stat");
-    }
-  }
-
-  std::cout << "loaded " << covs.size() << " entries from file <" << fin.GetName() << ">\n";
-  fin.Close();
-  return 1;
-}
-
-
-
-// -----------------------------------------------------------
-
-
-int loadFsrCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs, std::vector<TString> &labels, const WorkFlags_t &wf) {
-
-  TString inpFileName=fnameBase;
-  //inpFileName.ReplaceAll(".root","-fsrUnfOnly.root");
-  wf.adjustFName(inpFileName,_corrFSR);
-  TFile fin(inpFileName,"read");
-  if (!fin.IsOpen()) {
-    std::cout << "failed to open a file <" << inpFileName << ">\n";
-    return 0;
-  }
-  TMatrixD *ptr;
-  if (calc_FsrFSR) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("FsrFSR"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("FSR FSR");
-    }
-  }
-  if (calc_FsrRnd) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("FsrRnd"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("FSR stat");
-    }
-  }
-
-  std::cout << "loaded " << covs.size() << " entries from file <" << fin.GetName() << ">\n";
-  fin.Close();
-  return 1;
-}
-
-
-
-// -----------------------------------------------------------
-
-
-int loadGlobalCovMatrices(const TString &fnameBase,
-			  std::vector<TMatrixD*> &covs,
-			  std::vector<TString> &labels,
-			  const WorkFlags_t &wf) {
-
-  if (fnameBase.Length()==0) {
-    std::cout << "loadGlobalCovMatrices warning: fnameBase.Length=0\n";
-  }
-
-  if (wf.showCSCov()==0) {
-    std::cout << "loadGlobalCovMatrices: results are available only for "
-	      << "the final cross section\n";
-    return 0;
-  }
-
-  for (int i=0; i<3; ++i) {
-    TString tag;
-    int calc=0;
-    TCorrCase_t corrCase=_corrNone;
-    switch(i) {
-    case 0: tag="puRndStudy"; calc=calc_globalPU;
-            corrCase=_corrGlobalPU;
-	    break;
-    case 1: tag="fsrRndStudy"; calc=calc_globalFSR;
-            corrCase=_corrGlobalFSR;
-	    break;
-    case 2: tag="fewzRndStudy"; calc=calc_globalFEWZ;
-            corrCase=_corrGlobalFEWZ;
-	    break;
-    default:
-      std::cout << "loadGlobalCovMatrices: the case i=" << i
-		<< " is not ready\n";
-      return 0;
-    }
-    if (!calc) continue;
-
-    TString inpFileName;
-    if (0) {
-      // local file
-      inpFileName=Form("csSyst-%s-%dD.root",tag.Data(),
-		       DYTools::study2D+1);
-    }
-    else {
-      inpFileName=fnameBase;
-      wf.adjustFName(inpFileName,corrCase);
-    }
-
-    TFile fin(inpFileName,"read");
-    if (!fin.IsOpen()) {
-      std::cout << "failed to open a file <" << inpFileName << ">\n";
-      return 0;
-    }
-    TString field= TString("covCS_") + tag;
-    std::cout << "loading <" << field << "> from <" << inpFileName << ">\n";
-    TMatrixD *ptr = (TMatrixD*)fin.Get(field);
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back(tag);
-    }
-    else {
-      std::cout << "failed to get <" << field << "> from <"
-		<< fin.GetName() << ">\n";
-      return 0;
-    }
-    fin.Close();
-  }
-
-  std::cout << "loaded " << covs.size() << " entries from global files\n";
-  return 1;
-}
-
-
-// -----------------------------------------------------------
-// -----------------------------------------------------------
-
-TH2D *loadMainCSResult() {
-  TString csFileName="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1DpreFsrFullSp.root";
-  TString fieldName="hpPreFsrFullSp";
-  if (DYTools::study2D) {
-    csFileName="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsrDet_2DpreFsrDet.root";
-    fieldName="hpPreFsrDet";
-  }
-  TFile fin(csFileName,"read");
-  if (!fin.IsOpen()) {
-    std::cout << "failed to open the cross-section file <"
-	      << fin.GetName() << ">\n";
-    return NULL;
-  }
-  TH2D *h2=LoadHisto2D(fin,fieldName,"",1);
-  fin.Close();
-  if (!h2) {
-    std::cout << "loadMainCSResult error\n";
-  }
-  return h2;
-}
 
 // -----------------------------------------------------------
 // -----------------------------------------------------------
@@ -854,18 +281,21 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
   if (wf.showCSCov()) {
     // plot error profile
     for (int iCorr=0; iCorr<2; ++iCorr) {
+      //if (iCorr) continue;
       TString covStr;
       TH2D* h2Main=NULL;
       TString yAxisLabel="uncertainty from cov";
+      TString figTag;
       switch(iCorr) {
-      case 0:  covStr="CSCov_"; break;
+      case 0:  covStr="CSCov_"; figTag.Clear(); break;
       case 1:
 	covStr="CSCov_";
-	h2Main=loadMainCSResult();
+	h2Main=loadMainCSResult(1);  // load CS
 	if (!h2Main) return;
 	removeError(h2Main);
 	h2Main->Scale(0.01);
 	yAxisLabel="relative uncertainty from cov (%)";
+	figTag="frac";
 	break;
       default:
 	std::cout << "plotAllCovs: unknown iCorr=" << iCorr << " /2nd loop/\n";
@@ -884,7 +314,8 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 	errFromCovLabelV.reserve(errFromCovLabelV.size() + covV->size());
 
 	for (unsigned int i=0; i<covV->size(); ++i) {
-	  TString histoLabel=TString("histoErr_") + (*labelV)[i];
+	  TString histoLabel=
+	    TString(Form("histoErr_%d_",iCorr)) + (*labelV)[i];
 	  TH2D* h2=errorFromCov(*(*covV)[i],histoLabel);
 	  if (!h2) {
 	    std::cout << "failed to create the error histogram "
@@ -902,18 +333,31 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
       TString canvName=Form("canvErr_%d",iCorr);
       std::vector<std::vector<TH1D*>*> hProfV;
       std::vector<ComparisonPlot_t*> cpV;
-      int delayDraw=0;
+      int delayDraw=1;
 
       TCanvas *cx=plotProfiles(canvName,
 			       errFromCovV, errFromCovLabelV,
 			       NULL,1, yAxisLabel,
 			       &hProfV, &cpV,
 			       delayDraw);
+      for (unsigned int i=0; i<cpV.size(); ++i) {
+	if (DYTools::study2D) {
+	  double dy=(iCorr==0) ? -0.65 : -0.2;
+	  cpV[i]->TransLegend(-0.4,dy);
+	  cpV[i]->Draw6(cx,1,i+1);
+	}
+	else {
+	  double dx=(iCorr==0) ? -0.1 : -0.4;
+	  cpV[i]->TransLegend(dx,0.);
+	  cpV[i]->Draw(cx);
+	}
+      }
       if (delayDraw) cx->Update();
 
       if (1) {
 	TString figName=TString("fig-") + DYTools::analysisTag +
 	  TString("--") + "errorProfiles";
+	if (figTag.Length()) figName.Append(figTag);
 	if (wf.hasExtraTag()) {
 	  figName.Append("-");
 	  figName.Append(wf.extraFileTag());
@@ -921,6 +365,16 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 	//eliminateSeparationSigns(figName);
 	std::cout << "figName=<" << figName << ">\n";
 	SaveCanvas(cx,figName);
+      }
+
+      // Save table
+      if (1 && (iCorr==1)) {
+	TString tableTag=figTag + TString("-") + wf.extraFileTag();
+	if (!saveLatexTable(tableTag,errFromCovV,errFromCovLabelV,
+			    "%5.2lf",0)) {
+	  std::cout << "failed to save table\n";
+	  return;
+	}
       }
     }
   }
@@ -933,9 +387,29 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 // -----------------------------------------------------------
 
 void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
+  if (wf.showCSCov()==0) {
+    std::cout << "plotTotCov needs CS covariance\n";
+    return;
+  }
+
   TMatrixD *totalCov=dt.calcTotalCov();
+
+  // save total covariance
+  if (0) {
+    TString fname=TString(Form("finalCov-%dD-",DYTools::study2D+1));
+    fname.Append(wf.extraFileTag() + TString(".root"));
+    TFile fout(fname,"recreate");
+    totalCov->Write("totalCov");
+    TMatrixD *corr= corrFromCov(*totalCov);
+    corr->Write("totalCorr");
+    delete corr;
+    writeBinningArrays(fout,"plotCSCov");
+    fout.Close();
+  }
+
   for (int iCorr=0; iCorr<4; ++iCorr) {
     if (iCorr==2) continue; // not ready
+    if (iCorr==3) continue; // not ready
     TString covStr;
     switch(iCorr) {
     case 0: covStr="Cov_"; break;
@@ -971,7 +445,7 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
       histoTitle=TString("Total correlations");
     }
     else if (iCorr==3) {
-      TH2D *h2=loadMainCSResult();
+      TH2D *h2=loadMainCSResult(1);
       TMatrixD *csValAsM=createMatrixD(h2,0);
       if (!csValAsM) return;
       TVectorD csV(DYTools::nUnfoldingBins);
@@ -1039,7 +513,7 @@ int workWithData(TCovData_t &dt, const WorkFlags_t &wf) {
       || (wf.theCase()==4)) {
     plotAllCovs(dt,wf);
   }
-  else if (wf.theCase()==1) {
+  else if ((wf.theCase()==1) || (wf.theCase()==5)) {
     plotTotCov(dt,wf);
   }
 
