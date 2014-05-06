@@ -98,33 +98,33 @@ int plotCSCovStudy(int analysisIs2D,
 
   int res=1;
   if (iBr==0) {
-    res=plotSignalYieldRndResults(outFileName,"covCS_YieldStat_details",
+    res=plotSignalYieldRndResults(outFileName,"covCS_YieldStatDetailed_details",
 				  yieldName,0,saveCanvas,
 				  outFileExtraTag_UserInput);
   }
   else if (iBr==1) {
-    res=plotSignalYieldRndResults(outFileName,"covCS_YieldSyst_details",
+    res=plotSignalYieldRndResults(outFileName,"covCS_YieldSystDetailed_details",
 				  yieldName,1,saveCanvas,
 				  outFileExtraTag_UserInput);
   }
   else if (iBr==2) {
     TH2D* h2YieldFromStatErr=NULL;
-    res=plotSignalYieldRndResults(outFileName,"covCS_YieldStat_details",
+    res=plotSignalYieldRndResults(outFileName,"covCS_YieldStatDetailed_details",
 				  yieldName,0,0,
 				  outFileExtraTag_UserInput,
 				  &h2YieldFromStatErr);
-    res=plotSignalYieldRndResults(outFileName,"covCS_YieldSyst_details",
+    res=plotSignalYieldRndResults(outFileName,"covCS_YieldSystDetailed_details",
 				  yieldName,2,saveCanvas,
 				  outFileExtraTag_UserInput,
 				  &h2YieldFromStatErr);
   }
   else if (iBr==3) {
-    res=plotSignalYieldRndResults(outFileName,"covCS_YieldStat_details",
+    res=plotSignalYieldRndResults(outFileName,"covCS_YieldStatDetailed_details",
 				  yieldName,3,saveCanvas,
 				  outFileExtraTag_UserInput);
   }
   else if (iBr==4) {
-    res=plotSignalYieldRndResults(outFileName,"covCS_YieldSyst_details",
+    res=plotSignalYieldRndResults(outFileName,"covCS_YieldSystDetailed_details",
 				  yieldName,4,saveCanvas,
 				  outFileExtraTag_UserInput);
   }
@@ -151,8 +151,20 @@ int plotSignalYieldRndResults(TString fname, TString histoDirName,
 
   const char *fncName="plotSignalYieldRndResults";
   HistoPair2D_t hpYield(yieldName);
-  TString hAvgName=Form("hYieldAvgDistr_%d",(iSyst<2) ? iSyst : 1);
-  if (iSyst>2) hAvgName=Form("hYieldAvgDistr_%d", iSyst-3);
+  int avgDistrNo=iSyst;
+  switch(iSyst) {
+  case 0:  // stat err
+  case 3:  // stat err vs ensemble
+    avgDistrNo=2; break;
+  case 1:  // syst err
+  case 2:  // stat and syst err
+  case 4:  // syst err vs ensemble
+    avgDistrNo=3; break;
+  default:
+    std::cout << "avgDistrNo is not ready for iSyst=" << iSyst << "\n";
+    return 0;
+  }
+  TString hAvgName=Form("hYieldAvgDistr_%d",avgDistrNo);
   TH2D* hAvg=createBaseH2(hAvgName);
 
   std::cout << "plotSignalYieldRndResults extraTagForSaving_inp=<"
@@ -198,6 +210,7 @@ int plotSignalYieldRndResults(TString fname, TString histoDirName,
     labelV.push_back("signal yield w/stat.err");
     labelErrV.push_back("stat.err. of signal yield");
     fileTagBase="statErr";
+    if (iSyst==3) fileTagBase.Append("V3");
   }
   else if ((iSyst==1) || (iSyst==2) || (iSyst==4)) {
     h2YieldSystErr=hpYield.createHistoWithSystError(Form("hSystErr_%d",iSyst));
@@ -205,6 +218,7 @@ int plotSignalYieldRndResults(TString fname, TString histoDirName,
     labelV.push_back("signal yield w/syst.err");
     labelErrV.push_back("syst.err. of signal yield");
     fileTagBase="systErr";
+    if (iSyst==4) fileTagBase.Append("V4");
   }
 
   if (iSyst!=2) {
@@ -238,7 +252,8 @@ int plotSignalYieldRndResults(TString fname, TString histoDirName,
     }
 
     TString histoNameBase=(iSyst==3) ? "hRnd_yield_stat_" : "hRnd_yield_syst_";
-    TString histoSubDir=(iSyst==3) ? "covCS_YieldStat_details" : "covCS_YieldSyst_details";
+    TString histoSubDir=(iSyst==3) ?
+      "covCS_YieldStatDetailed_details" : "covCS_YieldSystDetailed_details";
     res=(createBaseH2Vec(histoTmpV,histoNameBase,sampleLabelsV,1,1) &&
 	 loadVec(fin2,histoTmpV,histoSubDir)) ? 1:0;
     fin2.Close();
@@ -359,8 +374,8 @@ int plotSignalYieldCSResults(TString fname, TString csFieldName,
     return 0;
   }
   res = hpFinCS.Read(fin,"","");
-  TMatrixD *covCS_YieldStat=(TMatrixD*)fin.Get("covCS_YieldStat");
-  TMatrixD *covCS_YieldSyst=(TMatrixD*)fin.Get("covCS_YieldSyst");
+  TMatrixD *covCS_YieldStat=(TMatrixD*)fin.Get("covCS_YieldStatDetailed");
+  TMatrixD *covCS_YieldSyst=(TMatrixD*)fin.Get("covCS_YieldSystDetailed");
   if (!covCS_YieldStat || !covCS_YieldSyst) res=0;
   fin.Close();
 
