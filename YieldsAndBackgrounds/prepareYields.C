@@ -184,7 +184,8 @@ int prepareYields(int analysisIs2D,
 
   vector<TH2D*> yieldsBaseH2;
   vector<TH2D*> yields; // non-uniform rapidity grid taken into account
-  vector<TH2D*> yieldsSameEvent; // multi-dielectron events
+  vector<TH2D*> yieldsSameEventLead; // multi-dielectron events
+  vector<TH2D*> yieldsSameEventTail; // multi-dielectron events
 
   vector<TH1D*> hMassv; // 1GeV bins
   vector<TH1D*> hMassR9ggBBv, hMassR9ggEEv, hMassR9ggBEv; // 1GeV bins
@@ -201,7 +202,8 @@ int prepareYields(int analysisIs2D,
   // the main result of the macro
   createBaseH2Vec(yieldsBaseH2,"hYield_BaseH2_",inpMgr.sampleNames());
   // create distribution of the same-event candidates
-  createBaseH2Vec(yieldsSameEvent,"hYieldsSameEvent_BaseH2_",inpMgr.sampleNames());
+  createBaseH2Vec(yieldsSameEventLead,"hYieldsSameEventLead_BaseH2_",inpMgr.sampleNames());
+  createBaseH2Vec(yieldsSameEventTail,"hYieldsSameEventTail_BaseH2_",inpMgr.sampleNames());
   // debug distributions: 1GeV bins
   //createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),2500,0.,2500.,"M_{ee} [GeV]","counts/1GeV");
   createAnyH1Vec(hMassv,"hMass_",inpMgr.sampleNames(),1490,10.,1500.,"M_{ee} [GeV]","counts/1GeV");
@@ -280,6 +282,7 @@ int prepareYields(int analysisIs2D,
     double mdeOldY=-1;
     double mdeOldWeight=-1;
     int mdeFirstEncounter=0;
+    std::vector<double> multiEEmass, multiEEy, multiEEweight;
 
     for(UInt_t ientry=0; ientry<eventTree->GetEntries(); ientry++) {
       if ((runMode==DYTools::DEBUG_RUN) && (ientry>100000)) break;
@@ -333,12 +336,36 @@ int prepareYields(int analysisIs2D,
       if ((mdePrevRunNum==data->runNum) &&
 	  (mdePrevEvtNum==data->evtNum)) {
 	if (mdeFirstEncounter) {
-	  yieldsSameEvent[isam]->Fill(mdeOldMass,mdeOldY, mdeOldWeight);
+	  //yieldsSameEvent[isam]->Fill(mdeOldMass,mdeOldY, mdeOldWeight);
 	  mdeFirstEncounter=0;
+	  multiEEmass.push_back(mdeOldMass);
+	  multiEEy.push_back(mdeOldY);
+	  multiEEweight.push_back(mdeOldWeight);
 	}
-	yieldsSameEvent[isam]->Fill(data->mass,fabs(data->y), weight);
+	//yieldsSameEvent[isam]->Fill(data->mass,fabs(data->y), weight);
+	multiEEmass.push_back(data->mass);
+	multiEEy.push_back(fabs(data->y));
+	multiEEweight.push_back(weight);
       }
-      else mdeFirstEncounter=1;
+      else {
+	mdeFirstEncounter=1;
+	if (multiEEmass.size()) {
+	  double maxE=*std::max_element(multiEEmass.begin(),multiEEmass.end());
+	  for (unsigned int ii=0; ii<multiEEmass.size(); ++ii) {
+	    if (multiEEmass[ii]==maxE) {
+	      yieldsSameEventLead[isam]->Fill(multiEEmass[ii],
+					      multiEEy[ii], multiEEweight[ii]);
+	    }
+	    else {
+	      yieldsSameEventTail[isam]->Fill(multiEEmass[ii],
+					      multiEEy[ii], multiEEweight[ii]);
+	    }
+	  }
+	  multiEEmass.clear();
+	  multiEEy.clear();
+	  multiEEweight.clear();
+	}
+      }
       mdePrevRunNum=data->runNum;
       mdePrevEvtNum=data->evtNum;
       mdeOldMass=data->mass;
@@ -422,7 +449,8 @@ int prepareYields(int analysisIs2D,
     int res=1;
     if (res) res=saveVec(file,yieldsBaseH2,"yieldsBaseH2");
     if (res) res=saveVec(file,yields,"yields");
-    if (res) res=saveVec(file,yieldsSameEvent,"yieldsSameEvent");
+    if (res) res=saveVec(file,yieldsSameEventLead,"yieldsSameEventLead");
+    if (res) res=saveVec(file,yieldsSameEventTail,"yieldsSameEventTail");
     if (res) res=saveVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=saveVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=saveHisto(file,hSelEvents,"");
@@ -454,7 +482,8 @@ int prepareYields(int analysisIs2D,
     if (res) res=checkBinningArrays(file);
     if (res) res=loadVec(file,yieldsBaseH2,"yieldsBaseH2");
     if (res) res=loadVec(file,yields,"yields");
-    if (res) res=loadVec(file,yieldsSameEvent,"yieldsSameEvent");
+    if (res) res=loadVec(file,yieldsSameEventLead,"yieldsSameEventLead");
+    if (res) res=loadVec(file,yieldsSameEventTail,"yieldsSameEventTail");
     if (res) res=loadVec(file,hMassv,"mass_1GeV_bins");
     if (res) res=loadVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=loadHisto(file,&hSelEvents,"");
