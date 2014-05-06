@@ -91,7 +91,10 @@ public:
   void SetName(const TString &new_name) { fName=new_name; }
 
   const InputFileMgr_t* inpMgr() const { return fInpMgr; }
+
   DYTools::TSystematicsStudy_t systMode() const { return fSystMode; }
+  void systMode(DYTools::TSystematicsStudy_t newMode) { fSystMode=newMode; }
+
   DYTools::TCrossSectionKind_t csKind() const { return fCSKind; }
   void csKind(DYTools::TCrossSectionKind_t set_csKind) { fCSKind=set_csKind; }
   TString resNameBase() const { return fResNameBase; }
