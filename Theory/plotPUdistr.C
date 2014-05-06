@@ -51,13 +51,14 @@ void plotPUdistr() {
   TString cpName="compPlot";
   TString cpTitle="PU distributions in Zee MC";
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,
-		      "#PU_{mean}","a.u.","ratio");
+		      "#PU_{mean}","a.u.","reweighted/data");
   cp.SetXRange(0.,50.);
   cp.AddHist1D(hDataPU,"data","LP",TAttMarker(kBlack,24,0.8),3,0,1);
   cp.AddHist1D(h_noPU_noFEWZ,"no corr.","LP",TAttMarker(kBlue,20,0.8),3,0,1);
-  cp.AddHist1D(h_noPU_wFEWZ, "w/FEWZ","LP",TAttMarker(kOrange,25,0.8),0,0,1);
-  cp.AddHist1D(h_wPU_noFEWZ, "w/PU","LP",TAttMarker(kGreen+1,5,0.8),0,0,1);
-  cp.AddHist1D(h_wPU_wFEWZ, "w/PU w/FEWZ","LP",TAttMarker(kRed+1,2,0.8),0,0,1);
+  cp.SkipInRatioPlots(h_noPU_noFEWZ);
+  //cp.AddHist1D(h_noPU_wFEWZ, "w/FEWZ","LP",TAttMarker(kOrange,25,0.8),0,0,1);
+  cp.AddHist1D(h_wPU_noFEWZ, "w/PU","LP",TAttMarker(kRed+1,5,0.8),2,0,1);
+  //cp.AddHist1D(h_wPU_wFEWZ, "w/PU w/FEWZ","LP",TAttMarker(kRed+1,2,0.8),0,0,1);
 
   TCanvas *cx=new TCanvas("cx","cx",800,800);
   cp.Prepare2Pads(cx);
