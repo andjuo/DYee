@@ -6,7 +6,7 @@
 
 // --------------------------------------------------------
 
-int printHisto(const TH1F* histo, int exponent=0, int maxLines=-1);
+//int printHisto(const TH1F* histo, int exponent=0, int maxLines=-1);
 //TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
 //TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
 
@@ -97,7 +97,7 @@ void preparePUmaps(int nIters, int iSeed=-1) {
   target5p->Scale(1e-3);
   target5m->Scale(1e-3);
 
-  if (1) {
+  if (0) {
     TCanvas *cx=new TCanvas("cxStart","cxStart",700,700);
     ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,"cp","",
 			"nPU","count","ratio");
@@ -106,6 +106,22 @@ void preparePUmaps(int nIters, int iSeed=-1) {
     cp.AddHist1D(target,"base","LP",TAttMarker(kBlack,24,0.8),1,0,1);
     cp.AddHist1D(target5p,"+5%","LP",TAttMarker(kBlue,kFullTriangleUp,0.8),1,0,1);
     cp.AddHist1D(target5m,"-5%","LP",TAttMarker(kGreen+1,kOpenTriangleUp,0.8),1,0,1);
+    cp.SetXRange(0,50.);
+    cp.Draw(cx);
+    cx->Update();
+  }
+
+  if (1) {
+    TCanvas *cx=new TCanvas("cxStart","cxStart",700,700);
+    ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,"cp","",
+			"nPU","a.u.","ratio");
+    cp.Prepare2Pads(cx);
+    cp.AddHist1D(target,"base","LP",TAttMarker(kBlack,24,0.8),1,0,1);
+    cp.AddHist1D(target5p,"+5%","LP",TAttMarker(kBlue,kFullTriangleUp,0.8),1,0,1);
+    cp.AddHist1D(target5m,"-5%","LP",TAttMarker(kGreen+1,kOpenTriangleUp,0.8),1,0,1);
+    cp.AddHist1D(source,"MC","LP",TAttMarker(kRed+1,kDot,1.),1,0,1);
+    cp.SkipInRatioPlots(source);
+    cp.SetXRange(0,50.);
     cp.Draw(cx);
     cx->Update();
   }
@@ -301,6 +317,6 @@ int printHisto(std::ostream& out, const TH1F* histo, int exponent=0, int maxLine
 
 //------------------------------------------------------------------------------------------------------------------------
 
-int printHisto(const TH1F* histo, int exponent, int maxLines) { return printHisto(std::cout, histo, exponent, maxLines); }
+//int printHisto(const TH1F* histo, int exponent, int maxLines) { return printHisto(std::cout, histo, exponent, maxLines); }
 
 //------------------------------------------------------------------------------------------------------------------------
