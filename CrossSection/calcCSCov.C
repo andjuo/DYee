@@ -30,14 +30,15 @@ int calcCSCov(int analysisIs2D,
 
   int storeDetails=1;
 
-  int calc_YieldStat=0;
-  int calc_YieldSyst=0;
-  int calc_YieldUnregEn=0;
+  int calc_YieldStat=0;   // ignore the way it was calculated
+  int calc_YieldStatDetailed=0; // take only observed stat err
+  int calc_YieldSyst=0;  // ignore the way it was calculated
+  int calc_YieldSystDetailed=0; // take into account true/fake composition
   int calc_YieldEScale=0;
-  int calc_YieldApplyEScale=0;
 
-  int doCalcYieldCov=(calc_YieldStat + calc_YieldSyst + calc_YieldUnregEn +
-		      calc_YieldEScale + calc_YieldApplyEScale) ? 1:0;
+  int doCalcYieldCov=(calc_YieldStat + calc_YieldStatDetailed +
+		      calc_YieldSyst + calc_YieldSystDetailed +
+		      calc_YieldEScale) ? 1:0;
 
   int calc_UnfPU=0;
   int calc_UnfFSR=0;
@@ -68,8 +69,8 @@ int calcCSCov(int analysisIs2D,
 
   int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
 
-  int calc_globalFSR=1;
-  int calc_globalPU=0;
+  int calc_globalFSR=0;
+  int calc_globalPU=1;
   int calc_globalFEWZ=0;
 
   int doCalcGlobalCov=(calc_globalFSR + calc_globalPU + calc_globalFEWZ) ? 1:0;
@@ -204,7 +205,7 @@ int calcCSCov(int analysisIs2D,
     if (1 && res) { // propagate error
       int includeCorrError=0;
       InputArgs_t iaYield("iaYield",inpArgs,
-			  "yieldErrOnly_", 1,
+			  "-yieldErrOnly", 1,
 			  1,includeCorrError);
       HistoPair2D_t hpFinal("hpFinal_yieldErrOnly");
       CSResults_t csRes;
@@ -231,16 +232,16 @@ int calcCSCov(int analysisIs2D,
 	csCovName="covCS_YieldSyst";
 	break;
       case 2:
-	run=calc_YieldUnregEn; runSystMode=DYTools::UNREGRESSED_ENERGY;
-	csCovName="covCS_YieldUnregEn";
+	run=calc_YieldStatDetailed;
+	csCovName="covCS_YieldStatDetailed";
 	break;
       case 3:
-	run=calc_YieldEScale; runSystMode=DYTools::ESCALE_STUDY;
-	csCovName="covCS_YieldEScale";
+	run=calc_YieldSystDetailed;
+	csCovName="covCS_YieldSystDetailed";
 	break;
       case 4:
-	run=calc_YieldApplyEScale; runSystMode=DYTools::APPLY_ESCALE;
-	csCovName="covCS_YieldApplyEScale";
+	run=calc_YieldEScale; runSystMode=DYTools::ESCALE_STUDY;
+	csCovName="covCS_YieldEScale";
 	break;
       default:
 	std::cout << "not ready for yields iSyst=" << iSyst << "\n";
@@ -255,14 +256,15 @@ int calcCSCov(int analysisIs2D,
 
       if (hpIni) {
 	// Immediate randomization within errors
-	if (!createRandomizedVec(hpSignalYield,iSyst,nExps,"hRnd_yield_",vecRnd)) {
-	  std::cout << "failed to create randomized esemble for iSyst=" << iSyst << "\n";
+	if (!createRandomizedVec(*hpIni,iSyst,nExps,"hRnd_yield_",vecRnd)) {
+	  std::cout << "failed to create randomized esemble for iSyst="
+		    << iSyst << "\n";
 	  return retCodeError;
 	}
       }
       else {
 	// More work is needed
-	if (iSyst==3) {
+	if (runSystMode==DYTools::ESCALE_STUDY) {
 	  // escale randomized
 	  InputFileMgr_t inpMgrLocal;
 	  if (!inpMgrLocal.Load("defaultAdHoc")) return retCodeError;
@@ -294,20 +296,82 @@ int calcCSCov(int analysisIs2D,
 	    vecRnd.push_back(h2);
 	  }
 	}
-	else {
-	  int checkBinning=0;
-	  int ignoreDebugFlag=1;
-	  TString loadFileName= inpMgr.signalYieldFullFileName(runSystMode,ignoreDebugFlag,0,1);
-	  TH2D *h2=LoadHisto2D(yieldFieldExtraSyst,loadFileName,"",checkBinning);
-	  if (!h2) {
-	    std::cout << "failed to load systematics\n";
+	else if (iSyst==2) {
+	  // randomize within the statistical error of the measurement
+	  // Load the observed yield
+	  HistoPair2D_t hpObs("observedYield");
+	  int checkBinning=1;
+	  int loadSyst=0;
+	  if (!hpObs.Load(fnameBgSubtracted,checkBinning,"Input",loadSyst)) {
+	    std::cout << "failed to load observedYield\n";
 	    return retCodeError;
 	  }
-	  h2->SetName("h2tmp");
-	  hpIni=new HistoPair2D_t(yieldFieldExtraSyst);
-	  hpIni->add(h2,1.);
-	  delete h2;
-	  std::cout << "Loaded "; printHisto(*hpIni,6);
+	  if (!hpObs.assignCentralVals(hpSignalYield.histo())) {
+	    return retCodeError;
+	  }
+
+	  if (!createRandomizedVec(hpObs,0,nExps,"hRnd_yield_",vecRnd)) {
+	    std::cout << "failed to create randomized esemble for iSyst="
+		      << iSyst << "\n";
+	    return retCodeError;
+	  }
+	  hpObs.clear();
+	}
+	else if (iSyst==3) {
+	  // randomize within the systematical error of the measurement
+	  // for DDBkg it has four components: trueEE/fake bkg statErr/systErr
+	  TString fieldTrue2e=(useDDBkg) ?
+	    "true2eBackgroundFromData" : "mcBkgTrue2e";
+	  TString fieldFake = (useDDBkg) ?
+	    "fakeBackgroundFromData" : "mcBkgFake";
+	  HistoPair2D_t hpTrue2eBkg(fieldTrue2e);
+	  HistoPair2D_t hpFakeBkg(fieldFake);
+	  int checkBinning=1;
+	  int loadSyst=1;
+	  if (!hpTrue2eBkg.Load(fnameBgSubtracted,checkBinning,"Input",loadSyst) ||
+	      !hpFakeBkg.Load(fnameBgSubtracted,checkBinning,"Input",loadSyst)) {
+	    std::cout << "failed to load backgrounds for iSyst="
+		      << iSyst << "\n";
+	    return retCodeError;
+	  }
+	  // reset central values of the backgrounds
+	  {
+	    TH2D *hZero=Clone(hpSignalYield.histo(),"hZero","");
+	    hZero->Reset();
+	    if (!hpTrue2eBkg.assignCentralVals(hZero) ||
+		!hpFakeBkg.assignCentralVals(hZero)) {
+	      return retCodeError;
+	    }
+	    delete hZero;
+	  }
+	  // create randomized vector by adding up the randomized components
+	  HistoPair2D_t hpRndTrueStat("hpRndTrueStat");
+	  HistoPair2D_t hpRndTrueSyst("hpRndTrueSyst");
+	  HistoPair2D_t hpRndFakeStat("hpRndFakeStat");
+	  HistoPair2D_t hpRndFakeSyst("hpRndFakeSyst");
+	  vecRnd.reserve(nExps);
+	  for (int iexp=0; iexp<nExps; ++iexp) {
+	    TH2D *hRnd=Clone(hpSignalYield.histo(),Form("hSystRnd_%d",iexp));
+	    if (!hRnd ||
+		!hpRndTrueStat.randomizeWithinErr(hpTrue2eBkg,0) ||
+		!hpRndTrueSyst.randomizeWithinErr(hpTrue2eBkg,1) ||
+		!hpRndFakeStat.randomizeWithinErr(hpFakeBkg,0) ||
+		!hpRndFakeSyst.randomizeWithinErr(hpFakeBkg,1)) {
+	      return retCodeError;
+	    }
+	    hRnd->Add(hpRndTrueStat.histo(),1.);
+	    hRnd->Add(hpRndTrueSyst.histo(),1.);
+	    hRnd->Add(hpRndFakeStat.histo(),1.);
+	    hRnd->Add(hpRndFakeSyst.histo(),1.);
+	    vecRnd.push_back(hRnd);
+	  }
+	  // clean-up
+	  hpTrue2eBkg.clear();
+	  hpFakeBkg.clear();
+	  hpRndTrueStat.clear();
+	  hpRndTrueSyst.clear();
+	  hpRndFakeStat.clear();
+	  hpRndFakeSyst.clear();
 	}
       }
 
@@ -372,7 +436,7 @@ int calcCSCov(int analysisIs2D,
       if (cov  ) delete cov;
       if (csAvgDistr) delete csAvgDistr;
       if (avgDistr  ) delete avgDistr;
-      if ((runSystMode!=DYTools::NO_SYST) && hpIni) {
+      if (hpIni && (hpIni!=&hpSignalYield)) {
 	hpIni->clear();
 	delete hpIni;
       }
