@@ -1,4 +1,5 @@
 #include "../Include/MyTools.hh"
+#include <fstream>
 #include <TBenchmark.h>
 
 //--------------------------------------------------
@@ -1175,6 +1176,90 @@ void prepare(int count,
       labelV.push_back(empty);
     }
   }
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
+int saveLatexTable(TString fileTag,
+		   const std::vector<TH2D*> &histosV,
+		   const std::vector<TString> &labelsV,
+		   const char *format,
+		   int printErrors) {
+  TString fileName=Form("table_%dD_%s.tex",DYTools::study2D+1,
+			fileTag.Data());
+  std::ofstream fout(fileName);
+  if (!fout.is_open()) {
+    std::cout << "failed to create a file <" << fileName << ">\n";
+    return 0;
+  }
+
+  int count = int(histosV.size());
+
+  fout << "%\\documentclass{article}\n";
+  fout << "%\\begin{document}\n";
+  fout << "\\begin{table}[tbhp]\n";
+  fout << "\\caption{\\label{tbl-" << fileTag << "} " << fileTag << "}\n";
+
+  fout << "\\begin{tabular}{|";
+  for (int i=0; i<count+1+DYTools::study2D; ++i) fout << "c|";
+  fout << "}\n";
+  fout << "\\hline\n";
+
+  if (DYTools::study2D==0) fout << " Mass (GeV) &";
+  else fout << " Mass (GeV) & rapidity &";
+
+  for (int i=0; i<count; ++i) {
+    fout << " " << labelsV[i];
+    if (i!=count-1) fout << " &";
+  }
+  fout << "\\\\\n";
+  fout << "\\hline\n";
+
+  TMatrixD *yBinLimits= DYTools::getYBinLimits();
+
+  int ibinMin=(DYTools::study2D==0) ? 1:2;
+  for (int ibin=ibinMin; ibin<=DYTools::nMassBins; ++ibin) {
+    int yRangeCount= int(histosV[0]->GetNbinsY());
+    if (DYTools::study2D && (ibin==DYTools::nMassBins)) yRangeCount=12;
+    for (int jbin=1; jbin<=yRangeCount; ++jbin) {
+
+      fout << " " << DYTools::massBinLimits[ibin-1] << " - "
+	   << DYTools::massBinLimits[ibin] << " & ";
+      if (DYTools::study2D==1) {
+	fout << " " << Form("%3.1lf",(*yBinLimits)(ibin-1,jbin-1)) << " - "
+	     << Form("%3.1lf",(*yBinLimits)(ibin-1,jbin)) << " & ";
+      }
+
+      for (int ih=0; ih<count; ++ih) {
+	if (printErrors==0) { // only central values
+	  fout << " " << Form(format,histosV[ih]->GetBinContent(ibin,jbin));
+	  if (ih!=count-1) fout << " &";
+	}
+	else if (printErrors==1) { // central value and the error
+	  fout << " " << Form(format,histosV[ih]->GetBinContent(ibin,jbin));
+	  fout << " \\pm ";
+	  fout << " " << Form(format,histosV[ih]->GetBinError(ibin,jbin));
+	  if (ih!=count-1) fout << " &";
+	}
+	else if (printErrors==2) { // only errors
+	  fout << " " << Form(format,histosV[ih]->GetBinError(ibin,jbin));
+	  if (ih!=count-1) fout << " &";
+	}
+      }
+      fout << "\\\\\n";
+    }
+  }
+
+  fout << "\\hline\n";
+  fout << "\\end{tabular}\n";
+  fout << "\\end{table}\n";
+  fout << "%\\end{document}\n";
+  fout.close();
+
+  delete yBinLimits;
+
+  return 1;
 }
 
 //--------------------------------------------------

@@ -1741,6 +1741,15 @@ void prepare(int count,
 	     int clear=1,
 	     int addEmptyElements=1);
 
+
+//--------------------------------------------------
+
+int saveLatexTable(TString fileTag,
+		   const std::vector<TH2D*> &histosV,
+		   const std::vector<TString> &labelsV,
+		   const char *format,
+		   int printErrors);
+
 //--------------------------------------------------
 
 TCanvas* plotProfiles(TString canvName,
