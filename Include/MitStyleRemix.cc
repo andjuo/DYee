@@ -261,7 +261,7 @@ void SetTdrStyle() {
   tdrStyle->SetTitleFontSize(0.05);
   // tdrStyle->SetTitleH(0); // Set the height of the title box
   // tdrStyle->SetTitleW(0); // Set the width of the title box
-  tdrStyle->SetTitleX(0.25); // Set the position of the title box
+  tdrStyle->SetTitleX(0.255); // Set the position of the title box
   tdrStyle->SetTitleY(0.985); // Set the position of the title box
   // tdrStyle->SetTitleStyle(Style_t style = 1001);
   tdrStyle->SetTitleBorderSize(0); // no border around the title
