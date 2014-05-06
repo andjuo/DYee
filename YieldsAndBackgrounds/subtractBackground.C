@@ -250,6 +250,7 @@ int subtractBackground(int analysisIs2D,
   HistoPair2D_t ddbkgTotal("ddBkgTotal");
 
   observedYield.add(yields[0]);
+  printHisto(observedYield);
 
   mcbkgTotal.add(mcbkgTrue2e);
   mcbkgTotal.add(mcbkgFake);
