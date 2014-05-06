@@ -1059,6 +1059,30 @@ int prepareYields(int analysisIs2D,
 
   //gBenchmark->Show("prepareYields");
   ShowBenchmarkTime("prepareYields");
+
+  // memory clean-up
+  ClearVec(yieldsBaseH2);
+  ClearVec(yields);
+  ClearVec(yieldsSameEventLead);
+  ClearVec(yieldsSameEventTail);
+  ClearVec(hMassv);
+  ClearVec(hMassR9ggBBv);
+  ClearVec(hMassR9ggEEv);
+  ClearVec(hMassR9ggBEv);
+  ClearVec(hMassR9gnBBv);
+  ClearVec(hMassR9gnEEv);
+  ClearVec(hMassR9gnBEv);
+  ClearVec(hMassR9ngBEv);
+  ClearVec(hMassR9nnBBv);
+  ClearVec(hMassR9nnEEv);
+  ClearVec(hMassR9nnBEv);
+  ClearVec(hR9MissEventsv);
+  ClearVec(hMassBinsv);
+  ClearVec(hZpeakv);
+  ClearVec(dccV);
+  if (data) delete data;
+
+
   return retCodeOk;
 }
 
