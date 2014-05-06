@@ -1493,6 +1493,14 @@ int scaleHisto(TH2D *histoNom, const TH2D *histoDenom);
 TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
 TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
 
+//-----------------------------------------------------------
+
+inline void printHisto(const TH1F *h1F) {
+  TString hName=TString(h1F->GetName()) + TString("_");
+  TH1D *h=convert_TH1F_to_TH1D(h1F,hName);
+  printHisto(h);
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class tObject_t>
