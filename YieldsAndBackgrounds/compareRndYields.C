@@ -155,11 +155,41 @@ void compareRndYields(int analysisIs2D=1,
   std::vector<ComparisonPlot_t*> cpV;
   std::vector<std::vector<TH1D*>*> hProfV;
   int delayDraw=1;
-  TCanvas *cx=plotProfiles("cx",histoV,labelV,NULL,0,"yield counts",
+  TCanvas *cx=plotProfiles("cx",histoV,labelV,NULL,0,"observed yield counts",
 			   &hProfV, &cpV,delayDraw);
   if (!cx) {
     std::cout << "failed to create canvas with profiles\n";
     return;
+  }
+
+  if (iBr==1) {
+    // shift the notation
+    HERE("shift the notation\n");
+    for (unsigned int ic=0; ic<cpV.size(); ++ic) {
+      if (DYTools::study2D==0) cpV[ic]->SetLogy(1);
+      TH1D* h1=cpV[ic]->GetHisto(0);
+      h1->SetMarkerStyle(24);
+      h1->SetMarkerColor(kBlue);
+      h1->SetLineColor(kBlue);
+      h1->SetLineStyle(2);
+      TH1D* h2=cpV[ic]->GetHisto(1);
+      h2->SetMarkerStyle(5);
+      h2->SetMarkerColor(kGreen+1);
+      h2->SetMarkerSize(1.5);
+      h2->SetLineStyle(1);
+      h2->SetLineColor(kGreen+1);
+      TH1D* h3=cpV[ic]->GetHisto(2);
+      h3->SetMarkerStyle(3);
+      h3->SetMarkerColor(kOrange+1);
+      h3->SetMarkerSize(1.5);
+      h3->SetLineStyle(3);
+      h3->SetLineColor(kOrange+1);
+      TH1D* h4=cpV[ic]->GetHisto(3);
+      h4->SetMarkerStyle(2);
+      h4->SetMarkerColor(kRed);
+      h4->SetLineStyle(2);
+      h4->SetLineColor(kRed);
+    }
   }
 
   for (unsigned int ic=0; ic<cpV.size(); ++ic) {
@@ -215,7 +245,7 @@ void compareRndYields(int analysisIs2D=1,
   if (dirName) *dirName= canvasSaveDir;
 
   // Covariance study
-  if (1) {
+  if (0) {
     std::vector<TH2D*> hRndVec;
     hRndVec.reserve(histoV.size());
     for (unsigned int i=idxRndVec; i<histoV.size(); ++i) {
