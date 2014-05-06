@@ -156,6 +156,53 @@ int calcCrossSection(int analysisIs2D,
   if (res) res=saveResult(inpArgs,hpUnfoldedYield,"unf");
 
 
+  if (0) {
+    HistoPair2D_t hpRatio("hpRatio");
+    hpRatio.divide(hpSignalYield,hpUnfoldedYield.histo());
+    std::vector<TH2D*> histosV;
+    std::vector<TString> labelsV;
+    if (0) {
+      histosV.push_back(hpRatio.histo());
+      labelsV.push_back("data");
+    }
+    else {
+      histosV.push_back(hpUnfoldedYield.histo());
+      histosV.push_back(hpSignalYield.histo());
+      labelsV.push_back("unfolded yield");
+      labelsV.push_back("signal yield");
+    }
+    TCanvas *cx= plotProfiles("cx",histosV,labelsV,NULL,1,
+			      "count",NULL,NULL,0);
+    cx->Update();
+    return retCodeStop;
+  }
+  if (0) {
+    HistoPair2D_t hpUnf_FSR5minus("unf_FSR5minus");
+    HistoPair2D_t hpUnf_FSR5plus("unf_FSR5plus");
+    InputArgs_t iaFSR5minus("iaFSR5minus",inpArgs,"-fsr5minus");
+    InputArgs_t iaFSR5plus("iaFSR5plus",inpArgs,"-fsr5plus");
+    iaFSR5minus.systMode(DYTools::FSR_5minus);
+    iaFSR5plus.systMode(DYTools::FSR_5plus);
+    unfoldDetResolution(iaFSR5minus,hpSignalYield,hpUnf_FSR5minus);
+    unfoldDetResolution(iaFSR5plus,hpSignalYield,hpUnf_FSR5plus);
+    std::vector<TH2D*> histosV;
+    std::vector<TString> labelsV;
+
+    histosV.push_back(hpSignalYield.histo());
+    histosV.push_back(hpUnfoldedYield.histo());
+    histosV.push_back(hpUnf_FSR5minus.histo());
+    histosV.push_back(hpUnf_FSR5plus.histo());
+    labelsV.push_back("signal yield");
+    labelsV.push_back("unfolded yield");
+    labelsV.push_back("unfolded yield (FSR weight-5%)");
+    labelsV.push_back("unfolded yield (FSR weight+5%)");
+
+    TCanvas *cx= plotProfiles("cx",histosV,labelsV,NULL,1,
+			      "count",NULL,NULL,0);
+    cx->Update();
+    return retCodeStop;
+  }
+
   inpArgs.needsDetUnfolding(0);
   //inpArgsNET.allNormErrorIsSyst(1);
   if (res) res=calculateCS(inpArgs,hpUnfoldedYield,csKind,hpCS,csResult);
