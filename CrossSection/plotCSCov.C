@@ -14,7 +14,8 @@ int workWithData(TCovData_t &dt, const WorkFlags_t &wf);
 
 int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
 	      int showCSCov=1,
-	      TString outFileExtraTag_UserInput="")
+	      TString outFileExtraTag_UserInput="",
+	      int saveTotCovDetails_user=0)
 {
 
   if (!DYTools::setup(analysisIs2D)) {
@@ -32,6 +33,7 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
 
   TCovData_t dt;
   WorkFlags_t work(the_case,showCSCov,outFileExtraTag_UserInput);
+  work.saveTotCovDetails(saveTotCovDetails_user);
 
   CSCovCalcFlags_t *cf= & work.editCalcFlags();
 
@@ -65,7 +67,7 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     cf->calc_UnfEScale(1);
     cf->calc_ESFtot(1);
     cf->calc_EffRnd(1);
-    cf->calc_AccRnd(1);
+    cf->calc_AccRnd(1); // not active in 2D!
     cf->calc_FsrRnd(1);
     cf->calc_globalFSR(1);
     cf->calc_globalPU(1);
@@ -369,6 +371,10 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 
       // Save table
       if (1 && (iCorr==1)) {
+	TH2D *totErrorFromCov= errorFromCov( *totalCov, "totalErr" );
+	if (!scaleHisto(totErrorFromCov,h2Main)) return;
+	errFromCovV.push_back(totErrorFromCov);
+	errFromCovLabelV.push_back("total error");
 	TString tableTag=figTag + TString("-") + wf.extraFileTag();
 	if (!saveLatexTable(tableTag,errFromCovV,errFromCovLabelV,
 			    "%5.2lf",0)) {
@@ -403,8 +409,16 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
     TMatrixD *corr= corrFromCov(*totalCov);
     corr->Write("totalCorr");
     delete corr;
+    if (wf.saveTotCovDetails()) {
+      if (!dt.Write("details")) {
+	std::cout << "failed to save the individual covariances\n";
+	return;
+      }
+    }
+    else { std::cout << " details not saved, as requested\n"; }
     writeBinningArrays(fout,"plotCSCov");
     fout.Close();
+    std::cout << "file <" << fout.GetName() << "> created\n";
   }
 
   for (int iCorr=0; iCorr<4; ++iCorr) {
