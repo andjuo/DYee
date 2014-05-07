@@ -236,12 +236,14 @@ public:
 struct WorkFlags_t {
   int fCase;
   int fCSCov;
+  int fSaveTotCovDetails;
   TString fExtraTag;
   std::vector<TString> fExtraTagV;
   CSCovCalcFlags_t fCalcFlags;
 public:
   WorkFlags_t(int the_case=0, int set_showCSCov=1, TString set_extra_tag="") :
     fCase(the_case), fCSCov(set_showCSCov),
+    fSaveTotCovDetails(0),
     fExtraTag(set_extra_tag),
     fExtraTagV(),
     fCalcFlags()
@@ -251,6 +253,7 @@ public:
 
   WorkFlags_t(const WorkFlags_t &w) :
     fCase(w.fCase), fCSCov(w.fCSCov),
+    fSaveTotCovDetails(w.fSaveTotCovDetails),
     fExtraTag(w.fExtraTag),
     fExtraTagV(w.fExtraTagV),
     fCalcFlags(w.fCalcFlags)
@@ -260,6 +263,8 @@ public:
   void theCase(int the_case) { fCase=the_case; }
   int showCSCov() const { return fCSCov; }
   void showCSCov(int show) { fCSCov=show; }
+  int saveTotCovDetails() const { return fSaveTotCovDetails; }
+  void saveTotCovDetails(int yes) { fSaveTotCovDetails=yes; }
   int hasExtraTag() const { return (fExtraTag.Length()>0) ? 1:0; }
   TString extraFileTag() const { return fExtraTag; }
   void extraFileTag(TString setTag) { fExtraTag=setTag; }
@@ -407,6 +412,10 @@ public:
     }
     return totcov;
   }
+
+  // ----------------
+
+  int Write(TString subDir) const;
 
   // ----------------
 

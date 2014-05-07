@@ -464,3 +464,41 @@ TH2D *loadMainCSResult(int crossSection) {
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
+int TCovData_t::Write(TString subdir) const {
+  if (subdir.Length()) {
+    gDirectory->cd();
+    gDirectory->mkdir(subdir);
+    gDirectory->cd(subdir);
+  }
+  TString fieldName= TString("active");
+  int res=writeFlagValues(fieldName,this->isActive);
+  if (res) {
+    for (unsigned int i=0; i < isActive.size(); ++i) {
+      if (!isActive[i]) continue;
+      const std::vector<TMatrixD*> *Cov=NULL;
+      const std::vector<TString> *labels=NULL;
+      switch(i) {
+      case 0: Cov=&covYieldV; labels=&labelYieldV; break;
+      case 1: Cov=&covUnfV; labels=&labelUnfV; break;
+      case 2: Cov=&covEffV; labels=&labelEffV; break;
+      case 3: Cov=&covEsfV; labels=&labelEsfV; break;
+      case 4: Cov=&covAccV; labels=&labelAccV; break;
+      case 5: Cov=&covFsrV; labels=&labelFsrV; break;
+      case 6: Cov=&covGlobalV; labels=&labelGlobalV; break;
+      default:
+	std::cout << "TCovData::Write is not ready for set=" << i << "\n";
+	return 0;
+      }
+      for (unsigned int ii=0; ii<Cov->size(); ++ii) {
+	fieldName=(*labels)[ii];
+	eliminateSeparationSigns(fieldName);
+	(*Cov)[ii]->Write(fieldName);
+      }
+    }
+  }
+  if (subdir.Length()) gDirectory->cd();
+  return 1;
+}
+
+// ----------------------------------------------------------------
+// ----------------------------------------------------------------
