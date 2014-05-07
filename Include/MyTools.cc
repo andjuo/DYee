@@ -1258,7 +1258,7 @@ int saveLatexTable(TString fileTag,
   fout.close();
 
   delete yBinLimits;
-
+  std::cout << " saved file " << fileName << "\n";
   return 1;
 }
 
