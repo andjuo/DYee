@@ -315,6 +315,7 @@ int writeIntFlagValues(const TString &fieldName, int nFlags, int flag1, ...) {
     va_end(vl);
   }
   v->Write(fieldName);
+  delete v;
   return 1;
 }
 
@@ -335,6 +336,7 @@ int writeFlagValues(const TString &fieldName, int nFlags, double flag1, ...) {
     va_end(vl);
   }
   v->Write(fieldName);
+  delete v;
   return 1;
 }
 
@@ -348,6 +350,17 @@ TVectorD* readFlagValues(TFile &fin, const TString &fieldName, int nFlags) {
     std::cout << "could get field=<" << fieldName << "> with " << got << " elements\n";
   }
   return v;
+}
+
+//---------------------------------------------------------------
+
+int writeFlagValues(const TString &fieldName, const std::vector<int> &flagsV) {
+  TVectorD v(flagsV.size());
+  for (unsigned int i=0; i<flagsV.size(); ++i) {
+    v(i)=flagsV[i];
+  }
+  v.Write(fieldName);
+  return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------

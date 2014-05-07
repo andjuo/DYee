@@ -951,6 +951,8 @@ int writeIntFlagValues(const TString &fieldName, int nFlags, int flag1, ...);
 int writeFlagValues(const TString &fieldName, int nFlags, double flag1, ...);
 TVectorD* readFlagValues(TFile &fin, const TString &fieldName, int nFlags);
 
+int writeFlagValues(const TString &fieldName, const std::vector<int> &flagsV);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 /*
