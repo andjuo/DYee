@@ -279,16 +279,19 @@ int eff_IdHlt(int analysisIs2D,
       }
     }
   } else {
-    // For data, we will be using templates,
-    // however, if the request is COUNTnCOUNT, do nothing
-    if( calcMethod != DYTools::COUNTnCOUNT ){
-      TString labelMC = 
-	getLabel(-1111, effType, calcMethod, etBinning, etaBinning, triggers);
-      TString templatesLabel = 
-	tagAndProbeDir+TString("/mass_templates_")+labelMC+TString(".root");
-      templatesFile = new TFile(templatesLabel);
-      if( ! templatesFile->IsOpen() )
-	assert(0);
+
+    if (evaluate_efficiencies) {
+      // For data, we will be using templates,
+      // however, if the request is COUNTnCOUNT, do nothing
+      if( calcMethod != DYTools::COUNTnCOUNT ){
+	TString labelMC =
+	  getLabel(-1111,effType, calcMethod, etBinning, etaBinning, triggers);
+	TString templatesLabel =
+	  tagAndProbeDir+TString("/mass_templates_")+labelMC+TString(".root");
+	templatesFile = new TFile(templatesLabel);
+	if( ! templatesFile->IsOpen() )
+	  assert(0);
+      }
     }
   }
 
