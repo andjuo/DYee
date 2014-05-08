@@ -41,9 +41,11 @@ void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18) {
 #ifndef ColorPalettes_HH
 inline
 void SetSideSpaces(TCanvas *c, double dxLeft=0.05, double dxRight=0.02,
-		   double dyTop=0., double dyBottom=0.02) {
+		   double dyTop=0., double dyBottom=0.02,
+		   int padIdx=-1) {
   int count=0;
   for (int i=0; i<50; i++) {
+    if ((padIdx!=-1) && (i!=padIdx)) continue;
     TPad *pad=(TPad*)c->GetPad(i);
     if (pad) {
       count++;
