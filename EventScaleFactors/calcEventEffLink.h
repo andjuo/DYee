@@ -112,6 +112,11 @@ TGraphAsymmErrors* addErrors(const TGraphAsymmErrors* gr, const TVectorD &errs,
 // if the method is count-count, load it as weighted
 int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi);
 
+// pu dependence
+int loadEffVsPU(const TString &fnameBase, int weighted,
+		std::vector<TMatrixD*> &effV,
+	   std::vector<TMatrixD*> &effLoV, std::vector<TMatrixD*> &effHiV);
+
 // ---------------------------------------
 
 #endif

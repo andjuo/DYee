@@ -157,4 +157,36 @@ int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo
 }
 
 // ------------------------------------------------------------
+
+int loadEffVsPU(const TString &fnameBase, int weighted,
+		std::vector<TMatrixD*> &effV,
+		std::vector<TMatrixD*> &effLoV, std::vector<TMatrixD*> &effHiV)
+{
+  ClearVec(effV); ClearVec(effLoV); ClearVec(effHiV);
+  effV.reserve(DYTools::nPVBinCount);
+  effLoV.reserve(DYTools::nPVBinCount);
+  effHiV.reserve(DYTools::nPVBinCount);
+
+  TMatrixD *eff=NULL, *effLo=NULL, *effHi=NULL;
+  for (int pu_i=0; pu_i<DYTools::nPVBinCount; ++pu_i) {
+    char buf[50];
+    UInt_t pvMin=UInt_t(DYTools::nPVLimits[pu_i  ]+0.6);
+    UInt_t pvMax=UInt_t(DYTools::nPVLimits[pu_i+1]-0.4);
+    sprintf(buf,"_%u_%u.root",pvMin,pvMax);
+    TString resRootFName= fnameBase + TString(buf);
+    //std::cout << "loading <" << resRootFName << ">\n";
+    if (!loadEff(resRootFName,weighted,&eff,&effLo,&effHi)) {
+      std::cout << " .. error in loadEffVsPU\n";
+      return 0;
+    }
+    effV.push_back(eff);
+    effLoV.push_back(effLo);
+    effHiV.push_back(effHi);
+  }
+  return 1;
+}
+
+
+// ------------------------------------------------------------
+// ------------------------------------------------------------
 // ------------------------------------------------------------
