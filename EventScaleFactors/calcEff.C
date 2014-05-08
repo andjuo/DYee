@@ -401,7 +401,8 @@ int calcEff(int analysisIs2D,
 	int puIdx= (puDependence) ? DYTools::findPUBin(storeData.nGoodPV) : 0;
 	if (puIdx>=0)
 	  (*hFailTemplateV[puIdx])[templateBin]->Fill(storeData.mass,storeData.weight);
-	else std::cout << "puIdx=" << puIdx << "\n";
+	else std::cout << "puIdx=" << puIdx << " for "
+		       << storeData.nGoodPV << "\n";
       }
     }
     else{
