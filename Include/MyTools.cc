@@ -706,6 +706,23 @@ double* getXrange(const histo_t *h) {
   return arr;
 }
 
+// ----------------------------------------------
+
+template<class histo_t>
+double* getYrange(const histo_t *h) {
+  double *arr=new double[h->GetNbinsY()+1];
+  TAxis *ay=h->GetYaxis();
+  for (int ibin=1; ibin<=h->GetNbinsY(); ++ibin) {
+    double x1=ay->GetBinLowEdge(ibin);
+    arr[ibin-1]=x1;
+  }
+  int i=h->GetNbinsY();
+  double x=ay->GetBinLowEdge(i);
+  double w=ay->GetBinWidth(i);
+  arr[i]=x+w;
+  return arr;
+}
+
 //--------------------------------------------------
 
 TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName) {
@@ -731,6 +748,46 @@ TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName) {
   for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
     hf->SetBinContent(ibin, h->GetBinContent(ibin));
     hf->SetBinError(ibin, h->GetBinError(ibin));
+  }
+  return hf;
+}
+
+//--------------------------------------------------
+
+TH2D* convert_TH2F_to_TH2D(const TH2F *h, TString newName) {
+  double *arrX=getXrange(h);
+  double *arrY=getYrange(h);
+  int sizeX=h->GetNbinsX();
+  int sizeY=h->GetNbinsY();
+  TH2D *hd=new TH2D(newName,newName,sizeX,arrX,sizeY,arrY);
+  hd->SetDirectory(0);
+  delete arrX;
+  delete arrY;
+  for (int ibin=1; ibin<=sizeX; ++ibin) {
+    for (int jbin=1; jbin<=sizeY; ++jbin) {
+      hd->SetBinContent(ibin,jbin, h->GetBinContent(ibin,jbin));
+      hd->SetBinError(ibin,jbin, h->GetBinError(ibin,jbin));
+    }
+  }
+  return hd;
+}
+
+//--------------------------------------------------
+
+TH2F* convert_TH2D_to_TH2F(const TH2D *h, TString newName) {
+  double *arrX=getXrange(h);
+  double *arrY=getYrange(h);
+  int sizeX=h->GetNbinsX();
+  int sizeY=h->GetNbinsY();
+  TH2F *hf=new TH2F(newName,newName,sizeX,arrX,sizeY,arrY);
+  hf->SetDirectory(0);
+  delete arrX;
+  delete arrY;
+  for (int ibin=1; ibin<=sizeX; ++ibin) {
+    for (int jbin=1; jbin<=sizeY; ++jbin) {
+      hf->SetBinContent(ibin,jbin, h->GetBinContent(ibin,jbin));
+      hf->SetBinError(ibin,jbin, h->GetBinError(ibin,jbin));
+    }
   }
   return hf;
 }

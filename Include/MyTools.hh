@@ -1494,6 +1494,8 @@ int scaleHisto(TH2D *histoNom, const TH2D *histoDenom);
 
 TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
 TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
+TH2D* convert_TH2F_to_TH2D(const TH2F *h, TString newName);
+TH2F* convert_TH2D_to_TH2F(const TH2D *h, TString newName);
 
 //-----------------------------------------------------------
 
