@@ -423,6 +423,7 @@ namespace DYTools {
   // Define Et and Eta binning
   //
   typedef enum {ETBINS_UNDEFINED=-1, ETBINS1=1, ETBINS5, ETBINS6, ETBINS6syst,
+		ETBINS6short,
 		ETBINS6alt, ETBINS6altB, ETBINS7, ETBINS7alt, ETBINS7altB,
 		ETBINS8, ETBINS9} TEtBinSet_t;
   const int nEtBins1 = 1;
@@ -434,6 +435,8 @@ namespace DYTools {
   const int nEtBins6 = 6;
   const double etBinLimits6[nEtBins6 + 1] =
     {10, 15, 20, 30, 40, 50, 500};
+  const double etBinLimits6short[nEtBins6 + 1] =
+    {10, 15, 20, 30, 40, 50, 100};
   const int nEtBins6alt = 6;
   const double etBinLimits6alt[nEtBins6alt + 1] =
     {10, 20, 30, 40, 50, 75, 500};
