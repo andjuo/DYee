@@ -287,7 +287,7 @@ void SetTdrStyle() {
 // For the axis:
 
   tdrStyle->SetAxisColor(1, "XYZ");
-  tdrStyle->SetStripDecimals(kTRUE);
+  tdrStyle->SetStripDecimals(false);
   tdrStyle->SetTickLength(0.03, "XYZ");
   //tdrStyle->SetNdivisions(510, "XYZ");
   tdrStyle->SetNdivisions(505, "XYZ");
