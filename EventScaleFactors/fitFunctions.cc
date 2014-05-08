@@ -3,6 +3,7 @@
 #include "../EventScaleFactors/fitFunctions.hh"
 #include "../EventScaleFactors/effCalc.hh"
 #include "../Include/MyTools.hh"
+#include "../EventScaleFactors/tnpSelectEvents.hh"
 #include <TEntryList.h>
 #endif
 
@@ -247,8 +248,7 @@ void measureEfficiencyPU(TTree *passTreeFull, TTree *failTreeFull,
     vector<TTree*> passTreeV, failTreeV;
     passTreeV.reserve(DYTools::nPVBinCount);
     failTreeV.reserve(DYTools::nPVBinCount);
-    Double_t mass,et,eta;
-    UInt_t nPV;
+    tnpSelectEvent_t storeData;
 
     // 1. create trees
     for (int pass=0; pass<2; ++pass) {
@@ -260,9 +260,7 @@ void measureEfficiencyPU(TTree *passTreeFull, TTree *failTreeFull,
 	//std::cout << "buf=" << buf << "\n";
 	TTree *tree=new TTree(buf,buf);
 	tree->SetDirectory(0);
-	tree->Branch("mass",&mass,"mass/D");
-	tree->Branch("et",&et,"et/D");
-	tree->Branch("eta",&eta,"eta/D");
+	storeData.createBranches(tree, tnpSelectEvent_t::_dontSkipWeight);
 	if (pass) passTreeV.push_back(tree); else failTreeV.push_back(tree);
       }
     }
@@ -272,13 +270,11 @@ void measureEfficiencyPU(TTree *passTreeFull, TTree *failTreeFull,
     for (int pass=0; pass<2; ++pass) {
       vector<TTree*> *treeV = (pass) ? &passTreeV : &failTreeV;
       TTree *treeFull=(pass) ? passTreeFull : failTreeFull;
-      treeFull->SetBranchAddress("mass",&mass);
-      treeFull->SetBranchAddress("et",&et);
-      treeFull->SetBranchAddress("eta",&eta);
-      treeFull->SetBranchAddress("nGoodPV",&nPV);
+      storeData.setBranchAddress(treeFull);
       for (UInt_t i=0; i<treeFull->GetEntries(); ++i) {
 	treeFull->GetEntry(i);
-	unsigned int pu_idx=(unsigned int)(DYTools::findPUBin(nPV));
+	unsigned int pu_idx=
+	               (unsigned int)(DYTools::findPUBin(storeData.nGoodPV));
 	if (pu_idx<treeV->size()) {
 	  (*treeV)[pu_idx]->Fill();
 	}
