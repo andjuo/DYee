@@ -313,6 +313,11 @@ void measureEfficiencyPU(TTree *passTreeFull, TTree *failTreeFull,
       sprintf(buf,"_%u_%u.root",pvMin,pvMax);
       TString resRootFName=resultRootFileBase + TString(buf);
       TFile *resultsRootFile=new TFile(resRootFName,"recreate");
+      if (!resultsRootFile || !resultsRootFile->IsOpen()) {
+	std::cout << "failed to create resultsRootFile <"
+		  << resRootFName << ">\n";
+	return;
+      }
       sprintf(buf,"-plots_%u_%u.root",pvMin,pvMax);
       TString resPlotFName=resultRootFileBase + TString(buf);
       TFile *resultPlotFile=new TFile(resPlotFName,"recreate");
@@ -775,6 +780,7 @@ void measureEfficiencyWithFit(TTree *passTree, TTree *failTree,
     effArrayErrLow2D.Write("effArrayErrLow2D");
     effArrayErrHigh2D.Write("effArrayErrHigh2D");    
     resultsRootFile->Close();
+    std::cout << "file <" << resultsRootFile->GetName() << "> created\n";
   }else assert(0);
 
   if (resultPlotsFile && resultPlotsFile->IsOpen()) {
