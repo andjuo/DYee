@@ -80,6 +80,8 @@ runData_Hlt_leg1=0
 runData_Hlt_leg2=0
 runCalcEventEff=1
 
+puDependence=1  # as a function of nPV's
+
 #
 #  Modify flags if fullRun=1
 #
@@ -189,14 +191,20 @@ checkFile() {
 runCalcEff() {
  effKind=$1
 # calculate
- root -l -q -b  ${LXPLUS_CORRECTION} calcEff.C+\(${analysisIs2D},\"${inpFile}\",\"${effKind}\",${onData},0,${systMode}\) \
-     | tee log${timeStamp}-calcEff-${dataKind}-${effKind}.out
+ _outputFileName="log${timeStamp}-calcEff-${dataKind}-${effKind}.out"
+ if [ ${puDependence} -eq 1 ] ; then
+     _outputFileName=${_outputFileName/.out/-varPU.out}
+     echo "_outputFileName=${_outputFileName}"
+ fi
+
+ root -l -q -b  ${LXPLUS_CORRECTION} calcEff.C+\(${analysisIs2D},\"${inpFile}\",\"${effKind}\",${onData},${puDependence},${systMode}\) \
+     | tee ${_outputFileName}
   if [ $? != 0 ] ; then noError=0;
   else 
      checkFile calcEff_C.so
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
      echo 
-     echo "DONE: calcEff(${analysisIs2D},\"$inpFile\",\"${effKind}\",${systMode})"
+     echo "DONE: calcEff(${analysisIs2D},\"$inpFile\",\"${effKind}\",${onData},${puDependence},${systMode})"
      echo 
      echo "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
   fi
