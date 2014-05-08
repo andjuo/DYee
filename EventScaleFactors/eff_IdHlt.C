@@ -162,6 +162,10 @@ int eff_IdHlt(int analysisIs2D,
   vector<TString> jsonFileNames;
   inpMgr.getTNP_ntuples(tnpSection,runOnData,ntupleFileNames,jsonFileNames);
   if (1) {
+    if (ntupleFileNames.size()==0) {
+      std::cout << "error: no ntupleFileNames obtained\n";
+      return retCodeError;
+    }
     for (unsigned int i=0; i<ntupleFileNames.size(); ++i) {
       std::cout << " i=" << i << ": " << ntupleFileNames[i];
       if (jsonFileNames.size()>i) std::cout << "; json " << jsonFileNames[i];
