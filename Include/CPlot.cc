@@ -27,6 +27,7 @@ fGridx(0),
 fGridy(0),
 fRebin(1),
 fLeg(0),
+fNoLegend(0),
 fShowStats(0),
 fStatsX(0.68),
 fStatsY(0.90)
@@ -55,6 +56,7 @@ fGridx(0),
 fGridy(0),
 fRebin(1),
 fLeg(0),
+fNoLegend(0),
 fShowStats(0),
 fStatsX(0.68),
 fStatsY(0.90)
@@ -82,6 +84,7 @@ fGridx(0),
 fGridy(0),
 fRebin(1),
 fLeg(0),
+fNoLegend(0),
 fShowStats(0),
 fStatsX(0.68),
 fStatsY(0.90),
@@ -245,7 +248,9 @@ void CPlot::AddHist2D(TFile *f, TString histName, TString drawopt, int fillcolor
 }
 
 //--------------------------------------------------------------------------------------------------
-void CPlot::AddGraph(TGraph *gr, TString drawopt, int color, int marksty, int linesty)
+void CPlot::AddGraph(TGraph *gr, TString drawopt, int color, int marksty,
+		     int linesty, int lineWidth,
+		     double markerSize)
 {
   if(!gr)
     return;
@@ -254,9 +259,9 @@ void CPlot::AddGraph(TGraph *gr, TString drawopt, int color, int marksty, int li
   gr->SetLineColor(color);
   gr->SetFillColor(color);
   gr->SetLineStyle(linesty);
-  gr->SetLineWidth(2);
+  gr->SetLineWidth(lineWidth);
   gr->SetMarkerStyle(marksty);
-  gr->SetMarkerSize(1.2);
+  gr->SetMarkerSize(markerSize);
   
   CPlotItem item;
   item.graph = gr;
@@ -264,7 +269,9 @@ void CPlot::AddGraph(TGraph *gr, TString drawopt, int color, int marksty, int li
   fItems.push_back(item);
 }
 
-void CPlot::AddGraph(TGraph *gr, TString label, TString drawopt, int color, int marksty, int linesty)
+void CPlot::AddGraph(TGraph *gr, TString label, TString drawopt, int color,
+		     int marksty, int linesty, int linewidth,
+		     double markerSize)
 {
   if(!gr)
     return;
@@ -280,7 +287,7 @@ void CPlot::AddGraph(TGraph *gr, TString label, TString drawopt, int color, int 
     fLeg->AddEntry(gr,label,"P"); 
   }
   
-  AddGraph(gr,drawopt,color,marksty,linesty);
+  AddGraph(gr,drawopt,color,marksty,linesty,linewidth,markerSize);
 }
 
 void CPlot::AddGraph(TFile *f, TString grName, TString drawopt, int color, int marksty, int linesty)
@@ -750,7 +757,7 @@ void CPlot::Draw(TCanvas *c, bool doSave, TString format, int subpad)
   if(fLeg) {
     fLeg->SetFillStyle(0);
     fLeg->SetBorderSize(0);
-    fLeg->Draw();
+    if (!fNoLegend) fLeg->Draw();
   }
   
   //

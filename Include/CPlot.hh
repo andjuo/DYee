@@ -95,8 +95,12 @@ public:
   void AddHist2D(TFile *f, TString histName, TString drawopt="", int fillcolor=kWhite, int linecolor=kBlack);
 
   // Adding a graph (with error bars) to the plot
-  void AddGraph(TGraph *gr, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1);    
-  void AddGraph(TGraph *gr, TString label, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1);
+  void AddGraph(TGraph *gr, TString drawopt, int color=kBlack,
+		int marksty=kFullDotLarge, int linesty=1, int linewidth=2,
+		double markerSize=1.2);
+  void AddGraph(TGraph *gr, TString label, TString drawopt, int color=kBlack,
+		int marksty=kFullDotLarge, int linesty=1, int linewidth=2,
+		double markerSize=1.2);
   void AddGraph(TFile *f, TString grName, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1);
   void AddGraph(TFile *f, TString grName, TString label, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1);
 
@@ -169,6 +173,8 @@ public:
   void SetGridx(bool value=1)              { fGridx = value; }             // toggle grid lines from x-axis ticks
   void SetGridy(bool value=1)              { fGridy = value; }             // toggle grid lines from y-axis ticks
   void Rebin(int ngroup)                   { fRebin = ngroup; }            // 1D histogram re-bin
+  void NoLegend(int yes=1)                 { fNoLegend=yes; }  // whether to draw lagend
+  void SetNoLegend(int yes=1)              { fNoLegend=yes; }
   void ShowStats(int show=111)             { fShowStats = show; }          // display statistics
 
   //
@@ -198,6 +204,7 @@ protected:
   int fGridx, fGridy;                   // grid lines
   int fRebin;                           // grouping for histogram re-bin
   TLegend *fLeg;                        // legend object
+  int fNoLegend;                        // whether to draw the legend
   int fShowStats;                       // whether to display statistics
   double fStatsX, fStatsY;              // x,y coordinates of top left corner of stats box
   
