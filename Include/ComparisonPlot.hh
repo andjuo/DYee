@@ -214,7 +214,9 @@ public:
   }
 
 
-  void AddGraph(TGraph *gr, TString label, TString drawopt, int color=kBlack, int marksty=kFullDotLarge, int linesty=1) {
+  void AddGraph(TGraph *gr, TString label, TString drawopt, int color=kBlack,
+		int marksty=kFullDotLarge, int linesty=1, int lineWidth=2,
+		double markerSize=1.2) {
     TAxis *ax=gr->GetXaxis();
     TAxis *ay=gr->GetYaxis();
     if (fXTitleSize>0.) ax->SetTitleSize(fXTitleSize);
@@ -223,7 +225,8 @@ public:
     if (fYTitleSize>0.) ay->SetTitleSize(fYTitleSize);
     if (fYTitleOffset>0.) ay->SetTitleOffset(fYTitleOffset);
     if (fYLabelSize>0.) ay->SetLabelSize(fYLabelSize);
-    CPlot::AddGraph(gr,label,drawopt,color,marksty,linesty);
+    CPlot::AddGraph(gr,label,drawopt,color,marksty,linesty,
+		    lineWidth,markerSize);
   }
 
   TLatex* AddTextCMSPreliminary(double x=0.93, double y=0.94) {
