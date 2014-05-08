@@ -103,6 +103,31 @@ TGraphAsymmErrors* getAsymGraph_vsEta(DYTools::TEtBinSet_t etBinning_inp,
 
 
 // ------------------------------------------------------------
+
+TGraphAsymmErrors* addErrors(const TGraphAsymmErrors *gr, const TVectorD &errs,
+			     TString newName, int relative) {
+  if (errs.GetNoElements()!=gr->GetN()) {
+    std::cout << "addErrors: size mismatch gr->getN=" << gr->GetN()
+	      << ", errs.GetNoElements=" << errs.GetNoElements() << "\n";
+    return NULL;
+  }
+  TGraphAsymmErrors* gr2=(TGraphAsymmErrors*)gr->Clone(newName);
+  for (int ibin=0; ibin<gr->GetN(); ++ibin) {
+    double ylo=gr->GetErrorYlow(ibin);
+    double yhi=gr->GetErrorYhigh(ibin);
+    double addErr=errs(ibin);
+    if (relative) addErr *= gr->GetY()[ibin];
+    double newLo=sqrt(pow(ylo,2) + pow(addErr,2));
+    double newHi=sqrt(pow(yhi,2) + pow(addErr,2));
+    gr2->SetPointEYlow(ibin,newLo);
+    gr2->SetPointEYhigh(ibin,newHi);
+    //std::cout << " ibin=" << ibin << ": " << gr->GetY()[ibin] << " + "
+    //      << yhi << " - " << ylo << "\n";
+  }
+  return gr2;
+}
+
+// ------------------------------------------------------------
 // ------------------------------------------------------------
 
 int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {

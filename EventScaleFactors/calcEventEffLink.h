@@ -100,6 +100,12 @@ TGraphAsymmErrors* getAsymGraph(int vsEt,
     getAsymGraph_vsEta(etBinning_inp,etaBinning_inp,iBin,Meff,MeffLo,MeffHi,histo,histoName);
 }
 
+
+// ---------------------------------------
+
+TGraphAsymmErrors* addErrors(const TGraphAsymmErrors* gr, const TVectorD &errs,
+			     TString newName, int relative=0);
+
 // ---------------------------------------
 
 // load efficiency as matrix
