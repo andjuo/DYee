@@ -354,7 +354,35 @@ TVectorD* readFlagValues(TFile &fin, const TString &fieldName, int nFlags) {
 
 //---------------------------------------------------------------
 
+int writeFlagValues(const TString &fieldName, int count, const double *flags) {
+  if (!flags) {
+    std::cout  << "Error writeFlagValues(fieldName=" << fieldName << ","
+	       << count << ",double*): null ptr\n";
+    return 0;
+  }
+  TVectorD v(count);
+  for (int i=0; i<count; ++i) {
+    v(i)=flags[i];
+  }
+  v.Write(fieldName);
+  return 1;
+}
+
+//---------------------------------------------------------------
+
 int writeFlagValues(const TString &fieldName, const std::vector<int> &flagsV) {
+  TVectorD v(flagsV.size());
+  for (unsigned int i=0; i<flagsV.size(); ++i) {
+    v(i)=flagsV[i];
+  }
+  v.Write(fieldName);
+  return 1;
+}
+
+//---------------------------------------------------------------
+
+int writeFlagValues(const TString &fieldName,
+		    const std::vector<double> &flagsV) {
   TVectorD v(flagsV.size());
   for (unsigned int i=0; i<flagsV.size(); ++i) {
     v(i)=flagsV[i];
@@ -847,11 +875,25 @@ TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinnin
 //--------------------------------------------------
 
 void writeBinningArrays(TFile &fout, TString producedBy) {
+  if (!fout.IsOpen()) {
+    std::cout << "writeBinningArrays error: file is not open\n";
+    return;
+  }
   fout.cd();
+  int correction= (DYTools::study2D==-1) ? 1:0;
+  writeIntFlagValues("DYTools_study2D",1,DYTools::study2D);
   TVectorD mass(DYTools::nMassBins+1);
-  TVectorD rapidityCounts(DYTools::nMassBins);
-  for (int i=0; i<DYTools::nMassBins+1; i++) mass[i]=DYTools::massBinLimits[i];
-  for (int i=0; i<DYTools::nMassBins  ; i++) rapidityCounts[i]=DYTools::nYBins[i];
+  TVectorD rapidityCounts(DYTools::nMassBins + correction);
+  if (correction) {
+    mass[0]=0;
+    rapidityCounts[0]=0;
+  }
+  else {
+    for (int i=0; i<DYTools::nMassBins+1; i++)
+      mass[i]=DYTools::massBinLimits[i];
+    for (int i=0; i<DYTools::nMassBins  ; i++)
+      rapidityCounts[i]=DYTools::nYBins[i];
+  }
   mass.Write("massBinLimits");
   rapidityCounts.Write("rapidityCounts");
 
@@ -885,13 +927,31 @@ int checkBinningArrays(TFile &fin, int printMetaData) {
       delete timeTag;
     }
   }
+  TVectorD *initOk=readFlagValues(fin,"DYTools_study2D",1);
   TVectorD* mass= (TVectorD*)fin.FindObjectAny("massBinLimits");
   TVectorD* rapidityCounts= (TVectorD*)fin.FindObjectAny("rapidityCounts");
   if (!mass || !rapidityCounts) {
     std::cout << fncname << "file <" << fin.GetName() << "> does not contain keys massBinning and/or rapidityCounts\n";
     return false;
   }
-  int comparisonOk=checkBinningRanges(*mass,*rapidityCounts, fin.GetName());
+  int comparisonOk=1;
+  int noInitOnFile=0;
+  if (initOk && ((*initOk)[0]!=DYTools::study2D)) {
+    std::cout << " file recorded study2D=" << (*initOk)[0]
+	      << ", current DYTools::study2D=" << DYTools::study2D << "\n";
+    noInitOnFile=((*initOk)[0]==-1) ? 1:0;
+    comparisonOk=0;
+    delete initOk;
+  }
+  if (!noInitOnFile) {
+    std::cout << "binning ranges on file are not checked\n"
+	      << "( file was produced w/o DYTools::setup() )\n";
+  }
+  else {
+    int comparisonOk_ranges=checkBinningRanges(*mass,*rapidityCounts,
+					       fin.GetName());
+    if (comparisonOk) comparisonOk=comparisonOk_ranges;
+  }
   if (mass) delete mass;
   if (rapidityCounts) delete rapidityCounts;
   return comparisonOk;

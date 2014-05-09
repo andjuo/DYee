@@ -949,9 +949,11 @@ TH2D *getRelDifference(const std::vector<const TH2D*> &vec, TString newName,
 // Assumes that the file is open
 int writeIntFlagValues(const TString &fieldName, int nFlags, int flag1, ...);
 int writeFlagValues(const TString &fieldName, int nFlags, double flag1, ...);
+int writeFlagValues(const TString &fieldName, int nFlags, const double *flags);
 TVectorD* readFlagValues(TFile &fin, const TString &fieldName, int nFlags);
 
 int writeFlagValues(const TString &fieldName, const std::vector<int> &flagsV);
+int writeFlagValues(const TString &fieldName, const std::vector<double> &flagsV);
 
 //------------------------------------------------------------------------------------------------------------------------
 
