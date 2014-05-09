@@ -160,20 +160,25 @@ int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo
 
 int loadEffVsPU(const TString &fnameBase, int weighted,
 		std::vector<TMatrixD*> &effV,
-		std::vector<TMatrixD*> &effLoV, std::vector<TMatrixD*> &effHiV)
+		std::vector<TMatrixD*> &effLoV, std::vector<TMatrixD*> &effHiV,
+		std::vector<TString> &labelsV)
 {
   ClearVec(effV); ClearVec(effLoV); ClearVec(effHiV);
+  labelsV.clear();
+
+
   effV.reserve(DYTools::nPVBinCount);
   effLoV.reserve(DYTools::nPVBinCount);
   effHiV.reserve(DYTools::nPVBinCount);
+  labelsV.reserve(DYTools::nPVBinCount);
 
   TMatrixD *eff=NULL, *effLo=NULL, *effHi=NULL;
   for (int pu_i=0; pu_i<DYTools::nPVBinCount; ++pu_i) {
-    char buf[50];
     UInt_t pvMin=UInt_t(DYTools::nPVLimits[pu_i  ]+0.6);
     UInt_t pvMax=UInt_t(DYTools::nPVLimits[pu_i+1]-0.4);
-    sprintf(buf,"_%u_%u.root",pvMin,pvMax);
-    TString resRootFName= fnameBase + TString(buf);
+    TString puRangeStr=Form("_%u_%u",pvMin,pvMax);
+    labelsV.push_back(TString("eff") + puRangeStr);
+    TString resRootFName= fnameBase + puRangeStr + TString(".root");
     //std::cout << "loading <" << resRootFName << ">\n";
     if (!loadEff(resRootFName,weighted,&eff,&effLo,&effHi)) {
       std::cout << " .. error in loadEffVsPU\n";
@@ -184,6 +189,44 @@ int loadEffVsPU(const TString &fnameBase, int weighted,
     effHiV.push_back(effHi);
   }
   return 1;
+}
+
+
+// ------------------------------------------------------------
+
+TGraphAsymmErrors* effVsPU_asGraph(int iEtBin, int iEtaBin,
+				   const std::vector<TMatrixD*> &effV,
+				   const std::vector<TMatrixD*> &effLoV,
+				   const std::vector<TMatrixD*> &effHiV)
+{
+  if ((effV.size()!=int(DYTools::nPVBinCount)) ||
+      (effLoV.size()!=effV.size()) ||
+      (effHiV.size()!=effV.size())) {
+    std::cout << "effVsPU_asGraph: vec size mismatch:\n";
+    std::cout << "  - Expected size: " << DYTools::nPVBinCount << "\n";
+    std::cout << "  - effV[" << effV.size() << "], effLoV["
+	      << effLoV.size() << "], effHiV[" << effHiV.size() << "]\n";
+    return NULL;
+  }
+
+  double x[DYTools::nPVBinCount], dx[DYTools::nPVBinCount];
+  double eff[DYTools::nPVBinCount];
+  double effLo[DYTools::nPVBinCount], effHi[DYTools::nPVBinCount];
+
+  for (int pu_i=0; pu_i<DYTools::nPVBinCount; ++pu_i) {
+    x [pu_i]= 0.5*( DYTools::nPVLimits[pu_i] + DYTools::nPVLimits[pu_i+1] );
+    dx[pu_i]= 0.5*( DYTools::nPVLimits[pu_i+1] - DYTools::nPVLimits[pu_i] );
+    eff  [pu_i] = (*effV[pu_i])(iEtBin,iEtaBin);
+    effLo[pu_i] = (*effLoV[pu_i])(iEtBin,iEtaBin);
+    effHi[pu_i] = (*effHiV[pu_i])(iEtBin,iEtaBin);
+  }
+
+  TGraphAsymmErrors *gr= new TGraphAsymmErrors(DYTools::nPVBinCount,
+					       x,eff,dx,dx,effLo,effHi);
+  if (!gr) {
+    std::cout << "effVsPU_asGraph: failed to create TGraphAsymmErrors\n";
+  }
+  return gr;
 }
 
 

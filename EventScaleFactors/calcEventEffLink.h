@@ -12,8 +12,6 @@
 #include "../Include/EventSelector.hh"
 #include "../EventScaleFactors/tnpSelectEvents.hh"
 
-
-
 //extern TString dirTag;
 extern const int nonUniversalHLT; // if nonUniversalHLT=1, HLT_leg1 and HLT_leg2 are used
 
@@ -115,7 +113,13 @@ int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo
 // pu dependence
 int loadEffVsPU(const TString &fnameBase, int weighted,
 		std::vector<TMatrixD*> &effV,
-	   std::vector<TMatrixD*> &effLoV, std::vector<TMatrixD*> &effHiV);
+		std::vector<TMatrixD*> &effLoV, std::vector<TMatrixD*> &effHiV,
+		std::vector<TString> &labels);
+
+TGraphAsymmErrors* effVsPU_asGraph(int iEtBin, int iEtaBin,
+				   const std::vector<TMatrixD*> &effV,
+				   const std::vector<TMatrixD*> &effLoV,
+				   const std::vector<TMatrixD*> &effHiV);
 
 // ---------------------------------------
 
