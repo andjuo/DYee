@@ -80,7 +80,7 @@ runData_Hlt_leg1=0
 runData_Hlt_leg2=0
 runCalcEventEff=1
 
-puDependence=1  # as a function of nPV's
+puDependence=0  # as a function of nPV's
 
 #
 #  Modify flags if fullRun=1
