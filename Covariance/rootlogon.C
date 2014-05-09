@@ -11,8 +11,8 @@
   gROOT->ProcessLine(".L ../EventScaleFactors/RooCMSShape.cc+");
   gROOT->ProcessLine(".L ../EventScaleFactors/cutFunctions.cc+");
   gROOT->ProcessLine(".L ../EventScaleFactors/fitFunctionsCore.cc+"); // not necessary
-  gROOT->ProcessLine(".L ../EventScaleFactors/fitFunctions.cc+"); // not necessary
   gROOT->ProcessLine(".L ../EventScaleFactors/tnpSelectEvents.hh+");
+  gROOT->ProcessLine(".L ../EventScaleFactors/fitFunctions.cc+"); // not necessary
   gROOT->ProcessLine(".L ../EventScaleFactors/calcEventEffLink.cc+");
  
   gROOT->ProcessLine(".L CovariantEff.cc+");
