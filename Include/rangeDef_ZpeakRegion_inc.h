@@ -1,8 +1,10 @@
 #warning  included rangeDef_ZpeakRegion_inc.h
 
+namespace DYTools {
+
   // Z-peak region 1GeV bins
-const TString analysisTag_binning="_mbZpeak";
-const DYTools::TMassBinning_t massBinningSet= _MassBins_Zpeak;
+const TString _defined_analysisTag_binning="_mbZpeak";
+const DYTools::TMassBinning_t _defined_massBinningSet= _MassBins_Zpeak;
 
 const int _nMassBins1D = 60;
 const double _massBinLimits1D[_nMassBins1D+1] = 
@@ -28,5 +30,8 @@ const double *_massBinLimits2D= _massBinLimits1D;
 const int _nYBinsMax2D= _nYBinsMax1D;
 const int *_nYBins2D= _nYBins1D;
 
-const double _yRangeEdge=_yRangeEdge_base;
-const double _yRangeMax=_yRangeMax_base; 
+const double _extend_Y = 6.5;
+const double _yRangeEdge= electronEtaMax;
+const double _yRangeMax = electronEtaMax;
+
+}; // namespace DYTools
