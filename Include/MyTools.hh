@@ -1590,10 +1590,11 @@ int loadHisto(TFile &file, histo_t **h, TString subDir) {
   if (subDir.Length()) file.cd(subDir);
   TString name=(*h)->GetName();
   eliminateSeparationSigns(name);
-  (*h)->Read(name);
+  if (!(*h)->Read(name)) return 0;
   if (*h) {
     (*h)->SetDirectory(0);
   }
+  else return 0;
   if (subDir.Length()) file.cd();
   return 1;
 }
