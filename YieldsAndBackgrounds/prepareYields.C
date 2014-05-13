@@ -197,6 +197,7 @@ int prepareYields(int analysisIs2D,
   TH1D* hSelEvents = NULL;
 
   vector<TH1D*> hZpeakv;
+  vector<TH1D*> hZpeakBBv, hZpeakBEv, hZpeakEEv;
   vector<DielectronChargeCounter_t*> dccV; 
 
   // the main result of the macro
@@ -232,6 +233,9 @@ int prepareYields(int analysisIs2D,
   hSelEvents=createAnyTH1D("hSelEvents","hSelEvents",inpMgr.sampleCount(),0,inpMgr.sampleCount(),"sampleId","event count");
   // collect number of events in the Z-peak
   createAnyH1Vec(hZpeakv,"hZpeak_",inpMgr.sampleNames(),60,60.,120.,"M_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hZpeakBBv,"hZpeakBB_",inpMgr.sampleNames(),60,60.,120.,"M_{ee} [GeV]","counts (BB)/1GeV");
+  createAnyH1Vec(hZpeakBEv,"hZpeakBE_",inpMgr.sampleNames(),60,60.,120.,"M_{ee} [GeV]","counts (BE)/1GeV");
+  createAnyH1Vec(hZpeakEEv,"hZpeakEE_",inpMgr.sampleNames(),60,60.,120.,"M_{ee} [GeV]","counts (EE)/1GeV");
 
   dccV.reserve(inpMgr.sampleCount());
   for (unsigned int isam=0; isam<inpMgr.sampleCount(); ++isam) {
@@ -384,6 +388,11 @@ int prepareYields(int analysisIs2D,
       int isB2=DYTools::isBarrel(data->eta_2);
       int isE1=DYTools::isEndcap(data->eta_1);
       int isE2=DYTools::isEndcap(data->eta_2);
+
+      if (isB1 && isB2) hZpeakBBv[isam]->Fill(data->mass,weight);
+      else if (isE1 && isE2) hZpeakEEv[isam]->Fill(data->mass,weight);
+      else if ((isB1 && isE2) || (isE1 && isB2)) hZpeakBEv[isam]->Fill(data->mass,weight);
+
       int isG1=(data->golden_1==1) ? 1:0;
       int isG2=(data->golden_2==1) ? 1:0;
       if (isG1 && isG2) {
@@ -455,6 +464,9 @@ int prepareYields(int analysisIs2D,
     if (res) res=saveVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=saveHisto(file,hSelEvents,"");
     if (res) res=saveVec(file,hZpeakv,"mass_Zpeak_1GeV");
+    if (res) res=saveVec(file,hZpeakBBv,"mass_ZpeakBB_1GeV");
+    if (res) res=saveVec(file,hZpeakBEv,"mass_ZpeakBE_1GeV");
+    if (res) res=saveVec(file,hZpeakEEv,"mass_ZpeakEE_1GeV");
     if (res) res=saveVec(file,dccV,"ee_charge_counter");
     if (res) res=saveVec(file,hMassR9ggBBv,"mass_R9ggBB");
     if (res) res=saveVec(file,hMassR9ggEEv,"mass_R9ggEE");
@@ -488,6 +500,9 @@ int prepareYields(int analysisIs2D,
     if (res) res=loadVec(file,hMassBinsv,"mass_analysis_bins");
     if (res) res=loadHisto(file,&hSelEvents,"");
     if (res) res=loadVec(file,hZpeakv,"mass_Zpeak_1GeV");
+    if (res) res=loadVec(file,hZpeakBBv,"mass_ZpeakBB_1GeV");
+    if (res) res=loadVec(file,hZpeakBEv,"mass_ZpeakBE_1GeV");
+    if (res) res=loadVec(file,hZpeakEEv,"mass_ZpeakEE_1GeV");
     if (res) res=loadVec(file,dccV,"ee_charge_counter");
     if (res) res=loadVec(file,hMassR9ggBBv,"mass_R9ggBB");
     if (res) res=loadVec(file,hMassR9ggEEv,"mass_R9ggEE");
