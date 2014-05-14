@@ -471,9 +471,11 @@ public:
   TString getTNP_etBinningString(const TDescriptiveInfo_t &info) const;
   TString getTNP_etaBinningString(const TDescriptiveInfo_t &info) const;
 
+  // RECO efficiency needs n-tuples, others can be calculated on skims
   int getTNP_ntuples(const TDescriptiveInfo_t &info, int runOnData,
 		     std::vector<TString> &ntupleFileNames,
-		     std::vector<TString> &jsonFileNames) const;
+		     std::vector<TString> &jsonFileNames,
+		     int enforceNtupleNames=1) const;
 
   TString getTNP_calcMethod(DYTools::TDataKind_t dataKind, DYTools::TEfficiencyKind_t kind) const {
     return (FInfoSection) ? this->getTNP_calcMethod(*FInfoSection,dataKind,kind) : TString("getTNP_*: call LoadTnP first");
@@ -578,7 +580,7 @@ public:
     out << " rootFileBaseDir=<" << m.FRootFileBaseDir << ">\n";
     out << " " << m.FUserKeys.size() << " user keys: \n";
     for (unsigned int i=0; i<m.FUserKeys.size(); i++) {
-      out << "  -- key=<" << m.FUserKeys[i] << ">, value=<" << m.FUserValues[i] << "\n";
+      out << "  -- key=<" << m.FUserKeys[i] << ">, value=<" << m.FUserValues[i] << ">\n";
     }
     out << m.FSampleNames.size() << " sample names and " << m.FSampleInfos.size() << " sample infos):\n";
     for (unsigned int i=0; i<m.FSampleNames.size(); ++i) {

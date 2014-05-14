@@ -752,7 +752,9 @@ TString InputFileMgr_t::getTNP_etaBinningString(const TDescriptiveInfo_t &info) 
 int InputFileMgr_t::getTNP_ntuples(const TDescriptiveInfo_t &info,
 				   int runOnData,
 				   std::vector<TString> &ntupleFileNames,
-				   std::vector<TString> &jsonFileNames) const {
+				   std::vector<TString> &jsonFileNames,
+				   int enforceNtupleNames) const
+{
   int res=1;
   if (info.size()) res=1; // dummy to prevent compiler complaints
   ntupleFileNames.clear();
@@ -779,13 +781,15 @@ int InputFileMgr_t::getTNP_ntuples(const TDescriptiveInfo_t &info,
   }
 
   // change 'tight-loose_skim' to 'ntuple'
-  for (unsigned int i=0; i<ntupleFileNames.size(); ++i) {
-    TString fname=ntupleFileNames[i];
-    if (fname.Index(FSkimDef)!=-1) {
-      //std::cout << "modifying i=" << i << " <" << fname << ">\n";
-      fname.ReplaceAll(FSkimDef,FNtupleDef);
-      //std::cout << "new name=<" << fname << ">\n";
-      ntupleFileNames[i]=fname;
+  if (enforceNtupleNames) {
+    for (unsigned int i=0; i<ntupleFileNames.size(); ++i) {
+      TString fname=ntupleFileNames[i];
+      if (fname.Index(FSkimDef)!=-1) {
+	//std::cout << "modifying i=" << i << " <" << fname << ">\n";
+	fname.ReplaceAll(FSkimDef,FNtupleDef);
+	//std::cout << "new name=<" << fname << ">\n";
+	ntupleFileNames[i]=fname;
+      }
     }
   }
 
