@@ -13,36 +13,6 @@
 
 // ------------------------------------------------------------
 // ------------------------------------------------------------
-
-/*
-// Moved to calcEventEffLink.h
-int loadEff(const TString &fname, int weighted, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {
-  std::cout  << "loading <" << fname << ">\n";
-  TFile file1(fname,"read");
-  if (!file1.IsOpen()) { std::cout << "failed to open file <" << file1.GetName() << ">\n"; return 0; }
-  TString field="effArray2D";
-  TString fieldErrLo="effArrayErrLow2D";
-  TString fieldErrHi="effArrayErrHigh2D";
-  if (weighted) {
-    field.Append("Weighted");
-    fieldErrLo.Append("Weighted");
-    fieldErrHi.Append("Weighted");
-  }
-  TMatrixD *eff1= (TMatrixD*)file1.Get(field);
-  TMatrixD *eff1ErrLo= (TMatrixD*)file1.Get(fieldErrLo);
-  TMatrixD *eff1ErrHi= (TMatrixD*)file1.Get(fieldErrHi);
-  file1.Close();
-  if (!eff1 || !eff1ErrLo || !eff1ErrHi) {
-    std::cout << "failed to get fields from <" << file1.GetName() << ">\n"; 
-    return 0;
-  }
-  *eff=eff1;
-  *effLo=eff1ErrLo;
-  *effHi=eff1ErrHi;
-  return 1;
-}
-*/
-
 // ------------------------------------------------------------
 
 int loadEGammaEff(TString kindStr, TMatrixD **eff, TMatrixD **effLo, TMatrixD **effHi) {
@@ -87,9 +57,12 @@ TString effDataKindString(const TString str) {
 void compareEff(int iBr=0, int iBin=0, int vsEt=1,
 		int doSave=0,
 		double transLegendY_user=0.,
-		double ratioTitleOffset=0.58,
+		double transLegendX_user=0.,
 		TString *outFileName_ptr=NULL,
 		TString *outDir_ptr=NULL) {
+
+  double ratioTitleOffset=0.58;
+
   TString path1, path2;
   TString effKindLongStr1,effKindLongStr2;
   TString fnameBase="efficiency_TnP_1D_Full2012_";
@@ -306,8 +279,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     HLTcomparison=0;
     relRatio=-1;
     path1="dir-Rami/";
-    path2="dir-Rami/";
-    path3="dir-Rami/";
+    path2=path1; path3=path1;
     effKindLongStr1="dataRECO_fit-fitEtBins6EtaBins5_PU";
     effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins7_PU";
     effKindLongStr3="dataRECO_fit-fitEtBins6EtaBins9_PU";
@@ -316,6 +288,110 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     label3="Rami: Et6Eta9";
     fnameTag="-Rami-vars--";
     transLegendX=-0.4;
+  }
+
+  if (1) { // 2014.05.10
+    if (vsEt) {
+      std::cout << "Eta bins are different\n";
+      return;
+    }
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2=path1; path3=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6systEtaBins7_PU";
+    effKindLongStr3="dataRECO_fit-fitEtBins6systEtaBins9_PU";
+    label1="Et6Eta5";
+    label2="Et6Eta7";
+    label3="Et6Eta9";
+    fnameTag="-et6-vars--";
+    transLegendX=-0.4;
+    allowInvert12=0;
+  }
+
+  if (0) { // 2014.05.13
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2=path1; path3=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6systEtaBins5nomerge_PU";
+    //effKindLongStr3="dataRECO_fit-fitEtBins6systEtaBins9_PU";
+    label1="Et6Eta5";
+    label2="Et6Eta5nomerge";
+    label3="Et6Eta9";
+    fnameTag="-et6eta5nomerge-vars--";
+    transLegendX=-0.4;
+    allowInvert12=0;
+  }
+
+  if (0) { // 2014.05.13
+    if (vsEt) {
+      std::cout << "Eta bins are different\n";
+      return;
+    }
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2=path1; path3=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5nomerge_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6systEtaBins7_PU";
+    effKindLongStr3="dataRECO_fit-fitEtBins6systEtaBins9_PU";
+    label1="Et6Eta5nomerge";
+    label2="Et6Eta7";
+    label3="Et6Eta9";
+    fnameTag="-et6eta5nomerge-vars--";
+    transLegendX=-0.4;
+    allowInvert12=0;
+  }
+
+  if (0) { // 2014.05.10
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6systEtaBins5_max25_PU";
+    label1="Et6Eta5";
+    label2="Et6Eta5_max25";
+    fnameTag="-et6eta5-vars--";
+    transLegendX=-0.4;
+    allowInvert12=0;
+  }
+
+  if (0) { // 2014.05.10
+    if (!vsEt) {
+      std::cout << "Et bins are different\n";
+      return;
+    }
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins7altEtaBins5_PU";
+    label1="Et6Eta5";
+    label2="Et7altEta5";
+    fnameTag="-eta5-vars--";
+    //transLegendX=-0.4;
+    transLegendX=-0.07;
+    allowInvert12=0;
+  }
+
+  if (0) { // 2014.05.10
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2=path1;
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins7_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins7altEtaBins7_PU";
+    label1="Et6Eta7";
+    label2="Et7altEta7";
+    fnameTag="-eta7-vars--";
+    //transLegendX=-0.4;
+    transLegendX=-0.07;
+    allowInvert12=0;
   }
 
   if (0) { // 2014.03.19
@@ -354,7 +430,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=-0.4;
   }
 
-  if (1) { // 2014.03.19
+  if (0) { // 2014.03.19
     HLTcomparison=0;
     allowInvert12=0;
     relRatio=-1;
@@ -394,6 +470,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   // -------------------------------
 
   if (transLegendY_user!=0.) transLegendY=transLegendY_user;
+  if (transLegendX_user!=0.) transLegendX=transLegendX_user;
 
   if (label2 == TString("EGamma")) {
     if (iBr==0) {
@@ -620,30 +697,42 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   if (gr3 && HLTcomparison) { // for HLT efficiency
     cp.SetYRange(0.0,1.02);
   }
+  cp.SetYRange(0,1.2);
 
   // Square canvas if ratio is not plotted
   int cxHeight=(relRatio==-1) ? 600 : 700;
   TCanvas *cx=new TCanvas("cx","cx",600,cxHeight);
   if (relRatio!=-1) cp.Prepare2Pads(cx);
 
+  gr1->GetYaxis()->SetNdivisions(506);
   gr1->GetYaxis()->SetTitleOffset(1.4);
+
+  int color1=kBlack;
+  int color2=kBlue;
+  int color3=kGreen+1;
+
+  if (1) { // for comparison with Rami
+    color1=kBlue;
+    color2=kRed;
+    color3=kGreen;
+  }
 
   if (gr3 && !HLTcomparison && allowInvert12) {
     std::cout << "\n\tInverted plotting order 2,1\n";
     gr2->GetYaxis()->SetTitleOffset(1.2);
     //gr1->SetMarkerStyle(24);
     div->SetMarkerStyle(24);
-    cp.AddGraph(gr2,label2,"LPE1",kBlue);
-    cp.AddGraph(gr1,label1," PE1",kBlack,24);
+    cp.AddGraph(gr2,label2,"LPE1",color2);
+    cp.AddGraph(gr1,label1," PE1",color1,24);
   }
   else {
-    cp.AddGraph(gr1,label1,"LPE1",kBlack);
-    if (label2.Length()) cp.AddGraph(gr2,label2,"LPE1",kBlue,24);
+    cp.AddGraph(gr1,label1,"PE1",color1);
+    if (label2.Length()) cp.AddGraph(gr2,label2,"PE1",color2,24);
   }
   if (gr3) {
     //gr3->SetMarkerStyle(27);
     div31->SetMarkerStyle(27);
-    cp.AddGraph(gr3,label3," PE1",kGreen+1,27);
+    cp.AddGraph(gr3,label3," PE1",color3,27);
   }
 
   int targetPad=(relRatio==-1) ? 0 : 1;
