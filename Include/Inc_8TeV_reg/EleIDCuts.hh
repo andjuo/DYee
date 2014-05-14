@@ -508,7 +508,7 @@ Bool_t passEGMIDsyst(const mithep::TElectron *electron, WorkingPointType wp,
 
   int idx=systStr.Index("_");
   double factor=(idx>0) ? atof(systStr.Data()+idx+2) : 1.;
-  std::cout << "passEGMIDsyst: systStr=<" << systStr << ">, factor=" << factor << "\n";
+  //std::cout << "passEGMIDsyst: systStr=<" << systStr << ">, factor=" << factor << "\n";
 
   // Only the cuts for effective area are different for 2011 and 2012 EGM ID
   Double_t *_AeffDR03 = 0;
