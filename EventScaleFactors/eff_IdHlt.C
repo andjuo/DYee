@@ -62,6 +62,8 @@
 
 #endif
 
+#define __perform_ID_systematics
+
 using namespace mithep;
 
 
@@ -118,8 +120,19 @@ int eff_IdHlt(int analysisIs2D,
       ) return retCodeError;
 
   // Construct eventSelector, update inpMgr and plot directory
+  TString extra;
+#ifdef __perform_ID_systematics
+  TString idSystStr;
+  {
+    int idx=effTypeString.Index("idSyst");
+    if (idx!=-1) {
+      extra=effTypeString(idx,effTypeString.Length());
+      idSystStr=extra;
+    }
+  }
+#endif
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      "","", EventSelector::_selectDefault);
+			      extra,"", EventSelector::_selectDefault);
 
   // Event weight handler
   EventWeight_t evWeight;
@@ -566,8 +579,19 @@ int eff_IdHlt(int analysisIs2D,
 	// for ID cuts.
 	bool isIDProbe1     = true && passGapCut1;
 	bool isIDProbe2     = true && passGapCut2;
+#ifndef __perform_ID_systematics
 	bool isIDProbePass1 = passID(ele1, info->rhoLowEta) && passGapCut1;
 	bool isIDProbePass2 = passID(ele2, info->rhoLowEta) && passGapCut2;
+#else
+	bool isIDProbePass1 = passGapCut1;
+	bool isIDProbePass2 = passGapCut2;
+	if (isIDProbePass1)
+	  isIDProbePass1 = passEGMIDsyst(ele1,WP_MEDIUM,info->rhoLowEta,EGM2012,
+					 idSystStr);
+	if (isIDProbePass2)
+	  isIDProbePass2 = passEGMIDsyst(ele2,WP_MEDIUM,info->rhoLowEta,EGM2012,
+					 idSystStr);
+#endif
 	
 	// Probes for HLT cuts:
 	// For a univeral pass/fail of either leading or trailing electron, 
