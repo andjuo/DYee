@@ -391,7 +391,7 @@ void compareESF(int iBr=0,
     //setYRanges2D=enforceYRanges(1);
   }
 
-  if (1) { // added 2014.04.11
+  if (0) { // added 2014.04.11
     path1="../Covariance/";
     path2="../Covariance/";
     path3="../Covariance/";
@@ -423,6 +423,26 @@ void compareESF(int iBr=0,
     swapColors=0;
     //setYRanges2D=enforceYRanges(1);
   }
+
+  HERE("xx");
+  if (1) { // added 2014.05.10
+    path1="../Covariance/";
+    path2="../Covariance/";
+    path3="../Covariance/";
+    fnameBase1="covRhoFileSF"; fnameBase2=fnameBase1; fnameBase3=fnameBase1;
+    esfLongStr1="_nMB41_asymHLT_Unregressed_energy_100-et6eta5";
+    esfLongStr2="_nMB41_asymHLT_Unregressed_energy_100-et6eta7";
+    esfLongStr3="_nMB41_asymHLT_Unregressed_energy_100-et6eta9";
+    label1="Et6Eta5";
+    label2="Et6Eta7";
+    label3="Et6Eta9";
+    fnameTag="-esf-et6-var";
+    saveDirTag="-esf-et6-var";
+    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
+    compSet=10;
+  }
+
 
   if (iBr!=0) {
     if (compSet==10) {
