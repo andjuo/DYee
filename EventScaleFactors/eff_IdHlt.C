@@ -79,7 +79,7 @@ const int performOppositeSignTest=1;
 
 int eff_IdHlt(int analysisIs2D,
 	      const TString configFile,
-	      const TString effTypeString,
+	      TString effTypeString,
 	      int runOnData,
 	      DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 	      DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST)
@@ -119,20 +119,22 @@ int eff_IdHlt(int analysisIs2D,
       //|| !inpMgr.SetSkimsToNtuples()
       ) return retCodeError;
 
-  // Construct eventSelector, update inpMgr and plot directory
-  TString extra;
+
 #ifdef __perform_ID_systematics
   TString idSystStr;
   {
     int idx=effTypeString.Index("idSyst");
     if (idx!=-1) {
-      extra=effTypeString(idx,effTypeString.Length());
-      idSystStr=extra;
+      idSystStr=effTypeString(idx,effTypeString.Length());
+      effTypeString.ReplaceAll(".","");
     }
   }
+  std::cout << "idSystStr=<" << idSystStr << ">\n";
 #endif
+
+  // Construct eventSelector, update inpMgr and plot directory
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
-			      extra,"", EventSelector::_selectDefault);
+			      "","", EventSelector::_selectDefault);
 
   // Event weight handler
   EventWeight_t evWeight;
@@ -141,6 +143,7 @@ int eff_IdHlt(int analysisIs2D,
 
   // Prepare output directory
   TString tagAndProbeDir=inpMgr.tnpDir(systMode,1);
+  std::cout << "tagAndProbeDir=<" << tagAndProbeDir << ">\n";
   _TnP_fitPlots_dir = tagAndProbeDir;  // defined in fitFunctionsCore.hh
 
   //--------------------------------------------------------------------------------------------------------------
@@ -173,7 +176,8 @@ int eff_IdHlt(int analysisIs2D,
 
   vector<TString> ntupleFileNames;
   vector<TString> jsonFileNames;
-  inpMgr.getTNP_ntuples(tnpSection,runOnData,ntupleFileNames,jsonFileNames);
+  // do not enforce n-tuples, follow the input file
+  inpMgr.getTNP_ntuples(tnpSection,runOnData,ntupleFileNames,jsonFileNames,0);
   if (1) {
     if (ntupleFileNames.size()==0) {
       std::cout << "error: no ntupleFileNames obtained\n";
@@ -318,6 +322,7 @@ int eff_IdHlt(int analysisIs2D,
   TString selectEventsFName=inpMgr.tnpSelectEventsFName(systMode,sampleTypeString,effTypeString,triggers.triggerSetName());
   if (runMode==DYTools::DEBUG_RUN) {
     selectEventsFName.ReplaceAll("/selectEvents","_DEBUG/selectEvents");
+    CreateDir(selectEventsFName,1);
   }
   /*
   TString uScore="_";
