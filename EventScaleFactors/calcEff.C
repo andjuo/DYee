@@ -199,6 +199,13 @@ int calcEff(int analysisIs2D,
   TString labelMC = getLabel(-1111, effType, calcMethod, etBinning, etaBinning, triggers);
   TString puTag= (inpMgr.puReweightFlag()) ? "_PU" : "";
   if (puDependence) puTag.Append("_varPU");
+  if (effTypeString.Index("idSyst")!=-1) {
+    std::cout << "idSyst detected in effTypeString=<"<< effTypeString << ">\n";
+    int idx=effTypeString.Index("idSyst");
+    TString idSystStr=TString("-") + effTypeString(idx,effTypeString.Length());
+    puTag.Prepend(idSystStr);
+    std::cout << "  modified puTag=<" << puTag << ">\n";
+  }
   TString templatesLabel = tagAndProbeDir + TString("/mass_templates_")+labelMC + puTag + TString(".root");
 
   if( sample != DYTools::DATA) {
