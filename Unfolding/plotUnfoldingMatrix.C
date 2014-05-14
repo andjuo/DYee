@@ -16,20 +16,22 @@ int plotUnfoldingMatrix(int analysisIs2D,
 			TString rndStudyStr=""
 			//, double FSRreweight=1.0, double FSRmassDiff=1.
 			) {
-//systematicsMode 0 (NORMAL) - no systematic calc
-//1 (RESOLUTION_STUDY) - systematic due to smearing, 2 (FSR_STUDY) - systematics due to FSR, reweighting
-//check mass spectra with reweightFsr = 0.95; 1.00; 1.05  
+// Old comment: systematicsMode
+//  0 (NORMAL) - no systematic calc
+//  1 (RESOLUTION_STUDY) - systematic due to smearing,
+//  2 (FSR_STUDY) - systematics due to FSR, reweighting
+//check mass spectra with reweightFsr = 0.95; 1.00; 1.05
 //mass value until which do reweighting
 
   const double FSRmassDiff=1.; // largest energy of FSR photon to consider
-  
+
 
   // check whether it is a calculation
   if (conf.Contains("_DebugRun_")) {
-    std::cout << "plotDetResponse: _DebugRun_ detected. Terminating the script\n";
+    std::cout << "plotUnfoldingMatrix: _DebugRun_ detected. Terminating the script\n";
     return retCodeOk;
   }
- 
+
   // normal calculation
   gBenchmark->Start("makeUnfoldingMatrix");
 
@@ -53,7 +55,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   }
 
   //--------------------------------------------------------------------------------------------------------------
-  // Settings 
+  // Settings
   //==============================================================================================================
 
   InputFileMgr_t inpMgr;
@@ -109,7 +111,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   //return retCodeOk;
 
   //--------------------------------------------------------------------------------------------------------------
-  // Main analysis code 
+  // Main analysis code
   //==============================================================================================================
 
 
@@ -192,8 +194,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	TString(Form("_MIRROR_RANDOMIZED%d",i));
       ElectronEnergyScale *ees= new ElectronEnergyScale(escaleTag);
       if (1) {
-	std::cout << "randomSeed=" << i << ". EScale="; 
-	ees->print(); 
+	std::cout << "randomSeed=" << i << ". EScale=";
+	ees->print();
 	std::cout<<"\n";
       }
       escaleV.push_back(ees);
@@ -216,8 +218,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
       ElectronEnergyScale *ees= new ElectronEnergyScale(mgr.escaleTag(i));
       if (!ees ||
 	  !ees->isInitialized()) {
-	std::cout << "failed to identify escale calibration from tag: >>" 
-		  << mgr.escaleTag(i) 
+	std::cout << "failed to identify escale calibration from tag: >>"
+		  << mgr.escaleTag(i)
 		  << "<<\n";
 	assert(0);
       }
@@ -248,7 +250,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     std::cout << "shapeWeights:\n"; shapeWeights->Print(); // return;
   }
 
-  //  
+  //
   // Set up histograms
   //
   std::vector<TH1D*> hMassv;
@@ -270,7 +272,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   TH1F *hMassDiffEB = new TH1F("hMassDiffEB","", 100, -30, 30);
   TH1F *hMassDiffEE = new TH1F("hMassDiffEE","", 100, -30, 30);
 
-  // These histograms will contain (gen-reco) difference 
+  // These histograms will contain (gen-reco) difference
   // for each (mass, Y) bin in a flattened format
   TH2F *hMassDiffV = new TH2F("hMassDiffV","",
 			      nUnfoldingBins, -0.5, nUnfoldingBins-0.5,
@@ -294,10 +296,10 @@ int plotUnfoldingMatrix(int analysisIs2D,
   UnfoldingMatrix_t fsrDET(UnfoldingMatrix::_cFSR_DET,"fsrDET"); // only relevant indices are checked for ini,fin
   UnfoldingMatrix_t fsrDETexact(UnfoldingMatrix::_cFSR_DET,"fsrDETexact"); // all indices are checked
   // a good working version: response matrix and invResponse are modified after the inversion
-  UnfoldingMatrix_t fsrDET_good(UnfoldingMatrix::_cFSR_DET,"fsrDETgood"); 
+  UnfoldingMatrix_t fsrDET_good(UnfoldingMatrix::_cFSR_DET,"fsrDETgood");
 
   std::vector<UnfoldingMatrix_t*> detRespV;
-  
+
   if (systMode==DYTools::NO_SYST) {}
   /*
   if (systMode==DYTools::SYST_RND) {
@@ -356,7 +358,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
       (systMode==DYTools::ESCALE_STUDY)) {
     if (//(detRespV.size() != escaleV.size()) ||
 	(detRespV.size() != specEWeightsV.size())) {
-      std::cout << "error: detRespV.size=" << detRespV.size() 
+      std::cout << "error: detRespV.size=" << detRespV.size()
 	//<< ", escaleV.size=" << escaleV.size()
 	//<< ", specReweightsV.size=" << specReweightsV.size()
 		<< ", specEWeightsV.size=" << specEWeightsV.size()
@@ -367,9 +369,9 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
   //
   // Access samples and fill histograms
-  //  
+  //
   AccessOrigNtuples_t accessInfo;
-  
+
   //
   // loop over samples
   //
@@ -395,7 +397,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	infile= new TFile(skimName,"read");
       }
       assert(infile->IsOpen());
-      
+
       // Get the TTrees
       if (!accessInfo.setTree(*infile,"Events",true)) {
 	return retCodeError;
@@ -405,28 +407,28 @@ int plotUnfoldingMatrix(int analysisIs2D,
       // The first file in the list comes with weight 1*extraWeightFactor,
       // all subsequent ones are normalized to xsection and luminosity
       ULong_t maxEvents = accessInfo.getEntries();
-      // to match old version package (DYee 7TeV paper), 
-      if (inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT") && 
+      // to match old version package (DYee 7TeV paper),
+      if (inpMgr.userKeyValueAsInt("USE7TEVMCWEIGHT") &&
 	  (isample==0) && (ifile==0)) {
 	extraWeightFactor=maxEvents / (inpMgr.totalLumi() * inpMgr.mcSampleInfo(0)->getXsec(ifile));
 	//extraWeightFactor=maxEvents / inpMgr.mcSampleInfo(0)->getXsec(ifile);
       }
       //std::cout << "extraWeightFactor=" << extraWeightFactor << ", chk=" << (maxEvents0/inpMgr.mcSampleInfo(0)->getXsec(ifile)) << "\n";
       //const double extraWeightFactor=1.0;
-      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents, 
-						   inpMgr.totalLumi(), 
-						   mcSample->getXsec(ifile), 
+      if (! evWeight.setWeight_and_adjustMaxEvents(maxEvents,
+						   inpMgr.totalLumi(),
+						   mcSample->getXsec(ifile),
 						   extraWeightFactor, inpMgr.selectEventsFlag())) {
 	std::cout << "adjustMaxEvents failed\n";
 	return retCodeError;
       }
       std::cout << "mcSample xsec=" << mcSample->getXsec(ifile) << ", nEntries=" << maxEvents << "\n";
-      
+
       std::cout << "       -> sample base weight is " << evWeight.baseWeight() << "\n";
       for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
 	specEWeightsV[iSt]->setBaseWeight(evWeight);
       }
-    
+
       // loop through events
       EventCounterExt_t ec(Form("%s_file%d",mcSample->name.Data(),ifile));
       ec.setIgnoreScale(0); // 1 - count events, 0 - take weight in account
@@ -434,8 +436,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
       // if FEWZ weight should be considered, use evWeight.totalWeight() after
       // the FEWZ weight has been identified (see a line below)
       ec.setScale(evWeight.baseWeight());
-      
-      std::cout << "numEntries = " << accessInfo.getEntriesFast() 
+
+      std::cout << "numEntries = " << accessInfo.getEntriesFast()
 		<< ", " << maxEvents << " events will be used" << std::endl;
 
       for(ULong_t ientry=0; ientry<maxEvents; ientry++) {
@@ -444,7 +446,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	//if (DYTools::isDebugMode(runMode) && (ientry>100)) break; // debug option
 	printProgress(250000," ientry=",ientry,maxEvents);
 	ec.numEvents_inc();
-	
+
 	// Load generator level info
 	accessInfo.GetGen(ientry);
 	// If the Z->ll leptons are not electrons, discard this event.
@@ -478,7 +480,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	}
 
 	if (ientry<20) {
-	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(0); 
+	  std::cout << "ientry=" << ientry << ", "; evWeight.Print(0);
 	  //printf("reweight=%4.2lf, fewz_weight=%4.2lf,dE_fsr=%+6.4lf\n",reweight,fewz_weight,(gen->mass-gen->vmass));
 	  if (systMode!=DYTools::RESOLUTION_STUDY) {
 	    for (unsigned int iSt=0; iSt<specEWeightsV.size(); ++iSt) {
@@ -488,7 +490,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	  std::cout << "\n";
 	}
 
-	// adjust the scale in the counter to include FEWZ 
+	// adjust the scale in the counter to include FEWZ
 	// (and possibly PU) weight
 	//ec.setScale(evWeight.totalWeight());
 
@@ -505,15 +507,15 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	  fsrExact.fillFin(fiGenPostFsr, evWeight.totalWeight());
 	  fsrExact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
 	}
- 
+
 	int preFsrOk=0, postFsrOk=0;
-	if (evtSelector.inAcceptancePreFsr(accessInfo) && 
+	if (evtSelector.inAcceptancePreFsr(accessInfo) &&
 	    fiGenPreFsr.isValid()) {
 	  preFsrOk=1;
 	  fsrDET     .fillIni(fiGenPreFsr, evWeight.totalWeight());
 	  fsrDET_good.fillIni(fiGenPreFsr, evWeight.totalWeight());
 	}
-      
+
 	if (evtSelector.inAcceptance(accessInfo) &&
 	    fiGenPostFsr.isValid()) {
 	  postFsrOk=1;
@@ -529,7 +531,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	  fsrDETexact.fillMigration(fiGenPreFsr, fiGenPostFsr, evWeight.totalWeight());
 	}
 	// end of FSR unfolding block
-	
+
 
 	// check event trigger
 	if (!evtSelector.eventTriggerOk(accessInfo)) {
@@ -550,13 +552,13 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
 	  // keep unmodified dielectron
 	  if (escaleV.size()) uncorrDielectron.restoreEScaleModifiedValues(*dielectron);
-	  
+
 	  // escale may modify dielectron! But it should not here
 	  if (!evtSelector.testDielectron(dielectron,accessInfo.evtInfoPtr(),&ec)) continue;
 	  //pass=1;
 
           /******** We have a Z candidate! HURRAY! ********/
-	  
+
 	  candCount++;
 	  ec.numDielectronsPass_inc();
 	  if (ec.numDielectronsOkSameSign_inc(dielectron->q_1,dielectron->q_2)) {
@@ -564,7 +566,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	  }
 
 	  //
-	  // Fill structures for response matrix 
+	  // Fill structures for response matrix
 
 	  FlatIndex_t fiReco;
 	  fiReco.setRecoIdx(dielectron);
@@ -600,7 +602,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	      detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
 	      detRespV[iSt]->fillFin( fiReco      , studyWeight );
 	      if (bothFIValid) {
-		detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco, 
+		detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco,
 					      studyWeight );
 	      }
 	    }
@@ -642,7 +644,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	  /*
 	  Bool_t isB1 = DYTools::isBarrel(dielectron->scEta_1);
 	  Bool_t isB2 = DYTools::isBarrel(dielectron->scEta_2);
-	  
+
 	  hMassDiff->Fill(massResmeared - gen->mass);
 	  if( isB1 && isB2 )
 	    hMassDiffBB->Fill(massResmeared - gen->mass);
@@ -650,7 +652,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	    hMassDiffEB->Fill(massResmeared - gen->mass);
 	  if( !isB1 && !isB2 )
 	    hMassDiffEE->Fill(massResmeared - gen->mass);
-	
+
 	  hMassDiffV->Fill(iIndexFlatGen, massResmeared - gen->mass);
 	  hYDiffV   ->Fill(iIndexFlatGen, dielectron->y - gen->y);
 	  // 	if(iIndexFlatGen != -1){
@@ -660,8 +662,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
 	} // end loop over dielectrons
 	if (candCount>1) ec.numMultiDielectronsOk_inc();
-	
-      } // end loop over events 
+
+      } // end loop over events
       infile->Close();
       delete infile;
       std::cout << ec << "\n";
@@ -723,7 +725,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     fsrDETexact.prepareFIArrays();
     fsrDET_good.prepareFIArrays();
     fsrDETcorrections.prepareFIArrays();
-    for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->prepareFIArrays();  
+    for (unsigned int i=0; i<detRespV.size(); ++i) detRespV[i]->prepareFIArrays();
   }
 
   //
@@ -740,15 +742,15 @@ int plotUnfoldingMatrix(int analysisIs2D,
   {
     TString u="_";
     switch(systMode) {
-    case DYTools::NO_SYST: 
-      fnameTag=DYTools::analysisTag; 
+    case DYTools::NO_SYST:
+      fnameTag=DYTools::analysisTag;
       break;
-    case DYTools::SYST_RND: 
-      fnameTag=TString("_replica_") + DYTools::analysisTag; 
+    case DYTools::SYST_RND:
+      fnameTag=TString("_replica_") + DYTools::analysisTag;
       //saveIdxMin=0;
      //fnameTag+=seed;
        break;
-    case DYTools::RESOLUTION_STUDY: 
+    case DYTools::RESOLUTION_STUDY:
       fnameTag=TString("_seed_") + DYTools::analysisTag;
       //fnameTag+=seed;
       break;
@@ -779,9 +781,9 @@ int plotUnfoldingMatrix(int analysisIs2D,
   CPlot::sOutDir.Append(DYTools::analysisTag);
 
   if (DYTools::processData(runMode)) {
-    if (//(systMode!=DYTools::NORMAL_RND) && 
-	(systMode!=DYTools::RESOLUTION_STUDY) && 
-	//(systMode!=DYTools::FSR_STUDY) && 
+    if (//(systMode!=DYTools::NORMAL_RND) &&
+	(systMode!=DYTools::RESOLUTION_STUDY) &&
+	//(systMode!=DYTools::FSR_STUDY) &&
 	(systMode!=DYTools::ESCALE_STUDY)) {
       detResponse.autoSaveToFile(outputDir,fnameTag);  // detResponse, reference mc arrays
       detResponseExact.autoSaveToFile(outputDir,fnameTag);
@@ -812,8 +814,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
     }
   }
   else {
-    if (//(systMode!=DYTools::NORMAL_RND) && 
-	(systMode!=DYTools::RESOLUTION_STUDY) && 
+    if (//(systMode!=DYTools::NORMAL_RND) &&
+	(systMode!=DYTools::RESOLUTION_STUDY) &&
 	//(systMode!=DYTools::FSR_STUDY) &&
 	(systMode!=DYTools::ESCALE_STUDY)) {
       if (!detResponse.autoLoadFromFile(outputDir,fnameTag) ||
@@ -833,7 +835,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
 
   UnfoldingMatrix_t detRespAvg(detResponse.kind, "detResponseAvg");
-  if (1 && detRespV.size()) { //computeAverage 
+  if (1 && detRespV.size()) { //computeAverage
     const double weight=1/double(detRespV.size());
     for (unsigned int i=0; i<detRespV.size(); ++i) {
       TString name=Form("tmp_%d",i);
@@ -850,8 +852,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
 
   //--------------------------------------------------------------------------------------------------------------
-  // Make plots 
-  //==============================================================================================================  
+  // Make plots
+  //==============================================================================================================
 
   /*
   std::cout << "making plots" << std::endl;
@@ -885,7 +887,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     }
     else { c->SetLogx(1); c->SetLogy(1); }
     int ok=1;
-    
+
     TH1F *hGenAvg=new TH1F("hGenAvg","hGenAvg",DYTools::nMassBins,DYTools::massBinLimits);
     TH1F *hRecAvg=new TH1F("hRecAvg","hRecAvg",DYTools::nMassBins,DYTools::massBinLimits);
     hGenAvg->SetDirectory(0);
@@ -934,9 +936,9 @@ int plotUnfoldingMatrix(int analysisIs2D,
       hRec->SetLineColor(color);
       hGen->GetYaxis()->SetRangeUser(5.,3.e6);
       hRec->GetYaxis()->SetRangeUser(5.,3.e6);
-      if (twoPads) c->cd(1); 
+      if (twoPads) c->cd(1);
       hGen->Draw(opt);
-      if (twoPads) c->cd(2); 
+      if (twoPads) c->cd(2);
       else { if (i==0) opt.Append("same"); }
       hRec->Draw(opt);
     }
@@ -952,23 +954,23 @@ int plotUnfoldingMatrix(int analysisIs2D,
     return;
   }
 #endif
- 
+
 
   TCanvas *c = MakeCanvas("canvZmass1","canvZmass1",800,600);
 
   // string buffers
   char ylabel[50];   // y-axis label
 
-  // 
+  //
   // Draw DY candidate mass at the reconstruction level. Extra
-  // smearing is applied. This figure allows one to judge the 
+  // smearing is applied. This figure allows one to judge the
   // correctness of the weights aplied to different samples from the
   // smoothness of the combined result.
   //
   sprintf(ylabel,"a.u. / %.1f GeV/c^{2}",hZMassv[0]->GetBinWidth(1));
   CPlot plotZMass1("zmass1","","m(ee) [GeV/c^{2}]",ylabel);
-  for(UInt_t i=0; i<fnamev.size(); i++) { 
-    plotZMass1.AddHist1D(hZMassv[i],labelv[i],"hist",colorv[i],linev[i]); 
+  for(UInt_t i=0; i<fnamev.size(); i++) {
+    plotZMass1.AddHist1D(hZMassv[i],labelv[i],"hist",colorv[i],linev[i]);
   }
   plotZMass1.SetLogy();
   plotZMass1.Draw(c);
@@ -995,7 +997,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
   //
   // Draw a plot that illustrates the losses due to reconstruction
-  // We plot (preFsrExact-preFsr)/preFsrExact as a 
+  // We plot (preFsrExact-preFsr)/preFsrExact as a
   // function of mass and rapidity.
   //
   TMatrixD *unfRecoEffect=detResponseExact.getReconstructionEffect(detResponse);
@@ -1004,7 +1006,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   delete unfRecoEffect;
 
   TMatrixD *unfFsrDETRecoEffect=fsrDETexact.getReconstructionEffect(fsrDET);
-  
+
   PlotMatrixVariousBinning(*unfFsrDETRecoEffect, "reconstruction_effect_fsrDET", "LEGO2", NULL);
   delete unfFsrDETRecoEffect;
 
@@ -1043,7 +1045,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   SaveCanvas(g,"massDiff");
 //   if (fPlots) g->Write();
 
-  // Create a plot of reco - gen post-FSR mass and rapidity difference 
+  // Create a plot of reco - gen post-FSR mass and rapidity difference
   TCanvas *h1 = MakeCanvas("canvMassDiffV","canvMassDiffV",600,600);
   CPlot plotMassDiffV("massDiffV","",
 		      "flat index",
@@ -1052,7 +1054,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   plotMassDiffV.Draw(h1);
   SaveCanvas(h1,"hMassDiffV");
 
-  // Create a plot of reco - gen post-FSR mass and rapidity difference 
+  // Create a plot of reco - gen post-FSR mass and rapidity difference
   TCanvas *h2 = MakeCanvas("canvYDiffV","canvYDiffV",600,600);
   CPlot plotYDiffV("massDiffV","",
 		      "flat index",
@@ -1081,7 +1083,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   fsrDET.DetInvertedResponseErr->Draw("LEGO2");
   SaveCanvas(cFsrErrorsResp,"cErrorsFsr");
 
-  
+
 
   //--------------------------------------------------------------------------------------------------------------
   // Summary print out
@@ -1090,7 +1092,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   cout << "*" << endl;
   cout << "* SUMMARY" << endl;
   cout << "*--------------------------------------------------" << endl;
-  cout << endl; 
+  cout << endl;
 
   detResponse.printConditionNumber();
   fsrExact.printConditionNumber();
@@ -1113,7 +1115,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
         for (int jY=0; jY<DYTools::nYBins[jM]; jY++)
           {
 	    int i=DYTools::findIndexFlat(iM,iY);
-	    int j=DYTools::findIndexFlat(jM,jY);           
+	    int j=DYTools::findIndexFlat(jM,jY);
              if (DetInvertedResponseErr(i,j)>0.1)
                 {
                    std::cout<<"DetInvertedResponseErr("<<i<<","<<j<<")="<<DetInvertedResponseErr(i,j);
@@ -1147,7 +1149,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
     printf("yieldsMcPostFsrGen:\n");
     yieldsMcPostFsrGen.Print();
-    
+
     printf("yieldsMcPostFsrRec:\n");
     yieldsMcPostFsrRec.Print();
 
@@ -1156,12 +1158,12 @@ int plotUnfoldingMatrix(int analysisIs2D,
     //   DetCorrFactorDenominator.Print();
     //   printf("yieldsMcPostFsrRecArr:\n");
     //   yieldsMcPostFsrRecArr.Print();
-    
+
     //printf("yieldsMcGen:\n");
     //yieldsMcGen.Print();
   }
   /
-  
+
   if (0) {
     detResponse.printYields();
     fsrExact.printYields();
