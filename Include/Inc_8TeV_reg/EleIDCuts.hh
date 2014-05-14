@@ -1,5 +1,6 @@
 #ifndef ELEIDCUTS_HH
 #define ELEIDCUTS_HH
+//#warning linking EleIDCuts.hh 8TeV_reg
 
 #include <TMath.h>
 #include "../Include/DYTools.hh"
@@ -410,7 +411,7 @@ Bool_t passEGMID2012(const mithep::TElectron *electron, WorkingPointType wp, dou
   return passEGMID(electron, wp, rho, EGM2012);
 };
 
-// The primary implementatino of the ID follows
+// The primary implementation of the ID follows
 Bool_t passEGMID(const mithep::TElectron *electron, WorkingPointType wp, double rho, EGMID_t egmIDType)
 {
 
@@ -497,6 +498,111 @@ Bool_t passEGMID(const mithep::TElectron *electron, WorkingPointType wp, double 
   return kTRUE;
 }
 
+//--------------------------------------------------------------
+
+// The primary implementation of the ID follows
+inline
+Bool_t passEGMIDsyst(const mithep::TElectron *electron, WorkingPointType wp,
+		     double rho, EGMID_t egmIDType, TString systStr)
+{
+
+  int idx=systStr.Index("_");
+  double factor=(idx>0) ? atof(systStr.Data()+idx+2) : 1.;
+  std::cout << "passEGMIDsyst: systStr=<" << systStr << ">, factor=" << factor << "\n";
+
+  // Only the cuts for effective area are different for 2011 and 2012 EGM ID
+  Double_t *_AeffDR03 = 0;
+  if( egmIDType == EGM2011 )
+    _AeffDR03 = _AeffDR03_2011;
+  else if( egmIDType == EGM2012 )
+    _AeffDR03 = _AeffDR03_2012;
+  else {
+    printf("Unknown electron ID type requeted\n");
+    assert(0);
+  }
+
+  double factor_dxyz=(systStr.Index("dxyz")!=-1) ? factor : 1.;
+  if(fabs(electron->d0) > factor_dxyz*_EGM2011_D0Vtx[wp] ) return kFALSE;
+  if(fabs(electron->dz) > factor_dxyz*_EGM2011_DZVtx[wp] )  return kFALSE;
+
+  // conversion rejection
+  if(_EGM2011_MissingHits[wp] != -1      // this means that the cut IS to be applied
+     && electron->nExpHitsInner > _EGM2011_MissingHits[wp]) return kFALSE;
+  if(_EGM2011_PassConvVFitCut[wp] != -1  // this means that the cut IS to be applied
+     && electron->isConv)            return kFALSE;
+
+  // Cut on fabs(1/E - 1/p)
+//    double theta = 2*atan(exp( - electron->scEta ) );
+//    double scE = fabs( electron->scEt / sin( theta ) ); //fabs is probably not really needed, but just in case
+//    // NOTE: THIS IS NOT TRULY PROPER IMPLEMENTATION OF THE CUT,
+//    // the energy should be not SC, but of GsfElectron
+//    double invEMinusInvP = (1/scE)*fabs( 1 - electron->EoverP );
+  double invEMinusInvP = (1/electron->ecalE)*fabs( 1 - electron->EoverP );
+//    printf("  old %f      new %f   ecalE %f \n", invEMinusInvP, invEMinusInvP1, electron->ecalE);
+  double factor_invEinvP=(systStr.Index("invEminusInvP")!=-1) ? factor : 1.;
+  if( _EGM2011_InvEMinusInvP[wp] != -1   // this means that the cut IS to be applied
+      && (invEMinusInvP > factor_invEinvP*_EGM2011_InvEMinusInvP[wp]) ) return kFALSE;
+
+  // Compute PF isolation:
+  // Add energy in the rings with dR 0.0-0.1, 0.1-0.2, 0.2-0.3
+  // to get the total deposits in the cone 0.3.
+
+  double chIso = electron->chIso_00_01 + electron->chIso_01_02
+    + electron->chIso_02_03;
+  double gammaIso = electron->gammaIso_00_01 + electron->gammaIso_01_02
+    + electron->gammaIso_02_03;
+  double neuHadIso = electron->neuHadIso_00_01 + electron->neuHadIso_01_02
+    + electron->neuHadIso_02_03;
+  double Aeff = 0;
+  double factor_Aeff=(systStr.Index("Aeff")!=-1) ? factor : 1.;
+  for(int i=0; i<_nEtaBinsForAeff; i++){
+    if ( fabs(electron->scEta) >= _etaLimitsForAeff[i]
+	 && fabs(electron->scEta) < _etaLimitsForAeff[i+1]){
+      Aeff = factor_Aeff * _AeffDR03[i];
+      break;
+    }
+  }
+
+  double relPFIso03 = ( chIso +
+			TMath::Max( gammaIso + neuHadIso - rho*Aeff, 0.0) )
+                      / electron->pt;
+
+  double factor_relPFIso= (systStr.Index("relPFIso")!=-1) ? factor : 1.;
+  double factor_dEta    = (systStr.Index("dEta")!=-1) ? factor : 1.;
+  double factor_dPhi    = (systStr.Index("dPhi")!=-1) ? factor : 1.;
+  double factor_sigmaIEtaIEta=(systStr.Index("sigmaIEtaIEta")!=-1) ? factor : 1.;
+  double factor_HoE     = (systStr.Index("HoverE")!=-1) ? factor : 1.;
+
+  // barrel/endcap dependent requirements
+  if(fabs(electron->scEta)<1.479) {
+    // barrel
+    if( relPFIso03 > factor_relPFIso*_EGM2011_RelPFIsoEB[wp] ) return kFALSE;
+
+    if(fabs(electron->deltaEtaIn) > factor_dEta*_EGM2011_DEtaEB[wp]          )  return kFALSE;
+    if(fabs(electron->deltaPhiIn) > factor_dPhi*_EGM2011_DPhiEB[wp]          )  return kFALSE;
+    if(electron->sigiEtaiEta	  > factor_sigmaIEtaIEta*_EGM2011_SigmaIetaIetaEB[wp] )  return kFALSE;
+    if(electron->HoverE	          > factor_HoE*_EGM2011_HoEEB[wp]           )  return kFALSE;
+
+  } else {
+    // endcap
+
+    if(electron->pt>20) {
+      if( relPFIso03 > factor_relPFIso*_EGM2011_RelPFIsoEEHighPt[wp] ) return kFALSE;
+    } else {
+      if( relPFIso03 > factor_relPFIso*_EGM2011_RelPFIsoEELowPt[wp] ) return kFALSE;
+    }
+
+    if(fabs(electron->deltaEtaIn) > factor_dEta*_EGM2011_DEtaEE[wp]          )  return kFALSE;
+    if(fabs(electron->deltaPhiIn) > factor_dPhi*_EGM2011_DPhiEE[wp]          )  return kFALSE;
+    if(electron->sigiEtaiEta	  > factor_sigmaIEtaIEta*_EGM2011_SigmaIetaIetaEE[wp] )  return kFALSE;
+    if(_EGM2011_HoEEE[wp] != -1
+       && electron->HoverE	          > factor_HoE*_EGM2011_HoEEE[wp]   )  return kFALSE;
+  }
+
+  return kTRUE;
+}
+
+//--------------------------------------------------------------
 
 // Invidividual variations of EGM ID just call the main function 
 Bool_t passEGMID2011(const mithep::TDielectron *dielectron, WorkingPointType wp, double rho){
