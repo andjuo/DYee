@@ -48,7 +48,8 @@ namespace DYTools {
 		 _MassBins_2011, _MassBins_2012,
 		 _MassBins_test4, _MassBins_Zpeak,
 		 _MassBins_noUnderflow, _MassBins_withFullOverflow,
-		 _MassBins_bins100GeV
+		 _MassBins_bins100GeV,
+		 _MassBins_finerMassRange
   }     TMassBinning_t;
 
   // ----------------------------
