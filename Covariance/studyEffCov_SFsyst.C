@@ -59,10 +59,14 @@ int studyEffCov_SFsyst(int analysisIs2D,
   //TString confFileName="../config_files/data_vilnius8TeV_regSSD.conf.py";
   TString confFileName="../config_files/data_vilnius8TeV_regSSD_egamma.conf.py";
   //TString confFileName="toy_EtaBins2_var1.conf.py";
-  if (variant.Length()) confFileName=Form("toy_%s.conf.py",variant.Data());
+  if (variant.Length()) {
+    //confFileName=Form("toy_%s.conf.py",variant.Data());
+    confFileName=Form("../config_files/data_cern8TeVremote_%s.conf.py",variant.Data());
+    std::cout  << "confFileName=<" << confFileName << ">\n";
+  }
 
   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
-  //systMode=DYTools::UNREGRESSED_ENERGY;
+  systMode=DYTools::UNREGRESSED_ENERGY;
   if (systMode_user!=DYTools::NO_SYST) {
     std::cout << "\n\tChanging systematics mode to systMode_user="
 	      << SystematicsStudyName(systMode_user) << "\n\n";
