@@ -479,7 +479,7 @@ int prepareYields(int analysisIs2D,
     if (res) res=saveVec(file,hMassR9gnBEv,"mass_R9gnBE");
     if (res) res=saveVec(file,hMassR9ngBEv,"mass_R9ngBE");
     if (res) res=saveVec(file,hR9MissEventsv,"R9_misses");
-    if (res) writeBinningArrays(file);
+    if (res) writeBinningArrays(file,"prepareYields");
     file.Close();
     if (!res) {
       std::cout << "error occurred during save to file <" << yieldFullName << ">\n";
@@ -762,9 +762,9 @@ int prepareYields(int analysisIs2D,
   TFile fYields( fNameOutYields, "recreate" );
   //massBinLimits      .Write("massBinLimits");
   //rapidityBinning    .Write("rapidityBinning");
-  unfolding::writeBinningArrays(fYields);
+  writeBinningArrays(fYields,"prepareYields");
   dummySampleCount   .Write("dummySampleCount");
-  unfolding::writeBinningArrays(fYields);
+  writeBinningArrays(fYields,"prepareYields");
   char objName[100];
   for(UInt_t isam = 0; isam < yields.size(); isam++){
     sprintf(objName,"sample_name_%i",isam);
