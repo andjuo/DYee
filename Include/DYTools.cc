@@ -347,6 +347,7 @@ namespace DYTools {
     case ETABINS3: n = nEtaBins3; break;
     case ETABINS3Negs: n = nEtaBins3Negs; break;
     case ETABINS5egamma: // identical, although eff is with |eta|<2.5
+    case ETABINS5nomerge:
     case ETABINS5: n = nEtaBins5; break;
     case ETABINS5_max25: n = nEtaBins5_max25; break;
     case ETABINS4test: n = nEtaBins4test; break;
@@ -381,6 +382,7 @@ namespace DYTools {
     case ETABINS3: limits = etaBinLimits3; break;
     case ETABINS3Negs: limits = etaBinLimits3Negs; break;
     case ETABINS5egamma: // identical, although eff is with |eta|<2.5
+    case ETABINS5nomerge:
     case ETABINS5: limits = etaBinLimits5; break;
     case ETABINS5_max25: limits = etaBinLimits5_max25; break;
     case ETABINS4test: limits = etaBinLimits4test; break;
@@ -414,6 +416,7 @@ namespace DYTools {
     case ETABINS2:
     case ETABINS3:
     case ETABINS5egamma: // identical, although eff is with |eta|<2.5
+    case ETABINS5nomerge:
     case ETABINS5:
     case ETABINS5_max25:
     case ETABINS4test:
