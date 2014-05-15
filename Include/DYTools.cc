@@ -215,9 +215,13 @@ namespace DYTools {
     TString study2Dstr=TString((study2D) ? "2D" : "1D") + analysisTag_binning;
     analysisTag= study2Dstr + analysisTag_USER;
     nUnfoldingBinsMax= nMassBins * nYBinsMax;
-    nUnfoldingBins= (study2D) ?
-      ((nMassBins-2) * nYBinsMax +
-       nYBins[nMassBins-2] + nYBins[nMassBins-1]) : nMassBins;
+    nUnfoldingBins= nMassBins;
+    if (study2D) {
+      nUnfoldingBins=0;
+      for (int im=0; im<nMassBins; ++im) {
+	nUnfoldingBins += nYBins[im];
+      }
+    }
 
     return 1;
   }
