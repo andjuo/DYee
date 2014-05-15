@@ -115,8 +115,8 @@ const int _nYBins2012[_nMassBins2012] = {
   //#include "rangeDef_withFullOverflow_inc.h"
   //#include "rangeDef_massBinTest4_inc.h"
   //#include "rangeDef_ZpeakRegion_inc.h"
-  #include "rangeDef_bins100GeV_inc.h"
-
+  //#include "rangeDef_bins100GeV_inc.h"
+  #include "rangeDef_finerMassRange_inc.h"
 #endif
 
 
