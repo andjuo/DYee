@@ -368,7 +368,7 @@ int subtractBackground(int analysisIs2D,
   ddbkgFake.Write();
   ddbkgTotal.Write();
   hpMCSignal.Write();
-  writeBinningArrays(fileOut);
+  writeBinningArrays(fileOut,"subtractBackground");
   fileOut.Close();
   std::cout << "file <" << fileOut.GetName() << "> saved\n";
   
