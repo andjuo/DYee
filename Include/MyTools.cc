@@ -18,6 +18,21 @@ std::vector<TString>* createMassRangeVec(TString prependStr) {
 }
 
 //--------------------------------------------------
+
+int replaceAll(std::vector<TString*> &vec, TString oldText, TString newText) {
+  int count=0;
+  for (unsigned int i=0; i<vec.size(); ++i) {
+    TString *s=vec[i];
+    if (s->Index(oldText)!=-1) {
+      count++;
+      s->ReplaceAll(oldText,newText);
+    }
+  }
+  return count;
+}
+
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int maxEntries) {

@@ -133,6 +133,7 @@ void ClearVec(std::vector<T*> &vec) {
 //-----------------------------------------------------------
 
 std::vector<TString>* createMassRangeVec(TString prependStr="");
+int replaceAll(std::vector<TString*> &vec, TString oldText, TString newText);
 
 //------------------------------------------------------------------------------------------------------------------------
 
