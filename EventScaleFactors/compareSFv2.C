@@ -251,7 +251,9 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
 
   double transLegendX=-0.2;
   double transLegendY=-0.4;
+  double widenLegendX=0.2;
 
+  int setId=0;
 
   if (0) { // 2014.05.10
     path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
@@ -301,7 +303,7 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=-0.07;
   }
 
-  if (1) { // 2014.05.10
+  if (0) { // 2014.05.10
     path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
     path2=path1; path3=path1;
     effKindLongStr2="dataRECO_fit-fitEtBins7altEtaBins7_PU";
@@ -314,6 +316,23 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=-0.4;
   }
 
+  if (1) { // 2014.05.15
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2="Results-DYee-idEffStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path3=path2;
+    effKindLongStr1="dataID_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataID_fit-fitEtBins6systEtaBins5-idSystdxyz_095_PU";
+    effKindLongStr3="dataID_fit-fitEtBins6systEtaBins5-idSystdxyz_105_PU";
+    label1="Et6Eta5 base";
+    label2="Et6Eta5 dxyz#times0.95";
+    label3="Et6Eta5 dxyz#times1.05";
+    fnameTag="-sf-idEffStudy-dxyz";
+    transLegendX=-0.4;
+    transLegendY=-0.06;
+    if (iBr==0) widenLegendX=0.;
+    setId=1;
+  }
+
 
   // -------------------------------
   // processing
@@ -321,40 +340,72 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
 
   if (transLegendY_user!=0.) transLegendY=transLegendY_user;
 
-  if (iBr==0) {
+  std::vector<TString*> tsv;
+  TString oldText,newText;
+  tsv.reserve(10);
+  if (setId==0) {
+
+    tsv.push_back(&effKindLongStr1);
+    tsv.push_back(&effKindLongStr2);
+    tsv.push_back(&effKindLongStr3);
+
+    switch(iBr) {
+    case 0: break;
+    case 1: oldText="RECO"; newText="ID"; break;
+    case 2: oldText="RECO_fit-fit"; newText="HLT_count-count"; break;
+    case 3: oldText="dataRECO_fit-fit"; newText="dataHLTleg1_count-count"; break;
+    case 4: oldText="dataRECO_fit-fit"; newText="dataHLTleg2_count-count"; break;
+    default:
+      std::cout << "iBr error\n";
+      return;
+    }
+
   }
-  else if (iBr==1) {
-    effKindLongStr1.ReplaceAll("RECO","ID");
-    effKindLongStr2.ReplaceAll("RECO","ID");
-    effKindLongStr3.ReplaceAll("RECO","ID");
-  }
-  else if (iBr==2) {
-    effKindLongStr1.ReplaceAll("RECO_fit-fit","HLT_count-count");
-    effKindLongStr2.ReplaceAll("RECO_fit-fit","HLT_count-count");
-    effKindLongStr3.ReplaceAll("RECO_fit-fit","HLT_count-count");
-  }
-  else if (iBr==3) {
-    effKindLongStr1.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
-    effKindLongStr2.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
-    effKindLongStr3.ReplaceAll("dataRECO_fit-fit","dataHLTleg1_count-count");
-  }
-  else if (iBr==4) {
-    effKindLongStr1.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
-    effKindLongStr2.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
-    effKindLongStr3.ReplaceAll("dataRECO_fit-fit","dataHLTleg2_count-count");
+  else if (setId==1) {
+    // idEff study
+    tsv.push_back(&effKindLongStr2);
+    tsv.push_back(&effKindLongStr3);
+    tsv.push_back(&label2);
+    tsv.push_back(&label3);
+    tsv.push_back(&fnameTag);
+
+    oldText="dxyz";
+
+    switch(iBr) {
+    case 0: break;
+    case 1: newText="invEminusInvP"; break;
+    case 2: newText="Aeff"; break;
+    case 3: newText="relPFIso"; break;
+    case 4: newText="dEta"; break;
+    case 5: newText="dPhi"; break;
+    case 6: newText="sigmaIEtaIEta"; break;
+    case 7: newText="HoverE"; break;
+    default:
+      std::cout << "setId=" << setId << " not ready for iBr=" << iBr << "\n";
+      return;
+    }
   }
   else {
-    std::cout << "iBr error\n";
+    std::cout << "setId=" << setId << " is not ready\n";
     return;
   }
 
+  if (oldText.Length() && newText.Length()) {
+    if (!replaceAll(tsv,oldText,newText)) {
+      std::cout << "failed to change '" << oldText << "' to '" << newText << "'\n";
+      return;
+    }
+  }
+  tsv.clear();
+
   DYTools::TEtBinSet_t etBinSet1=DetermineEtBinSet(effKindLongStr1);
   DYTools::TEtaBinSet_t etaBinSet1=DetermineEtaBinSet(effKindLongStr1);
-  //int loc_etBinCount=DYTools::getEtBinCount(etBinSet1);
-  //int loc_etaBinCount=DYTools::getEtaBinCount(etaBinSet1);
+  int loc_etBinCount=DYTools::getNEtBins(etBinSet1);
+  int loc_etaBinCount=DYTools::getNEtaBins(etaBinSet1);
   double *loc_etBinLimits=DYTools::getEtBinLimits(etBinSet1);
   double *loc_etaBinLimits=DYTools::getEtaBinLimits(etaBinSet1);
 
+  int targetBinCount=(vsEt) ? loc_etaBinCount : loc_etBinCount;
   double *target_BinLimits=(vsEt) ? loc_etaBinLimits : loc_etBinLimits;
   double targetVal= 0.5 * ( target_BinLimits[iBin] + target_BinLimits[iBin+1] );
   if (val_user!=double(0.)) {
@@ -363,6 +414,16 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
   }
   std::cout << "iBin=" << iBin << ", targetVal=" << targetVal << "\n";
 
+  TString specCPtitle;
+  if (setId==1) {
+    const char *format=(vsEt) ?
+      "effID %3.1lf #leq |#eta| #leq %3.1lf" : "effID %2.0lf #leq #it{E}_{T} #leq %2.0lf";
+    specCPtitle=Form(format,target_BinLimits[iBin],target_BinLimits[iBin+1]);
+    if (iBin>=targetBinCount) {
+      std::cout << "bin number error\n  " << specCPtitle << "\n";
+      return;
+    }
+  }
 
   TString fname1=path1 + fnameBase + effKindLongStr1 + TString(".root");
   TString fname2=path2 + fnameBase + effKindLongStr2 + TString(".root");
@@ -396,6 +457,7 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
   TString xaxisTitle =(vsEt) ? "#it{E}_{T} [GeV]" : "|eta|";
   TString cpTitle= effKindName +
     TString(Form(" %s = %4.2lf",targetTitle.Data(), targetVal));
+  if (specCPtitle.Length()) cpTitle=specCPtitle;
 
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,"comp",cpTitle,
 		      xaxisTitle,"scale factor","ratio");
@@ -408,13 +470,16 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
   gr1->GetYaxis()->SetTitleOffset(1.4);
   gr1->GetXaxis()->SetLabelOffset(2.);
 
+  gr1->GetXaxis()->SetNdivisions(506);
+  div21->GetXaxis()->SetNdivisions(506);
+
   cp.AddGraph(gr1,label1,"LPE1",kBlue);
   cp.AddGraph(gr2,label2," PE1",kBlack,24);
   if (gr3) cp.AddGraph(gr3,label3," PE1",kGreen+2,27);
 
   cp.Draw(cx,0,"png",1);
   cp.TransLegend(transLegendX, transLegendY);
-  cp.WidenLegend(0.2,0.);
+  cp.WidenLegend(widenLegendX,0.);
 
 
   ComparisonPlot_t cpRatio(ComparisonPlot_t::_ratioPlain,"compRatio","",
