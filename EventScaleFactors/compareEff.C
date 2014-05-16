@@ -82,7 +82,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   double transLegendX=-0.2;
   double transLegendY=-0.4;
   int allowInvert12=1; // added on Mar 19, 2014
-
+  int setId=0;
 
   if (0) {
     path1="/home/andriusj/cms/DYee8TeV-20140118/root_files/tag_and_probe/DY_j22_19712pb/";
@@ -290,7 +290,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=-0.4;
   }
 
-  if (1) { // 2014.05.10
+  if (0) { // 2014.05.10
     if (vsEt) {
       std::cout << "Eta bins are different\n";
       return;
@@ -464,6 +464,25 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=-0.4;
   }
 
+  if (1) { // 2014.05.15
+    HLTcomparison=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2="Results-DYee-idEffStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path3=path2;
+    effKindLongStr1="dataID_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataID_fit-fitEtBins6systEtaBins5-idSystdxyz_095_PU";
+    effKindLongStr3="dataID_fit-fitEtBins6systEtaBins5-idSystdxyz_105_PU";
+    label1="Et6Eta5 base";
+    label2="Et6Eta5 dxyz#times0.95";
+    label3="Et6Eta5 dxyz#times1.05";
+    fnameTag="-idEffStudy-dxyz";
+    transLegendX=-0.4;
+    transLegendY=-0.06;
+    allowInvert12=0;
+    setId=1;
+  }
+
 
   // -------------------------------
   // processing
@@ -472,6 +491,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   if (transLegendY_user!=0.) transLegendY=transLegendY_user;
   if (transLegendX_user!=0.) transLegendX=transLegendX_user;
 
+  if (setId==0) {
   if (label2 == TString("EGamma")) {
     if (iBr==0) {
     }
@@ -564,6 +584,52 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
       std::cout << "iBr error\n";
       return;
     }
+  }
+  }
+  else if (setId==1) { // idEffStudy
+    std::vector<TString*> tsv;
+    tsv.reserve(10);
+    tsv.push_back(&effKindLongStr1); // to change data->mc
+    tsv.push_back(&effKindLongStr2);
+    tsv.push_back(&effKindLongStr3);
+    tsv.push_back(&label2);
+    tsv.push_back(&label3);
+    tsv.push_back(&fnameTag);
+
+    TString oldText="dxyz";
+    TString newText;
+
+    if (iBr>=10) {
+      if (!replaceAll(tsv,"dataID_fit-fit","mcID_count-count")) {
+	std::cout << "failed to change 'data' to 'mc'\n";
+	return;
+      }
+    }
+
+
+    switch(iBr%10) {
+    case 0: break;
+    case 1: newText="invEminusInvP"; break;
+    case 2: newText="Aeff"; break;
+    case 3: newText="relPFIso"; break;
+    case 4: newText="dEta"; break;
+    case 5: newText="dPhi"; break;
+    case 6: newText="sigmaIEtaIEta"; break;
+    case 7: newText="HoverE"; break;
+    default:
+      std::cout << "setId=" << setId << " not ready for iBr=" << iBr << "\n";
+      return;
+    }
+    if (newText.Length()) {
+      if (!replaceAll(tsv,oldText,newText)) {
+	std::cout << "could not find the replacements\n";
+	return;
+      }
+    }
+  }
+  else {
+    std::cout << "setId=" << setId << " is not ready\n";
+    return;
   }
 
 
@@ -739,6 +805,7 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
   cp.Draw(cx,0,"png",targetPad);
   cp.TransLegend(transLegendX, transLegendY);
   cp.WidenLegend(0.2,0.);
+  if (setId==1) cp.WidenLegend(0.,-0.03);
 
   if (relRatio!=-1) {
   cx->cd(2);
