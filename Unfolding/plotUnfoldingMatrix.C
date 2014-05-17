@@ -38,13 +38,13 @@ int plotUnfoldingMatrix(int analysisIs2D,
    {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,13,
+    if (!DYTools::checkSystMode(systMode,debug_print,11,
 				DYTools::NO_SYST, DYTools::SYST_RND,
 				DYTools::RESOLUTION_STUDY, DYTools::FSR_STUDY,
 				DYTools::PU_STUDY,
 				DYTools::FSR_5plus, DYTools::FSR_5minus,
 				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
-				DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL,
+				//DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL,
 				DYTools::FSR_RND_STUDY, DYTools::PU_RND_STUDY))
       return retCodeError;
   }
@@ -68,7 +68,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   }
   else {
     if (inpMgr.energyScaleTag() == "UNCORRECTED") {
-      std::cout << "SYST_RND needs energy scale correction\n";
+      std::cout << "RESOLUTION_STUDY needs energy scale correction\n";
       return retCodeError;
     }
   }
@@ -129,8 +129,17 @@ int plotUnfoldingMatrix(int analysisIs2D,
   else if (systMode==DYTools::FSR_5minus) { specWeight=0.95; useSpecWeight=1; }
   else if (systMode==DYTools::FSR_RND_STUDY) useSpecWeight=1;
 
-  random.SetSeed(-1);
-  gRandom->SetSeed(-1);
+  // check random seed. Special weights use their own,
+  // built-in dependencies on seed
+  {
+    int startSeed=-1;
+    if (systMode==DYTools::SYST_RND) {
+      std::cout << "setting startSeed=" << globalSeed << "\n";
+      startSeed= globalSeed;
+    }
+    random.SetSeed(startSeed);
+    gRandom->SetSeed(startSeed);
+  }
 
   // The random seeds are needed only if we are running this script in systematics mode
 
@@ -159,24 +168,10 @@ int plotUnfoldingMatrix(int analysisIs2D,
       specEWeightsV.push_back(ew);
     }
   }
-
-  /*
-  if ((systMode==DYTools::SYST_RND) || (systMode==DYTools::FSR_STUDY)) {
-    specReweightsV.reserve(seedDiff);
-    escaleV.reserve(seedDiff);
-    evtSelectorV.reserve(seedDiff);
-    for (int i=0; i<seedDiff; ++i) {
-      double specW= (systMode==DYTools::FSR_STUDY) ?  (1 + 0.05*(i-1)) : 1.0;
-      specReweightsV.push_back(specW);
-      ElectronEnergyScale *ees= new ElectronEnergyScale(*evtSelector.escale());
-      escaleV.push_back(ees);
-      EventSelector_t *evtSel=new EventSelector_t(evtSelector,ees);
-      evtSel->editECName().Append(Form("_idx%d",i+seedMin));
-      evtSelectorV.push_back(evtSel);
-    }
+  else if (systMode==DYTools::SYST_RND) {
+    // nothing special about weights
   }
-  */
-  if (systMode==DYTools::RESOLUTION_STUDY) {
+  else if (systMode==DYTools::RESOLUTION_STUDY) {
     if (seedMax==-111) {
       seedMin=-111;
       seedMax= 111;
@@ -207,29 +202,9 @@ int plotUnfoldingMatrix(int analysisIs2D,
       evtSelectorV.push_back(evtSel);
     }
   }
-  /*
-    specWeightsV.reserve(randomSeedMax-seedMin+1);
-  else if (systMode==DYTools::ESCALE_STUDY) {
-    EScaleTagFileMgr_t mgr;
-    assert(mgr.Load(escaleStudyDefs_FileName));
-    specWeightsV.reserve(mgr.size());
-    escaleV.reserve(mgr.size());
-    for (unsigned int i=0; i<mgr.size(); ++i) {
-      ElectronEnergyScale *ees= new ElectronEnergyScale(mgr.escaleTag(i));
-      if (!ees ||
-	  !ees->isInitialized()) {
-	std::cout << "failed to identify escale calibration from tag: >>"
-		  << mgr.escaleTag(i)
-		  << "<<\n";
-	assert(0);
-      }
-      escaleV.push_back(ees);
-      specWeightsV.push_back(1.0);
-    }
-  }
-  */
 
   // prepare tools for ESCALE_RESIDUAL
+  /*
   TMatrixD *shapeWeights=NULL;
   if (systMode==DYTools::ESCALE_RESIDUAL) {
     TString shapeFName=inpMgr.signalYieldFullFileName(DYTools::NO_SYST,1);
@@ -249,6 +224,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     }
     std::cout << "shapeWeights:\n"; shapeWeights->Print(); // return;
   }
+  */
 
   //
   // Set up histograms
@@ -301,15 +277,13 @@ int plotUnfoldingMatrix(int analysisIs2D,
   std::vector<UnfoldingMatrix_t*> detRespV;
 
   if (systMode==DYTools::NO_SYST) {}
-  /*
-  if (systMode==DYTools::SYST_RND) {
-    detRespV.reserve(escaleV.size());
-    for (unsigned int i=0; i<escaleV.size(); ++i) {
-      TString name=Form("detResponse_replica%d",i);
-      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix_t::_cDET_Response,name));
+  else if (systMode==DYTools::SYST_RND) {
+    detRespV.reserve(2);
+    for (int ir=0; ir<2; ++ir) {
+      TString name=Form("detResponse_seed%d_replica%d",globalSeed,ir);
+      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
   }
-  */
   else if (systMode==DYTools::RESOLUTION_STUDY) {
     detRespV.reserve(escaleV.size());
     for (int i=seedMin; i<=seedMax; i+=dSeed) {
@@ -351,11 +325,11 @@ int plotUnfoldingMatrix(int analysisIs2D,
   }
 
   // check
-  if ((systMode==DYTools::SYST_RND) ||
-      (systMode==DYTools::RESOLUTION_STUDY) ||
+  if ((systMode==DYTools::RESOLUTION_STUDY) ||
       (systMode==DYTools::FSR_STUDY) ||
-      (systMode==DYTools::PU_STUDY) ||
-      (systMode==DYTools::ESCALE_STUDY)) {
+      (systMode==DYTools::PU_STUDY)
+      //|| (systMode==DYTools::ESCALE_STUDY)
+      ) {
     if (//(detRespV.size() != escaleV.size()) ||
 	(detRespV.size() != specEWeightsV.size())) {
       std::cout << "error: detRespV.size=" << detRespV.size()
@@ -597,13 +571,26 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	  }
 
 	  if (systMode != DYTools::RESOLUTION_STUDY) {
-	    for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
-	      double studyWeight=specEWeightsV[iSt]->totalWeight();
-	      detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
-	      detRespV[iSt]->fillFin( fiReco      , studyWeight );
+	    if (systMode != DYTools::SYST_RND) {
+	      for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
+		double studyWeight=specEWeightsV[iSt]->totalWeight();
+		detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
+		detRespV[iSt]->fillFin( fiReco      , studyWeight );
+		if (bothFIValid) {
+		  detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco,
+						studyWeight );
+		}
+	      }
+	    }
+	    else {
+	      // SYST_RND
+	      double rnd=gRandom->Gaus(0,1.);
+	      if (rnd==double(0.)) rnd=gRandom->Gaus(0,1.);
+	      int idx=(rnd<double(0.)) ? 0:1;
+	      detRespV[idx]->fillIni( fiGenPostFsr, diWeight );
+	      detRespV[idx]->fillFin( fiReco      , diWeight );
 	      if (bothFIValid) {
-		detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco,
-					      studyWeight );
+		detRespV[idx]->fillMigration( fiGenPostFsr, fiReco, diWeight);
 	      }
 	    }
 	  }
@@ -623,22 +610,6 @@ int plotUnfoldingMatrix(int analysisIs2D,
 		}
 	      }
 	    }
-	    /*
-	  for (unsigned int iESc=0; iESc<escaleV.size(); ++iESc) {
-	    double massCorr= (systMode == DYTools::RESOLUTION_STUDY) ?
-	      escaleV[iESc]->generateMCSmearRandomized(dielectron->scEta_1,dielectron->scEta_2) :
-	      escaleV[iESc]->generateMCSmear(dielectron->scEta_1,dielectron->scEta_2);
-	    double mRes= dielectron->mass + massCorr;
-	    int iM = DYTools::findMassBin(mRes);
-	    int iY = DYTools::findAbsYBin(iM, dielectron->y);
-	    detRespV[iESc]->fillIni( iMassBinGenPostFsr, iYBinGenPostFsr, fullWeightPU * specWeightsV[iESc] );
-	    detRespV[iESc]->fillFin( iM, iY, fullWeightPU * specWeightsV[iESc] );
-	    int idxFReco= DYTools::findIndexFlat(iM, iY);
-	    if ( validFlatIndices(iIndexFlatGen, idxFReco) ) {
-	      detRespV[iESc]->fillMigration(iIndexFlatGen, idxFReco, fullWeightPU * specWeightsV[iESc] );
-	    }
-	  }
-	  */
 	  }
 
 	  /*
