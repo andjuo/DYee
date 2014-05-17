@@ -814,15 +814,9 @@ public:
     switch(systMode) {
     case DYTools::NO_SYST:
     case DYTools::APPLY_ESCALE:
+    case DYTools::SYST_RND:
       fnameTag=DYTools::analysisTag;
       break;
-    /*
-    case DYTools::SYST_RND:
-      fnameTag=TString("_replica_") + DYTools::analysisTag;
-      //saveIdxMin=0;
-      //fnameTag+=seed;
-      break;
-    */
     case DYTools::RESOLUTION_STUDY:
       fnameTag=TString("_seed_") + DYTools::analysisTag;
       //fnameTag+=seed;
