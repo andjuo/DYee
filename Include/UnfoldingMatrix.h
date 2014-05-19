@@ -307,6 +307,8 @@ public:
   TString name, iniYieldsName, finYieldsName;
   TMatrixD *yieldsIni; //(DYTools::nMassBins,DYTools::nYBinsMax);
   TMatrixD *yieldsFin; //(DYTools::nMassBins,DYTools::nYBinsMax);
+  TMatrixD *yieldsIniErr; //(DYTools::nMassBins,DYTools::nYBinsMax);
+  TMatrixD *yieldsFinErr; //(DYTools::nMassBins,DYTools::nYBinsMax);
 
   // Matrices for unfolding
   TMatrixD *DetMigration; //(DYTools::nUnfoldingBins, nUnfoldingBins);
@@ -331,6 +333,7 @@ public:
     kind(set_kind),
     name(set_name), iniYieldsName(), finYieldsName(),
     yieldsIni(0), yieldsFin(0),
+    yieldsIniErr(0), yieldsFinErr(0),
     DetMigration(0), DetMigrationErr(0),
     DetResponse(0), DetResponseErrPos(0), DetResponseErrNeg(0),
     DetResponseArr(0), DetInvertedResponseArr(0), DetInvertedResponseErrArr(0),
@@ -341,6 +344,7 @@ public:
     TVectorD arr(DYTools::nUnfoldingBins);
     my=0; unf=0; arr=0;
     yieldsIni=new TMatrixD(my); yieldsFin=new TMatrixD(my);
+    yieldsIniErr=new TMatrixD(my); yieldsFinErr=new TMatrixD(my);
     DetMigration=new TMatrixD(unf); DetMigrationErr=new TMatrixD(unf);
     DetResponse=new TMatrixD(unf);
     DetResponseErrPos=new TMatrixD(unf); DetResponseErrNeg=new TMatrixD(unf);
@@ -356,6 +360,7 @@ public:
     name(set_name),
     iniYieldsName(), finYieldsName(),
     yieldsIni(0), yieldsFin(0),
+    yieldsIniErr(0), yieldsFinErr(0),
     DetMigration(0), DetMigrationErr(0),
     DetResponse(0), DetResponseErrPos(0), DetResponseErrNeg(0),
     DetResponseArr(0), DetInvertedResponseArr(0), DetInvertedResponseErrArr(0),
@@ -363,6 +368,8 @@ public:
   {
     yieldsIni=new TMatrixD(*U.yieldsIni);
     yieldsFin=new TMatrixD(*U.yieldsFin);
+    yieldsIniErr=new TMatrixD(*U.yieldsIniErr);
+    yieldsFinErr=new TMatrixD(*U.yieldsFinErr);
     DetMigration=new TMatrixD(*U.DetMigration);
     DetMigrationErr=new TMatrixD(*U.DetMigrationErr);
     DetResponse=new TMatrixD(*U.DetResponse);
@@ -381,6 +388,8 @@ public:
   ~UnfoldingMatrix_t() {
     if (yieldsIni) delete yieldsIni;
     if (yieldsFin) delete yieldsFin;
+    if (yieldsIniErr) delete yieldsIniErr;
+    if (yieldsFinErr) delete yieldsFinErr;
     if (DetMigration) delete DetMigration;
     if (DetMigrationErr) delete DetMigrationErr;
     if (DetResponse) delete DetResponse;
@@ -402,6 +411,8 @@ public:
   const TMatrixD* getDetInvResponse() const { return DetInvertedResponse; }
   const TMatrixD* getIniM() const { return yieldsIni; }
   const TMatrixD* getFinM() const { return yieldsFin; }
+  const TMatrixD* getIniMerr() const { return yieldsIniErr; }
+  const TMatrixD* getFinMerr() const { return yieldsFinErr; }
 
   // Note that they are constructed from TMatrixD after the call of
   // prepareFIArrays
@@ -427,6 +438,7 @@ public:
       assert(0);
     }
     (*yieldsIni)(iMassBinGen,iYBinGen) += fullWeight;
+    (*yieldsIniErr)(iMassBinGen,iYBinGen) += fullWeight*fullWeight;
   }
 
   void fillFin(int iMassBinReco, int iYBinReco, double fullWeight) {
@@ -440,6 +452,7 @@ public:
       assert(0);
     }
     (*yieldsFin)(iMassBinReco,iYBinReco) += fullWeight;
+    (*yieldsFinErr)(iMassBinReco,iYBinReco) += fullWeight*fullWeight;
   }
 
   void fillMigration(int idx1, int idx2, double weight) {
@@ -457,24 +470,15 @@ public:
 
 
   void finalizeDetMigrationErr() {
-    for(int i=0; i < (*DetMigration).GetNrows(); i++)
-      for(int j=0; j < (*DetMigration).GetNcols(); j++)
-	if( (*DetMigrationErr)(i,j) >=0 )
-	  (*DetMigrationErr)(i,j) = sqrt( (*DetMigrationErr)(i,j) );
-	else {
-	  printf("UnfoldingMatrix_t::finalizeDetMigrationErr Error: negative weights in DetMigrationErr\n");
-	  std::cout << "matrixName=<" << name << ">\n";
-	  assert(0);
-	}
+    unsquareElements(*DetMigrationErr);
+    unsquareElements(*yieldsIniErr);
+    unsquareElements(*yieldsFinErr);
   }
 
   void squareDetMigrationErr() {
-    for (int i=0; i<(*DetMigration).GetNrows(); ++i) {
-      for (int j=0; j<(*DetMigration).GetNcols(); ++j) {
-	double x=(*DetMigrationErr)(i,j);
-	(*DetMigrationErr)(i,j)=x*x;
-      }
-    }
+    squareElements(*DetMigrationErr);
+    squareElements(*yieldsIniErr);
+    squareElements(*yieldsFinErr);
   }
 
   int randomizeMigrationMatrix(const UnfoldingMatrix_t &U,
@@ -537,9 +541,15 @@ public:
     TMatrixD Ytmp= *U.yieldsIni;
     Ytmp *= weight;
     *this->yieldsIni += Ytmp;
+    Ytmp = *U.yieldsIniErr;
+    Ytmp *= weight*weight;
+    *this->yieldsIniErr += Ytmp;
     Ytmp= *U.yieldsFin;
     Ytmp *= weight;
     *this->yieldsFin += Ytmp;
+    Ytmp = *U.yieldsFinErr;
+    Ytmp *= weight*weight;
+    *this->yieldsFinErr += Ytmp;
     TMatrixD Mtmp= *U.DetMigration;
     Mtmp *= weight;
     *this->DetMigration += Mtmp;
@@ -697,7 +707,8 @@ public:
   // pre-FSR or post-FSR cuts, while restricted.yields contain events in the
   // acceptance that passed both pre-FSR and post-FSR cuts (but their masses
   // are either pre-FSR /ini/ or post-FSR /fin/)
-  void prepareFsrDETcorrFactors(const UnfoldingMatrix_t &all, const UnfoldingMatrix_t &restricted) {
+  void prepareFsrDETcorrFactors(const UnfoldingMatrix_t &all,
+				const UnfoldingMatrix_t &restricted) {
     for (int iVec=0; iVec<2; ++iVec) {
       TMatrixD *nomV=(iVec==0) ? all.yieldsIni : all.yieldsFin;
       TMatrixD *denomV=(iVec==0) ? restricted.yieldsIni : restricted.yieldsFin;
@@ -851,11 +862,12 @@ public:
     return fnameTag;
   }
 
-  void autoSaveToFile(const TString &outputDir, const TString &fileTag) const {
+  void autoSaveToFile(const TString &outputDir, const TString &fileTag,
+		      TString callingMacro="UnfoldingMatrix.hh") const {
     TString matrixFName,yieldsFName;
     this->getFileNames(outputDir,fileTag, matrixFName,yieldsFName);
     std::cout << "saving to files <" << matrixFName << "> and <" << yieldsFName << ">\n";
-    this->saveToFile(matrixFName,yieldsFName);
+    this->saveToFile(matrixFName,yieldsFName,callingMacro);
   }
 
   int autoLoadFromFile(const TString &outputDir, const TString &fileTag) {
@@ -866,7 +878,8 @@ public:
   }
 
 
-  void saveToFile(const TString &fileName, const TString &refFileName) const {
+  void saveToFile(const TString &fileName, const TString &refFileName,
+		  TString callingMacro="UnfoldingMatrix.hh") const {
     std::cout << "UnfoldingMatrix_t::saveToFile(\n  <" << fileName << ">\n  <" << refFileName << ">) for name=" << this->name << "\n";
     if (kind!=UnfoldingMatrix::_cFSR_DETcorrFactors) {
       TFile fConst(fileName, "recreate" );
@@ -883,9 +896,11 @@ public:
       (*DetInvertedResponseErrArr).Write("DetInvertedResponseErrFIArray");
       (*yieldsIni).Write(iniYieldsName);
       (*yieldsFin).Write(finYieldsName);
+      (*yieldsIniErr).Write(iniYieldsName + TString("Err"));
+      (*yieldsFinErr).Write(finYieldsName + TString("Err"));
       (*yieldsIniArr).Write(iniYieldsName + TString("FIArray"));
       (*yieldsFinArr).Write(finYieldsName + TString("FIArray"));
-      writeBinningArrays(fConst);
+      writeBinningArrays(fConst,callingMacro);
       fConst.Close();
     }
 
@@ -895,7 +910,7 @@ public:
     (*yieldsFin).Write(finYieldsName);
     (*yieldsIniArr).Write(iniYieldsName + TString("FIArray"));
     (*yieldsFinArr).Write(finYieldsName + TString("FIArray"));
-    writeBinningArrays(fRef);
+    writeBinningArrays(fRef,callingMacro);
     fRef.Close();
   }
 
@@ -925,6 +940,8 @@ public:
       (*DetInvertedResponseErrArr).Read("DetInvertedResponseErrFIArray");
       (*yieldsIni).Read(iniYieldsName);
       (*yieldsFin).Read(finYieldsName);
+      (*yieldsIniErr).Read(iniYieldsName + TString("Err"));
+      (*yieldsFinErr).Read(finYieldsName + TString("Err"));
       (*yieldsIniArr).Read(iniYieldsName + TString("FIArray"));
       (*yieldsFinArr).Read(finYieldsName + TString("FIArray"));
       fConst.Close();
@@ -984,6 +1001,8 @@ public:
       (*DetInvertedResponseErrArr).Read("DetInvertedResponseErrFIArray");
       (*yieldsIni).Read(iniYieldsName);
       (*yieldsFin).Read(finYieldsName);
+      (*yieldsIniErr).Read(iniYieldsName + TString("Err"));
+      (*yieldsFinErr).Read(finYieldsName + TString("Err"));
       (*yieldsIniArr).Read(iniYieldsName + TString("FIArray"));
       (*yieldsFinArr).Read(finYieldsName + TString("FIArray"));
       fConst.Close();
