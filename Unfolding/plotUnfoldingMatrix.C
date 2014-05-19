@@ -751,27 +751,34 @@ int plotUnfoldingMatrix(int analysisIs2D,
   CPlot::sOutDir.ReplaceAll(DYTools::analysisTag,"");
   CPlot::sOutDir.Append(DYTools::analysisTag);
 
+  TString callingMacro="plotUnfoldingMatrix.systMode=";
+  callingMacro.Append(SystematicsStudyName(systMode));
+
   if (DYTools::processData(runMode)) {
     if (//(systMode!=DYTools::NORMAL_RND) &&
 	(systMode!=DYTools::RESOLUTION_STUDY) &&
 	//(systMode!=DYTools::FSR_STUDY) &&
 	(systMode!=DYTools::ESCALE_STUDY)) {
-      detResponse.autoSaveToFile(outputDir,fnameTag);  // detResponse, reference mc arrays
-      detResponseExact.autoSaveToFile(outputDir,fnameTag);
-      fsrGood.autoSaveToFile(outputDir,fnameTag);
-      fsrExact.autoSaveToFile(outputDir,fnameTag);
-      fsrDET.autoSaveToFile(outputDir,fnameTag);
-      fsrDETexact.autoSaveToFile(outputDir,fnameTag);
-      fsrDET_good.autoSaveToFile(outputDir,fnameTag);
-      fsrDETcorrections.autoSaveToFile(outputDir,fnameTag);
+      detResponse.autoSaveToFile(outputDir,fnameTag,callingMacro);  // detResponse, reference mc arrays
+      detResponseExact.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      fsrGood.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      fsrExact.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      fsrDET.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      fsrDETexact.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      fsrDET_good.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      fsrDETcorrections.autoSaveToFile(outputDir,fnameTag,callingMacro);
     }
-    for (unsigned int i=0; i<detRespV.size(); i++) detRespV[i]->autoSaveToFile(outputDir,fnameTag);
+    for (unsigned int i=0; i<detRespV.size(); i++)
+      detRespV[i]->autoSaveToFile(outputDir,fnameTag,callingMacro);
+
     // additional saving for systematics
     if (systMode==DYTools::FSR_STUDY) {
       detRespV[0]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5minus,0),
-	  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus,globalSeed));
+	  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5minus,globalSeed),
+				  callingMacro);
       detRespV[2]->autoSaveToFile(inpMgr.constDir(DYTools::FSR_5plus,0),
-	  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5plus,globalSeed));
+	  UnfoldingMatrix_t::generateFNameTag(DYTools::FSR_5plus,globalSeed),
+				  callingMacro);
     }
     else if (systMode==DYTools::PU_STUDY) {
       TString dir0=inpMgr.constDir(DYTools::PILEUP_5minus,0);
@@ -780,8 +787,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
       TString dir1=inpMgr.constDir(DYTools::PILEUP_5plus,0);
       TString tag1=UnfoldingMatrix_t::generateFNameTag(DYTools::PILEUP_5plus,
 						       globalSeed);
-      detRespV[0]->autoSaveToFile(dir0,tag0);
-      detRespV[1]->autoSaveToFile(dir1,tag1);
+      detRespV[0]->autoSaveToFile(dir0,tag0,callingMacro);
+      detRespV[1]->autoSaveToFile(dir1,tag1,callingMacro);
     }
   }
   else {
@@ -818,7 +825,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     detRespAvg.computeResponseMatrix();
     detRespAvg.invertResponseMatrix();
     detRespAvg.prepareFIArrays();
-    detRespAvg.autoSaveToFile(outputDir,fnameTag);  // detResponse, reference mc arrays
+    detRespAvg.autoSaveToFile(outputDir,fnameTag,callingMacro); // detResponse, reference mc arrays
   }
 
 
