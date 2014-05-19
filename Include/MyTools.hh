@@ -673,6 +673,27 @@ inline void unsquareBinContent(TH2D *h, int removeErr) {
   unsquareBinContent2D(h);
 }
 
+//---------------------------------------------------------------
+
+inline void squareElements(TMatrixD &m) {
+  for (int ir=0; ir<m.GetNrows(); ++ir) {
+    for (int ic=0; ic<m.GetNcols(); ++ic) {
+      const double x = m(ir,ic);
+      m(ir,ic) = x*x;
+    }
+  }
+}
+
+//---------------------------------------------------------------
+
+inline void unsquareElements(TMatrixD &m) {
+  for (int ir=0; ir<m.GetNrows(); ++ir) {
+    for (int ic=0; ic<m.GetNcols(); ++ic) {
+      m(ir,ic) = sqrt(m(ir,ic));
+    }
+  }
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class histo_t>
