@@ -130,7 +130,17 @@ TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr, const char *histoNa
 #ifndef DYTools_HH
     std::cout << "createHisto2D. Warning: massBins=1, but DYTools is not available\n";
 #endif
-    if ((nRows!=DYTools::nMassBins) || (nCols!=DYTools::nMassBins)) {
+    if ((nRows==DYTools::nMassBins) && (nCols==1)) {
+      double *mbins=new double[DYTools::nMassBins+1];
+      for (int i=0; i<=DYTools::nMassBins; ++i)
+	mbins[i]=DYTools::massBinLimits[i];
+      //mbins[DYTools::nMassBins] += 5e-1;
+      h= new TH2D(histoName,histoTitle,
+		  DYTools::nMassBins, mbins,
+		  1, DYTools::yRangeMin, DYTools::yRangeMax);
+      delete mbins;
+    }
+    else if ((nRows!=DYTools::nMassBins) || (nCols!=DYTools::nMassBins)) {
       std::cout << "createHisto2D. Warning: massBins=1, DYTools is available, but the matrix has incorrect number of bins (" << nRows << "x" << nCols << "), instead of a square matrix of dim=" << DYTools::nMassBins << "\n";
     }
     else {
@@ -958,7 +968,7 @@ int checkBinningArrays(TFile &fin, int printMetaData) {
     comparisonOk=0;
     delete initOk;
   }
-  if (!noInitOnFile) {
+  if (noInitOnFile) {
     std::cout << "binning ranges on file are not checked\n"
 	      << "( file was produced w/o DYTools::setup() )\n";
   }
