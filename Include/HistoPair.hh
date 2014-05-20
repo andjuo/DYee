@@ -780,13 +780,21 @@ inline void printHisto(const HistoPair2D_t &hp, int maxLines=-1) { hp.print(maxL
 // ---------------------------------------------
 
 inline
-int createRandomizedVec(const HistoPair2D_t &hp, int iSyst, int nExps, TString nameBase, std::vector<TH2D*> &vecRnd) {
+int createRandomizedVec(const HistoPair2D_t &hp, int iSyst, int nExps,
+			TString nameBase, std::vector<TH2D*> &vecRnd,
+			std::vector<TString>* labelsV=NULL) {
   vecRnd.clear();
+  vecRnd.reserve(nExps);
+  if (labelsV) {
+    labelsV->clear();
+    labelsV->reserve(nExps);
+  }
   const char *str=(iSyst) ? "syst" : "stat";
   for (int iexp=0; iexp<nExps; ++iexp) {
     TString newName=Form("%s%s_%d",nameBase.Data(),str,iexp);
     TH2D *hRnd=hp.randomizedWithinErr(iSyst,newName);
     vecRnd.push_back( hRnd );
+    if (labelsV) labelsV->push_back(newName);
   }
   return 1;
 }
