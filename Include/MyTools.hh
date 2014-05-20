@@ -1490,6 +1490,15 @@ int createAnyH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase,
 
 //------------------------------------------------------------------------------------------------------------------------
 
+inline
+int sameNumBins(const TH2D* h1, const TH2D* h2) {
+  return ((h1->GetNbinsX() == h2->GetNbinsX()) &&
+	  (h2->GetNbinsY() == h2->GetNbinsY())) ? 1:0;
+}
+
+//-----------------------------------------------------------
+//-----------------------------------------------------------
+
 template<class histo_t>
 inline
 int addHistos(histo_t *sum, const std::vector<histo_t*> &vec) {
