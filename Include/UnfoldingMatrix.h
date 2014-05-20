@@ -1352,6 +1352,126 @@ int unfold_reco2true(TMatrixD &matTrue, const UnfoldingMatrix_t &U, const TMatri
 // -----------------------------------------------
 // -----------------------------------------------
 
+inline
+int unfold(TH2D *hFin, TH2D *hFinErrSyst, const TMatrixD &U,
+	   const TH2D* hIni, const TH2D* hIniErrSyst) {
+  int res=1;
+  if ((hFinErrSyst && !sameNumBins(hFin,hFinErrSyst)) ||
+      !sameNumBins(hFin,hIni) ||
+      (hIniErrSyst && !sameNumBins(hIni,hIniErrSyst))) {
+    std::cout << "dim error in unfold(TH2D)\n";
+    res=0;
+  }
+
+  if (hFin->GetNbinsX() * hFin->GetNbinsY() < DYTools::nUnfoldingBins) {
+    std::cout << "Dim error in unfold(TH2D): hFin[" << hFin->GetNbinsX()
+	      << "x" << hFin->GetNbinsY() << "], nUnfoldingBins="
+	      << DYTools::nUnfoldingBins << "\n";
+    res=0;
+  }
+  if ( (DYTools::nUnfoldingBins != U.GetNrows()) ||
+       (DYTools::nUnfoldingBins != U.GetNcols()) ) {
+    std::cout << "Dim error in unfold(TH2D): nUnfoldingBins="
+	      << DYTools::nUnfoldingBins << ", U[" << U.GetNrows() << ", "
+	      << U.GetNcols() << "]\n";
+    res=0;
+  }
+  if (!res) { return 0; }
+
+  hFin->Reset();
+  if (hFinErrSyst) hFinErrSyst->Reset();
+
+  for (int ir=0, ini=0; ir<hFin->GetNbinsX(); ir++) {
+    if (hFin->GetNbinsY()<DYTools::nYBins[ir]) {
+      std::cout << "Dim problem in unfold(TH2D) at ir=" << ir
+		<< ", hFin->GetNbinsY=" << hFin->GetNbinsY()
+		<< ", nYBins=" << DYTools::nYBins[ir] << "\n";
+    }
+    for (int ic=0;
+	 //(ic<hFinHPM.GetNcols()) && (ini<DYTools::nUnfoldingBins);
+	 (ic<DYTools::nYBins[ir]) && (ini<DYTools::nUnfoldingBins);
+	 ++ic, ++ini) {
+      double sum=0;
+      double sumErr2=0;
+      double sumSystErr2=0;
+      for (int jr=0, fin=0; jr<hIni->GetNbinsX(); jr++) {
+	for (int jc=0;
+	     //(jc<iniM.GetNcols()) && (fin<DYTools::nUnfoldingBins);
+	     (jc<DYTools::nYBins[jr]) && (fin<DYTools::nUnfoldingBins);
+	     ++jc, ++fin) {
+	  sum += U(fin,ini) * hIni->GetBinContent(jr+1,jc+1);
+	  const double tmpErr= U(fin,ini) * hIni->GetBinError(jr+1,jc+1);
+	  sumErr2 += tmpErr*tmpErr;
+	  if (hIniErrSyst) {
+	    const double tmpSystErr=
+	      U(fin,ini) * hIniErrSyst->GetBinError(jr+1,jc+1);
+	    sumSystErr2 += tmpSystErr*tmpSystErr;
+	  }
+	}
+	hFin->SetBinContent(ir+1,ic+1, sum);
+	hFin->SetBinError(ir+1, ic+1, sqrt(sumErr2));
+	if (hFinErrSyst) {
+	  hFinErrSyst->SetBinError(ir+1, ic+1, sqrt(sumSystErr2));
+	}
+      }
+    }
+  }
+  return res;
+}
+
+// -----------------------------------------------
+
+inline
+int unfold(TH2D *hFin, const TMatrixD &U, const TH2D* hIni) {
+  return unfold(hFin,NULL,U,hIni,NULL);
+}
+
+// -----------------------------------------------
+
+inline
+int unfold_true2reco(TH2D* hReco, const UnfoldingMatrix_t &U,
+		     const TH2D *hTrue) {
+  return unfold(hReco, NULL, *U.getDetResponse(), hTrue, NULL);
+}
+// -----------------------------------------------
+
+inline
+int unfold_reco2true(TH2D *hTrue, const UnfoldingMatrix_t &U,
+		     const TH2D* hReco) {
+  return unfold(hTrue,NULL, *U.getDetInvResponse(), hReco, NULL);
+}
+
+// -----------------------------------------------
+
+inline
+TH2D* unfold_true2reco(const UnfoldingMatrix_t &U, const TH2D* hIni,
+		       TString newName) {
+  TH2D* hFin=Clone(hIni,newName,newName);
+  if (!unfold(hFin,NULL,*U.getDetResponse(),hIni,NULL)) {
+    std::cout << "error in unfold_true2reco(UnfM,TH2D*)\n";
+    delete hFin;
+    return NULL;
+  }
+  return hFin;
+}
+
+// -----------------------------------------------
+
+inline
+TH2D* unfold_reco2true(const UnfoldingMatrix_t &U, const TH2D* hIni,
+		       TString newName) {
+  TH2D* hFin=Clone(hIni,newName,newName);
+  if (!unfold(hFin,NULL,*U.getDetInvResponse(),hIni,NULL)) {
+    std::cout << "error in unfold_reco2true(UnfM,TH2D*)\n";
+    delete hFin;
+    return NULL;
+  }
+  return hFin;
+}
+
+// -----------------------------------------------
+// -----------------------------------------------
+
 #ifdef HistoPair_HH
 inline
 int unfold(HistoPair2D_t &finHP, const TMatrixD &U, const HistoPair2D_t &iniHP) {
