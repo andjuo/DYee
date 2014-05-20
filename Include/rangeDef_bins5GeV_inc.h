@@ -40,6 +40,13 @@ const int _nMassBins1D = _nMassBins2D;
 const double *_massBinLimits1D= _massBinLimits2D;
 const int _nYBinsMax1D= 1;
 
-const int _nYBins1D[_nMassBins1D] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+const int _nYBins1D[_nMassBins1D] = {
+  1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1,
+  1
+};
 
 }; // namespace DYTools
