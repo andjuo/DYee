@@ -48,6 +48,7 @@ namespace DYTools {
 		 _MassBins_2011, _MassBins_2012,
 		 _MassBins_test4, _MassBins_Zpeak,
 		 _MassBins_noUnderflow, _MassBins_withFullOverflow,
+		 _MassBins_bins5GeV,
 		 _MassBins_bins100GeV,
 		 _MassBins_finerMassRange
   }     TMassBinning_t;
@@ -255,6 +256,7 @@ namespace DYTools {
 
     int nYBinsThisMassRange = nYBins[massBin];
     if (massBinningSet == _MassBins_withFullOverflow) {
+      if (study2D==0) return 0;
       if (y >= yRangeEdge) return (nYBinsThisMassRange-1);
       nYBinsThisMassRange--;
     }

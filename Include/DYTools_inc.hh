@@ -22,6 +22,7 @@ TString MassBinningName(DYTools::TMassBinning_t set) {
   case _MassBins_noUnderflow: name="MassBins_noUnderflow"; break;
   case _MassBins_withFullOverflow: name="MassBins_withFullOverflow"; break;
   case _MassBins_bins100GeV: name="MassBins_bins100GeV"; break;
+  case _MassBins_bins5GeV: name="MassBins_bins5GeV"; break;
   case _MassBins_finerMassRange: name="MassBins_finerMassRange"; break;
   default: name="UNKNOWN_MASS_BINNING";
   }
