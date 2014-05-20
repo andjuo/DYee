@@ -43,7 +43,7 @@ int printHisto_loc(const TH1D* histo, int exponent=0, int maxLines=-1) {
 
 class ComparisonPlot_t : public CPlot {
 public:
-  typedef enum { _ratioPlain=1, _ratioRel=2 } TRatioType_t;
+  typedef enum { _ratioPlain=1, _ratioRel=2, _ratioBinom=3 } TRatioType_t;
 public:
   unsigned int fRefIdx;   // index of histogram to use as a reference
   unsigned int fErrorsOnRatios;
@@ -64,10 +64,10 @@ public:
   double fRatioYTitleOffset;
   double fRatioXTitleSize;
 
-  ComparisonPlot_t(TRatioType_t ratioType, const TString &name, const TString &title, const TString &xtitle, const TString &ytitle, const TString &ratioYLabel) :
+  ComparisonPlot_t(TRatioType_t set_ratioType, const TString &name, const TString &title, const TString &xtitle, const TString &ytitle, const TString &ratioYLabel) :
     CPlot(name,title,xtitle,ytitle),
     fRefIdx(0), fErrorsOnRatios(1),
-    fRatioType(ratioType),
+    fRatioType(set_ratioType),
     fHRatioIndices(),
     fExcludeIndices(),
     canvas(NULL),
@@ -110,6 +110,8 @@ public:
     fRatioXTitleSize(cp.fRatioXTitleSize)
   {}
 
+  TRatioType_t ratioType() const { return fRatioType; }
+  void ratioType(TRatioType_t set_ratio_type) { fRatioType=set_ratio_type; }
 
   void ErrorsOnRatios(unsigned int on=1) { fErrorsOnRatios=on; }
   void SetXTitleSize(double size, double offset=-99.) { fXTitleSize=size; if (offset>0.) fXTitleOffset=offset; }
@@ -483,13 +485,16 @@ public:
 	if (fPrintValues) printHisto_loc(histo,1);
 
 	switch(fRatioType) {
-	case _ratioPlain: 
+	case _ratioPlain:
 	  hratio->Divide(histo,hRef); 
 	  break;
 	case _ratioRel:  // (ref-h)/ref
 	  hratio->Scale(-1);
 	  hratio->Add(hRef);
 	  hratio->Divide(hRef);
+	  break;
+	case _ratioBinom:
+	  hratio->Divide(histo,hRef,1.,1.,"b");
 	  break;
 	default:
 	  std::cout << "cannot prepare ratio\n";
