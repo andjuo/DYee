@@ -334,8 +334,10 @@ int prepareYields(int analysisIs2D,
       int massBin = DYTools::findMassBin(data->mass);
       int yBin    = DYTools::findAbsYBin(massBin, data->y);
 
-      if ((massBin==-1) || (yBin==-1)) // out of range
+      if ((massBin==-1) || (yBin==-1)) {// out of range
+	//std::cout << "oor: mass=" << data->mass << ", y=" << data->y << "\n";
 	continue;
+      }
 
       if ((mdePrevRunNum==data->runNum) &&
 	  (mdePrevEvtNum==data->evtNum)) {
