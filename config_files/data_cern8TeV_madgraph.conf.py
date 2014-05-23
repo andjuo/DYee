@@ -342,10 +342,12 @@ $ zee 426  798 798 803  @Z#rightarrowee
 #> PREP cross section: 2950.0
 #> PREP filter efficiency: 1.0
 #> 
-#> Note that the ¡Èfilter¡É sample 10-50 has non-unit filter efficiency.
+#> Note that the "filter" sample 10-50 has non-unit filter efficiency.
 #> This means that this efficiency should be used for sampe normalization
 #> in addition to the number of events.
-# 11050.0/0.069=1.60144927536231873e+05
-PATH_SSD/s12-zllm1050-v7a_ntuple.root 160144.93 800 @Madgraph Zll 10-50
+# 11050.0*0.069=762.45
+# correction to improve the continuation of the postFSR cross section at 50GeV
+# 11050.0*0.069/1.05=726.14
+PATH_SSD/s12-zllm1050-v7a_ntuple.root    726.14 800 @Madgraph Zll 10-50
 PATH_SSD/s12-zllm50-v7a_ntuple.root     2950.0  600 @Madgraph Zll >50
 %
