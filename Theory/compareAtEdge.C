@@ -2,7 +2,7 @@
 #include "../Include/MyTools.hh"
 #include "../Include/ComparisonPlot.hh"
 
-void compareAtEdge(int iBr, double scaleHisto1=1.) {
+void compareAtEdge(int iBr, int iSet=0, double scaleHisto1=1.) {
   TString fileName;
   TString histo1Name, histo2Name;
   TString label1,label2;
@@ -24,6 +24,14 @@ void compareAtEdge(int iBr, double scaleHisto1=1.) {
     cpTitle.ReplaceAll("preFsrDet","postFsrDet");
   }
 
+  if (iSet==1) {
+    std::vector<TString*> tsv;
+    tsv.push_back(&histo1Name);
+    tsv.push_back(&histo2Name);
+    replaceAll(tsv,"mass_","massPreFsr_");
+    replaceAll(tsv,"hMass","hMassPreFsr");
+  }
+
   TFile fin(fileName,"read");
   if (!fin.IsOpen()) return;
   TH1D* h1=(TH1D*)fin.Get(histo1Name);
@@ -42,8 +50,10 @@ void compareAtEdge(int iBr, double scaleHisto1=1.) {
     hDer->SetBinContent(ibin,(hSum->GetBinContent(ibin+1)-hSum->GetBinContent(ibin-1))/2.);
   }
 
+  TString yAxisTitle=(iSet==0) ? "post-FSR counts" : "pre-FSR counts";
+
   ComparisonPlot_t cp(ComparisonPlot_t::_ratioPlain,"cp",cpTitle,
-		      "M_{ee}","counts","ratio");
+		      "M_{ee}",yAxisTitle,"ratio");
   cp.SetRefIdx(-111);
   cp.SetXRange(xMin,xMax);
   cp.SetYRange(yMin,yMax);
