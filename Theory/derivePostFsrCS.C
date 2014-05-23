@@ -84,9 +84,12 @@ int derivePostFsrCS(int analysisIs2D,
   std::vector<TH1D*> hMass1Dv;
   std::vector<TH2D*> hMass2Dv;
   std::vector<TH2D*> hMass2DasymV;
+
+  std::vector<TH1D*> hMassPreFsr1Dv;
   
   // distributions in 1GeV bins
   createAnyH1Vec(hMass1Dv,"hMass1D_",inpMgr.mcSampleNames(),2990,10.,3000.,"#it{M}_{ee} [GeV]","counts/1GeV");
+  createAnyH1Vec(hMassPreFsr1Dv,"hMassPreFsr1D_",inpMgr.mcSampleNames(),2990,10.,3000.,"#it{M}_{ee} [GeV]","counts/1GeV");
   createBaseH2Vec(hMass2Dv,"hMass2D_",inpMgr.mcSampleNames(),1,1);
   createBaseH2Vec(hMass2DasymV,"hMass2Dasym_",inpMgr.mcSampleNames(),0,1);
 
@@ -206,6 +209,7 @@ int derivePostFsrCS(int analysisIs2D,
 	}
 
 	hMass1Dv[isample]->Fill(gen->mass, evWeight.totalWeight());
+	hMassPreFsr1Dv[isample]->Fill(gen->vmass, evWeight.totalWeight());
 	hMass2Dv[isample]->Fill(gen->mass, fabs(gen->y), evWeight.totalWeight());
 	hMass2DasymV[isample]->Fill(gen->mass, gen->y, evWeight.totalWeight());
 
@@ -233,6 +237,7 @@ int derivePostFsrCS(int analysisIs2D,
     TFile file(outFileName,"recreate");
     int res=file.IsOpen();
     if (res) res=saveVec(file,hMass1Dv,"mass_1D_1GeV_bins");
+    if (res) res=saveVec(file,hMassPreFsr1Dv,"massPreFsr_1D_1GeV_bins");
     if (res) res=saveVec(file,hMass2Dv,"mass_2D_base");
     if (res) res=saveVec(file,hMass2DasymV,"mass_2D_asym_base");
     if (res) writeBinningArrays(file);
@@ -247,6 +252,7 @@ int derivePostFsrCS(int analysisIs2D,
     int res=file.IsOpen();
     if (res) res=checkBinningArrays(file);
     if (res) res=loadVec(file,hMass1Dv,"mass_1D_1GeV_bins");
+    if (res) res=loadVec(file,hMassPreFsr1Dv,"massPreFsr_1D_1GeV_bins");
     if (res) res=loadVec(file,hMass2Dv,"mass_2D_base");
     if (res) res=loadVec(file,hMass2DasymV,"mass_2D_asym_base");
     file.Close();
