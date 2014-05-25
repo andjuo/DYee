@@ -613,7 +613,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 		double w=1.;
 		if (fiReco.isValid()) {
 		  w=h2Rnd->GetBinContent(fiReco.iM()+1,fiReco.iY()+1);
-		  if (iSt==0) {
+		  if ((iSt==0) && (ientry<20)) {
 		    std::cout << "dielectron(M,Y)=" << dielectron->mass
 			      << "," << dielectron->y << ", fiReco="
 			      << fiReco << ", specWeight=" << w << "\n";
