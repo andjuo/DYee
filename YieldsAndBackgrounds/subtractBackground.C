@@ -327,6 +327,7 @@ int subtractBackground(int analysisIs2D,
   signalYieldMCbkg.print();
   signalYieldDDbkg.print();
   zeeMCShapeReweight_mcBkg->Print("range");
+  zeeMCShapeReweight_ddBkg->Print("range");
 
   HistoPair2D_t hpMCSignal("hpMCsignal");
   if (!hpMCSignal.cloneHisto(mcSignal)) {
