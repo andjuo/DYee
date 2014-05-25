@@ -14,14 +14,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 			DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN,
 			DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
 			TString rndStudyStr=""
-			//, double FSRreweight=1.0, double FSRmassDiff=1.
 			) {
-// Old comment: systematicsMode
-//  0 (NORMAL) - no systematic calc
-//  1 (RESOLUTION_STUDY) - systematic due to smearing,
-//  2 (FSR_STUDY) - systematics due to FSR, reweighting
-//check mass spectra with reweightFsr = 0.95; 1.00; 1.05
-//mass value until which do reweighting
 
   const double FSRmassDiff=1.; // largest energy of FSR photon to consider
 
@@ -38,13 +31,14 @@ int plotUnfoldingMatrix(int analysisIs2D,
    {
     DYTools::printExecMode(runMode,systMode);
     const int debug_print=1;
-    if (!DYTools::checkSystMode(systMode,debug_print,11,
+    if (!DYTools::checkSystMode(systMode,debug_print,12,
 				DYTools::NO_SYST, DYTools::SYST_RND,
 				DYTools::RESOLUTION_STUDY, DYTools::FSR_STUDY,
 				DYTools::PU_STUDY,
 				DYTools::FSR_5plus, DYTools::FSR_5minus,
 				DYTools::PILEUP_5plus, DYTools::PILEUP_5minus,
-				//DYTools::ESCALE_STUDY,DYTools::ESCALE_RESIDUAL,
+				//DYTools::ESCALE_STUDY,
+				DYTools::ESCALE_RESIDUAL,
 				DYTools::FSR_RND_STUDY, DYTools::PU_RND_STUDY))
       return retCodeError;
   }
@@ -59,10 +53,17 @@ int plotUnfoldingMatrix(int analysisIs2D,
   //==============================================================================================================
 
   InputFileMgr_t inpMgr;
+  InputFileMgr_t *yieldInpMgr=NULL; // needed for ESCALE_RESIDUAL
   if (!inpMgr.Load(conf)) return retCodeError;
 
   // plotDetResponse uses escale!
-  if (systMode!=DYTools::RESOLUTION_STUDY) {
+  if (systMode==DYTools::ESCALE_RESIDUAL) {
+    yieldInpMgr= new InputFileMgr_t(inpMgr);
+    // create a temporary object to set proper directories
+    EventSelector_t tmpEventSelector(*yieldInpMgr,runMode,
+		   DYTools::APPLY_ESCALE,"","",EventSelector::_selectDefault);
+  }
+  else if (systMode!=DYTools::RESOLUTION_STUDY) {
     // no energy correction for this evaluation
     inpMgr.clearEnergyScaleTag();
   }
@@ -122,6 +123,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
   std::vector<EventWeight_t*> specEWeightsV;
   std::vector<double> specReweightsV;
   std::vector<EventSelector_t*> evtSelectorV;
+  std::vector<TH2D*> specTH2DWeightV; // used for ESCALE_RESIDUAL
 
   double specWeight=1.;
   int useSpecWeight=0;
@@ -204,27 +206,43 @@ int plotUnfoldingMatrix(int analysisIs2D,
   }
 
   // prepare tools for ESCALE_RESIDUAL
-  /*
-  TMatrixD *shapeWeights=NULL;
+  TH2D* h2ShapeWeights=NULL;
   if (systMode==DYTools::ESCALE_RESIDUAL) {
-    TString shapeFName=inpMgr.signalYieldFullFileName(DYTools::NO_SYST,1);
-    TString field="ShapeReweight/zeeMCShapeReweight_";
-    TString ddBkg=(1) ? "mcBkg" : "ddBkg";
-    std::cout << "Obtaining shape weights from <" << shapeFName << ">"
+    if (!yieldInpMgr) {
+      std::cout << "yieldInpMgr had to be created\n";
+      return retCodeError;
+    }
+    DYTools::TSystematicsStudy_t yieldSystMode=DYTools::APPLY_ESCALE;
+    TString shapeFName=yieldInpMgr->signalYieldFullFileName(yieldSystMode,1);
+    delete yieldInpMgr; // no longer needed
+    if (rndStudyStr.Length()) {
+      shapeFName.ReplaceAll(TString("__") + rndStudyStr,"");
+    }
+    TString subdir="ShapeReweight";
+    TString field="zeeMCShapeReweight_";
+    TString ddBkg=(inpMgr.userKeyValueAsInt("DDBKG")==1) ? "ddBkg" : "mcBkg";
+    field.Append(ddBkg);
+    std::cout << "Obtaining shape weights from <"
+	      << shapeFName << ">"
 	      << "(use" << ddBkg << ")\n";
-    shapeWeights=loadMatrix(shapeFName,field,DYTools::nMassBins,DYTools::nYBinsMax,1);
-    if (!shapeWeights) {
-      std::cout << "failed to find object \"ZeeMCShapeReweight\"\n";
-      throw 2;
+    h2ShapeWeights=LoadHisto2D(field,shapeFName,subdir,1);
+    if (!h2ShapeWeights) {
+      std::cout << "failed to find histo \"ZeeMCShapeReweight\"\n";
+      return retCodeError;
     }
-    //dirTag += TString("_escale_residual");
-    //std::cout << "changing dirTag to <" << dirTag << ">\n";
-    if (0 && (DYTools::study2D==0)) {
-      (*shapeWeights)(0,0)=1; (*shapeWeights)(1,0)=1; (*shapeWeights)(2,0)=1;
+    std::cout << "shapeWeights:\n"; printHisto(h2ShapeWeights);
+
+    int ensembleSize= inpMgr.userKeyValueAsInt("RESIDUAL_STUDY_SIZE");
+    if (ensembleSize<=0) ensembleSize=100;
+    std::cout << "EScale_residual ensemble size=" << ensembleSize << "\n";
+    specTH2DWeightV.reserve(ensembleSize);
+    HistoPair2D_t hpRnd("hpRnd",h2ShapeWeights);
+    for (int i=0; i<ensembleSize; ++i) {
+      TString name=Form("rndShapeWeight_%d",i);
+      TH2D* h2Rnd=hpRnd.randomizedWithinErr(0,name);
+      specTH2DWeightV.push_back(h2Rnd);
     }
-    std::cout << "shapeWeights:\n"; shapeWeights->Print(); // return;
   }
-  */
 
   //
   // Set up histograms
@@ -266,6 +284,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
   UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,"detResponse");
   UnfoldingMatrix_t detResponseExact(UnfoldingMatrix::_cDET_Response,"detResponseExact");
+  UnfoldingMatrix_t detResponseReversed(UnfoldingMatrix::_cDET_Response,"detResponseReversed");
 
   UnfoldingMatrix_t fsrGood(UnfoldingMatrix::_cFSR, "fsrGood");
   UnfoldingMatrix_t fsrExact(UnfoldingMatrix::_cFSR, "fsrExact");
@@ -305,6 +324,14 @@ int plotUnfoldingMatrix(int analysisIs2D,
     for (unsigned int i=0; i<specEWeightsV.size(); i++) {
       TString wStr=(i==0) ? "PU5minus" : "PU5plus";
       TString name=TString("detResponse_") + wStr;
+      detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
+    }
+  }
+  else if (systMode==DYTools::ESCALE_RESIDUAL) {
+    unsigned int count=specTH2DWeightV.size();
+    detRespV.reserve(count);
+    for (unsigned int i=0; i<count; ++i) {
+      TString name=Form("detResponse_%s",niceNumber(i+1,count).Data());
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
   }
@@ -545,16 +572,6 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	  FlatIndex_t fiReco;
 	  fiReco.setRecoIdx(dielectron);
 
-	  // Fill the matrix of the reconstruction level mass and rapidity
-	  /*
-	    double shape_weight = 1.0;
-	    if( shapeWeights && iMassReco != -1 && iYReco != -1) {
-	    shape_weight = (*shapeWeights)[iMassReco][iYReco];
-	    //std::cout << "massResmeared=" << massResmeared << ", iMassReco=" << iMassReco << ", shapeWeight=" << shape_weight << "\n";
-	    }
-	    double fullWeightPU = fullGenWeightPU * shape_weight;
-	  */
-
 	  // Fill the matrix of post-FSR generator level invariant mass and rapidity
 	  double diWeight=evWeight.totalWeight();
 	  detResponse.fillIni(fiGenPostFsr, diWeight);
@@ -570,8 +587,47 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	    detResponseExact.fillMigration(fiGenPostFsr, fiReco, diWeight);
 	  }
 
+	  detResponseReversed.fillIni(fiReco,       diWeight);
+	  detResponseReversed.fillFin(fiGenPostFsr, diWeight);
+	  detResponseReversed.fillMigration(fiReco,fiGenPostFsr, diWeight);
+
 	  if (systMode != DYTools::RESOLUTION_STUDY) {
-	    if (systMode != DYTools::SYST_RND) {
+	    switch(systMode) {
+	    case DYTools::SYST_RND: {
+	      double rnd=gRandom->Gaus(0,1.);
+	      if (rnd==double(0.)) rnd=gRandom->Gaus(0,1.);
+	      int idx=(rnd<double(0.)) ? 0:1;
+	      detRespV[idx]->fillIni( fiGenPostFsr, diWeight );
+	      detRespV[idx]->fillFin( fiReco      , diWeight );
+	      if (bothFIValid) {
+		detRespV[idx]->fillMigration( fiGenPostFsr, fiReco, diWeight);
+	      }
+	    }
+	      break;
+
+	    case DYTools::ESCALE_RESIDUAL:
+	      for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
+		const TH2D *h2Rnd= specTH2DWeightV[iSt];
+		double w=1.;
+		if (fiReco.isValid()) {
+		  w=h2Rnd->GetBinContent(fiReco.iM()+1,fiReco.iY()+1);
+		  if (iSt==0) {
+		    std::cout << "dielectron(M,Y)=" << dielectron->mass
+			      << "," << dielectron->y << ", fiReco="
+			      << fiReco << ", specWeight=" << w << "\n";
+		  }
+		}
+		double studyWeight= diWeight * w;
+		detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
+		detRespV[iSt]->fillFin( fiReco      , studyWeight );
+		if (bothFIValid) {
+		  detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco,
+						studyWeight);
+		}
+	      }
+	      break;
+
+	    default:
 	      for (unsigned int iSt=0; iSt<detRespV.size(); ++iSt) {
 		double studyWeight=specEWeightsV[iSt]->totalWeight();
 		detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
@@ -580,17 +636,6 @@ int plotUnfoldingMatrix(int analysisIs2D,
 		  detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco,
 						studyWeight );
 		}
-	      }
-	    }
-	    else {
-	      // SYST_RND
-	      double rnd=gRandom->Gaus(0,1.);
-	      if (rnd==double(0.)) rnd=gRandom->Gaus(0,1.);
-	      int idx=(rnd<double(0.)) ? 0:1;
-	      detRespV[idx]->fillIni( fiGenPostFsr, diWeight );
-	      detRespV[idx]->fillFin( fiReco      , diWeight );
-	      if (bothFIValid) {
-		detRespV[idx]->fillMigration( fiGenPostFsr, fiReco, diWeight);
 	      }
 	    }
 	  }
@@ -652,6 +697,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     // Compute the errors on the elements of migration matrix
     detResponse.finalizeDetMigrationErr();
     detResponseExact.finalizeDetMigrationErr();
+    detResponseReversed.finalizeDetMigrationErr();
     fsrGood.finalizeDetMigrationErr();
     fsrExact.finalizeDetMigrationErr();
     fsrDET.finalizeDetMigrationErr();
@@ -663,6 +709,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     std::cout << "find response matrix" << std::endl;
     detResponse.computeResponseMatrix();
     detResponseExact.computeResponseMatrix();
+    detResponseReversed.finalizeDetMigrationErr();
     fsrGood.computeResponseMatrix();
     fsrExact.computeResponseMatrix();
     fsrDET.computeResponseMatrix();
@@ -673,6 +720,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     std::cout << "find inverted response matrix" << std::endl;
     detResponse.invertResponseMatrix();
     detResponseExact.invertResponseMatrix();
+    detResponseReversed.invertResponseMatrix();
     fsrGood.invertResponseMatrix();
     fsrExact.invertResponseMatrix();
     fsrDET.invertResponseMatrix();
@@ -690,6 +738,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     std::cout << "prepare flat-index arrays" << std::endl;
     detResponse.prepareFIArrays();
     detResponseExact.prepareFIArrays();
+    detResponseReversed.prepareFIArrays();
     fsrGood.prepareFIArrays();
     fsrExact.prepareFIArrays();
     fsrDET.prepareFIArrays();
@@ -761,6 +810,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	(systMode!=DYTools::ESCALE_STUDY)) {
       detResponse.autoSaveToFile(outputDir,fnameTag,callingMacro);  // detResponse, reference mc arrays
       detResponseExact.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      detResponseReversed.autoSaveToFile(outputDir,fnameTag,callingMacro);
       fsrGood.autoSaveToFile(outputDir,fnameTag,callingMacro);
       fsrExact.autoSaveToFile(outputDir,fnameTag,callingMacro);
       fsrDET.autoSaveToFile(outputDir,fnameTag,callingMacro);
@@ -798,6 +848,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 	(systMode!=DYTools::ESCALE_STUDY)) {
       if (!detResponse.autoLoadFromFile(outputDir,fnameTag) ||
 	  !detResponseExact.autoLoadFromFile(outputDir,fnameTag) ||
+	  !detResponseReversed.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrGood.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrExact.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrDET.autoLoadFromFile(outputDir,fnameTag) ||
