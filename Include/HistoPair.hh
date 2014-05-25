@@ -43,6 +43,23 @@ public:
 
   // ----------------
 
+  HistoPair2D_t(const TString &nameBase, const TH2D* h2,
+		const TH2D* h2SystErr=NULL) :
+    BaseClass_t("HistoPair2D_t"), fHisto(NULL), fHistoSystErr(NULL) {
+    fHisto=Clone(h2,nameBase,nameBase);
+    if (h2SystErr) {
+      TString name=nameBase + TString("Syst");
+      if (sameNumBins(h2,h2SystErr))
+	fHistoSystErr=Clone(h2SystErr,name,name);
+      else printError("HistoPair2D_t(TH2D*,TH2D*) dim mismatch");
+    }
+    if (!fHisto || (h2SystErr && !fHistoSystErr)) {
+      printError("HistoPair2D_t(TH2D*,TH2D*)");
+    }
+  }
+
+  // ----------------
+
   void clear() {
     if (fHisto) delete fHisto;
     if (fHistoSystErr) delete fHistoSystErr;
