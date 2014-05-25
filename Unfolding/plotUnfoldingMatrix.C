@@ -234,10 +234,14 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
     int ensembleSize= inpMgr.userKeyValueAsInt("RESIDUAL_STUDY_SIZE");
     if (ensembleSize<=0) ensembleSize=100;
-    std::cout << "EScale_residual ensemble size=" << ensembleSize << "\n";
+    ensembleSize++;
+    std::cout << "EScale_residual ensemble size=" << ensembleSize
+	      << " (one added for non-randomized entry)\n";
     specTH2DWeightV.reserve(ensembleSize);
     HistoPair2D_t hpRnd("hpRnd",h2ShapeWeights);
-    for (int i=0; i<ensembleSize; ++i) {
+    specTH2DWeightV.push_back(Clone(h2ShapeWeights,
+				    "h2NonRndShapeW","h2NonRndShapeW"));
+    for (int i=1; i<ensembleSize; ++i) {
       TString name=Form("rndShapeWeight_%d",i);
       TH2D* h2Rnd=hpRnd.randomizedWithinErr(0,name);
       specTH2DWeightV.push_back(h2Rnd);
@@ -331,7 +335,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
     unsigned int count=specTH2DWeightV.size();
     detRespV.reserve(count);
     for (unsigned int i=0; i<count; ++i) {
-      TString name=Form("detResponse_%s",niceNumber(i+1,count).Data());
+      TString name=Form("detResponse_%s",niceNumber(i,count).Data());
+      if (i==0) name="detResponse_0_nonRnd";
       detRespV.push_back(new UnfoldingMatrix_t(UnfoldingMatrix::_cDET_Response,name));
     }
   }
