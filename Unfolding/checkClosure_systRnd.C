@@ -134,6 +134,15 @@ int checkClosure_systRnd(int analysisIs2D,
     double sumABfin=h2FinA->Integral() + h2FinB->Integral();
     h2Fin->Scale(0.5*sumABfin/h2Fin->Integral());
 
+    if (1) {
+      HERE("xx");
+      //h2FinA->SetBinContent(41,1,1.452241);
+      //h2FinA->SetBinContent(41,1,1.366610);
+      printHisto(h2FinA);
+      printHisto(h2FinB);
+      printHisto(h2Fin);
+    }
+
     std::vector<TH2D*> hRecoV;
     std::vector<TString> labelsRecoV;
     std::vector<ComparisonPlot_t*> cpRecoV;
@@ -146,18 +155,18 @@ int checkClosure_systRnd(int analysisIs2D,
     if (iBr!=2) { hRecoV.push_back(h2FinB); labelsRecoV.push_back("recoB"); }
 
     if (iBr==1) {
-      hRecoV.push_back(unfold_true2reco(detResponseA,h2IniA,"mcA unf A"));
-      labelsRecoV.push_back("mcA unf A");
-      hRecoV.push_back(unfold_true2reco(detResponseB,h2IniB,"mcB unf B"));
-      labelsRecoV.push_back("mcB unf B");
+      hRecoV.push_back(unfold_true2reco(detResponseA,h2IniA,"mcA fold A"));
+      labelsRecoV.push_back("mcA fold A");
+      hRecoV.push_back(unfold_true2reco(detResponseB,h2IniB,"mcB fold B"));
+      labelsRecoV.push_back("mcB fold B");
     }
     else if (iBr==2) {
-      hRecoV.push_back(unfold_true2reco(detResponseB,h2IniA,"mcB unf A"));
-      labelsRecoV.push_back("mc unf A");
+      hRecoV.push_back(unfold_true2reco(detResponseB,h2IniA,"mcB fold A"));
+      labelsRecoV.push_back("mcB fold A");
     }
     else if (iBr==3) {
-      hRecoV.push_back(unfold_true2reco(detResponseA,h2IniB,"mcA unf B"));
-      labelsRecoV.push_back("mc unf B");
+      hRecoV.push_back(unfold_true2reco(detResponseA,h2IniB,"mcA fold B"));
+      labelsRecoV.push_back("mcA fold B");
     }
 
     TCanvas *cxReco=plotProfiles("cxReco",hRecoV,labelsRecoV,NULL,0,
@@ -198,11 +207,11 @@ int checkClosure_systRnd(int analysisIs2D,
     }
     else if (iBr==2) {
       hGenV.push_back(unfold_reco2true(detResponseB,h2FinA,"mcB unf A"));
-      labelsGenV.push_back("mc unf A");
+      labelsGenV.push_back("mcB unf A");
     }
     else if (iBr==3) {
       hGenV.push_back(unfold_reco2true(detResponseA,h2FinB,"mcA unf B"));
-      labelsGenV.push_back("mc unf B");
+      labelsGenV.push_back("mcA unf B");
     }
 
    TCanvas *cxGen=plotProfiles("cxGen",hGenV,labelsGenV,NULL,0,
@@ -221,7 +230,7 @@ int checkClosure_systRnd(int analysisIs2D,
     }
     cxGen->Update();
 
-    TString fnameBase=Form("fig-%dD-mcYields",DYTools::study2D+1);
+    TString fnameBase=Form("fig-%s-mcYields",DYTools::analysisTag.Data());
     fnameBase.Append(seedStr);
     fnameBase.Append("-");
     TString fnameReco=fnameBase + TString("Reco");
@@ -412,7 +421,7 @@ int checkClosure_systRnd(int analysisIs2D,
     }
     cxPullErr->Update();
 
-    TString fnameBase=Form("fig-%dD-unfTest-",DYTools::study2D+1);
+    TString fnameBase=Form("fig-%s-mcYields",DYTools::analysisTag.Data());
     fnameBase.Append(seedStr);
     fnameBase.Append("-");
     TString fname    =fnameBase + TString("AvgUnf");
@@ -646,7 +655,7 @@ int checkClosure_systRnd(int analysisIs2D,
     }
     cxPullErr->Update();
 
-    TString fnameBase=Form("fig-%dD-asTest-",DYTools::study2D+1);
+    TString fnameBase=Form("fig-%s-mcYields",DYTools::analysisTag.Data());
     fnameBase.Append(seedStr);
     fnameBase.Append("-");
     TString fname    =fnameBase + TString("AvgUnf");
