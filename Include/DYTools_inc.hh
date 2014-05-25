@@ -248,7 +248,8 @@ TString DataKindName(DYTools::TDataKind_t kind) {
 DYTools::TSystematicsStudy_t DetermineSystematicsStudy(const TString &str) {
   using namespace DYTools;
   DYTools::TSystematicsStudy_t study=NO_SYST;
-  if (str.Contains("NORMALRUN_NOSYST") || str.Contains("NormalRun_noSyst")) { study=NO_SYST; }
+  if (str.Contains("NORMALRUN_NOSYST") || str.Contains("NormalRun_noSyst") ||
+      str.Contains("NO_SYST") || str.Contains("NoSyst")) { study=NO_SYST; }
   else if (str.Contains("RESOLUTION_STUDY") || str.Contains("ResolutionStudy")) study=RESOLUTION_STUDY;
   else if (str.Contains("FSR_STUDY") || str.Contains("FSRStudy")) study=FSR_STUDY;
   else if (str.Contains("FSR_RND_STUDY") || str.Contains("FSRRndStudy")) study=FSR_RND_STUDY;
