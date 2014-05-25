@@ -134,6 +134,7 @@ void ClearVec(std::vector<T*> &vec) {
 
 std::vector<TString>* createMassRangeVec(TString prependStr="");
 int replaceAll(std::vector<TString*> &vec, TString oldText, TString newText);
+TString niceNumber(int iVal, int iValMax);
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -1636,7 +1637,9 @@ int loadHisto(TFile &file, histo_t **h, TString subDir) {
 
 //--------------------------------------------------
 
+// load from un-opened file
 TH2D* LoadHisto2D(TString fieldName, const TString &fname, TString subDir="", int checkBinning=1);
+// load from an opened file
 TH2D* LoadHisto2D(TFile &fin, TString fieldName, TString subDir="", int checkBinning=1);
 
 //--------------------------------------------------

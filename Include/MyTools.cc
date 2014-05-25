@@ -31,6 +31,20 @@ int replaceAll(std::vector<TString*> &vec, TString oldText, TString newText) {
   return count;
 }
 
+//--------------------------------------------------
+
+TString niceNumber(int iVal, int iValMax) {
+  if (iValMax<0) iValMax=-iValMax;
+  int cnt=0;
+  while (iValMax>0) {
+    cnt++;
+    iValMax/=10;
+  }
+  const char *format=Form("%c%dd",'%',cnt);
+  TString str=Form(format,iVal);
+  str.ReplaceAll(" ","0");
+  return str;
+}
 
 //--------------------------------------------------
 //--------------------------------------------------
