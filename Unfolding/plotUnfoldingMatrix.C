@@ -589,7 +589,9 @@ int plotUnfoldingMatrix(int analysisIs2D,
 
 	  detResponseReversed.fillIni(fiReco,       diWeight);
 	  detResponseReversed.fillFin(fiGenPostFsr, diWeight);
-	  detResponseReversed.fillMigration(fiReco,fiGenPostFsr, diWeight);
+	  if (bothFIValid) {
+	    detResponseReversed.fillMigration(fiReco,fiGenPostFsr, diWeight);
+	  }
 
 	  if (systMode != DYTools::RESOLUTION_STUDY) {
 	    switch(systMode) {
