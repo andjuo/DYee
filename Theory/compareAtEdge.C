@@ -44,10 +44,20 @@ void compareAtEdge(int iBr, int iSet=0, double scaleHisto1=1.) {
   TH1D* hSum=(TH1D*)h1->Clone("hSum");
   hSum->Add(h2);
 
+  int derAcc2=0;
   TH1D* hDer=(TH1D*)hSum->Clone("hDer");
   hDer->Reset();
   for (int ibin=1; ibin<hDer->GetNbinsX(); ++ibin) {
-    hDer->SetBinContent(ibin,(hSum->GetBinContent(ibin+1)-hSum->GetBinContent(ibin-1))/2.);
+    double der=0.;
+    if (derAcc2) {
+      // O(h2) accuracy
+      der= (hSum->GetBinContent(ibin+1)-hSum->GetBinContent(ibin-1))/2.;
+    }
+    else {
+      // O(h)
+      der= hSum->GetBinContent(ibin+1)-hSum->GetBinContent(ibin);
+    }
+    hDer->SetBinContent(ibin,der);
   }
 
   TString yAxisTitle=(iSet==0) ? "post-FSR counts" : "pre-FSR counts";
@@ -59,7 +69,7 @@ void compareAtEdge(int iBr, int iSet=0, double scaleHisto1=1.) {
   cp.SetYRange(yMin,yMax);
   cp.AddHist1D(h1,label1,"LP",kBlack);
   cp.AddHist1D(h2,label2,"LP",kBlue);
-  cp.AddHist1D(hSum,"sum","LP",kRed+1);
+  cp.AddHist1D(hSum,"sum","LP",TAttMarker(kRed+1,24,1.0));
 
   ComparisonPlot_t cpDer(ComparisonPlot_t::_ratioPlain,"cpDer","",
 			 "M_{ee}","dSum/dx","ratio");
