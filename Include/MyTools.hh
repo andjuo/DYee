@@ -930,6 +930,9 @@ TMatrixD* corrFromCov(const TMatrixD &cov);
 // Extract error from matrix diagonal
 TH2D* errorFromCov(const TMatrixD &cov, TString newName);
 
+// Create covariance matrix from correlation matrix and errors
+TMatrixD* covFromCorr(const TMatrixD &corr, const TVectorD &errs);
+
 // Calculate partial correlation matrix
 // assuming that cov is a part of totCov
 TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov);
@@ -1333,6 +1336,13 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, c
 
  TH1D* removeLastBin(const TH1D* hIni, TString newName, int setTitle=0, const char *newTitle=NULL);
 
+
+// Modify histogram contents. Useful adjusting the assigned systematics
+void linearApprox(TH1D *h, int ibin1, int ibin2,
+		  double valOnEdge1=-1., double valOnEdge2=-1.);
+void linearApprox(TH1D *h, double mass1, double mass2,
+		  double valOnEdge1=-1., double valOnEdge2=-1.);
+
 // -------------------------------------------
 
 inline
@@ -1529,8 +1539,8 @@ histo_t* addHistos(TString newName, const std::vector<histo_t*> &vec) {
 //-----------------------------------------------------------
 
 // error is ignored
-int scaleHisto(TH1D *histoNom, const TH1D *histoDenom);
-int scaleHisto(TH2D *histoNom, const TH2D *histoDenom);
+int scaleHisto(TH1D *histoNom, const TH1D *histoDenom, int mult=0);
+int scaleHisto(TH2D *histoNom, const TH2D *histoDenom, int mult=0);
 
 TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
 TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);

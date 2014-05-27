@@ -97,6 +97,33 @@ TH2D* errorFromCov(const TMatrixD &cov, TString newName) {
 
 //--------------------------------------------------
 
+TMatrixD* covFromCorr(const TMatrixD &corr, const TVectorD &errs) {
+  if ((corr.GetNrows() != errs.GetNoElements()) ||
+      (corr.GetNcols() != errs.GetNoElements())) {
+    std::cout << "covFromCorr dimension mismatch:\n";
+    std::cout << "  corr[" << corr.GetNrows() << " x "
+	      << corr.GetNcols() << "]\n";
+    std::cout << "  errs[" << errs.GetNoElements() << "]\n";
+    return NULL;
+  }
+  TMatrixD *cov= new TMatrixD(corr);
+  if (!cov) {
+    std::cout << "covFromCorr: failed to create a new matrix\n";
+    return NULL;
+  }
+  cov->Zero();
+  for (int ir=0; ir<corr.GetNrows(); ++ir) {
+    double eR=errs[ir];
+    for (int ic=0; ic<corr.GetNcols(); ++ic) {
+      double eC=errs[ic];
+      (*cov)(ir,ic) = corr(ir,ic)*(eR*eC);
+    }
+  }
+  return cov;
+}
+
+//--------------------------------------------------
+
 TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov) {
   TMatrixD *corr= new TMatrixD(cov);
   if (!corr) {
@@ -382,11 +409,14 @@ int writeFlagValues(const TString &fieldName, int nFlags, double flag1, ...) {
 //---------------------------------------------------------------
 
 TVectorD* readFlagValues(TFile &fin, const TString &fieldName, int nFlags) {
+  int doWarn=(nFlags>0) ? 1:0;
   TVectorD* v=(TVectorD*)fin.Get(fieldName);
   int got=(v) ? v->GetNoElements() : 0;
-  if (v && (got!=nFlags)) { delete v; v=NULL; }
-  if (!v) {
-    std::cout << "could get field=<" << fieldName << "> with " << got << " elements\n";
+  if (v && (got!=abs(nFlags))) { delete v; v=NULL; }
+  if (!v && doWarn) {
+    std::cout << "readFlagValues: couldn't get full field=<"
+	      << fieldName << ">. Got " << got << "/" << nFlags
+	      << " elements\n";
   }
   return v;
 }
@@ -703,6 +733,28 @@ TH1D* removeLastBin(const TH1D* hOrig, TString newName, int setTitle, const char
 }
 
 //--------------------------------------------------
+
+void linearApprox(TH1D *h, int ibin1, int ibin2,
+		  double valOnEdge1, double valOnEdge2) {
+  double y1=h->GetBinContent(ibin1);
+  double y2=h->GetBinContent(ibin2);
+  if (valOnEdge1!=double(-1.)) y1=valOnEdge1;
+  if (valOnEdge2!=double(-1.)) y2=valOnEdge2;
+  double dy=(ibin1==ibin2) ? 0. : (y2-y1)/(ibin2-ibin1);
+  for (int ib=ibin1; ib<=ibin2; ++ib) {
+    h->SetBinContent(ib, y1 + dy*(ib-ibin1));
+  }
+}
+
+//--------------------------------------------------
+
+void linearApprox(TH1D *h, double mass1, double mass2,
+		  double valOnEdge1, double valOnEdge2) {
+  linearApprox(h,h->FindBin(mass1),h->FindBin(mass2),
+	       valOnEdge1,valOnEdge2);
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 int convertBaseH2actualVec(const std::vector<TH2D*> &baseV, std::vector<TH2D*> &actualV, const TString histoNameBase, const std::vector<TString> &sample_labels, int setHistoTitle) {
@@ -721,7 +773,7 @@ int convertBaseH2actualVec(const std::vector<TH2D*> &baseV, std::vector<TH2D*> &
 //--------------------------------------------------
 //--------------------------------------------------
 
-int scaleHisto(TH1D *histoNom, const TH1D *histoDenom) {
+int scaleHisto(TH1D *histoNom, const TH1D *histoDenom, int mult) {
   if (histoNom->GetNbinsX() != histoDenom->GetNbinsX()) {
     std::cout << "scaleHisto: different number of bins\n";
     return 0;
@@ -730,15 +782,21 @@ int scaleHisto(TH1D *histoNom, const TH1D *histoDenom) {
     double v=histoNom->GetBinContent(ibin);
     double e=histoNom->GetBinError(ibin);
     double x=histoDenom->GetBinContent(ibin);
-    histoNom->SetBinContent(ibin, v/x);
-    histoNom->SetBinError(ibin, e/x);
+    if (mult) {
+      histoNom->SetBinContent(ibin, v*x);
+      histoNom->SetBinError(ibin, e*x);
+    }
+    else {
+      histoNom->SetBinContent(ibin, v/x);
+      histoNom->SetBinError(ibin, e/x);
+    }
   }
   return 1;
 }
 
 //--------------------------------------------------
 
-int scaleHisto(TH2D *histoNom, const TH2D *histoDenom) {
+int scaleHisto(TH2D *histoNom, const TH2D *histoDenom, int mult) {
   if ((histoNom->GetNbinsX() != histoDenom->GetNbinsX()) ||
       (histoNom->GetNbinsY() != histoDenom->GetNbinsY())) {
     std::cout << "scaleHisto(2D): different number of bins\n";
@@ -749,8 +807,14 @@ int scaleHisto(TH2D *histoNom, const TH2D *histoDenom) {
       double v=histoNom->GetBinContent(ibin,jbin);
       double e=histoNom->GetBinError(ibin,jbin);
       double x=histoDenom->GetBinContent(ibin,jbin);
-      histoNom->SetBinContent(ibin,jbin, v/x);
-      histoNom->SetBinError(ibin,jbin, e/x);
+      if (mult) {
+	histoNom->SetBinContent(ibin,jbin, v*x);
+	histoNom->SetBinError(ibin,jbin, e*x);
+      }
+      else {
+	histoNom->SetBinContent(ibin,jbin, v/x);
+	histoNom->SetBinError(ibin,jbin, e/x);
+      }
     }
   }
   return 1;
@@ -966,7 +1030,8 @@ int checkBinningArrays(TFile &fin, int printMetaData) {
       delete timeTag;
     }
   }
-  TVectorD *initOk=readFlagValues(fin,"DYTools_study2D",1);
+  TVectorD *initOk=readFlagValues(fin,"DYTools_study2D",-1); // -1 : don't warn
+  //if (!initOk) std::cout << " .. called from checkBinningArrays\n";
   TVectorD* mass= (TVectorD*)fin.FindObjectAny("massBinLimits");
   TVectorD* rapidityCounts= (TVectorD*)fin.FindObjectAny("rapidityCounts");
   if (!mass || !rapidityCounts) {
