@@ -415,6 +415,11 @@ public:
 
   // ----------------
 
+  // increase the error on the efficiency scale factors
+  int addESFsyst(const TString ver="20140525");
+
+  // ----------------
+
   int Write(TString subDir) const;
 
   // ----------------

@@ -464,6 +464,102 @@ TH2D *loadMainCSResult(int crossSection) {
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
+// increase the error on the efficiency scale factors
+int TCovData_t::addESFsyst(const TString ver) {
+  TString fileBase;
+  TString refField="rhoSyst";
+  if (ver==TString("20140525")) {
+    fileBase="dir-ESFsyst-20140525/esf_syst_varEt5_" + DYTools::analysisTag;
+  }
+  else {
+    std::cout << "TCovData_t::addESFsyst -- not ready for ver="
+	      << ver << "\n";
+    return 0;
+  }
+
+  if (covEsfV.size()!=1) {
+    std::cout << "TCovData_t::addESFsyst: code assumes covEsfV.size=1\n";
+    return 0;
+  }
+
+  TMatrixD* cov=covEsfV[0];
+  TVectorD errs(cov->GetNrows());
+  errs.Zero();
+
+  int iUnfBin=(DYTools::study2D==0) ? 0 : DYTools::nYBinsMax;
+  int sliceCount=(DYTools::study2D==0) ? 1 : (DYTools::nMassBins-1);
+
+  for (int iSlice=0; iSlice<sliceCount; ++iSlice) {
+    TString fname= fileBase;
+    if (sliceCount==1) fname.Append("-mdf.root");
+    else fname.Append(Form("_iM%d-mdf.root",iSlice+1));
+    TFile file(fname,"read");
+    if (!file.IsOpen()) {
+      std::cout << "TCovData_t::addESFsyst - failed to open a file <"
+		<< file.GetName() << ">\n";
+      return 0;
+    }
+    TH1D *hRef=new TH1D(refField,refField,1,0.,1.);
+    int res=loadHisto(file,&hRef,"");
+    file.Close();
+    if (!res) {
+      std::cout << "error loading hRef\n";
+      return 0;
+    }
+
+    std::cout << "File <" << file.GetName() << "> loaded\n";
+    for (int ibin=1; ibin<=hRef->GetNbinsX(); ++ibin) {
+      if (iUnfBin>=errs.GetNoElements()) {
+	std::cout << "iUnfBin=" << iUnfBin << ", errs["
+		  << errs.GetNoElements() << "]\n";
+	std::cout << "Error in code during uncertainty accumulation\n";
+	return 0;
+      }
+      errs[iUnfBin]=hRef->GetBinContent(ibin);
+      iUnfBin++; // next entry
+    }
+    delete hRef;
+  }
+  std::cout << "iUnfBin=" << iUnfBin << "\n";
+  if (iUnfBin!=errs.GetNoElements()) {
+    std::cout << "accumulated iUnfBin=" << iUnfBin << " from needed "
+	      << errs.GetNoElements() << " elements\n";
+    return 0;
+  }
+  //std::cout << "errs="; errs.Print();
+
+  TMatrixD* corr = corrFromCov(*cov);
+  TVectorD newErr(errs);
+
+  for (int i=0; i<errs.GetNoElements(); ++i) {
+    double e1   =errs[i];
+    double e2sqr=(*cov)(i,i);
+    double eTot=sqrt( e1*e1 + e2sqr );
+    std::cout << "i=" << i << ", ";
+    std::cout << "old error=" << sqrt(e2sqr) << ", extraErr=" << e1;
+    std::cout << ((e1>sqrt(e2sqr)) ? "(gt)" : "(le)");
+    std::cout << ", totErr=" << eTot << "\n";
+    newErr[i] = eTot;
+  }
+
+  TMatrixD* newCov= covFromCorr(*corr,newErr);
+  if (!newCov) {
+    std::cout << "failed to create new covariance\n";
+    return 0;
+  }
+
+  // update the contents in the vector
+  (*cov) = (*newCov);
+
+  // clean-up. Do not remove cov, since it is still used
+  delete corr;
+  delete newCov;
+
+  return 1;
+}
+
+// -----------------------------------------------------------
+
 int TCovData_t::Write(TString subdir) const {
   if (subdir.Length()) {
     gDirectory->cd();
