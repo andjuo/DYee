@@ -237,14 +237,37 @@ int plotUnfoldingMatrix(int analysisIs2D,
     ensembleSize++;
     std::cout << "EScale_residual ensemble size=" << ensembleSize
 	      << " (one added for non-randomized entry)\n";
+
+    std::vector<TString> tmpLabelV; // local variable for testing
     specTH2DWeightV.reserve(ensembleSize);
-    HistoPair2D_t hpRnd("hpRnd",h2ShapeWeights);
+    tmpLabelV.reserve(ensembleSize);
+
     specTH2DWeightV.push_back(Clone(h2ShapeWeights,
 				    "h2NonRndShapeW","h2NonRndShapeW"));
+    tmpLabelV.push_back("NonRndShape");
+
+    // prepare histo for randomization. Assume 10% error on the deviation
+    for (int ibin=1; ibin<=h2ShapeWeights->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=h2ShapeWeights->GetNbinsY(); ++jbin) {
+	double dev=h2ShapeWeights->GetBinContent(ibin,jbin);
+	h2ShapeWeights->SetBinError(ibin,jbin, 0.1*dev);
+      }
+    }
+
+    HistoPair2D_t hpRnd("hpRnd",h2ShapeWeights);
+
     for (int i=1; i<ensembleSize; ++i) {
       TString name=Form("rndShapeWeight_%d",i);
       TH2D* h2Rnd=hpRnd.randomizedWithinErr(0,name);
       specTH2DWeightV.push_back(h2Rnd);
+      tmpLabelV.push_back(name);
+    }
+
+    if (0) {
+      TCanvas *cx= plotProfiles("cx",specTH2DWeightV,tmpLabelV,NULL,1,
+				"MC/data shape reweight");
+      cx->Update();
+      return retCodeStop;
     }
   }
 
@@ -625,7 +648,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 		  }
 		}
 		double studyWeight= diWeight * w;
-		detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
+		detRespV[iSt]->fillIni( fiGenPostFsr,    diWeight );
 		detRespV[iSt]->fillFin( fiReco      , studyWeight );
 		if (bothFIValid) {
 		  detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco,
