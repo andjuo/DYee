@@ -11,6 +11,9 @@ int workWithData(TCovData_t &dt, const WorkFlags_t &wf);
 
 //=== MAIN MACRO =================================================================================================
 
+// the_case: 1,5 -- plotTotCov, 0,2,3,4 -- plotAllCovs
+// actually useful: 2,3,4,5
+
 
 int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
 	      int showCSCov=1,
@@ -22,6 +25,9 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     std::cout << "failed to initialize the analysis\n";
     return retCodeError;
   }
+
+  TString extraESFsystematics;
+  extraESFsystematics="20140525";
 
   // Settings 
   //==============================================================================================================
@@ -113,6 +119,7 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     work.extraFileTag(_corrUnf, "-unfOnly");
     if ((workBranch==2) ||
 	(workBranch==5)) work.extraFileTag(_corrUnf, "-unfRndOnly_nExps1000");
+    //if ((workBranch==6)) work.extraFileTag(_corrUnf,"-unfOnly_nExps1000");
     if (workBranch==4) work.extraFileTag(_corrUnf, "-unfOnly_nExps20");
     work.extraFileTag(_corrEff, "-effRndOnly");
     work.extraFileTag(_corrESF, "-esfOnly");
@@ -149,6 +156,12 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   }
   if (res && cf->doCalcESFCov()) {
     if (!loadEsfCovMatrices(fnameBase,dt.covEsfV,dt.labelEsfV,work)) return 0;
+    if (extraESFsystematics.Length()) {
+      if (!dt.addESFsyst(extraESFsystematics)) {
+	std::cout << "error adding extra ESF systematics\n";
+	return 0;
+      }
+    }
     dt.isActive[3]=1;
   }
   if (res && cf->doCalcAccCov()) {
