@@ -128,6 +128,7 @@ public:
   void SetRatioXTitleSize(double size) { fRatioXTitleSize=size; }
   void SetRatioTitleOffset(double size) { fRatioYTitleOffset=size; }
   void SetRefIdx(int refIdx) { fRefIdx=refIdx; }
+  unsigned int GetRefIdx() const { return fRefIdx; }
   void SetPrintValues(int yes=1) { fPrintValues=yes; }
   void SetPrintRatio(int yes=1) { fPrintRatios=yes; }
   void SetPrintRatios(int yes=1) { fPrintRatios=yes; }
@@ -135,6 +136,19 @@ public:
 
   int logX() const { return fLogx; }
   int logY() const { return fLogy; }
+
+  const std::vector<TH1D*>& hRatioItems() const { return fHRatioItems; }
+  const std::vector<unsigned int>& excludeIndices() const { return fExcludeIndices; }
+
+  int excludedIndex(int ii, int includeRefIdxCheck=0) const {
+    unsigned int idx=(unsigned int)(ii);
+    int yes=0;
+    if (includeRefIdxCheck && (idx==fRefIdx)) yes=1;
+    for (unsigned int i=0; !yes && (i<fExcludeIndices.size()); ++i) {
+      if (fExcludeIndices[i]==idx) yes=1;
+    }
+    return yes;
+  }
 
   void SetRefIdx(const TH1D* h) {
     if (!h) { 
