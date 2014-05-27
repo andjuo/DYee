@@ -80,7 +80,7 @@ TMatrixD* enforceYRanges(int the_case) {
 
 
 void compareESF(int iBr=0,
-		int nDim=1,
+		int analysisIs2D=0,
 		int doSave=0,
 		TString *figName=NULL,
 		TString *dirName=NULL) {
@@ -94,15 +94,8 @@ void compareESF(int iBr=0,
   //path2="/home/andriusj/cms/CMSSW_3_8_4/src/DYee8TeV-20130801/DrellYanDMDY/root_files/tag_and_probe/DY_j22_19789pb/";
   //path2="/home/andriusj/cms/DYee8TeV-20140118-maxEta24/root_files/tag_and_probe/DY_j22_19712pb/";
 
-  int analysisIs2D=nDim-1;
   if (!DYTools::setup(analysisIs2D)) {
     std::cout << "failed to initialize the analysis\n";
-    return;
-  }
-
-  if (((nDim==1) &&  DYTools::study2D) ||
-      ((nDim==2) && !DYTools::study2D)) {
-    std::cout << "the macro uses basic implementations that require nDim info to match study2D in DYTools.hh\n";
     return;
   }
 
@@ -112,13 +105,8 @@ void compareESF(int iBr=0,
   TString fnameBase3, fnameBase4;
 
   TString dimStr;
-  if (nDim==1) dimStr.Append("1D");
-  else if (nDim==2) dimStr.Append("2D");
-  else {
-    std::cout << "error: nDim=" << nDim << "\n";
-    return;
-  }
-
+  if (analysisIs2D==0) dimStr.Append("1D");
+  else dimStr.Append("2D");
 
   TString saveDirTag,fnameTag;
   TString label1="DrellYanDMDY";
@@ -127,10 +115,12 @@ void compareESF(int iBr=0,
   int secondIs7TeV=0;
   double set_ratio_y_min=0.96;
   double set_ratio_y_max=1.04;
-  double transLegendX=(nDim==1) ? -0.2 : -0.42;
+  double transLegendX=(analysisIs2D==0) ? -0.2 : -0.42;
 
   int compSet=-1;
   int swapColors=0;
+  int relRatio=0;
+  int saveRatiosToFile=0;
 
   TMatrixD *setYRanges2D=NULL;
 
@@ -154,7 +144,7 @@ void compareESF(int iBr=0,
     esfLongStr2="1D_Full2012_hltEffOld_PU";
     label1="DYDM |#eta|<2.5 (Summer 2013)";
     label2="DYDM |#eta|<2.5 (new n-tuples)";
-    if (nDim==2) {  set_ratio_y_min=0.96; set_ratio_y_max=1.06; }
+    if (analysisIs2D) {  set_ratio_y_min=0.96; set_ratio_y_max=1.06; }
     else { set_ratio_y_min=0.98; set_ratio_y_max=1.08; }
     fnameTag="-DMDY";
     saveDirTag="-new_vs_old-esf--";
@@ -193,7 +183,7 @@ void compareESF(int iBr=0,
     esfLongStr2="etaMax24_1D";
     label1="DYee |#eta|<2.5";
     label2="DYee |#eta|<2.4";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.99; set_ratio_y_max=1.01; }
     fnameTag="-DYee";
     saveDirTag="-diffEtaMax-esf--";
@@ -220,7 +210,7 @@ void compareESF(int iBr=0,
     esfLongStr2="etaMax24_asymHLT_1D";
     label1="Summer 2013";
     label2="DYee |#eta|<2.4 asym.HLT";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.98; set_ratio_y_max=1.05; }
     fnameTag="-totChange";
     saveDirTag="-diffEtaMax-esf--";
@@ -233,7 +223,7 @@ void compareESF(int iBr=0,
     esfLongStr2="egamma_asymHLT_1D";
     label1="our SF";
     label2="EGamma";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.98; set_ratio_y_max=1.05; }
     fnameTag="-egamma";
     saveDirTag="-egamma--";
@@ -249,7 +239,7 @@ void compareESF(int iBr=0,
     label2="EGamma (unreg.en.)";
     fnameTag="-egamma-unregEn-allSyst";
     saveDirTag="-egamma-unregEn--";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
     compSet=10;
     swapColors=0;
@@ -265,10 +255,10 @@ void compareESF(int iBr=0,
     label2="EGamma (unreg.en.+EG(reco,id) +HLT)";
     fnameTag="-egamma-unregEn-allSyst-egammaSystOnly";
     saveDirTag="-egamma-unregEn--";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.93; set_ratio_y_max=1.07; }
     compSet=13;
-    swapColors=(nDim==1) ? 2 : 0;
+    swapColors=(!analysisIs2D) ? 2 : 0;
     setYRanges2D=enforceYRanges(1);
   }
 
@@ -282,7 +272,7 @@ void compareESF(int iBr=0,
     label2="EGamma (unreg.en.+all.syst. 1000)";
     fnameTag="-egamma-unregEn-allSyst-1000";
     saveDirTag="-egamma-unregEn--";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.93; set_ratio_y_max=1.07; }
     compSet=13;
     swapColors=0;
@@ -299,7 +289,7 @@ void compareESF(int iBr=0,
     label2="EGamma (unreg.en.+EG(reco))";
     fnameTag="-egamma-unregEn-recoSyst-egammaSystOnly";
     saveDirTag="-egamma-unregEn--";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.93; set_ratio_y_max=1.07; }
     compSet=12;
     swapColors=0;
@@ -316,7 +306,7 @@ void compareESF(int iBr=0,
     label2="EGamma (reg.en.)";
     fnameTag="-egamma-regEn-allSyst";
     saveDirTag="-egamma-regEn--";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
     compSet=10;
   }
@@ -331,7 +321,7 @@ void compareESF(int iBr=0,
     label2="EGamma (unreg.en.+all syst.)";
     fnameTag="-egamma-cmpEn-allSyst";
     saveDirTag="-egamma-cmpEn--";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
     compSet=11;
     swapColors=1;
@@ -356,7 +346,7 @@ void compareESF(int iBr=0,
     label4="HLT SF  (unreg.en.+HLT syst)";
     fnameTag="-egamma-unregEn-diffSF";
     saveDirTag="-egamma-unregEn--";
-    if (nDim==2) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
+    if (analysisIs2D) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
     else { set_ratio_y_min=0.95; set_ratio_y_max=1.15; }
     compSet=-10;
     swapColors=0;
@@ -382,7 +372,7 @@ void compareESF(int iBr=0,
     label4="EtaBins5 var.3";
     fnameTag="-etaBins5-vars";
     saveDirTag="-toyStudy--";
-    //if (nDim==2) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
+    //if (analysisIs2D) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
     //else { set_ratio_y_min=0.95; set_ratio_y_max=1.15; }
     set_ratio_y_max=set_ratio_y_min; // force auto-setup of range
     transLegendX=-0.2;
@@ -412,13 +402,13 @@ void compareESF(int iBr=0,
       esfLongStr4="_nMB41_asymHLT_Pileup5minus-allSyst_100";
       label4="Pileup 5minus";
     }
-    //if (nDim==2) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
+    //if (analysisIs2D) { set_ratio_y_min=0.9; set_ratio_y_max=1.15; }
     //else { set_ratio_y_min=0.95; set_ratio_y_max=1.15; }
     set_ratio_y_max=set_ratio_y_min; // force auto-setup of range
     set_ratio_y_min=0.999;
     set_ratio_y_max=1.001;
     transLegendX=-0.2;
-    if (nDim==2) transLegendX=-0.4;
+    if (analysisIs2D) transLegendX=-0.4;
     compSet=16;
     swapColors=0;
     //setYRanges2D=enforceYRanges(1);
@@ -438,11 +428,91 @@ void compareESF(int iBr=0,
     label3="Et6Eta9";
     fnameTag="-esf-et6-var";
     saveDirTag="-esf-et6-var";
-    if (nDim==2) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
     else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
+    if (relRatio) { set_ratio_y_min=-0.04; set_ratio_y_max=0.04; }
     compSet=10;
   }
 
+  if (0) { // added 2014.05.10
+    path1="../Covariance/";
+    path2="../Covariance/";
+    path3="../Covariance/";
+    fnameBase1="covRhoFileSF"; fnameBase2=fnameBase1; fnameBase3=fnameBase1;
+    esfLongStr1="_nMB41_asymHLT_Unregressed_energy_100-et6eta5";
+    esfLongStr2="_nMB41_asymHLT_Unregressed_energy_100-et7altEta5";
+    esfLongStr3="_nMB41_asymHLT_Unregressed_energy_100-et7altEta7";
+    label1="Et6Eta5";
+    label2="Et7altEta5";
+    label3="Et7altEta7";
+    fnameTag="-esf-vsEt7-var";
+    saveDirTag="-esf-vsEt7-var";
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
+    if (relRatio) { set_ratio_y_min=-0.04; set_ratio_y_max=0.04; }
+    compSet=10;
+  }
+
+  if (0) { // added 2014.05.13
+    path1="../Covariance/";
+    path2="../Covariance/";
+    path3="../Covariance/";
+    fnameBase1="covRhoFileSF"; fnameBase2=fnameBase1; fnameBase3=fnameBase1;
+    esfLongStr1="_nMB41_asymHLT_Unregressed_energy_100-et6eta5nomerge";
+    esfLongStr2="_nMB41_asymHLT_Unregressed_energy_100-et6eta7";
+    esfLongStr3="_nMB41_asymHLT_Unregressed_energy_100-et6eta9";
+    label1="Et6Eta5nomerge";
+    label2="Et6Eta7";
+    label3="Et6Eta9";
+    fnameTag="-esf-et6nm-var";
+    saveDirTag="-esf-et6-var";
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
+    if (relRatio) { set_ratio_y_min=-0.04; set_ratio_y_max=0.04; }
+    compSet=10;
+  }
+
+  if (0) { // added 2014.05.22
+    path1="dir-Rami-20140511/";
+    path2=path1; path3=path1;
+    fnameBase1="scale_factors";
+    fnameBase2=fnameBase1; fnameBase3=fnameBase1;
+    esfLongStr1="_1D_eta24SF5bins-Full2012_hltEffOld_PU";
+    esfLongStr2="_1D_eta24SF7bins-Full2012_hltEffOld_PU";
+    esfLongStr3="_1D_eta24SF9bins-Full2012_hltEffOld_PU";
+    label1="Et6Eta5 (Rami)";
+    label2="Et6Eta7 (Rami)";
+    label3="Et6Eta9 (Rami)";
+    fnameTag="-esf-et6Rami-var";
+    saveDirTag="-esf-et6-var";
+    // 2nd ver
+    //fnameTag="-esf-Rami-eta5";
+    //saveDirTag="-esf-Rami-eta5var";
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
+    if (relRatio) { set_ratio_y_min=-0.04; set_ratio_y_max=0.04; }
+    compSet=10;
+  }
+
+  if (0) { // added 2014.05.22
+    path1="../Covariance/";
+    path2="dir-Rami-20140511/";
+    fnameBase1="covRhoFileSF";
+    fnameBase2="scale_factors";
+    esfLongStr1="_nMB41_asymHLT_Unregressed_energy_100-et6eta5";
+    esfLongStr2="_1D_eta24SF5bins-Full2012_hltEffOld_PU";
+    label1="Et6Eta5 (AJ)";
+    label2="Et6Eta5 (RK)";
+    fnameTag="-esf-cmpRami-eta5";
+    saveDirTag="-esf-cmpRami-var";
+    if (analysisIs2D) { set_ratio_y_min=0.95; set_ratio_y_max=1.05; }
+    else { set_ratio_y_min=0.94; set_ratio_y_max=1.06; }
+    compSet=20;
+  }
+
+  std::vector<TString*> tsv;
+  tsv.reserve(10);
+  TString oldText,newText;
 
   if (iBr!=0) {
     if (compSet==10) {
@@ -558,8 +628,33 @@ void compareESF(int iBr=0,
 	saveDirTag="-pileupStudy--";
       }
     }
+    else if (compSet==20) {
+      if (iBr!=0) {
+	tsv.push_back(&esfLongStr1);
+	tsv.push_back(&esfLongStr2);
+	tsv.push_back(&label1);
+	tsv.push_back(&label2);
+	tsv.push_back(&fnameTag);
+	oldText="5";
+
+	switch(iBr) {
+	case 1: newText="7"; break;
+	case 2: newText="9"; break;
+	default:
+	  std::cout << "compSet=" << compSet << " is not ready for iBr="
+		    << iBr << "\n";
+	  return;
+	}
+      }
+    }
   }
 
+  if (oldText.Length() && newText.Length()) {
+    if (!replaceAll(tsv,oldText,newText)) {
+      std::cout << "could not find the replacements\n";
+      return;
+    }
+  }
 
   if (DYTools::study2D) {
     esfLongStr1.ReplaceAll("1D","2D");
@@ -621,6 +716,12 @@ void compareESF(int iBr=0,
 
   TCanvas *cy=NULL;
 
+  std::vector<TString> labelsV;
+  labelsV.reserve(4);
+  labelsV.push_back(label1);
+  labelsV.push_back(label2);
+
+
   if (DYTools::study2D) {
     h2esf1->Print("range");
     h2esf2->Print("range");
@@ -660,8 +761,8 @@ void compareESF(int iBr=0,
     for (unsigned int i=0; i<6; ++i) {
       TString mRange=Form("M_%2.0lf_%2.0lf",DYTools::massBinLimits[i+1],DYTools::massBinLimits[i+2]);
       ComparisonPlot_t *cp=NULL;
-      //cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioRel,Form("cp_%s",mRange.Data()),mRange,"|y|","event scale factor","rel.ratio");
-      cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,Form("cp_%s",mRange.Data()),mRange,"|y|","event scale factor","ratio");
+      if (relRatio) cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioRel,Form("cp_%s",mRange.Data()),mRange,"|y|","event scale factor","rel.ratio");
+      else cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,Form("cp_%s",mRange.Data()),mRange,"|y|","event scale factor","ratio");
       cp->SetRatioNdivisions(404);
       cp->SetYTitleSize(0.08,0.97);
       cp->SetYLabelSize(0.06);
@@ -681,9 +782,14 @@ void compareESF(int iBr=0,
 
       cp->AddHist1D(hProfEsf1[i],label1,"LPE1",kBlack,1,0,showLegend);
       cp->AddHist1D(hProfEsf2[i],label2,"PE3",kBlue ,2,0,showLegend);
-      if (i<hProfEsf3.size()) cp->AddHist1D(hProfEsf3[i],label3,"PE3",color3, 3,0,showLegend);
-      if (i<hProfEsf4.size()) cp->AddHist1D(hProfEsf4[i],label4,"PE3",kGreen+2, 3,0,showLegend);
-      //cp->AddHist1D(hProfEsf2[i],label2,"LPE3",kBlue ,2,0);
+      if (i<hProfEsf3.size()) {
+	if (i==0) labelsV.push_back(label3);
+	cp->AddHist1D(hProfEsf3[i],label3,"PE3",color3, 3,0,showLegend);
+      }
+      if (i<hProfEsf4.size()) {
+	if (i==0) labelsV.push_back(label4);
+	cp->AddHist1D(hProfEsf4[i],label4,"PE3",kGreen+2, 3,0,showLegend);
+      }
       cp->AddLine(0.,1.0, 2.4,1.0, kBlue+1,kDashed);
       cpV.push_back(cp);
     }
@@ -703,6 +809,22 @@ void compareESF(int iBr=0,
       cpV[i]->WidenLegend(0.1,0.1);
       cpV[i]->WidenLegend(0.2,0.0);
       //cpV[i]->
+
+      if (saveRatiosToFile) {
+	TFile fout(Form("tmp_ratios_2D_iM%d.root",i+1),"recreate");
+	const std::vector<TH1D*>* hV= & cpV[i]->hRatioItems();
+	for (unsigned int irh=0; irh<hV->size(); ++irh) {
+	  if (cpV[i]->excludedIndex(irh,0)) continue;
+	  TString saveName=labelsV[irh];
+	  if (cpV[i]->GetRefIdx() == irh) saveName="rho";
+	  eliminateSeparationSigns(saveName);
+	  std::cout << " .. saving " << saveName << "\n";
+	  (*hV)[irh]->Write(saveName);
+	}
+	writeBinningArrays(fout,"compareESF");
+	fout.Close();
+	std::cout << "File <" << fout.GetName() << "> created\n";
+      }
     }
     cy->Update();
   }
@@ -716,7 +838,6 @@ void compareESF(int iBr=0,
     //h2esf2->Print("range");
     //h2->Print("range");
 
-    int relRatio=0;
     ComparisonPlot_t *cp=NULL;
     if (!relRatio) cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,"cpESF","","M_{ee} [GeV]", "event scale factor","ratio");
     else cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioRel,"cpESF","","M_{ee} [GeV]", "event scale factor","rel.ratio");
@@ -733,14 +854,20 @@ void compareESF(int iBr=0,
 
     //cp->SetRatioYRangeC(1,0.04);
     cp->SetRatioYRange(set_ratio_y_min, set_ratio_y_max);
-    if (relRatio) cp->SetRatioYRangeC(0.,0.01);
+    //if (relRatio) cp->SetRatioYRangeC(0.,0.01);
     cp->SetLogx();
     //h1->GetYaxis()->SetTitleOffset(1.47);
     cp->AddHist1D(h1, label1,"LPE1",color1,1,0);
     TString opt2=(h3) ? "LPE3" : "LPE1";
     cp->AddHist1D(h2, label2,opt2,color2,1,0);
-    if (h3) cp->AddHist1D(h3, label3, "LPE3",color3,1,0);
-    if (h4) cp->AddHist1D(h4, label4, "LPE3",kGreen+2,1,0);
+    if (h3) {
+      cp->AddHist1D(h3, label3, "LPE3",color3,1,0);
+      labelsV.push_back(label3);
+    }
+    if (h4) {
+      cp->AddHist1D(h4, label4, "LPE3",kGreen+2,1,0);
+      labelsV.push_back(label4);
+    }
 
     cp->AddLine(DYTools::massBinLimits[0],1.,DYTools::massBinLimits[DYTools::nMassBins],1., kBlack,kDashed);
 
@@ -750,12 +877,29 @@ void compareESF(int iBr=0,
     cp->TransLegend(transLegendX,-0.6);
     cp->WidenLegend(0.2,0.);
     cy->Update();
+
+    if (saveRatiosToFile) {
+      TFile fout("tmp_ratios_1D.root","recreate");
+      const std::vector<TH1D*>* hV= & cp->hRatioItems();
+      for (unsigned int irh=0; irh<hV->size(); ++irh) {
+	if (cp->excludedIndex(irh,0)) continue;
+	TString saveName=labelsV[irh];
+	if (cp->GetRefIdx() == irh) saveName="rho";
+	eliminateSeparationSigns(saveName);
+	std::cout << " .. saving " << saveName << "\n";
+	(*hV)[irh]->Write(saveName);
+      }
+      writeBinningArrays(fout,"compareESF");
+      fout.Close();
+      std::cout << "File <" << fout.GetName() << "> created\n";
+    }
   }
 
   if (cy && fnameTag.Length() && saveDirTag.Length()) {
     TString fname=TString("fig") + saveDirTag;
     fname.Append(Form("%dD",(DYTools::study2D) ? 2:1));
     fname.Append(fnameTag);
+    if (relRatio) fname.Append("-relRatio");
     TString locOutDir=TString("plots") + saveDirTag;
     locOutDir.ReplaceAll("--","");
     std::cout << "save <" << fname << "> in <" << locOutDir << ">\n";
