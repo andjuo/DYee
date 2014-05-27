@@ -1347,6 +1347,8 @@ void eliminateSeparationSigns(TString &name, int noDashForDot=0,
   name.ReplaceAll("<","_");
   name.ReplaceAll(">","_");
   name.ReplaceAll("=","_");
+  name.ReplaceAll("(","_");
+  name.ReplaceAll(")","_");
 }
 
 // -------------------------------------------
