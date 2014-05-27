@@ -55,7 +55,9 @@ void compareRndYields(int analysisIs2D=1,
   InputFileMgr_t inpMgr;
   if (!inpMgr.Load(conf)) return;
   InputFileMgr_t inpMgrRemote;
-  if (!inpMgrRemote.Load(conf + TString("Remote"))) return;
+  TString remoteConf=conf;
+  if (remoteConf.Index("Remote")==-1) remoteConf.Append("Remote");
+  if (!inpMgrRemote.Load(remoteConf)) return;
 
   DYTools::TRunMode_t runMode= DYTools::NORMAL_RUN;
   DYTools::TSystematicsStudy_t systModeRef, systMode1, systMode2, systMode3;
@@ -101,7 +103,7 @@ void compareRndYields(int analysisIs2D=1,
 
     // vectors for matrices
     prepare(1,m_pathV,m_fnameV,m_fieldV,m_labelV);
-   
+
     systMode3=DYTools::NO_SYST;
     EventSelector_t evtSelector3(inpMgr,runMode,systMode3,
 		       extraTag, plotExtraTag, EventSelector::_selectDefault);
@@ -185,7 +187,7 @@ void compareRndYields(int analysisIs2D=1,
 
     // vectors for matrices
     prepare(1,m_pathV,m_fnameV,m_fieldV,m_labelV);
-   
+
     systMode3=DYTools::NO_SYST;
     EventSelector_t evtSelector3(inpMgr,runMode,systMode3,
 		       extraTag, plotExtraTag, EventSelector::_selectDefault);
@@ -234,7 +236,7 @@ void compareRndYields(int analysisIs2D=1,
       m_fnameV.push_back(yieldsFNameRnd);
       m_fieldV.push_back(yieldRecNameRnd);
       m_labelV.push_back(Form("MC reco rnd%d",iseed));
-      std::cout << "yieldsFName=" << yieldsFName << ", yieldRecName=" << yieldRecName << "\n";
+      std::cout << "yieldsFNameRnd=" << yieldsFNameRnd << ", yieldRecNameRnd=" << yieldRecNameRnd << "\n";
     }
 
     transLegendX=(DYTools::study2D==1) ? -0.42 : -0.1;
@@ -274,8 +276,93 @@ void compareRndYields(int analysisIs2D=1,
       fieldV.push_back("yields/hYield_data");
       labelV.push_back(Form("Data rnd%d",iseed));
     }
-    
+
   }
+
+  // ----------------------------------------------
+  // Check that MC reco yields are the same as data signal yields
+  // in ESCALE_RESIDUAL
+
+  if ((iBr==3) || (iBr==4)) { // added on 2014.05.27
+    loadSyst=0;
+    if (1 && (iBr!=2)) {
+      //prepare(2,pathV,fnameV,fieldV,labelV);
+    // Construct eventSelector, update mgr and plot directory
+      if (1) {
+	systModeRef=DYTools::APPLY_ESCALE;
+	EventSelector_t evtSelector1(inpMgr,runMode,systModeRef,
+		       extraTag, plotExtraTag, EventSelector::_selectDefault);
+	pathV .push_back("");
+	fnameV.push_back(inpMgr.signalYieldFullFileName(systModeRef,0));
+	fieldV.push_back("signalYieldDDbkg");
+	labelV.push_back("Data signal with peak corr.");
+      }
+    }
+
+    // vectors for matrices
+    prepare(1,m_pathV,m_fnameV,m_fieldV,m_labelV);
+
+    systMode3=DYTools::ESCALE_RESIDUAL;
+    EventSelector_t evtSelector3(inpMgr,runMode,systMode3,
+		       extraTag, plotExtraTag, EventSelector::_selectDefault);
+    UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,"detResponse_0_nonRnd");
+    TString matrixFName,yieldsFName;
+    TString yieldGenName, yieldRecName;
+    int noSeed=-1;
+    inpMgrRemote.rootFileBaseDir("Results-DYee-unfResidual/root_files_reg/");
+    detResponse.getFileNames(inpMgrRemote.constDir(systMode3,0),
+		        UnfoldingMatrix_t::generateFNameTag(systMode3,noSeed),
+			     matrixFName,yieldsFName);
+    detResponse.getYieldNames(UnfoldingMatrix::_cDET_Response,
+			      yieldGenName,yieldRecName);
+    std::cout << "chk: rootFileBaseDir=<" << inpMgrRemote.rootFileBaseDir()
+	      << ">\n";
+
+    //swapStr(yieldGenName,yieldRecName);
+    m_pathV [0]="";
+    m_fnameV[0]=yieldsFName;
+    m_fieldV[0]=yieldRecName;
+    m_labelV[0]="MC reco vec";
+    std::cout << "yieldsFName=" << yieldsFName << ", yieldRecName=" << yieldRecName << "\n";
+
+    if (0) {
+      m_pathV .push_back("");
+      m_fnameV.push_back(yieldsFName);
+      m_fieldV.push_back(yieldGenName);
+      m_labelV.push_back("MC gen vec");
+      std::cout << "yieldsFName=" << yieldsFName << ", yieldGenName=" << yieldGenName << "\n";
+    }
+    //return;
+
+    seedMin= 1;
+    seedMax= 20;
+    dSeed= 1;
+    // add space
+    prepare(int((seedMax-seedMin)/dSeed),m_pathV,m_fnameV,m_fieldV,m_labelV,0,0);
+    systModeV=DYTools::ESCALE_RESIDUAL;
+    if (iBr==4)
+    for (int iseed=seedMin; iseed<=seedMax; iseed+=dSeed) {
+      //if (iseed<0) continue;
+      //if (iseed-seedMin>2) break;
+      TString nameRnd=Form("detResponse_%s",niceNumber(iseed,999).Data());
+      UnfoldingMatrix_t detResponseRnd(UnfoldingMatrix::_cDET_Response,nameRnd);
+      TString matrixFNameRnd,yieldsFNameRnd;
+      TString yieldGenNameRnd, yieldRecNameRnd;
+      detResponseRnd.getFileNames(inpMgrRemote.constDir(systModeV,0),
+			  UnfoldingMatrix_t::generateFNameTag(systModeV,iseed),
+				  matrixFNameRnd,yieldsFNameRnd);
+      detResponseRnd.getYieldNames(UnfoldingMatrix::_cDET_Response,
+				   yieldGenNameRnd,yieldRecNameRnd);
+      //swapStr(yieldGenNameRnd,yieldRecNameRnd);
+      m_pathV.push_back("");
+      m_fnameV.push_back(yieldsFNameRnd);
+      m_fieldV.push_back(yieldRecNameRnd);
+      m_labelV.push_back(Form("MC reco rnd%d",iseed));
+      std::cout << "yieldsFNameRnd=" << yieldsFNameRnd << ", yieldRecNameRnd=" << yieldRecNameRnd << "\n";
+    }
+
+    transLegendX=(DYTools::study2D==1) ? -0.42 : -0.1;
+  } // (iBr==3)
 
   //--------------------------------------------------------------------------------------------------------------
   // Main analysis code 
@@ -336,6 +423,8 @@ void compareRndYields(int analysisIs2D=1,
 
   for (unsigned int ic=0; ic<cpV.size(); ++ic) {
     ComparisonPlot_t *cp=cpV[ic];
+    //if (!DYTools::study2D) cp->SetPrintRatios();
+    //if (!DYTools::study2D) cp->SetPrintValues();
     cp->TransLegend(transLegendX,transLegendY);
     cp->SetRatioYRange(set_ratio_y[0], set_ratio_y[1]);
     if (DYTools::study2D) cp->Draw6(cx,1,ic+1);
