@@ -306,8 +306,8 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
   if (0) { // 2014.05.10
     path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
     path2=path1; path3=path1;
-    effKindLongStr2="dataRECO_fit-fitEtBins7altEtaBins7_PU";
-    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr1="dataRECO_fit-fitEtBins7altEtaBins7_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6systEtaBins5_PU";
     effKindLongStr3="dataRECO_fit-fitEtBins6systEtaBins9_PU";
     label1="Et7Eta7";
     label2="Et6Eta5";
@@ -316,7 +316,18 @@ void compareSFv2(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=-0.4;
   }
 
-  if (1) { // 2014.05.15
+  if (0) { // 2014.05.23
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2="dir-Rami-20140511/dir-Effs/";
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    label1="Et6Eta5";
+    label2="Et6Eta5 (Rami)";
+    fnameTag="-sf-cmpRami-vars--";
+    transLegendX=-0.4;
+  }
+
+  if (0) { // 2014.05.15
     path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
     path2="Results-DYee-idEffStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
     path3=path2;
