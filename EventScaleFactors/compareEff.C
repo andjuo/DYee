@@ -464,7 +464,22 @@ void compareEff(int iBr=0, int iBin=0, int vsEt=1,
     transLegendX=-0.4;
   }
 
-  if (1) { // 2014.05.15
+  if (0) { // 2014.05.23
+    HLTcomparison=0;
+    allowInvert12=0;
+    relRatio=-1;
+    path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
+    path2="dir-Rami-20140511/dir-Effs/";
+    effKindLongStr1="dataRECO_fit-fitEtBins6systEtaBins5_PU";
+    effKindLongStr2="dataRECO_fit-fitEtBins6EtaBins5_PU";
+    label1="Et6Eta5";
+    label2="Et6Eta5 (Rami)";
+    fnameTag="-eff-cmpRami-vars--";
+    transLegendX=-0.4;
+    transLegendY=-0.06;
+  }
+
+  if (0) { // 2014.05.15
     HLTcomparison=0;
     relRatio=-1;
     path1="Results-DYee-effBinStudy/root_files_reg/tag_and_probe/DY_j22_19712pb_Unregressed_energy/";
