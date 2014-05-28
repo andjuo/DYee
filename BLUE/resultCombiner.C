@@ -29,8 +29,10 @@ and associated equipment 500.1-3 (2003):391
 #define VECTOR
 #include <vector>
 #endif
+#include <TStyle.h>
 
 #include <iostream>
+#include <fstream>
 
 void readDataVector(const char * name, TVectorD& dv, double binLimits[][2] = 0, int ftr = 1, double* ccCovar = NULL);
 void readCovMatrix(const char * name, TMatrixT<double>& dv);
@@ -38,13 +40,17 @@ void simpleMatrixDivider(TMatrixT<double>& mat, double factor, bool multiply);
 
 //const int theNBins = 2;
 //Double_t mBins[theNBins+1] = {15, 20,25};
-const int theNBins = 40;
-Double_t mBins[theNBins+1] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64, 68, 72, 76, 81, 86, 91, 96, 101, 106, 110, 115, 120, 126, 133, 141, 150, 160, 171, 185, 200, 220, 243, 273, 320, 380, 440, 510, 600, 1000, 1500};
+const int theNBins = 41;
+Double_t mBins[theNBins+1] = {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64, 68, 72, 76, 81, 86, 91, 96, 101, 106, 110, 115, 120, 126, 133, 141, 150, 160, 171, 185, 200, 220, 243, 273, 320, 380, 440, 510, 600, 1000, 1500, 2000};
 
 void resultCombiner(const char * name_dv1, const char * name_cm1, const char* slength1, const char * name_dv2, const char * name_cm2, const char* slength2, int ftr = 1, const char * outputNameStub = "output")
 {
-    const int length1 = 40; //atoi(slength1);
-    const int length2 = 40; //atoi(slength2);
+    const int length1 = atoi(slength1);
+    const int length2 = atoi(slength2);
+    if ((length1!=theNBins) || (length2!=theNBins)) {
+      std::cout << "number of bins should be " << theNBins << "\n";
+      return;
+    }
 
     TVectorD dv1(length1), dv2(length2);
     TMatrixT<double> cm1(length1, length1), cm2(length2, length2);
@@ -125,7 +131,7 @@ void resultCombiner(const char * name_dv1, const char * name_cm1, const char* sl
    ofstream myfile;
    std::string myName = "test_preU.dat";
    myfile.open (myName.c_str());
-    for (int i =0;i<preU.size();++i){
+    for (unsigned int i =0;i<preU.size();++i){
       for (int j =0;j<2;++j){
         myfile<<" i = "<<i<<" j = "<<j<<" preU[i][j] = "<<preU[i][j]<<"\n";
       }
@@ -158,8 +164,7 @@ void resultCombiner(const char * name_dv1, const char * name_cm1, const char* sl
         }
     }
     
-    //for(unsigned int i = 0; i < preU.size(); i++)
-    for(int i = 0; i < preU.size(); i++)
+    for(unsigned int i = 0; i < preU.size(); i++)
     {
         if(preU[i][0] >= 0) U[preU[i][0]][i] = 1;
         if(preU[i][1] >= 0) U[preU[i][1] + length1][i] = 1;
@@ -213,8 +218,8 @@ void resultCombiner(const char * name_dv1, const char * name_cm1, const char* sl
     // write the provided input in readable format (like the output)
     simpleMatrixDivider(cm1, 1000000000000000., false);
     simpleMatrixDivider(cm2, 1000000000000000., false);
-    FILE *file_input;
-    char bVinName[128], CMinName[128];
+    FILE *file_input = NULL;
+    char bVinName[128];// CMinName[128];
     sprintf(bVinName, "input_data1.txt");
 
     file_input = fopen(bVinName, "w");
@@ -228,7 +233,7 @@ void resultCombiner(const char * name_dv1, const char * name_cm1, const char* sl
         fclose(file_input);
     }
 
-    FILE *file_input;
+    //FILE *file_input;
     //char bVinName[128], CMinName[128];
     sprintf(bVinName, "input_data2.txt");
 
@@ -331,6 +336,7 @@ void readDataVector(const char * name, TVectorD& dv, double binLimits[][2], int 
 }
 
 void simpleMatrixDivider(TMatrixT<double>& mat, double factor, bool multiply) { 
+  return;
 
      for(int i = 0; i < mat.GetNrows(); i++)
       {
