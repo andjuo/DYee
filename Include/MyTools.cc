@@ -1064,7 +1064,7 @@ int checkBinningArrays(TFile &fin, int printMetaData) {
 //--------------------------------------------------
 
 int checkBinningRanges(const TVectorD &mass, const TVectorD &rapidityCounts, const TString &fname) {
-  const char *fncname="unfolding::checkBinningRanges: ";
+  const char *fncname="checkBinningRanges: ";
   TString fileInfo=TString("on file <") + fname + ">";
 
   bool massOk=true, rapidityOk=true;
