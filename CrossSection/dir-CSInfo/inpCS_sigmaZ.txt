@@ -1,0 +1,10 @@
+Electron channel & Cross section in the $Z$-peak region\\
+\hline
+\hline
+pre-FSR full acc.      & $1142.6 \pm 0.4(\mathrm{stat.}) \pm 11.4(\mathrm{exp. syst.}) \pm 25.2(\mathrm{th. syst.}) \pm 29.7(\mathrm{lum.})~$pb\\
+\hline
+post-FSR full acc.     & $1102.8 \pm 0.4(\mathrm{stat.}) \pm 11.2(\mathrm{exp. syst.}) \pm 25.8(\mathrm{th. syst.}) \pm 28.7(\mathrm{lum.})~$pb \\
+\hline
+pre-FSR detector acc.  & $572.4 \pm 0.2(\mathrm{stat.}) \pm 5.7(\mathrm{exp. syst.}) \pm 1.3(\mathrm{th. syst.}) \pm 14.9(\mathrm{lum.})~$pb\\
+\hline
+post-FSR detector acc. & $550.9 \pm 0.2(\mathrm{stat.}) \pm 5.6(\mathrm{exp. syst.}) \pm 1.3(\mathrm{th. syst.}) \pm 14.3(\mathrm{lum.})~$pb \\
