@@ -84,6 +84,9 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   case 8:
     cf->calc_globalFSR(1);
     break;
+  case 9:
+    cf->calc_YieldStatDetailed(1);
+    break;
   default:
     std::cout << "workBranch=" << workBranch << " is not ready\n";
     return retCodeError;
@@ -373,22 +376,19 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 	TString figName=TString("fig-") + DYTools::analysisTag +
 	  TString("--") + "errorProfiles";
 	if (figTag.Length()) figName.Append(figTag);
-	if (wf.hasExtraTag()) {
-	  figName.Append("-");
-	  figName.Append(wf.extraFileTag());
-	}
+	figName.Append(wf.extraFileTag());
 	//eliminateSeparationSigns(figName);
 	std::cout << "figName=<" << figName << ">\n";
 	SaveCanvas(cx,figName);
       }
 
       // Save table
-      if (1 && (iCorr==1)) {
+      if (0 && (iCorr==1)) {
 	TH2D *totErrorFromCov= errorFromCov( *totalCov, "totalErr" );
 	if (!scaleHisto(totErrorFromCov,h2Main)) return;
 	errFromCovV.push_back(totErrorFromCov);
 	errFromCovLabelV.push_back("total error");
-	TString tableTag=figTag + TString("-") + wf.extraFileTag();
+	TString tableTag=figTag + wf.extraFileTag();
 	if (!saveLatexTable(tableTag,errFromCovV,errFromCovLabelV,
 			    "%5.2lf",0)) {
 	  std::cout << "failed to save table\n";
@@ -414,8 +414,8 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
   TMatrixD *totalCov=dt.calcTotalCov();
 
   // save total covariance
-  if (0) {
-    TString fname=TString(Form("finalCov-%dD-",DYTools::study2D+1));
+  if (1) {
+    TString fname=TString(Form("finalCov-%dD",DYTools::study2D+1));
     fname.Append(wf.extraFileTag() + TString(".root"));
     TFile fout(fname,"recreate");
     totalCov->Write("totalCov");
@@ -431,7 +431,7 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
     else { std::cout << " details not saved, as requested\n"; }
     writeBinningArrays(fout,"plotCSCov");
     fout.Close();
-    std::cout << "file <" << fout.GetName() << "> created\n";
+    std::cout << "\n\tfile <" << fout.GetName() << "> created\n\n";
   }
 
   for (int iCorr=0; iCorr<4; ++iCorr) {
@@ -439,10 +439,10 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
     if (iCorr==3) continue; // not ready
     TString covStr;
     switch(iCorr) {
-    case 0: covStr="Cov_"; break;
-    case 1: covStr="Corr_"; break;
-    case 2: covStr="partCorr_"; break;
-    case 3: covStr="RelCov_"; break;
+    case 0: covStr="Cov"; break;
+    case 1: covStr="Corr"; break;
+    case 2: covStr="partCorr"; break;
+    case 3: covStr="RelCov"; break;
     default:
       std::cout << "plotAllCovs: unknown iCorr=" << iCorr << "\n";
       return;
@@ -524,7 +524,9 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
     cx->Update();
 
     if (1) {
-      TString figName=TString("fig-") + DYTools::analysisTag + TString("--total-") + covStr;
+      TString figName=TString("fig-") + DYTools::analysisTag +
+	TString("--total-") + covStr;
+      figName.Append(wf.extraFileTag());
       //eliminateSeparationSigns(figName);
       std::cout << "figName=<" << figName << ">\n";
       SaveCanvas(cx,figName);
