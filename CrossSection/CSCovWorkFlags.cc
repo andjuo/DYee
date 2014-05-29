@@ -1,4 +1,6 @@
 #include "CSCovWorkFlags.hh"
+#include <fstream>
+#include <sstream>
 
 
 // -----------------------------------------------------------
@@ -426,7 +428,7 @@ int loadGlobalCovMatrices(const TString &fnameBase,
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
-TH2D *loadMainCSResult(int crossSection) {
+TH2D *loadMainCSResult(int crossSection, TH2D** h2SystErr) {
   TString csFileName1D_CS="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1D.root";
   TString csFileName1D_Count="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1DpreFsr.root";
   TString csFileName2D_CS="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsrDet_2D.root";
@@ -453,6 +455,7 @@ TH2D *loadMainCSResult(int crossSection) {
     return NULL;
   }
   TH2D *h2=LoadHisto2D(fin,fieldName,"",1);
+  if (h2SystErr) (*h2SystErr)=LoadHisto2D(fin,fieldName+TString("Syst"),"",1);
   fin.Close();
   if (!h2) {
     std::cout << "loadMainCSResult error\n";
@@ -595,6 +598,60 @@ int TCovData_t::Write(TString subdir) const {
   if (subdir.Length()) gDirectory->cd();
   return 1;
 }
+
+// ----------------------------------------------------------------
+// ----------------------------------------------------------------
+
+NormCS_t::NormCS_t(DYTools::TCrossSectionKind_t set_csKind,
+		   const TString fname) :
+  fcsKind(set_csKind), fcs(0.), fcsErrNoLumi(0.)
+{
+  if (set_csKind==DYTools::_cs_None) {
+    fcsKind=(DYTools::study2D) ? DYTools::_cs_preFsrDet : DYTools::_cs_preFsr;
+  }
+  if (fname.Length() && !loadValues(fname,fcsKind)) {
+    std::cout << "NormCS_t failed to initialize\n";
+  }
+}
+
+// ----------------------------------------------------------------
+
+int NormCS_t::loadValues(const TString fname) {
+  if (fcsKind==DYTools::_cs_None) {
+    std::cout << "NormCS_t::loadValues: insufficient info to load "
+	      << "cross section\n";
+    return 0;
+  }
+
+  if (!DYTools::checkCSKind(fcsKind,1,4,
+			    DYTools::_cs_preFsr,DYTools::_cs_postFsr,
+			    DYTools::_cs_preFsrDet,DYTools::_cs_postFsrDet)) {
+    std::cout << "NormCS_t::loadValues(fname=" << fname << ") csKind="
+	      << fcsKind << ": code is not ready\n";
+    return 0;
+  }
+
+  std::ifstream fin(fname);
+  if (!fin.is_open()) {
+    std::cout << "failed to open file <" << fname << ">\n";
+  }
+  std::string s;
+  int found=0, count=0;
+  std::string name;
+  while (!found && !fin.eof() && getline(fin,s)) {
+    std::stringstream ss(s);
+    ss >> name >> fcs >> fcsErrNoLumi;
+    if ((count==0) && (fcsKind==DYTools::_cs_preFsr)) found=1;
+    else if ((count==1) && (fcsKind==DYTools::_cs_postFsr)) found=1;
+    else if ((count==2) && (fcsKind==DYTools::_cs_preFsrDet)) found=1;
+    else if ((count==3) && (fcsKind==DYTools::_cs_postFsrDet)) found=1;
+    count++;
+  }
+  if (found) std::cout << "loaded for name=" << name << ">\n";
+  fin.close();
+  return found;
+}
+
 
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------

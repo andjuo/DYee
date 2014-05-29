@@ -70,7 +70,7 @@ int loadGlobalCovMatrices(const TString &fnameBase,
 			  std::vector<TString> &labels,
 			  const WorkFlags_t &wf);
 
-TH2D *loadMainCSResult(int crossSection=0);
+TH2D *loadMainCSResult(int crossSection=0, TH2D** h2SystErr=NULL);
 
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------
@@ -426,6 +426,36 @@ public:
 
 };
 
+
+// ----------------------------------------------------------------
+// ----------------------------------------------------------------
+
+struct NormCS_t {
+  DYTools::TCrossSectionKind_t fcsKind;
+  double fcs,fcsErrNoLumi;
+public:
+  NormCS_t(DYTools::TCrossSectionKind_t set_csKind=DYTools::_cs_None,
+	   const TString fname="dir-CSInfo/inpCS_sigmaZ.dat");
+
+  DYTools::TCrossSectionKind_t csKind() const { return fcsKind; }
+  double cs() const { return fcs; }
+  double csErrNoLumi() const { return fcsErrNoLumi; }
+
+  int loadValues(const TString fname);
+
+  int loadValues(const TString fname,
+		 DYTools::TCrossSectionKind_t set_csKind) {
+    fcsKind=set_csKind;
+    return loadValues(fname);
+  }
+
+  friend
+  std::ostream& operator<<(std::ostream& out, const NormCS_t &zcs) {
+    out << "NormCS(" << zcs.fcsKind << ", " << zcs.fcs << ", "
+	<< zcs.fcsErrNoLumi << ")";
+    return out;
+  }
+};
 
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------
