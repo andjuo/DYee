@@ -237,8 +237,8 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
     rhoCorrFName=constDir + TString(Form("scale_factors_%dD_Full2012_hltEffOld_PU.root",DYTools::study2D+1));
     hRho=LoadMatrixFields(rhoCorrFName,1,"scaleFactor","scaleFactorErr",1);
   }
-  //std::cout << "rhoCorrFName=<" << rhoCorrFName << ">\n";
   int res=(hRho!=NULL) ? 1:0;
+  if (res) std::cout << "loaded from rhoCorrFName=<" << rhoCorrFName << ">\n";
   if (res) res=fin.divide(ini,hRho,!inpArg.includeCorrError());
   if (!res) std::cout << "error in efficiencyScaleCorrection\n";
   return res;
