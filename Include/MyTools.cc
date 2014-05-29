@@ -61,6 +61,132 @@ void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int max
   return ;
 }
 
+//---------------------------------------------------------------
+//---------------------------------------------------------------
+
+TMatrixD* deriveCovMFromRndStudies(const std::vector<TH2D*> &rndV,
+				   int unbiasedEstimate,
+				   TH2D *avgDistr) {
+  //const int unbiasedEstimate=1;
+  if (rndV.size()<(unsigned int)(1+unbiasedEstimate)) {
+    HERE("deriveCovMFromRndStudies(vec(TH2D*)) vec is empty or has 1 entry");
+    return NULL;
+  }
+  int dim=DYTools::nUnfoldingBins;
+  // container for sum(x)
+  TVectorD VSumX(dim);
+  VSumX.Zero();
+  // container for sum(x y)
+  TMatrixD *MSumXY=new TMatrixD(dim,dim);
+  if (!MSumXY) {
+    HERE("deriveCovMFromRndStudies: failed to create the container");
+    return NULL;
+  }
+  MSumXY->Zero();
+
+  // 1. Accumulate sums
+  // iterate over 1st histo
+  int rMax=rndV[0]->GetNbinsX();
+  int cMax=rndV[0]->GetNbinsY();
+  for (unsigned int i=0; i<rndV.size(); i++) {
+    const TH2D *hi=rndV[i];
+    for (int ibr1=1; ibr1<=rMax; ++ibr1) {
+      for (int ibc1=1; ibc1<=cMax; ++ibc1) {
+	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	if (idxFlat1<0) continue; // outside of considered space
+	double val1=hi->GetBinContent(ibr1,ibc1);
+	VSumX(idxFlat1) += val1;
+      }
+    }
+  }
+
+  for (unsigned int i=0; i<rndV.size(); i++) {
+    const TH2D *hi=rndV[i];
+
+    for (int ibr1=1; ibr1<=rMax; ++ibr1) {
+      for (int ibc1=1; ibc1<=cMax; ++ibc1) {
+	int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	if (idxFlat1<0) continue; // outside of considered space
+	double val1=hi->GetBinContent(ibr1,ibc1);
+
+	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
+	  for (int ibc2=(ibr1==ibr2) ? ibc1 : 1; ibc2<=cMax; ++ibc2) {
+	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	    if (idxFlat2<0) continue; // outside of considered space
+	    double val2=hi->GetBinContent(ibr2,ibc2);
+	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
+	    if (idxFlat1 != idxFlat2) {
+	      // due to the optimization ibr2=ibr1, we have to
+	      // fill the mirrored term
+	      (*MSumXY)(idxFlat2,idxFlat1) += val1*val2;
+	    }
+	  }
+	}
+	/*
+	for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
+	  for (int ibc2=ibc1; ibc2<=cMax; ++ibc2) {
+	    int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	    if (idxFlat2<0) continue; // outside of considered space
+	    double val2=hi->GetBinContent(ibr2,ibc2);
+	    (*MSumXY)(idxFlat1,idxFlat2) += val1*val2;
+	    if (idxFlat1 != idxFlat2) {
+	      // due to the optimization ibr2=ibr1, we have to
+	      // fill the mirrored term
+	      (*MSumXY)(idxFlat2,idxFlat1) += val1*val2;
+	    }
+	  }
+	}
+	*/
+      }
+    }
+  }
+
+  // 2. Derive the averages and the covariances
+  double nExps=double(rndV.size());
+  double factor=(unbiasedEstimate) ? (nExps-1) : nExps;
+  double correctionFactor = nExps/factor;
+
+  VSumX    *= (1/nExps);
+  (*MSumXY)*= (1/factor);
+  for (int idxFlat1=0; idxFlat1<dim; ++idxFlat1) {
+    for (int idxFlat2=0; idxFlat2<dim; ++idxFlat2) {
+      (*MSumXY)(idxFlat1,idxFlat2) -= correctionFactor*(VSumX(idxFlat1) * VSumX(idxFlat2));
+    }
+  }
+
+  // 3. If needed fill the average container
+  if (avgDistr) {
+    avgDistr->Reset();
+    for (int ibr=1; ibr<=avgDistr->GetNbinsX(); ++ibr) {
+      for (int ibc=1; ibc<=avgDistr->GetNbinsY(); ++ibc) {
+	int idxFlat= DYTools::findIndexFlat(ibr-1,ibc-1);
+	if (idxFlat<0) continue; // outside of considered space
+	double errSqr=(*MSumXY)(idxFlat,idxFlat);
+	if (errSqr<0) {
+	  std::cout << "deriveCovMFromRndStudies: negative errSqr at "
+		    << "idx=" << idxFlat
+		    << ", centralValue=" << VSumX(idxFlat)
+		    << ", err^2=" << errSqr << "\n";
+	  const double tol=1e-6;
+	  if (-errSqr/VSumX(idxFlat) < tol) {
+	    std::cout << " - the relative error is below tolerance "
+		      << Form("(%5.2e)",tol) << ", reverting the sign\n";
+	    errSqr=-errSqr;
+	    (*MSumXY)(idxFlat,idxFlat)= errSqr;
+	  }
+	  else {
+	    std::cout << errdash;
+	  }
+	}
+	avgDistr->SetBinContent(ibr,ibc, VSumX(idxFlat));
+	avgDistr->SetBinError  (ibr,ibc, sqrt(errSqr));
+      }
+    }
+  }
+  return MSumXY;
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 TMatrixD* corrFromCov(const TMatrixD &cov) {
@@ -364,6 +490,22 @@ TH2D* getRelDifference(const std::vector<TH2D*> &var, TString newName, int inclu
 }
 
 //--------------------------------------------------
+
+TH2D* getRelError(const TH2D* h2, TString newName, int storeAsError) {
+  TH2D* h2r=Clone(h2,newName);
+  h2r->Reset();
+  for (int ibin=1; ibin<=h2->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=h2->GetNbinsY(); ++jbin) {
+      double v=h2->GetBinContent(ibin,jbin);
+      double e=h2->GetBinError  (ibin,jbin);
+      if (storeAsError) h2r->SetBinError(ibin,jbin, e/v);
+      else h2r->SetBinContent(ibin,jbin, e/v);
+    }
+  }
+  return h2r;
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 // write flags to a file.
@@ -637,7 +779,7 @@ int createRapidityProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::
       TH1D* hProf=NULL;
       if (h2SrcV[i]) {
 	TString name=Form("hProf_%s_%s",labelsV[i].Data(),mStr.Data());
-	std::cout << "Creating hProfRaw=" << name << "\n";
+	//std::cout << "Creating hProfRaw=" << name << "\n";
 	hProf= createProfileY(h2SrcV[i],im+1,name,1,name, DYTools::nYBins[im],0.,DYTools::yRangeMax+1e-3);
 	if (!hProf) res=0;
 	else {
@@ -1549,7 +1691,7 @@ TCanvas* plotProfiles(TString canvName,
 	  h->SetMarkerStyle(20);
 	}
 	if ( ourColors && (ih/colorCount > 0) ) {
-	  std::cout << "changing the marker\n";
+	  //std::cout << "changing the marker\n";
 	  h->SetMarkerStyle(5);
 	}
 	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],1,0,1);
@@ -1583,7 +1725,7 @@ TCanvas* plotProfiles(TString canvName,
 	  h->SetMarkerStyle(20);
 	}
 	if ( ourColors && (ih/colorCount > 0) ) {
-	  std::cout << "changing the marker\n";
+	  //std::cout << "changing the marker\n";
 	  h->SetMarkerStyle(5);
 	}
 	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],(ih+1)%3,0,1);

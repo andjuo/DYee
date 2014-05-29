@@ -69,7 +69,7 @@ PUReweight=1
 
 # User keys ---------
 seedMin=1001
-seedMax=1020
+seedMax=1100
 Use7TeVMCWeight=1 # Whether renormalize the 1st sample weight to 1 in MC macros
 IgnoreDebugRunForYields=1 # prepareYields shouldn't use DebugRun ntuples
 
