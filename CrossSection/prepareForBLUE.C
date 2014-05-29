@@ -16,28 +16,55 @@ int compareError(const TH2D* h2CS, const TMatrixD &cov,
 //    Main macro
 // ------------------------------------------------------------
 
-int prepareForBLUE(int analysisIs2D) {
+int prepareForBLUE(int analysisIs2D, int normalized=0) {
   if (analysisIs2D) {
     std::cout << "code is not ready of 2D case\n";
   }
   if (!DYTools::setup(analysisIs2D)) return retCodeError;
 
+  // load normalized cross section
+  NormCS_t sigmaZ(DYTools::_cs_None,"");
+  if (normalized) {
+    if (!sigmaZ.loadValues("dir-CSInfo/inpCS_sigmaZ.dat") ||
+	(sigmaZ.cs()==double(0.))) {
+      std::cout << "failed to load the cross section\n";
+      return retCodeError;
+    }
+    if (!DYTools::checkCSKind(sigmaZ.csKind(),1,2,
+			      DYTools::_cs_preFsr,//DYTools::_cs_postFsr,
+			      DYTools::_cs_preFsrDet//,DYTools::_cs_postFsrDet
+			      )) {
+      std::cout << "prepareForBLUE: code is not ready for "
+		<< sigmaZ.csKind() << "\n";
+      return retCodeError;
+    }
+    std::cout << "sigmaZ=" << sigmaZ << "\n";
+  }
+
+  TString outputTag;
+  switch (normalized) {
+  case 0: outputTag="-absolute"; break;
+  case 1: outputTag="-normalized"; break;
+  case 2: outputTag="-rshape"; break;
+  default:
+    std::cout << "cannot interpret normalized=" << normalized << "\n";
+    return retCodeError;
+  }
+
   TH2D *h2CS=NULL, *h2CSsystErr=NULL;
   h2CS=loadMainCSResult(1,&h2CSsystErr);
   if (!h2CS) return retCodeError;
 
-  if (1) {
+  if (0) {
     printHisto(h2CS);
     printHisto(h2CSsystErr);
   }
 
-  int test=1;
+  int test=0;
   TString covFName=(!analysisIs2D) ? "finalCov-1D.root" : "finalCov-2D.root";
   if (test) covFName.ReplaceAll(".root","-yieldStatOnly.root");
-  //TFile fCov(covFName,"read");
-  //if (!fCov.
+
   int nBins=DYTools::nUnfoldingBins;
-  //if (analysisIs2D) nBins-=24;
   TMatrixD* covPtr=loadMatrix(covFName,"totalCov",nBins,nBins,1);
   if (!covPtr) return retCodeError;
   TMatrixD cov(*covPtr);
@@ -53,7 +80,7 @@ int prepareForBLUE(int analysisIs2D) {
   }
 
   // Compare the statistical error
-  if (1) {
+  if (0) {
     if (1 && test) {
       int relativeErr=1;
       if (!compareError(h2CS,cov,0,NULL,1)) return retCodeError;
@@ -69,16 +96,91 @@ int prepareForBLUE(int analysisIs2D) {
     }
   }
 
+  TH2D *xsecFinal=Clone(h2CS,"xsecFinal");
+  //TH2D *xsecFinalSystErr=Clone(h2CSsystErr,"xsecFinalSystErr");
+
+  if (normalized) {
+    xsecFinal->Reset();
+    //xsecFinalSystErr->Reset();
+
+    TMatrixD *yV= DYTools::getYBinLimits();
+    //yV->Print();
+    int idx=0;
+
+    // keep the value of the uncertainty due to the norm.factor error
+    double normRelErrSqr=pow(sigmaZ.csErrNoLumi()/sigmaZ.cs(),2);
+    TMatrixD UncNorm(cov);
+    UncNorm=normRelErrSqr;
+    //UncNorm.Print();
+
+    //std::cout << "sigmaZ.cs()=" << sigmaZ
+    for (int ibin=1; ibin<=h2CS->GetNbinsX(); ++ibin) {
+      for (int jbin=1; jbin<=h2CS->GetNbinsY(); ++jbin, idx++) {
+	double massMin=h2CS->GetBinLowEdge(ibin);
+	double massMax=h2CS->GetBinLowEdge(ibin) + h2CS->GetBinWidth(ibin);
+	double yMin= (*yV)(ibin-1,jbin-1);
+	double yMax= (*yV)(ibin-1,jbin);
+	double dMdY= (analysisIs2D) ? (yMax-yMin) : (massMax-massMin);
+	double factor=1./sigmaZ.cs();
+
+	if (normalized==2) {
+	  factor /= dMdY;
+	}
+
+	xsecFinal->SetBinContent(ibin,jbin,
+				 factor * h2CS->GetBinContent(ibin,jbin));
+	xsecFinal->SetBinError  (ibin,jbin,
+				 factor * h2CS->GetBinError  (ibin,jbin));
+	//xsecFinalSystErr->SetBinContent(ibin,jbin,
+	//			 factor*h2CSsystErr->GetBinContent(ibin,jbin));
+	//xsecFinalSystErr->SetBinError  (ibin,jbin,
+	//			 factor*h2CSsystErr->GetBinError  (ibin,jbin));
+
+	// normalize the covariance
+	// the uncertainty due to the normalization will added later
+	if (idx < cov.GetNrows()) {
+	  double xsFactor= factor * h2CS->GetBinContent(ibin,jbin);
+	  for (int ii=0; ii<cov.GetNrows(); ++ii) {
+	    cov(ii,idx) *= factor;
+	    cov(idx,ii) *= factor;
+
+	    UncNorm(ii,idx) *= xsFactor;
+	    UncNorm(idx,ii) *= xsFactor;
+	  }
+	}
+      }
+    }
+
+    for (int ir=0; ir<UncNorm.GetNrows(); ++ir) {
+      for (int ic=ir; ic<UncNorm.GetNcols(); ++ic) {
+	double tmp=fabs(cov(ir,ic));
+	if (tmp==double(0)) continue;
+	if (UncNorm(ir,ic)/tmp > 0.01) {
+	  std::cout << "ir=" << ir << ", ic=" << ic << ", UncNorm="
+		    << UncNorm(ir,ic) << ", cov=" << cov(ir,ic) << "\n";
+	}
+      }
+    }
+
+    cov+= UncNorm;
+    delete yV;
+  }
+
   // error from cross section calculation
-  TH2D *h2errFromCS=Clone(h2CS,"h2errFromCS");
+  TH2D *h2errFromCS=Clone(xsecFinal,"h2errFromCS");
   swapContentAndError(h2errFromCS);
   removeError(h2errFromCS);
   // error from covariance
   TH2D *h2errFromCov= errorFromCov(cov,"h2errFromCov");
 
+
+  TString outPath="dir-forBlue/";
+  gSystem->mkdir(outPath,1);
+
   // save xsec error
   if (1) {
-    TString outFNameBase="xsecForBlue-" + DYTools::analysisTag;
+    TString outFNameBase=outPath;
+    outFNameBase.Append("xsecForBlue-" + DYTools::analysisTag + outputTag);
     if (test) outFNameBase.Append("-yieldStatOnly");
 
     for (int iSrc=0; iSrc<2; ++iSrc) {
@@ -92,24 +194,27 @@ int prepareForBLUE(int analysisIs2D) {
       //yV->Print();
       for (int ibin=1; ibin<=h2err->GetNbinsX(); ++ibin) {
 	for (int jbin=1; jbin<=h2err->GetNbinsY(); ++jbin) {
+	  double xsecVal=xsecFinal->GetBinContent(ibin,jbin);
+	  double xsecErr=h2err->GetBinContent(ibin,jbin);
+	  double massMin=xsecFinal->GetBinLowEdge(ibin);
+	  double massMax= massMin + xsecFinal->GetBinWidth(ibin);
+	  double yMin= (*yV)(ibin-1,jbin-1);
+	  double yMax= (*yV)(ibin-1,jbin);
+
 	  if (analysisIs2D) {
 	    if (ibin==1) continue;
 	    if ((ibin==7) && (jbin>12)) break;
 	    fout << Form("%3d  %3d  %6.1lf  %6.1lf  %5.2lf %5.2lf  %.16e   %.16e\n",
-			 ibin,jbin,
-			 h2CS->GetBinLowEdge(ibin),
-			 h2CS->GetBinLowEdge(ibin) + h2CS->GetBinWidth(ibin),
-			 (*yV)(ibin-1,jbin-1),(*yV)(ibin-1,jbin),
-			 h2CS->GetBinContent(ibin,jbin),
-			 h2err->GetBinContent(ibin,jbin));
+			 ibin-1,jbin,
+			 massMin,massMax,
+			 yMin,yMax,
+			 xsecVal,xsecErr);
 	  }
 	  else {
 	    fout << Form("%2d   %6.1lf   %6.1lf   %.16e   %.16e\n",
 			 ibin,
-			 h2CS->GetBinLowEdge(ibin),
-			 h2CS->GetBinLowEdge(ibin) + h2CS->GetBinWidth(ibin),
-			 h2CS->GetBinContent(ibin,jbin),
-			 h2err->GetBinContent(ibin,jbin));
+			 massMin,massMax,
+			 xsecVal,xsecErr);
 	  }
 	}
       }
@@ -120,10 +225,12 @@ int prepareForBLUE(int analysisIs2D) {
   }
 
   if (1) {
-    TString covOutFName="covForBlue-" + DYTools::analysisTag;
+    TString covOutFName=outPath;
+    covOutFName.Append("covForBlue-" + DYTools::analysisTag + outputTag);
     if (test) covOutFName.Append("-yieldStatOnly");
     covOutFName.Append(".dat");
     std::ofstream foutCov(covOutFName);
+
     if (analysisIs2D) {
       for (int i=24; i<cov.GetNrows(); ++i) {
 	for (int j=24; j<cov.GetNcols(); ++j) {
