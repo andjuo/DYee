@@ -1,6 +1,6 @@
 
 //#include "../Include/DYTools.hh" // force recompilation
-#include "CPlot.hh"
+#include "../Include/CPlot.hh"
 #include <TLatex.h>
 
 int CPlot::sCount = 0;
