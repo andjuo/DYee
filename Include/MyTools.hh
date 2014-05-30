@@ -104,6 +104,10 @@ void PrintVec(const char *msg, const std::vector<T>& vec, int prneol=0) {
 
 //------------------------------------------------------------------------------------------------------------------------
 
+int PrintHisto2Dvec(const char *msg, const std::vector<TH2D*> &vec, int exponent=0, int maxLines=-1);
+
+//------------------------------------------------------------------------------------------------------------------------
+
 inline
 void SaveCanvas(TCanvas* canv, const TString &canvName, TString destDir=CPlot::sOutDir){
   gSystem->mkdir(destDir,kTRUE);
@@ -134,6 +138,7 @@ void ClearVec(std::vector<T*> &vec) {
 
 std::vector<TString>* createMassRangeVec(TString prependStr="");
 int replaceAll(std::vector<TString*> &vec, TString oldText, TString newText);
+int replaceAll(std::vector<TString> &vec, TString oldText, TString newText);
 TString niceNumber(int iVal, int iValMax);
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1683,13 +1688,23 @@ void prepare(int count,
 
 
 //--------------------------------------------------
+//--------------------------------------------------
 
 int saveLatexTable(TString fileTag,
 		   const std::vector<TH2D*> &histosV,
 		   const std::vector<TString> &labelsV,
 		   const char *format,
-		   int printErrors);
+		   int printErrors,
+		   int savePlainFormat);
 
+//--------------------------------------------------
+
+int loadLatexTableTextFile(TString fileTag,
+			   std::vector<TH2D*> &histosV,
+			   std::vector<TString> &labelsV,
+			   int printErrors);
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 TCanvas* plotProfiles(TString canvName,

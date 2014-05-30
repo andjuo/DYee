@@ -5,6 +5,48 @@
 //--------------------------------------------------
 //--------------------------------------------------
 
+int PrintHisto2Dvec(const char *msg, const std::vector<TH2D*> &vec,
+		     int exponent, int maxLines) {
+  const char *format_range= " %5.2f-%5.2f  %5.2f-%5.2f ";
+  const char *format_char= (exponent) ?  "    %e    %e" : "    %f    %f";
+
+  if (msg) std::cout << msg;
+  std::cout << "values of histos:";
+  for (unsigned int i=0; i<vec.size(); ++i) {
+    std::cout << vec[i]->GetName() << " ";
+  }
+  std::cout << "\n";
+
+  TH2D* histo=vec[0];
+  int truncated=0;
+  int imax= histo->GetNbinsX() * histo->GetNbinsY();
+  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+
+  int shown=0;
+  for(int i=1; i<=histo->GetNbinsX(); i++) {
+    double x=histo->GetBinLowEdge(i);
+    double w=histo->GetBinWidth(i);
+    for (int j=1; j<=histo->GetNbinsY(); ++j, shown++) {
+      double y=histo->GetYaxis()->GetBinLowEdge(j);
+      double h=histo->GetYaxis()->GetBinWidth(j);
+      std::cout << Form(format_range,x,x+w,y,y+h);
+      for (unsigned int iv=0; iv<vec.size(); ++iv) {
+	std::cout << Form(format_char,
+			  vec[iv]->GetBinContent(i,j),
+			  vec[iv]->GetBinError(i,j));
+      }
+      if (shown>=imax) break;
+    }
+    std::cout << "\n";
+    if (shown>=imax) break;
+  }
+  if (truncated) std::cout << "... output truncated to " << maxLines << " lines\n";
+  return 1;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 std::vector<TString>* createMassRangeVec(TString prependStr) {
   std::vector<TString>* vec=new std::vector<TString>();
   vec->reserve(DYTools::nMassBins);
@@ -26,6 +68,20 @@ int replaceAll(std::vector<TString*> &vec, TString oldText, TString newText) {
     if (s->Index(oldText)!=-1) {
       count++;
       s->ReplaceAll(oldText,newText);
+    }
+  }
+  return count;
+}
+
+//--------------------------------------------------
+
+int replaceAll(std::vector<TString> &vec, TString oldText, TString newText) {
+  int count=0;
+  for (unsigned int i=0; i<vec.size(); ++i) {
+    TString s=vec[i];
+    if (s.Index(oldText)!=-1) {
+      count++;
+      vec[i].ReplaceAll(oldText,newText);
     }
   }
   return count;
@@ -1559,9 +1615,10 @@ void prepare(int count,
 
 int saveLatexTable(TString fileTag,
 		   const std::vector<TH2D*> &histosV,
-		   const std::vector<TString> &labelsV,
+		   const std::vector<TString> &labelsV_inp,
 		   const char *format,
-		   int printErrors) {
+		   int printErrors,
+		   int savePlainFormat) {
   TString fileName=Form("table_%dD_%s.tex",DYTools::study2D+1,
 			fileTag.Data());
   std::ofstream fout(fileName);
@@ -1571,6 +1628,25 @@ int saveLatexTable(TString fileTag,
   }
 
   int count = int(histosV.size());
+
+  std::vector<TString> labelsV,subLabelsV;
+  int hasSubLabels=0;
+  labelsV.reserve(labelsV_inp.size());
+  subLabelsV.reserve(labelsV_inp.size());
+  for (unsigned int i=0; i<labelsV_inp.size(); i++) {
+    TString txt=labelsV_inp[i];
+    int p=txt.Index("//");
+    if (p!=-1) {
+      hasSubLabels=1;
+      labelsV.push_back(txt(0,p));
+      subLabelsV.push_back(txt(p+2,txt.Length()));
+    }
+    else {
+      labelsV.push_back(txt);
+      subLabelsV.push_back("");
+    }
+  }
+
 
   fout << "%\\documentclass{article}\n";
   fout << "%\\begin{document}\n";
@@ -1582,11 +1658,18 @@ int saveLatexTable(TString fileTag,
   fout << "}\n";
   fout << "\\hline\n";
 
-  if (DYTools::study2D==0) fout << " Mass (GeV) &";
-  else fout << " Mass (GeV) & rapidity &";
+  if (DYTools::study2D==0) fout << " $m$ &";
+  else fout << " $m$ & rapidity &";
 
   for (int i=0; i<count; ++i) {
     fout << " " << labelsV[i];
+    if (i!=count-1) fout << " &";
+  }
+  fout << "\\\\\n";
+  if (DYTools::study2D==0) fout << " (GeV) &";
+  else fout << " (GeV) &       &";
+  for (int i=0; i<count; ++i) {
+    fout << " " << subLabelsV[i];
     if (i!=count-1) fout << " &";
   }
   fout << "\\\\\n";
@@ -1623,7 +1706,7 @@ int saveLatexTable(TString fileTag,
 	  if (ih!=count-1) fout << " &";
 	}
       }
-      fout << "\\\\\n";
+      fout << "\\\\\\hline\n";
     }
   }
 
@@ -1635,6 +1718,84 @@ int saveLatexTable(TString fileTag,
 
   delete yBinLimits;
   std::cout << " saved file " << fileName << "\n";
+
+  if (savePlainFormat) {
+    TString fname=fileName;
+    fname.ReplaceAll(".tex",".txt");
+    std::ofstream foutTxt(fname);
+    if (!foutTxt.is_open()) {
+      std::cout << "failed to create text file <" << fname << ">\n";
+      return 0;
+    }
+    foutTxt << count  << " " << histosV[0]->GetNbinsX() << " "
+	    << histosV[0]->GetNbinsY()  << "\n";
+    for (unsigned int i=0; i<histosV.size(); ++i) {
+      foutTxt << "<<" << labelsV[i] << ">>\n";
+      const TH2D* h=histosV[i];
+      for (int ibin=1; ibin<=h->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=h->GetNbinsY(); ++jbin) {
+	  double x=h->GetBinContent(ibin,jbin);
+	  if (x!=x) foutTxt << " " << double(0);
+	  else foutTxt << " " << x;
+	}
+	foutTxt << "\n";
+      }
+    }
+    foutTxt.close();
+  }
+  return 1;
+}
+
+//--------------------------------------------------
+
+int loadLatexTableTextFile(TString fileTag,
+			   std::vector<TH2D*> &histosV,
+			   std::vector<TString> &labelsV,
+			   int printErrors) {
+  if (printErrors) {
+    std::cout << "loadLatexTableTextFile is not ready for printError=" << printErrors << "\n";
+    return 0;
+  }
+
+  TString fileName=Form("table_%dD_%s.txt",DYTools::study2D+1,
+			fileTag.Data());
+  std::ifstream fin(fileName);
+  if (!fin.is_open()) {
+    std::cout << "failed to open a file <" << fileName << ">\n";
+    return 0;
+  }
+
+  int count=0, xsize=0, ysize=0;
+  fin >> count >> xsize >> ysize;
+  std::cout << "count=" << count << ", xsize=" << xsize << ", ysize=" << ysize << "\n";
+
+
+  labelsV.reserve(count);
+  for (int i=0; i<count; i++) labelsV.push_back(niceNumber(i+1,count+1));
+  createBaseH2Vec(histosV,"histo_",labelsV,1,1);
+  labelsV.clear();
+
+  std::string s;
+  for (int i=0; i<count; ++i) {
+    getline(fin,s);
+    if (s.size()==0) getline(fin,s);
+    std::cout << "s.size=" << s.size() << "\n";
+    size_t pos1=s.find_last_of('<');
+    size_t pos2=s.find_first_of('>');
+    std::string label=s.substr(pos1+1,pos2-pos1-1);
+    std::cout << "label=<" << label << ">\n";
+    HERE("aa");
+    labelsV.push_back(label.c_str());
+    TH2D* h=histosV[i];
+    double val;
+    for (int ibin=1; ibin<=xsize; ++ibin) {
+      for (int jbin=1; jbin<=ysize; ++jbin) {
+	fin >> val;
+	h->SetBinContent(ibin,jbin, val);
+      }
+    }
+  }
+  fin.close();
   return 1;
 }
 
