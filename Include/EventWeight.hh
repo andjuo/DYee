@@ -77,14 +77,14 @@ public:
 
   double nextValue() {
     if (!fReady) { std::cout << "not ready!\n"; return 0.; }
-    if (abs(fSeed)==111) {
-      fEntry++;
-      fRnd=(fSeed<0) ? -1 : 1;
+    fEntry++;
+    if (fAvailableEntries!=(unsigned int)(-1)) {
+      fBr->GetEntry(fEntry);
+      if (fEntry>fAvailableEntries) std::cout << "entry count exceeded\n";
     }
     else {
-      fBr->GetEntry(fEntry);
-      fEntry++;
-      if (fEntry>fAvailableEntries) std::cout << "entry count exceeded\n";
+      // Special values: either +/-1, or a pre-set fixed value
+      // They are set in the init
     }
     return fRnd;
   }

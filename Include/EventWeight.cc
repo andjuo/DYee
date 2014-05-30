@@ -1,5 +1,8 @@
 #include "../Include/EventWeight.hh"
 
+#include <TRandom3.h>
+#warning EventWeight.cc included TRandom3
+
 
 // --------------------------------------------------------
 // --------------------------------------------------------
@@ -9,15 +12,20 @@ int TFSRSystematics_t::init() {
   if (DetermineSystematicsStudy(fRndStudyStr)==DYTools::FSR_RND_STUDY) {
     // determine seed
     fSeed=0;
+    // Special seed FSR_RND_STUDYid#fixed#. The value after
+    // 'fixed' is the random number
+    int specSeed= (fRndStudyStr.Index("fixed")!=-1) ? 1:0;
+    // try to determine the seed
     for (int i=0; (fSeed==0) && (i<fRndStudyStr.Length()); i++) {
       fSeed=atoi(fRndStudyStr.Data() + i);
+      //std::cout << "chk fSeed=" << fSeed << "\n";
     }
     if (fSeed==0) {
       std::cout << "TFSRSystematics::init - failed to determine seed\n";
       return 0;
     }
     // got seed
-    if (abs(fSeed)!=111) {
+    if (!specSeed && (abs(fSeed)!=111)) {
       TString fname=Form("../root_files_reg/theory/rndSequence_%d.root",fSeed);
       fFile = new TFile(fname,"read");
       if (!fFile || !fFile->IsOpen()) {
@@ -42,11 +50,24 @@ int TFSRSystematics_t::init() {
     else {
       fAvailableEntries=-1;
       fEntry=0;
+      if (specSeed) {
+	if ((fRndStudyStr.Index("fixed")!=-1) && (fRndStudyStr.Index("id")!=-1)) {
+	  std::cout << "fRndStudyStr=<" << fRndStudyStr << ">\n";
+	  int idx=fRndStudyStr.Index("fixed");
+	  fRnd=atof(fRndStudyStr.Data() + idx + 5);
+	}
+	else {
+	  gRandom->SetSeed(fSeed);
+	  fRnd=gRandom->Gaus(0,1.);
+	}
+      }
+      else fRnd=(fSeed<0) ? -1 : 1;
     }
     fReady=1;
   }
   return fReady;
 }
+
 
 // --------------------------------------------------------
 
