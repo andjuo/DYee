@@ -2,7 +2,7 @@
 
 if [ ${#2} -eq 0 ] ; then
   echo
-  echo The script removes *.so *.d *~ files in ALL subdirectories
+  echo The script removes *.so *.d *.dll *.stackdump files in ALL subdirectories
   echo remove_dot-so_dot-d_tilda_files.sh [dirName [\$PWD]]
   echo
 fi
