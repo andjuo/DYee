@@ -128,7 +128,7 @@ public:
 
   TString generateFullTag(DYTools::TRunMode_t runMode,
 			  DYTools::TSystematicsStudy_t systMode,
-			  const TString &externalExtraTag="",
+			  TString externalExtraTag="",
 			  int includeSystMode=0) const {
     //std::cout << "runMode=<" << RunModeName(runMode) << ">\n";
     TString tag= (runMode!=DYTools::LOAD_DATA) ? generateRunTag(runMode) : "";
@@ -146,6 +146,10 @@ public:
       tag.Append(fEScale->calibrationSetShortName());
     }
 
+    if (systMode==DYTools::FSR_RND_STUDY) {
+      int idx=externalExtraTag.Index("fixed");
+      if (idx>0) externalExtraTag.Remove(idx,externalExtraTag.Length());
+    }
     if (externalExtraTag.Length()) tag.Append(TString("_") + externalExtraTag);
     return tag; 
   }
