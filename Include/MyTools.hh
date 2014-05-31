@@ -822,6 +822,7 @@ TH2D* errorFromCov(const TMatrixD &cov, TString newName);
 
 // Create covariance matrix from correlation matrix and errors
 TMatrixD* covFromCorr(const TMatrixD &corr, const TVectorD &errs);
+TMatrixD* covFromCorr(const TMatrixD &corr, const TH2D *h2Errs);
 
 // Calculate partial correlation matrix
 // assuming that cov is a part of totCov

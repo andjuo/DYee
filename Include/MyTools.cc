@@ -306,6 +306,47 @@ TMatrixD* covFromCorr(const TMatrixD &corr, const TVectorD &errs) {
 
 //--------------------------------------------------
 
+TMatrixD* covFromCorr(const TMatrixD &corr, const TH2D* h2Errs) {
+  int nUnfBins=DYTools::nUnfoldingBins;
+  if ((corr.GetNrows() != nUnfBins) ||
+      (corr.GetNcols() != nUnfBins)) {
+    std::cout << "covFromCorr(TMatrixD,TH2D*) dimension mismatch:\n";
+    std::cout << "  corr[" << corr.GetNrows() << " x "
+	      << corr.GetNcols() << "]\n";
+    std::cout << "Expected DYTools::nUnfoldingBins=" << nUnfBins << "\n";
+    return NULL;
+  }
+  if ((h2Errs->GetNbinsX() != DYTools::nMassBins) ||
+      (h2Errs->GetNbinsY() != DYTools::nYBinsMax)) {
+    std::cout << "covFromCorr(TMatrixD,TH2D*) dimension mismatch:\n";
+    std::cout << "Expected h2Errs to be " << DYTools::nMassBins << "x"
+	      << DYTools::nYBinsMax << ", got "
+	      << h2Errs->GetNbinsX() << "x" << h2Errs->GetNbinsY() << "\n";
+    return NULL;
+  }
+
+  TMatrixD *cov= new TMatrixD(corr);
+  if (!cov) {
+    std::cout << "covFromCorr: failed to create a new matrix\n";
+    return NULL;
+  }
+  int iUnf=0;
+  for (int ibin=1; ibin<=h2Errs->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=h2Errs->GetNbinsY(); ++jbin, ++iUnf) {
+      double err= h2Errs->GetBinContent(ibin,jbin);
+      if (iUnf>=nUnfBins) break;
+      for (int i=0; i<nUnfBins; ++i) {
+	(*cov)(iUnf,i) *= err;
+	(*cov)(i,iUnf) *= err;
+      }
+    }
+  }
+
+  return cov;
+}
+
+//--------------------------------------------------
+
 TMatrixD* partialCorrFromCov(const TMatrixD &totCov, const TMatrixD &cov) {
   TMatrixD *corr= new TMatrixD(cov);
   if (!corr) {
