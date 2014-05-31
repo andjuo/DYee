@@ -470,7 +470,7 @@ TH2D *loadMainCSResult(int crossSection, TH2D** h2SystErr) {
 // increase the error on the efficiency scale factors
 int TCovData_t::addESFsyst(const TString ver) {
   TString fileBase;
-  TString refField="rhoSyst";
+  TString refField="rhoRelSyst";
   if (ver==TString("20140525")) {
     fileBase="dir-ESFsyst-20140525/esf_syst_varEt5_" + DYTools::analysisTag;
   }
@@ -492,6 +492,10 @@ int TCovData_t::addESFsyst(const TString ver) {
   int iUnfBin=(DYTools::study2D==0) ? 0 : DYTools::nYBinsMax;
   int sliceCount=(DYTools::study2D==0) ? 1 : (DYTools::nMassBins-1);
 
+  // get the cross section
+  TH2D* h2CS=loadMainCSResult(1);
+  printHisto(h2CS);
+
   for (int iSlice=0; iSlice<sliceCount; ++iSlice) {
     TString fname= fileBase;
     if (sliceCount==1) fname.Append("-mdf.root");
@@ -509,8 +513,13 @@ int TCovData_t::addESFsyst(const TString ver) {
       std::cout << "error loading hRef\n";
       return 0;
     }
-
     std::cout << "File <" << file.GetName() << "> loaded\n";
+
+    // get a relevant part of the cross section
+    TH1D *h1CSprof=createProfileAuto(h2CS,iSlice+2,
+				     Form("h1CSprof_%d",iSlice+1));
+    printHisto(h1CSprof);
+
     for (int ibin=1; ibin<=hRef->GetNbinsX(); ++ibin) {
       if (iUnfBin>=errs.GetNoElements()) {
 	std::cout << "iUnfBin=" << iUnfBin << ", errs["
@@ -518,18 +527,21 @@ int TCovData_t::addESFsyst(const TString ver) {
 	std::cout << "Error in code during uncertainty accumulation\n";
 	return 0;
       }
-      errs[iUnfBin]=hRef->GetBinContent(ibin);
+      errs[iUnfBin]=hRef->GetBinContent(ibin) * h1CSprof->GetBinContent(ibin);
       iUnfBin++; // next entry
     }
+    delete h1CSprof;
     delete hRef;
   }
+  delete h2CS;
+
   std::cout << "iUnfBin=" << iUnfBin << "\n";
   if (iUnfBin!=errs.GetNoElements()) {
     std::cout << "accumulated iUnfBin=" << iUnfBin << " from needed "
 	      << errs.GetNoElements() << " elements\n";
     return 0;
   }
-  //std::cout << "errs="; errs.Print();
+  std::cout << "errs="; errs.Print();
 
   TMatrixD* corr = corrFromCov(*cov);
   TVectorD newErr(errs);
