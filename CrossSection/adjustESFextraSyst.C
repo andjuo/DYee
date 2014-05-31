@@ -38,7 +38,7 @@ void adjustESFextraSyst(int analysisIs2D, int iM=0, int iSave=0,
   hVar.reserve(fieldNamesV.size());
 
   // the values in the histograms are relative errors: (val-ref)/ref
-  // we need to convert to absolute errors
+  // lets convert to absolute errors for convenience
   int res=loadHisto(file,&hRef,"");
   if (res) {
     std::cout << "rho[2]=" << hRef->GetBinContent(2) << "\n";
@@ -54,6 +54,7 @@ void adjustESFextraSyst(int analysisIs2D, int iM=0, int iSave=0,
     }
   }
   file.Close();
+  if (!res) { std::cout << "there was error\n"; return; }
 
   std::cout << "File <" << file.GetName() << "> loaded\n";
 
@@ -135,7 +136,26 @@ void adjustESFextraSyst(int analysisIs2D, int iM=0, int iSave=0,
     }
   }
 
+  std::cout << "absolute additional errors errors of the scale factors\n";
   printHisto(hErrMdf);
+
+  // In the end we need the errors on the cross section. To have
+  // relative freedom, lets save as relative errors on the scale
+  // factors
+  TH1D* hRelErrMdf=Clone(hErrMdf,"hRelErrMdf","hRelErrMdf");
+  std::vector<TH1D*> hRelVal;
+  res=scaleHisto(hRelErrMdf,hRef,0); // divide
+  if (!res) return;
+  std::cout << "diff[2]=" << hRelErrMdf->GetBinContent(2) << " (relDiff again)\n";
+  hRelVal.reserve(hVar.size());
+  for (unsigned int i=0; i<hVar.size(); ++i) {
+    TString newName=Form("%s_rel",fieldNamesV[i].Data());
+    TH1D* h1=Clone(hVar[i],newName,newName);
+    res=scaleHisto(h1,hRef,0); // divide
+    if (!res) return;
+    removeError(h1);
+    hRelVal.push_back(h1);
+  }
 
   TH1D* hMainErr=NULL;
   if (compareToMainErr) {
@@ -173,6 +193,7 @@ void adjustESFextraSyst(int analysisIs2D, int iM=0, int iSave=0,
       int ii= idxMin+ibin-1;
       hMainErr->SetBinContent( ibin, sqrt((*covs[0])(ii,ii)) );
     }
+    printHisto(hMainErr);
   }
 
   TString cpTitle=DYTools::analysisTag;
@@ -188,18 +209,62 @@ void adjustESFextraSyst(int analysisIs2D, int iM=0, int iSave=0,
 
   const int ncolors=3;
   const int colors[ncolors] = { kBlack, kBlue+1, kGreen+1 };
-  for (unsigned int i=0; i<fieldNamesV.size(); ++i) {
-    hVar[i]->GetXaxis()->SetLabelOffset(0.008);
-    removeError(hVar[i]);
-    cp.AddHist1D(hVar[i],fieldNamesV[i],"LP",
-		 TAttMarker(colors[i%ncolors],20,0.8),i+1,0,1);
-  }
-  //cp.AddHist1D(hErr,"max","LP",TAttMarker(kOrange,24,1.),0,0,1);
-  cp.AddHist1D(hErrMdf,"assigned","LP",TAttMarker(kRed,5,1),1,0,1);
+  TString yAxisLabel="y";
 
-  if (hMainErr) {
+  if (!hMainErr) {
+    yAxisLabel="#Delta#rho";
+    for (unsigned int i=0; i<fieldNamesV.size(); ++i) {
+      hVar[i]->GetXaxis()->SetLabelOffset(0.008);
+      removeError(hVar[i]);
+      cp.AddHist1D(hVar[i],fieldNamesV[i] + TString("(abs err on #rho)"),"LP",
+		   TAttMarker(colors[i%ncolors],20,0.8),i+1,0,1);
+    }
+
+    //cp.AddHist1D(hErr,"max","LP",TAttMarker(kOrange,24,1.),0,0,1);
+    cp.AddHist1D(hErrMdf,"assigned","LP",TAttMarker(kRed,5,1),1,0,1);
+  }
+  else {
+    TH1D *hErrOnCS=Clone(hRelErrMdf,"hErrOnCS","hErrOnCS");
+    TH2D *h2CS=loadMainCSResult(1);
+    TH1D* h1CS=createProfileAuto(h2CS,iM+DYTools::study2D,"h1CS");
+    printHisto(h1CS);
+    int absError=0;
+
+    if ((hMainErr->GetNbinsX()==12) &&
+	(h1CS->GetNbinsX()==24)) {
+      std::cout << "range hack. Check the values\n";
+      printHisto(hMainErr);
+      printHisto(hErrOnCS);
+      printHisto(h1CS);
+      for (int ibin=1; ibin<=12; ibin++) {
+	double x=hMainErr->GetBinContent(ibin);
+	double z=hErrOnCS->GetBinContent(ibin);
+	double y=h1CS->GetBinContent(ibin);
+	if (absError) hErrOnCS->SetBinContent(ibin, z*y);
+	else hMainErr->SetBinContent(ibin, x/y);
+      }
+    }
+    else {
+      if (absError) {
+	res=scaleHisto(hErrOnCS,h1CS,1); // multiply
+	if (!res) return;
+	yAxisLabel="#Delta#sigma_{;#rho}";
+      }
+      else {
+	res=scaleHisto(hMainErr,h1CS,0); // divide
+	if (!res) return;
+	yAxisLabel="(#Delta#sigma/#sigma)_{;#rho}";
+	cp.SetLogy(0);
+      }
+    }
+    delete h2CS;
+    delete h1CS;
+
+    cp.AddHist1D(hErrOnCS,"additional error","LP",TAttMarker(kRed,5,1),1,0,1);
     cp.AddHist1D(hMainErr,"err from cov","LP",TAttMarker(38,30,1.),0,0,1);
   }
+  cp.SetYTitle(yAxisLabel);
+
 
   TCanvas *cx=new TCanvas("cx","cx",700,700);
   SetSideSpaces(cx,0.05,-0.05,0.,0.02,0);
@@ -214,7 +279,8 @@ void adjustESFextraSyst(int analysisIs2D, int iM=0, int iSave=0,
     for (unsigned int i=0; i<hVar.size(); ++i) {
       hVar[i]->Write(fieldNamesV[i]);
     }
-    hErrMdf->Write("rhoSyst");
+    hErrMdf->Write("rhoAbsSyst");
+    hRelErrMdf->Write("rhoRelSyst");
     writeBinningArrays(fout);
     fout.Close();
     std::cout << "file <" << fout.GetName() << "> saved\n";
