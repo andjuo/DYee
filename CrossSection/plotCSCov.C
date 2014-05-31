@@ -69,8 +69,9 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   case 6:
     cf->calc_YieldStatDetailed(1);
     cf->calc_YieldSystDetailed(1);
+    cf->calc_YieldEscale(1);  // added on May 27, 2014
     cf->calc_UnfRnd(1);
-    cf->calc_UnfEScale(1);
+    //cf->calc_UnfEScale(1); // commented out on May 27, 2014
     cf->calc_ESFtot(1);
     cf->calc_EffRnd(1);
     cf->calc_AccRnd(1); // not active in 2D!
@@ -124,7 +125,7 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
 	(workBranch==5)) work.extraFileTag(_corrUnf, "-unfRndOnly_nExps1000");
     //if ((workBranch==6)) work.extraFileTag(_corrUnf,"-unfOnly_nExps1000");
     if (workBranch==4) work.extraFileTag(_corrUnf, "-unfOnly_nExps20");
-    work.extraFileTag(_corrEff, "-effRndOnly");
+    work.extraFileTag(_corrEff, "-effRndOnly_nExps1000");
     work.extraFileTag(_corrESF, "-esfOnly");
     work.extraFileTag(_corrAcc, "-accRndOnly");
     work.extraFileTag(_corrFSR, "-fsrRndOnly");
@@ -390,7 +391,7 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 	errFromCovLabelV.push_back("total error");
 	TString tableTag=figTag + wf.extraFileTag();
 	if (!saveLatexTable(tableTag,errFromCovV,errFromCovLabelV,
-			    "%5.2lf",0)) {
+			    "%5.2lf",0,1)) {
 	  std::cout << "failed to save table\n";
 	  return;
 	}
