@@ -1,7 +1,8 @@
 #include "subtractBackground.C"
 
 int run_subtractBackground(int analysisIs2D,
-			   int the_case, int systModeFlag=0, int debug=-1) {
+			   int the_case, int systModeFlag=0, int debug=-1,
+			   int iSeedMin_User=-1, int iSeedMax_User=-1) {
   TString confName="default";
   DYTools::TRunMode_t runMode=DebugInt2RunMode(debug);
 
@@ -47,10 +48,18 @@ int run_subtractBackground(int analysisIs2D,
     int iSeedMax=-1;
     int dSeed=1;
     if (the_case!=3) {
-      InputFileMgr_t inpMgr;
-      if (!inpMgr.Load(confName)) return retCodeError;
-      iSeedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
-      iSeedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
+      if ((iSeedMin_User==-1) || (iSeedMax_User==-1)) {
+	InputFileMgr_t inpMgr;
+	if (!inpMgr.Load(confName)) return retCodeError;
+	iSeedMin=inpMgr.userKeyValueAsInt("SEEDMIN");
+	iSeedMax=inpMgr.userKeyValueAsInt("SEEDMAX");
+      }
+      else {
+	iSeedMin=iSeedMin_User;
+	iSeedMax=iSeedMax_User;
+	std::cout << "using user-provided iSeed values "
+		  << iSeedMin << " .. " << iSeedMax << "\n";
+      }
     }
     else {
       iSeedMin=-111;
