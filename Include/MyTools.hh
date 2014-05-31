@@ -273,7 +273,7 @@ inline int printHistoErr(const TH1D* histo, const TH1D* histoSystErr, int expone
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
-int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLines=-1) {
+int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLinesX=-1, int maxLinesY=-1) {
   if (!histo) {
     out << "printHistoErr: histo is null\n";
     return 0;
@@ -291,12 +291,14 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
 
   out << "values of " << histo->GetName() << "\n";
   int imax=histo->GetNbinsX();
+  int jmax=histo->GetNbinsY();
   int truncated=0;
-  if ((maxLines>0) && (imax>maxLines)) { imax=maxLines; truncated=1; }
+  if ((maxLinesX>0) && (imax>maxLinesX)) { imax=maxLinesX; truncated=1; }
+  if ((maxLinesY>0) && (jmax>maxLinesY)) { jmax=maxLinesY; truncated=1; }
   for(int i=1; i<=imax; i++) {
     double x=histo->GetBinLowEdge(i);
     double w=histo->GetBinWidth(i);
-    for (int j=1; j<=histo->GetNbinsY(); ++j) {
+    for (int j=1; j<=jmax; ++j) {
       double y=histo->GetYaxis()->GetBinLowEdge(j);
       double h=histo->GetYaxis()->GetBinWidth(j);
       double err2=(histoSystErr) ? histoSystErr->GetBinError(i,j) : 0.0;
@@ -307,14 +309,16 @@ int printHistoErr(std::ostream& out, const TH2D* histo, const TH2D* histoSystErr
 	      err2);
       out << buf;
     }
+    if (jmax!=histo->GetNbinsY()) out << "  ...\n";
   }
-  if (truncated) out << "... output truncated to " << maxLines << " lines\n";
+  if (truncated) out << "... output truncated to (" << maxLinesX
+		     << ", " << maxLinesY << ") lines\n";
   return 1;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
 
-inline int printHistoErr(const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent, maxLines); }
+inline int printHistoErr(const TH2D* histo, const TH2D* histoSystErr, int exponent=0, int maxLinesX=-1, int maxLinesY=-1) { return printHistoErr(std::cout, histo, histoSystErr, exponent, maxLinesX, maxLinesY); }
 
 inline int printHisto(const TH2D* histo, int exponent=0, int maxLines=-1) { return printHistoErr(std::cout, histo, NULL, exponent, maxLines); }
 
@@ -1113,6 +1117,8 @@ TH2D* convertBaseH2actual(const TH2D* h2, TString newHistoName, int setTitle=0);
 
 TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL, int set_nYbins=-1, double set_ymin=0., double set_ymax=1.);
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, const char *title=NULL);
+
+TH1D* createProfileAuto(TH2D* h2, int iBin, const TString &name, int setTitle=0, const char *title=NULL);
 
 int createRapidityProfileVec(const std::vector<TH2D*> &h2V, std::vector<std::vector<TH1D*>*> &hProfV, const std::vector<TString> &labels, int markerStyle=24, double markerSize=0.8);
 

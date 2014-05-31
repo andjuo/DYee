@@ -817,6 +817,16 @@ TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle, con
 
 //--------------------------------------------------
 
+TH1D* createProfileAuto(TH2D* h2, int iBin, const TString &name, int setTitle, const char *title) {
+  TH1D *hProf= (DYTools::study2D) ?
+    createProfileY(h2,iBin,name,setTitle,title) :
+    createProfileX(h2,iBin,name,setTitle,title);
+  if (!hProf) std::cout << "error from createProfileAuto\n";
+  return hProf;
+}
+
+//--------------------------------------------------
+
 int createRapidityProfileVec(const std::vector<TH2D*> &h2SrcV, std::vector<std::vector<TH1D*>*> &hProfV, const std::vector<TString> &labelsV, int markerStyle, double markerSize) {
   if (h2SrcV.size()==0) {
     std::cout << "createRapidityProfileVec: h2SrcV.size=0\n";
@@ -974,6 +984,7 @@ int convertBaseH2actualVec(const std::vector<TH2D*> &baseV, std::vector<TH2D*> &
 int scaleHisto(TH1D *histoNom, const TH1D *histoDenom, int mult) {
   if (histoNom->GetNbinsX() != histoDenom->GetNbinsX()) {
     std::cout << "scaleHisto: different number of bins\n";
+    assert(0);
     return 0;
   }
   for (int ibin=1; ibin<=histoNom->GetNbinsX(); ++ibin) {
