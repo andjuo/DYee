@@ -1,6 +1,5 @@
 #ifndef calcCrossSectionFsr_C
 #define calcCrossSectionFsr_C
-
 #include <TBenchmark.h>
 
 #include "../Include/DYTools.hh"
@@ -157,6 +156,7 @@ int calcCrossSection(int analysisIs2D,
 
 
   if (0) {
+    // ratio of the unfolded to pre-unfolded yield
     HistoPair2D_t hpRatio("hpRatio");
     hpRatio.divide(hpSignalYield,hpUnfoldedYield.histo());
     std::vector<TH2D*> histosV;
@@ -176,6 +176,7 @@ int calcCrossSection(int analysisIs2D,
     cx->Update();
     return retCodeStop;
   }
+
   if (0) {
     HistoPair2D_t hpUnf_FSR5minus("unf_FSR5minus");
     HistoPair2D_t hpUnf_FSR5plus("unf_FSR5plus");
@@ -203,11 +204,118 @@ int calcCrossSection(int analysisIs2D,
     return retCodeStop;
   }
 
+  // --------------------------------------
+  // Normal calculation
+  // --------------------------------------
   inpArgs.needsDetUnfolding(0);
   //inpArgsNET.allNormErrorIsSyst(1);
   if (res) res=calculateCS(inpArgs,hpUnfoldedYield,csKind,hpCS,csResult);
 
   if (res) res=saveResult(inpArgs,hpCS,"");
+
+  // -----------------------------------------------
+  // Calculation to get the error propagation estimate
+  // -----------------------------------------------
+
+  if (1 && res && (systMode==DYTools::NO_SYST)) {
+    std::cout << dashline << "Working on error propagation estimate\n"
+	      << dashline;
+    InputArgs_t iaNoExtraErr("iaNoExtraErr",inpArgs,"noExtraErr");
+    iaNoExtraErr.silentMode(0);
+    iaNoExtraErr.needsDetUnfolding(0);
+    iaNoExtraErr.includeCorrError(0);
+
+    InputArgs_t iaWithExtraErr("iaWithExtraErr",iaNoExtraErr,"wExtraErr");
+    iaWithExtraErr.includeCorrError(1);
+
+    // Result containers
+    HistoPair2D_t hpCS_yieldErr("hpCS_yieldErr");
+    HistoPair2D_t hpCS_effErr("hpCS_effErr");
+    HistoPair2D_t hpCS_accErr("hpCS_accErr");
+    CSResults_t csResult_yieldErr;
+    CSResults_t csResult_effErr;
+    CSResults_t csResult_accErr;
+
+    // 1. calculate propagated yield error
+    if (res) res= calculateCS(iaNoExtraErr,hpUnfoldedYield,csKind,
+			      hpCS_yieldErr,csResult_yieldErr);
+
+    // 2. calculate propagated efficiency error
+    // First construct unf distribution without error.
+    // Then obtain the efficiency correction with error, and finish
+    // without additional errors
+    HistoPair2D_t hpUnfYieldNoErr("hpUnfYieldNoErr",hpUnfoldedYield);
+    removeError(hpUnfYieldNoErr.editHisto());
+    hpUnfYieldNoErr.editHistoSystErr()->Reset();
+
+    iaWithExtraErr.needsEffCorr(1);
+    iaWithExtraErr.needsEffScaleCorr(0);
+    HistoPair2D_t hpEffCorrYield("hpEffCorrYield");
+    if (res) res= calculateCSdistribution(iaWithExtraErr,hpUnfYieldNoErr,
+				    DYTools::_cs_postFsrDet,hpEffCorrYield);
+    iaNoExtraErr.needsEffCorr(0);
+    if (res) res= calculateCS(iaNoExtraErr,hpEffCorrYield,csKind,
+			      hpCS_effErr,csResult_effErr);
+
+    // 3. calculate propagated acceptance error
+    // First produce post-FSR cross section, ignoring the error effects
+    // (hpEffCorrYield does not contain the efficiency scale correction)
+    // FSR Unfolding does not add extra error
+    HistoPair2D_t hpPostFsrCS("hpPostFsrCS");
+    iaNoExtraErr.needsDetUnfolding(0);
+    iaNoExtraErr.needsEffCorr(1);
+    iaNoExtraErr.needsEffScaleCorr(1);
+    iaNoExtraErr.needsAccCorr(0);
+    iaNoExtraErr.needsFsrCorr(0);
+    if (res) res= calculateCSdistribution(iaNoExtraErr,hpUnfYieldNoErr,
+					  DYTools::_cs_postFsrDet,hpPostFsrCS);
+
+    iaWithExtraErr.needsDetUnfolding(0);
+    iaWithExtraErr.needsEffCorr(0);
+    iaWithExtraErr.needsEffScaleCorr(0);
+    iaWithExtraErr.needsAccCorr(1);
+    iaWithExtraErr.needsFsrCorr(1);
+    if (res) res= calculateCS(iaWithExtraErr,hpPostFsrCS,csKind,
+			      hpCS_accErr,csResult_accErr);
+
+    // check the consistency
+    if (0) {
+      HERE(dashline.c_str());
+      HERE("the central values have to match perfectly");
+      int truncX=-1;
+      int truncY=3;
+      printHisto(hpCS,truncX,truncY);
+      printHisto(hpCS_yieldErr,truncX,truncY);
+      printHisto(hpCS_effErr,truncX,truncY);
+      printHisto(hpCS_accErr,truncX,truncY);
+    }
+
+    // Get the corrections
+    TString effCorrFName= inpMgr.correctionFullFileName("efficiency",systMode,0);
+    TH2D *hEff=LoadHisto2D("hEfficiency",effCorrFName,"",1);
+    TString accCorrFName= inpMgr.correctionFullFileName("acceptance",systMode,0);
+    TH2D *hAcc=(DYTools::study2D) ?
+      NULL : LoadHisto2D("hAcceptance",accCorrFName,"",1);
+
+
+    // Save the results
+    TString fname=inpMgr.crossSectionFullFileName(systMode,csKind,1,0);
+    TString extraTag_loc="_errProp.root";
+    fname.ReplaceAll(".root",extraTag_loc);
+    std::cout << "output file for error propagation is <" << fname << ">\n";
+    TFile fout(fname,"recreate");
+    if (!fout.IsOpen()) return retCodeError;
+    if (res) res=hpCS.Write(fout,"","mainCS");
+    if (res) res=hpCS_yieldErr.Write(fout,"","mainCS_yieldErr");
+    if (res) res=hpCS_effErr.Write(fout,"","mainCS_effErr");
+    if (res) res=hpCS_accErr.Write(fout,"","mainCS_accErr");
+    if (res) res=saveHisto(fout,hEff,"","hEfficiency");
+    if (res && hAcc) res=saveHisto(fout,hAcc,"","hAcceptance");
+    if (res) writeBinningArrays(fout,"calcCrossSection");
+    fout.Close();
+    if (!res) std::cout << "failed to save file <" << fout.GetName() << ">\n";
+    else std::cout << "file <" << fout.GetName() << "> saved\n";
+  }
 
   //gBenchmark->Show("calcCrossSection");
   ShowBenchmarkTime("calcCrossSection");
