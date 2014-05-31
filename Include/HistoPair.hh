@@ -750,9 +750,10 @@ public:
 
   // ----------------
 
-  void print(int maxLines=-1) const {
+  void print(int maxLinesX=-1, int maxLinesY=-1) const {
     int exponent=0;
-    printHistoErr(this->fHisto, this->fHistoSystErr, exponent, maxLines);
+    printHistoErr(this->fHisto, this->fHistoSystErr, exponent,
+		  maxLinesX, maxLinesY);
   }
 
   // ----------------
@@ -791,7 +792,10 @@ TH2D* getRelDifference(const std::vector<HistoPair2D_t*> &hpV,
 // ---------------------------------------------
 // ---------------------------------------------
 
-inline void printHisto(const HistoPair2D_t &hp, int maxLines=-1) { hp.print(maxLines); }
+inline void printHisto(const HistoPair2D_t &hp,
+		       int maxLinesX=-1, int maxLinesY=-1) {
+  hp.print(maxLinesX,maxLinesY);
+}
 
 // ---------------------------------------------
 // ---------------------------------------------
