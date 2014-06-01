@@ -80,6 +80,11 @@ public:
   int GetNbinsY() const { return fHisto->GetNbinsY(); }
   void Reset() { fHisto->Reset(); fHistoSystErr->Reset(); }
 
+  void RemoveError() {
+    removeError(fHisto);
+    if (fHistoSystErr) fHistoSystErr->Reset();
+  }
+
   TString GetName() const { return fHisto->GetName(); }
 
 
