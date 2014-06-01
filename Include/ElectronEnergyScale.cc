@@ -523,6 +523,7 @@ bool ElectronEnergyScale::initializeAllConstants(int debug){
   case Date20121025FEWZPU_default: nEtaBins1=12; break;
   case Date20140220_2012_j22_peak_position_IK : nEtaBins1=12; break;
   case Date20140220_2012_j22_peak_position : nEtaBins1=8; break;
+  case Date20140220_2012_j22_peak_position_flat : nEtaBins1=1; break;
   case Date20130529_2012_j22_adhoc: nEtaBins1=8; break;
   case CalSet_File_Gauss: 
   case CalSet_File_Voigt:
@@ -954,6 +955,31 @@ bool ElectronEnergyScale::initializeAllConstants(int debug){
   }
     break;
 
+  case Date20140220_2012_j22_peak_position_flat: {
+    // Similar to Date20140220_2012_j22_peak_position_IK, but only 1 bin
+    //
+    const int nEtaBins = 1;
+    const double etaBinLimits[1+1] = { -2.50001, 2.50001};
+    const double corrValues[nEtaBins] = { 0.99841 };
+    const double corrErrors[nEtaBins] = { 0.00159 };
+    const double smearValues[nEtaBins] = { 0. };
+    const double smearErrors[nEtaBins] = { 0. };
+
+    if (nEtaBins1!=nEtaBins) assert(0);
+    assert(_etaBinLimits);
+    assert(_dataConst); assert(_dataConstErr);
+    assert(_mcConst1); assert(_mcConst1Err);
+    for(int i=0; i<nEtaBins; i++){
+      _etaBinLimits[i] = etaBinLimits[i];
+      _dataConst   [i] = corrValues[i];
+      _dataConstErr[i] = corrErrors[i];
+      _mcConst1    [i] = smearValues[i];
+      _mcConst1Err [i] = smearErrors[i];
+    }
+    _etaBinLimits[nEtaBins] = etaBinLimits[nEtaBins];
+  }
+    break;
+
   case CalSet_File_Gauss: 
   case CalSet_File_Voigt:
   case CalSet_File_BreitWigner: {
@@ -1011,7 +1037,8 @@ bool ElectronEnergyScale::initializeExtraSmearingFunction(int normalize){
       }
 	break;
       case Date20140220_2012_j22_peak_position_IK:
-      case Date20140220_2012_j22_peak_position: {
+      case Date20140220_2012_j22_peak_position:
+      case Date20140220_2012_j22_peak_position_flat: {
  	if(_mcConst1 == 0) continue;
 	double si = _mcConst1[i];
 	double sj = _mcConst1[j];
@@ -1365,6 +1392,7 @@ void ElectronEnergyScale::randomizeSmearingWidth(int seed){
   case Date20121025FEWZPU_default:
   case Date20140220_2012_j22_peak_position_IK:
   case Date20140220_2012_j22_peak_position:
+  case Date20140220_2012_j22_peak_position_flat:
   case CalSet_File_Gauss: {
 
     for( int i=0; i<_nEtaBins; i++){
@@ -1752,6 +1780,9 @@ ElectronEnergyScale::CalibrationSet ElectronEnergyScale::DetermineCalibrationSet
   else if ( (pos==0) || escaleTagName.Contains("Date20140220_2012_j22_peak_position_IK") ) {
     calibrationSet = ElectronEnergyScale::Date20140220_2012_j22_peak_position_IK;
   }
+  else if ( (pos==0) || escaleTagName.Contains("Date20140220_2012_j22_peak_position_flat") ) {
+    calibrationSet = ElectronEnergyScale::Date20140220_2012_j22_peak_position_flat;
+  }
   else if ( (pos==0) || escaleTagName.Contains("Date20140220_2012_j22_peak_position") ) {
     calibrationSet = ElectronEnergyScale::Date20140220_2012_j22_peak_position;
   }
@@ -1814,6 +1845,7 @@ TString ElectronEnergyScale::CalibrationSetName(ElectronEnergyScale::Calibration
   case ElectronEnergyScale::Date20130529_2012_j22_adhoc: name="Date20130529_2012_j22_adhoc"; break;
   case ElectronEnergyScale::Date20140220_2012_j22_peak_position_IK: name="Date20140220_2012_j22_peak_position_IK"; break;
    case ElectronEnergyScale::Date20140220_2012_j22_peak_position: name="Date20140220_2012_j22_peak_position"; break;
+   case ElectronEnergyScale::Date20140220_2012_j22_peak_position_flat: name="Date20140220_2012_j22_peak_position_flat"; break;
   case ElectronEnergyScale::CalSet_File_Gauss: 
     name="FileGauss(";
     if (fileName) name+=(*fileName);
@@ -1850,6 +1882,7 @@ TString ElectronEnergyScale::CalibrationSetFunctionName(ElectronEnergyScale::Cal
   case ElectronEnergyScale::Date20130529_2012_j22_adhoc: break; // Gauss
   case ElectronEnergyScale::Date20140220_2012_j22_peak_position_IK: break; // Gauss
   case ElectronEnergyScale::Date20140220_2012_j22_peak_position: break; // Gauss
+  case ElectronEnergyScale::Date20140220_2012_j22_peak_position_flat: break; // Gauss
   case ElectronEnergyScale::CalSet_File_Gauss: break; // Gauss
   case ElectronEnergyScale::CalSet_File_Voigt: name="Voigt"; break;
   case ElectronEnergyScale::CalSet_File_BreitWigner: name="BreitWigner"; break;
@@ -1874,6 +1907,7 @@ TString ElectronEnergyScale::calibrationSetShortName() const {
   case ElectronEnergyScale::Date20130529_2012_j22_adhoc: name="adhoc20130529j22"; break;
   case ElectronEnergyScale::Date20140220_2012_j22_peak_position_IK: name="peak20140220IK"; break;
   case ElectronEnergyScale::Date20140220_2012_j22_peak_position: name="peak20140220"; break;
+  case ElectronEnergyScale::Date20140220_2012_j22_peak_position_flat: name="peak20140220flat"; break;
   case ElectronEnergyScale::CalSet_File_Gauss: name="Gauss"; break;
   case ElectronEnergyScale::CalSet_File_Voigt: name="Voigt"; break;
   case ElectronEnergyScale::CalSet_File_BreitWigner: name="BreitWigner"; break;

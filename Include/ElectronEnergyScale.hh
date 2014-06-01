@@ -34,6 +34,7 @@ public:
     Date20140220_2012_j22_peak_position_IK, // scaling derived so that the peak in data and mc matches, another try. Suggested by Ilya K.
     Date20140220_2012_j22_peak_position, // fewer eta ranges to closer match the EGamma binning
                                          // for reco with momentum regression. No MC smearing.
+    Date20140220_2012_j22_peak_position_flat, // one coefficient
     CalSet_File_Gauss,
     CalSet_File_BreitWigner,
     CalSet_File_Voigt
