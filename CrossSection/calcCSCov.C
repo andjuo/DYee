@@ -268,9 +268,25 @@ int calcCSCov(int analysisIs2D,
 	  // escale randomized
 	  InputFileMgr_t inpMgrLocal;
 	  if (!inpMgrLocal.Load("defaultAdHoc")) return retCodeError;
+	  int maxExps=100;
+	  if (1) {
+	    inpMgrLocal.rootFileBaseDir("../../DYee-20140501/root_files_reg/");
+	    maxExps=1000;
+	    inpMgrLocal.rootFileBaseDir("/media/sdb/andriusj/Results-DYee-escaleRnd/root_files_reg/");
+	    if (0) {
+	      maxExps=100;
+	      inpMgrLocal.rootFileBaseDir("/media/sdb/andriusj/Results-DYee-escaleRndFlat-20140601/root_files_reg/");
+	      inpMgrLocal.editEnergyScaleTag()=TString("Date20140220_2012_j22_peak_position_flat");
+	    }
+	    std::cout << dashline;
+	    std::cout << "Changing the rootFileBaseDir to <"
+		      << inpMgrLocal.rootFileBaseDir() << ">\n";
+	    std::cout << dashline;
+	  }
 	  DYTools::TSystematicsStudy_t systModeV=DYTools::ESCALE_STUDY_RND;
 	  int seedMin=inpMgrLocal.userKeyValueAsInt("SEEDMIN");
 	  int seedMax=inpMgrLocal.userKeyValueAsInt("SEEDMAX");
+	  seedMax=seedMin+maxExps-1;
 	  int dSeed=1;
 	  int count=int((seedMax-seedMin)/dSeed);
 	  vecRnd.reserve(count);
@@ -396,7 +412,9 @@ int calcCSCov(int analysisIs2D,
       if (!cov) res=0;
       else {
 	std::vector<TH2D*> csRndV;
+	inpArgs.noSave(1);
 	res=calcVecOfCSdistributions(inpArgs,vecRnd,csKind,csRndV);
+	inpArgs.noSave(0);
 	csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
 	if (!csCov) res=0;
 
@@ -538,7 +556,7 @@ int calcCSCov(int analysisIs2D,
 
 	for (int iexp=0; res && (iexp<nExps); ++iexp) {
 	  if (DYTools::study2D==1) printProgress(10,"rndExp ",iexp,nExps);
-	  res=Urnd.randomizeMigrationMatrix(*Uref,NULL,100);
+	  res=Urnd.randomizeMigrationMatrix(*Uref,NULL,2);
 	  if (res) res=unfold_reco2true(hpUnf,Urnd,hpSignalYield);
 	  if (res) {
 	    TString rndVec=Form("h2unfRnd_%d",iexp);
@@ -699,13 +717,17 @@ int calcCSCov(int analysisIs2D,
       std::cout << " - will produce " << csCovName << "\n";
 
       std::vector<TH2D*> vecRnd;
+      TString effField=TString("hEfficiency") + systTag;
+      HistoPair2D_t hpEffCorr(effField);
       if (res) {
-	TString effField=TString("hefficiency") + systTag;
-	TString hpCorrName=TString("hpEff") + systTag;
-	HistoPair2D_t hpEffCorr(effField);
+	//TString hpCorrName=TString("hpEff") + systTag;
 	int checkBinning=0;
 	int applyExtraTag=1;
-	TString loadFileName= inpMgr.correctionSystFullFileName("efficiency",DYTools::NO_SYST,applyExtraTag);
+	// changed on June 01, 2014
+	// systematics is not up-to date
+	//TString loadFileName= inpMgr.correctionSystFullFileName("efficiency",DYTools::NO_SYST,applyExtraTag);
+	//effField.ReplaceAll("hEff","heff");
+	TString loadFileName= inpMgr.correctionFullFileName("efficiency",DYTools::NO_SYST,applyExtraTag);
 
 	if (res) {
 	  TH2D *h2corr=LoadHisto2D(effField,loadFileName,"",checkBinning);
@@ -714,18 +736,17 @@ int calcCSCov(int analysisIs2D,
 	    return retCodeError;
 	  }
 	  h2corr->SetName("h2tmp");
-	  hpEffCorr.add(h2corr,1.);
+	  hpEffCorr.assign(h2corr,NULL);
 	  delete h2corr;
 	}
-	std::cout << "Loaded "; printHisto(hpEffCorr,6);
-
+	std::cout << "used file <" << loadFileName << ">\n";
+	std::cout << "Loaded "; printHisto(hpEffCorr,6,12);
 
 	int useSystErr=0; // randomize within statistical error
 	if (!createRandomizedVec(hpEffCorr,useSystErr,nExps,TString("hRnd_eff")+systTag,vecRnd)) {
 	  std::cout << "failed to create randomized esemble for iSyst=" << iSyst << "\n";
 	  return retCodeError;
 	}
-	hpEffCorr.clear();
       }
 
       if (nExps==2) printHisto(vecRnd,0,5,2);
@@ -736,6 +757,22 @@ int calcCSCov(int analysisIs2D,
       TMatrixD* cov= deriveCovMFromRndStudies(vecRnd,unbiasedEstimate,avgDistr);
       TMatrixD* csCov=NULL;
 
+      if (0) { // check the error from randomization
+	// ---------- check begin
+	// destroys data
+	std::vector<TH2D*> hV;
+	std::vector<TString> lV;
+	swapContentAndError(hpEffCorr.editHisto());
+	swapContentAndError(avgDistr);
+	hV.push_back(hpEffCorr.histo());  lV.push_back("Eff errors");
+	hV.push_back(avgDistr); lV.push_back("rnd error");
+	TCanvas *cx= plotProfiles("cx",hV,lV,NULL,0,"efficiency error");
+	cx->Update();
+	return retCodeStop;
+	// ---------- check end
+       }
+      //hpEffCorr.clear(); // needed for further checks
+
       if (cov) {
 	if (!covEffTot) covEffTot=new TMatrixD(*cov);
 	else (*covEffTot) += (*cov);
@@ -745,31 +782,43 @@ int calcCSCov(int analysisIs2D,
       // The randomized efficiency values need to be applied
       // on the unfolded vector
       if (res) {
-	HistoPair2D_t hpUnfEffYield("hpUnfEffYield");
 	for (unsigned int i=0; res && (i<vecRnd.size()); ++i) {
 	  TH2D *rndEff=vecRnd[i];
-	  removeError(rndEff);
-	  if (res) {
-	    res=hpUnfEffYield.divide(hpUnf,rndEff);
-	    //printHisto(hpUnfEffYield,6);
-	  }
-	  if (res) {
-	    // swap pointers to histograms, since
-	    // vecRnd has to contain eff-corrected yields
-	    hpUnfEffYield.swapHistoPtr(&vecRnd[i]);
-	    // By default, the 1st entry will have name hpUnfEffYield,
-	    // which is not correct.
-	    // To avoid confusion, rename the histo
-	    TString newName=Form("h2UnfEffYield_%d",i);
-	    newName+=systTag;
-	    vecRnd[i]->SetName(newName);
-	    vecRnd[i]->SetTitle(newName);
-	  }
+	  TH2D *hUnfEffYield=Clone(hpUnf.histo(),Form("hUnfEffYield_%d",i));
+	  res=divide(hUnfEffYield,rndEff); // rndEff error is ignored
+	  // swap pointers to histograms, since
+	  // vecRnd has to contain eff-corrected yields
+	  swapHistoPtrs(&hUnfEffYield,&vecRnd[i]);
+	  delete rndEff;
 	}
-	hpUnfEffYield.clear();
       }
 
       if (nExps==2) printHisto(vecRnd,0,5,2);
+
+      if (0) { // check the error of rnd eff corr yield
+	// ---------- check begin
+	// destroys data
+	TH2D* unfEff_avgDistr=createBaseH2(Form("hUnfEffAvgDistr_%d",iSyst));
+	TMatrixD* cov_unfEff= deriveCovMFromRndStudies(vecRnd,unbiasedEstimate,unfEff_avgDistr);
+	if (!cov_unfEff) return retCodeError;
+	HistoPair2D_t hpUnfEff("hpUnfEff");
+	hpUnf.RemoveError();
+	hpUnfEff.divide(hpUnf,hpEffCorr.histo(),0);
+
+	//printHisto(unfEff_avgDistr);
+	//printHisto(hpUnfEff.histoSystErr());
+
+	std::vector<TH2D*> hV;
+	std::vector<TString> lV;
+	swapContentAndError(hpUnfEff.editHistoSystErr());
+	swapContentAndError(unfEff_avgDistr);
+	hV.push_back(hpUnfEff.histoSystErr()); lV.push_back("Unf/Eff errors");
+	hV.push_back(unfEff_avgDistr); lV.push_back("unf/rndEff error");
+	TCanvas *cx= plotProfiles("cx",hV,lV,NULL,1,"unf/eff error");
+	cx->Update();
+	return retCodeStop;
+	// ---------- check end
+      }
 
       if (res) {
 	std::vector<TH2D*> csRndV;
@@ -790,6 +839,61 @@ int calcCSCov(int analysisIs2D,
 	ClearVec(csRndV);
       }
       ClearVec(vecRnd);
+
+      if (0) { // check the error
+	// ---------- check begin
+	// non-destructive
+	HistoPair2D_t hpUnfEff("hpUnfEff");
+	HistoPair2D_t hpUnfNoError("hpUnfNoError",hpUnf);
+	hpUnfNoError.RemoveError();
+	HERE(dashline);
+	printHisto(hpUnfNoError,10);
+	hpUnfEff.divide(hpUnfNoError,hpEffCorr.histo(),0);
+	printHisto(hpUnfEff,10);
+	HERE(dashline);
+	printHisto(hpEffCorr,10);
+	HERE(dashline);
+
+	InputArgs_t iaNoCorrErr("iaNoCorrErr",inpArgs,"noExtraErr");
+	iaNoCorrErr.includeCorrError(0);
+	iaNoCorrErr.noSave(0);
+	iaNoCorrErr.needsAllCorrections(0);
+	iaNoCorrErr.needsEffScaleCorr(1);
+	iaNoCorrErr.needsAccCorr(1);
+	iaNoCorrErr.needsFsrCorr(1);
+
+	HistoPair2D_t hpCSchk("hpCSchk");
+	CSResults_t csResult_chk;
+	res=calculateCS(iaNoCorrErr,hpUnfEff,csKind,hpCSchk,csResult_chk);
+
+	printHisto(csAvgDistr);
+	printHisto(hpCSchk);
+	//printHisto(hpCSchk.histoSystErr());
+
+	TH2D* hCScovErr= errorFromCov(*csCov,"hCScovErr");
+
+	std::vector<TH2D*> hV;
+	std::vector<TString> lV;
+	swapContentAndError(hpCSchk.editHistoSystErr());
+	TH2D* csAvgDistr_loc=Clone(csAvgDistr,"csAvgDistr_loc");
+	swapContentAndError(csAvgDistr_loc);
+	hV.push_back(hpCSchk.histoSystErr()); lV.push_back("due to eff errors");
+	hV.push_back(csAvgDistr_loc); lV.push_back("avg");
+	hV.push_back(hCScovErr); lV.push_back("err from cov diag");
+	TCanvas *cx= plotProfiles("cx",hV,lV,NULL,1,"CS error");
+	cx->Update();
+	return retCodeStop;
+	// ---------- check end
+     }
+
+      if (0) {
+	// non destructive check of errors
+	TH2D* hCScovErr= errorFromCov(*csCov,"hCScovErr");
+	std::cout << dashline;
+	printHisto(hCScovErr);
+	printHisto(csAvgDistr);
+	std::cout << dashline;
+      }
 
       if (res) {
 	outFile.cd();
@@ -843,7 +947,6 @@ int calcCSCov(int analysisIs2D,
 				  DYTools::_cs_postFsrDet,
 				  hpUnfEff);
     }
-
     printHisto(hpUnfEff,5);
 
     for (int iSyst=0; res && (iSyst<2); ++iSyst) {
@@ -1003,28 +1106,83 @@ int calcCSCov(int analysisIs2D,
 
       if (nExps==2) printHisto(vecRnd,0,5,2);
 
-      if (res) {
-	std::vector<TH2D*> csRndV;
-	InputArgs_t inpArgsRho("iaRhoSyst",inpArgs,"rhoSyst");
-	inpArgsRho.needsDetUnfolding(0);
-	inpArgsRho.needsEffCorr(0);
-	inpArgsRho.needsEffScaleCorr(0);
-	inpArgsRho.needsAccCorr(1);
-	inpArgsRho.needsFsrCorr(1);
-	res=calcVecOfCSdistributions(inpArgsRho,vecRnd,csKind,csRndV);
-	csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
-	if (!csCov) res=0;
+      // check the covariance development
+      if (0) {
+	if (res) {
+	  TH2D* postRhoAvgDistr=Clone(csAvgDistr,"postRhoAvgDistr");
+	  TMatrixD *postRhoCov= deriveCovMFromRndStudies(vecRnd,unbiasedEstimate,postRhoAvgDistr);
 
-	if (nExps==2) printHisto(csRndV,0,5,2);
+	  std::vector<TH2D*> csRndPostAccV, csRndV;
+	  InputArgs_t inpArgsRho("iaRhoSyst",inpArgs,"-debug-rhoSyst");
+	  inpArgsRho.needsDetUnfolding(0);
+	  inpArgsRho.needsEffCorr(0);
+	  inpArgsRho.needsEffScaleCorr(0);
+	  inpArgsRho.needsAccCorr(1);
+	  inpArgsRho.needsFsrCorr(0);
+	  res=calcVecOfCSdistributions(inpArgsRho,vecRnd,DYTools::_cs_postFsr,csRndPostAccV);
+	  inpArgsRho.needsAccCorr(1);
+	  inpArgsRho.needsFsrCorr(1);
+	  res=calcVecOfCSdistributions(inpArgsRho,vecRnd,csKind,csRndV);
 
-	if (csCov) {
-	  if (!covCS_fromESF) covCS_fromESF=new TMatrixD(*csCov);
-	  else (*covCS_fromESF) += (*csCov);
+	  TH2D* postAccCsAvgDistr=Clone(csAvgDistr,"postAccCsAvgDistr");
+	  TMatrixD *postAccCsCov= deriveCovMFromRndStudies(csRndPostAccV,unbiasedEstimate,postAccCsAvgDistr);
+	  csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
+	  if (!postAccCsCov || !csCov) res=0;
+
+	  TH2D *h2err_esf= errorFromCov(*cov,"h2err_esf_relErr");
+	  if (!scaleHisto(h2err_esf,avgDistr)) return 0;
+	  TH2D *h2err_postRho= errorFromCov(*postRhoCov,"h2err_postRho_relErr");
+	  if (!scaleHisto(h2err_postRho,postRhoAvgDistr)) return 0;
+	  TH2D *h2err_postAcc= errorFromCov(*postAccCsCov,"h2err_postAcc_relErr");
+	  if (!scaleHisto(h2err_postAcc,postAccCsAvgDistr)) return 0;
+	  TH2D *h2err_final= errorFromCov(*csCov,"h2err_final_relErr");
+	  if (!scaleHisto(h2err_final,csAvgDistr)) return 0;
+
+	  std::vector<TH2D*> tmpVec;
+	  tmpVec.push_back(h2err_esf);
+	  tmpVec.push_back(h2err_postRho);
+	  tmpVec.push_back(h2err_postAcc);
+	  tmpVec.push_back(h2err_final);
+	  PrintHisto2Dvec("check error change",tmpVec,0,-1);
+	  return retCodeStop;
+
+	  if (nExps==2) printHisto(csRndV,0,5,2);
+
+	  if (csCov) {
+	    if (!covCS_fromESF) covCS_fromESF=new TMatrixD(*csCov);
+	    else (*covCS_fromESF) += (*csCov);
+	  }
+
+	  //printHisto(csRndV,0,5,2);
+
+	  ClearVec(csRndV);
 	}
+      }
+      else {
+	// normal calculation
+	if (res) {
+	  std::vector<TH2D*> csRndV;
+	  InputArgs_t inpArgsRho("iaRhoSyst",inpArgs,"rhoSyst");
+	  inpArgsRho.needsDetUnfolding(0);
+	  inpArgsRho.needsEffCorr(0);
+	  inpArgsRho.needsEffScaleCorr(0);
+	  inpArgsRho.needsAccCorr(1);
+	  inpArgsRho.needsFsrCorr(1);
+	  res=calcVecOfCSdistributions(inpArgsRho,vecRnd,csKind,csRndV);
+	  csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
+	  if (!csCov) res=0;
 
-	//printHisto(csRndV,0,5,2);
+	  if (nExps==2) printHisto(csRndV,0,5,2);
 
-	ClearVec(csRndV);
+	  if (csCov) {
+	    if (!covCS_fromESF) covCS_fromESF=new TMatrixD(*csCov);
+	    else (*covCS_fromESF) += (*csCov);
+	  }
+
+	  //printHisto(csRndV,0,5,2);
+
+	  ClearVec(csRndV);
+	}
       }
       ClearVec(vecRnd);
 
@@ -1102,12 +1260,16 @@ int calcCSCov(int analysisIs2D,
 
       std::vector<TH2D*> vecRnd;
       if (res) {
-	TString accField=TString("hacceptance") + systTag;
+	TString accField=TString("hAcceptance") + systTag;
 	TString hpCorrName=TString("hpAcc") + systTag;
 	HistoPair2D_t hpAccCorr(accField);
 	int checkBinning=0;
 	int applyExtraTag=1;
-	TString loadFileName= inpMgr.correctionSystFullFileName("acceptance",DYTools::NO_SYST,applyExtraTag);
+	// Changed on June 01, 2014
+	// Systematics is no longer up-to-date
+	//TString loadFileName= inpMgr.correctionSystFullFileName("acceptance",DYTools::NO_SYST,applyExtraTag);
+	// accField.ReplaceAll("hAcc","hacc");
+	TString loadFileName= inpMgr.correctionFullFileName("acceptance",DYTools::NO_SYST,applyExtraTag);
 
 	if (res) {
 	  TH2D *h2corr=LoadHisto2D(accField,loadFileName,"",checkBinning);
@@ -1338,8 +1500,8 @@ int calcCSCov(int analysisIs2D,
 
 	for (int iexp=0; res && (iexp<nExps); ++iexp) {
 
-	  // calculate error in 100 smearings. We do not need it
-	  res=Urnd.randomizeMigrationMatrix(*Uref, fsrUexact, 100);
+	  // calculate error in 2 smearings. We do not need it
+	  res=Urnd.randomizeMigrationMatrix(*Uref, fsrUexact, 2);
 	  if (res) {
 	    res=unfold_reco2true(hpUnf,Urnd,hpPostFsrCS);
 	    printHisto(hpUnf,5);
@@ -1408,6 +1570,9 @@ int calcCSCov(int analysisIs2D,
       int run=0;
       DYTools::TSystematicsStudy_t runSystMode=DYTools::NO_SYST;
       TString csCovName;
+      TString oldDirPart="Results-DYee";
+      TString newDirPart="Results-rnd-studies";
+      int newFSRstudy=1;
       // unf matrices for bounds
       int seedMin=1001, seedMax=1100;
       int dSeed=1;
@@ -1416,6 +1581,11 @@ int calcCSCov(int analysisIs2D,
 	run=calc_globalFSR;
 	runSystMode=DYTools::FSR_RND_STUDY;
 	csCovName="covCS_fsrRndStudy";
+	if (newFSRstudy) {
+	  oldDirPart="../../Results-DYee";
+	  seedMin=1000;
+	  seedMax=1099;
+	}
 	break;
       case 1:
 	run=calc_globalPU;
@@ -1440,8 +1610,15 @@ int calcCSCov(int analysisIs2D,
 
       InputFileMgr_t inpMgrLocal(inpMgr);
       TString dir=inpMgrLocal.rootFileBaseDir();
-      dir.ReplaceAll("Results-DYee","Results-rnd-studies");
+      std::cout << "changing root_dir=<" << dir << "> to <";
+      dir.ReplaceAll(oldDirPart,newDirPart);
+      std::cout << dir << ">\n";
       inpMgrLocal.rootFileBaseDir(dir);
+
+      if (newFSRstudy) {
+	inpMgrLocal.addUserKey(std::string("FSR_RND_STUDY_ID"),"1");
+      }
+
       // remove ESF tag
       inpMgrLocal.addUserKey(std::string("SCALEFACTORTAG"),"");
       // add info on the ESF file
