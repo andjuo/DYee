@@ -118,6 +118,46 @@ void printHisto(const std::vector<TH2D*> hV, int exponent, int maxLines, int max
 }
 
 //---------------------------------------------------------------
+
+TH2D* removeUnderflow(TH2D* h2orig, TString newName) {
+  if ((DYTools::massBinningSet!=DYTools::_MassBins_2011) &&
+      (DYTools::massBinningSet!=DYTools::_MassBins_2012)) {
+    std::cout << dashline;
+    std::cout << "removeUnderflow is not ready for "
+	      << DYTools::massBinningSet << "\n";
+    return NULL;
+  }
+  if (DYTools::study2D==0) {
+    TH2D* h2=Clone(h2orig,newName);
+    return h2;
+  }
+
+  double *newMassBinLimits= new double[DYTools::nMassBins];
+  for (int i=0; i<DYTools::nMassBins; ++i) {
+    newMassBinLimits[i]= DYTools::massBinLimits[i+1];
+  }
+
+  TH2D* h2=new TH2D(newName,newName,
+		    DYTools::nMassBins-1,newMassBinLimits,
+		    DYTools::nYBinsMax,DYTools::yRangeMin,DYTools::yRangeMax);
+  delete newMassBinLimits;
+
+  h2->SetDirectory(0);
+  h2->SetStats(0);
+  h2->Sumw2();
+  h2->GetXaxis()->SetTitle("M_{ee} [GeV]");
+  h2->GetYaxis()->SetTitle("|y|");
+  for (int ibin=1; ibin<=h2->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=h2->GetNbinsY(); ++jbin) {
+      h2->SetBinContent( ibin,jbin, h2orig->GetBinContent(ibin+1,jbin) );
+      h2->SetBinError  ( ibin,jbin, h2orig->GetBinError  (ibin+1,jbin) );
+    }
+  }
+  return h2;
+}
+
+
+//---------------------------------------------------------------
 //---------------------------------------------------------------
 
 TMatrixD* deriveCovMFromRndStudies(const std::vector<TH2D*> &rndV,
@@ -1227,14 +1267,19 @@ TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinnin
 //--------------------------------------------------
 //--------------------------------------------------
 
-void writeBinningArrays(TFile &fout, TString producedBy) {
+void writeBinningArrays(TFile &fout, TString producedBy, int allInfo) {
   if (!fout.IsOpen()) {
     std::cout << "writeBinningArrays error: file is not open\n";
     return;
   }
   fout.cd();
   int correction= (DYTools::study2D==-1) ? 1:0;
-  writeIntFlagValues("DYTools_study2D",1,DYTools::study2D);
+  if (allInfo || (DYTools::study2D)) {
+    writeIntFlagValues("DYTools_study2D",1,DYTools::study2D);
+  }
+  else {
+    writeIntFlagValues("DYTools_study1D",1,1);
+  }
   TVectorD mass(DYTools::nMassBins+1);
   TVectorD rapidityCounts(DYTools::nMassBins + correction);
   if (correction) {
@@ -1255,8 +1300,10 @@ void writeBinningArrays(TFile &fout, TString producedBy) {
 		  producedBy : TString("Non-specified macro"));
   TObjString timeTag(DayAndTimeTag(0));
   TObjString explain="productionTime";
-  info.Write("producedBy");
-  timeTag.Write("timeTag");
+  if (allInfo) {
+    info.Write("producedBy");
+    timeTag.Write("timeTag");
+  }
   info.Write(TString("infoProducedBy: ") + producedBy);
   explain.Write(timeTag.String());
 }

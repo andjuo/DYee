@@ -75,6 +75,7 @@ Int_t roundToInt(Double_t x)
 
 
 //------------------------------------------------------------------------------------------------------------------------
+// error on ratio when counts are pass and fail (i.e. independent)
 
 inline
 double errOnRatio(double a, double da, double b, double db){
@@ -87,6 +88,29 @@ double errOnRatio(double a, double da, double b, double db){
   return result;
 }
 
+
+//----------------------------------------------------------------
+// error on ratio when counts are pass and total
+
+inline
+double errOnRatioPT(double p, double dp, double tot, double dtot){
+  double f=tot-p;
+  double df=sqrt(dtot*dtot-dp*dp);
+  return errOnRatio(p,dp,f,df);
+}
+
+
+//----------------------------------------------------------------
+// print error on ratio when counts are pass and total
+
+inline
+void printEff_PT(double p, double dp, double tot, double dtot) {
+  double eff=p/tot;
+  double deff=errOnRatioPT(p,dp,tot,dtot);
+  std::cout << "pass=" << p << " +- " << dp << ", tot="
+	    << tot << " +- " << dtot << ", eff="
+	    << eff << " +- " << deff << "\n";
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -148,6 +172,13 @@ TString niceNumber(int iVal, int iValMax);
 inline
 void HERE(const char *msg) {
   std::cout << ((msg) ? msg : "HERE") << std::endl;
+}
+
+//--------------------------------------------------------------
+
+inline
+void HERE(const std::string &msg) {
+  std::cout << msg << std::endl;
 }
 
 //--------------------------------------------------------------
@@ -595,6 +626,8 @@ inline void removeError(TH1D *h) { removeError1D(h); }
 inline void removeError(TH2F *h) { removeError2D(h); }
 inline void removeError(TH2D *h) { removeError2D(h); }
 
+TH2D* removeUnderflow(TH2D* h, TString newName);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class histo_t>
@@ -705,6 +738,22 @@ inline void unsquareElements(TMatrixD &m) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+
+template<class ptr_t>
+inline void swapPtrs(ptr_t **ptr1, ptr_t **ptr2) {
+  ptr_t* tmp=(*ptr1); (*ptr1)=(*ptr2); (*ptr2)=tmp;
+}
+
+//---------------------------------------------------------------
+
+inline void swapHistoPtrs(TH1D **ptr1, TH1D **ptr2) {
+  TH1D* tmp=(*ptr1); (*ptr1)=(*ptr2); (*ptr2)=tmp;
+}
+inline void swapHistoPtrs(TH2D **ptr1, TH2D **ptr2) {
+  TH2D* tmp=(*ptr1); (*ptr1)=(*ptr2); (*ptr2)=tmp;
+}
+
+//---------------------------------------------------------------
 
 template<class histo_t>
 inline
@@ -1437,6 +1486,10 @@ histo_t* addHistos(TString newName, const std::vector<histo_t*> &vec) {
 int scaleHisto(TH1D *histoNom, const TH1D *histoDenom, int mult=0);
 int scaleHisto(TH2D *histoNom, const TH2D *histoDenom, int mult=0);
 
+template<class histo_t>
+inline int divide(histo_t *histoNom, const histo_t *histoDenom)
+{ return scaleHisto(histoNom,histoDenom,0); }
+
 TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
 TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
 TH2D* convert_TH2F_to_TH2D(const TH2F *h, TString newName);
@@ -1638,7 +1691,7 @@ double ZpeakCount(TH2D* h2, double *err=NULL) {
 //--------------------------------------------------
 //--------------------------------------------------
 
-void writeBinningArrays(TFile &fout, TString producedBy="");
+void writeBinningArrays(TFile &fout, TString producedBy="", int allInfo=1);
 int checkBinningArrays(TFile &fin, int printMetaData=0);
 int checkBinningRanges(const TVectorD &massBinEdges, const TVectorD &rapidityCounts, const TString &fname);
 int checkMatrixSize(const TMatrixD &m, const TString &infoName);
