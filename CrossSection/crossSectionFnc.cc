@@ -38,6 +38,20 @@ int getNormalizationMBinRange(int &firstNormBin, int &lastNormBin) {
 */
 
 // ----------------------------------------------
+// ----------------------------------------------
+
+
+void InputArgs_t::needsAllCorrections(int yes) {
+  fNeedsDETUnfolding=yes;
+  fNeedsEffCorr=yes;
+  fNeedsEffScaleCorr=yes;
+  fNeedsAccCorr=yes;
+  fNeedsFsrCorr=yes;
+}
+
+
+// ----------------------------------------------
+
 
 //=== Cross-section calculation FUNCTION IMPLEMENTATIONS ======================================================================================
 
@@ -170,6 +184,10 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
 		  << effCorrFName << ">\n";
       }
     }
+    if ((inpArg.systMode()==DYTools::FSR_RND_STUDY) &&
+	(inpArg.inpMgr()->userKeyValueAsInt("FSR_RND_STUDY_ID")==1)) {
+      effCorrFName.ReplaceAll("FSR_RND_STUDY","FSR_RND_STUDYid");
+    }
     hEff=LoadHisto2D("hEfficiency",effCorrFName,"",1);
   }
   else {
@@ -178,10 +196,12 @@ int efficiencyCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
     std::cout << "loading from <" << effCorrFName << ">\n";
     hEff=LoadMatrixFields(effCorrFName,0,"efficiencyArray","efficiencyErrArray",1);
   }
-  //std::cout << "effCorrFName=<" << effCorrFName << ">\n";
+  std::cout << "effCorrFName=<" << effCorrFName << ">\n";
   int res=(hEff!=NULL) ? 1:0;
+  //printHisto(hEff,10);
   if (res) res=fin.divide(ini,hEff,!inpArg.includeCorrError());
   if (!res) std::cout << "error in efficiencyCorrection\n";
+  if (hEff) delete hEff;
   return res;
 }
 // ----------------------------------------------
@@ -241,6 +261,7 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
   if (res) std::cout << "loaded from rhoCorrFName=<" << rhoCorrFName << ">\n";
   if (res) res=fin.divide(ini,hRho,!inpArg.includeCorrError());
   if (!res) std::cout << "error in efficiencyScaleCorrection\n";
+  if (hRho) delete hRho;
   return res;
 }
 
@@ -269,6 +290,11 @@ int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
     }
   }
 
+  if ((inpArg.systMode()==DYTools::FSR_RND_STUDY) &&
+      (inpArg.inpMgr()->userKeyValueAsInt("FSR_RND_STUDY_ID")==1)) {
+    accCorrFName.ReplaceAll("FSR_RND_STUDY","FSR_RND_STUDYid");
+  }
+
   TH2D* hAcc=NULL;
   const int load_debug_file=(codeDebugFilePath.Length()) ? 1:0;
   if ( ! load_debug_file ) {
@@ -285,6 +311,7 @@ int acceptanceCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &ini, Hi
   int res=(hAcc!=NULL) ? 1:0;
   if (res) res=fin.divide(ini,hAcc,!inpArg.includeCorrError());
   if (!res) std::cout << "error in acceptanceCorrection\n";
+  if (hAcc) delete hAcc;
   return res;
 }
 
