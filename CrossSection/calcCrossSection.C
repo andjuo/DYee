@@ -222,6 +222,7 @@ int calcCrossSection(int analysisIs2D,
     iaNoExtraErr.silentMode(0);
     iaNoExtraErr.needsDetUnfolding(0);
     iaNoExtraErr.includeCorrError(0);
+    iaNoExtraErr.noSave(1);
 
     InputArgs_t iaWithExtraErr("iaWithExtraErr",iaNoExtraErr,"wExtraErr");
     iaWithExtraErr.includeCorrError(1);
@@ -243,17 +244,30 @@ int calcCrossSection(int analysisIs2D,
     // Then obtain the efficiency correction with error, and finish
     // without additional errors
     HistoPair2D_t hpUnfYieldNoErr("hpUnfYieldNoErr",hpUnfoldedYield);
-    removeError(hpUnfYieldNoErr.editHisto());
-    hpUnfYieldNoErr.editHistoSystErr()->Reset();
+    hpUnfYieldNoErr.RemoveError();
 
+    printHisto(hpUnfYieldNoErr,5,5);
+
+    iaWithExtraErr.needsAllCorrections(0);
     iaWithExtraErr.needsEffCorr(1);
     iaWithExtraErr.needsEffScaleCorr(0);
     HistoPair2D_t hpEffCorrYield("hpEffCorrYield");
+    std::cout << dashline;
+    printHisto(hpUnfYieldNoErr);
     if (res) res= calculateCSdistribution(iaWithExtraErr,hpUnfYieldNoErr,
 				    DYTools::_cs_postFsrDet,hpEffCorrYield);
+    iaNoExtraErr.needsDetUnfolding(0);
     iaNoExtraErr.needsEffCorr(0);
+    iaNoExtraErr.needsEffScaleCorr(1);
+    iaNoExtraErr.needsAccCorr(1);
+    iaNoExtraErr.needsFsrCorr(1);
     if (res) res= calculateCS(iaNoExtraErr,hpEffCorrYield,csKind,
 			      hpCS_effErr,csResult_effErr);
+
+    HERE("checkThis");
+    printHisto(hpCS_effErr);
+    //return retCodeStop;
+
 
     // 3. calculate propagated acceptance error
     // First produce post-FSR cross section, ignoring the error effects
@@ -307,6 +321,7 @@ int calcCrossSection(int analysisIs2D,
     if (res) res=hpCS_yieldErr.Write(fout,"","mainCS_yieldErr");
     if (res) res=hpCS_effErr.Write(fout,"","mainCS_effErr");
     if (res) res=hpCS_accErr.Write(fout,"","mainCS_accErr");
+    if (res) res=hpSignalYield.Write(fout,"","");
     if (res) res=saveHisto(fout,hEff,"","hEfficiency");
     if (res && hAcc) res=saveHisto(fout,hAcc,"","hAcceptance");
     if (res) writeBinningArrays(fout,"calcCrossSection");
