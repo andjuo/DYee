@@ -45,34 +45,80 @@ int loadYieldCovMatrices(const TString &fnameBase,std::vector<TMatrixD*> &covs,
     return 0;
   }
   TMatrixD *ptr;
+
   if (wf.cf().calc_YieldStat()) {
     ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldStat"));
     if (ptr) {
       covs.push_back(ptr);
       labels.push_back("signal stat (w/bkg)");
     }
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_yield,0)) {
+      std::cout << "failed to apply correction on yield stat cov\n";
+      return 0;
+    }
   }
+
   if (wf.cf().calc_YieldSyst()) {
     ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldSyst"));
     if (ptr) {
       covs.push_back(ptr);
       labels.push_back("signal syst (bkg)");
     }
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_yield,1)) {
+      std::cout << "failed to apply correction on yield syst cov\n";
+      return 0;
+    }
   }
+
   if (wf.cf().calc_YieldStatDetailed()) {
     ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldStatDetailed"));
     if (ptr) {
       covs.push_back(ptr);
       labels.push_back("signal stat");
     }
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_yield,0)) {
+      std::cout << "failed to apply correction on yield stat cov\n";
+      return 0;
+    }
+
+    // check the conversions
+    if (0) {
+      TH2D* h2Err= errorFromCov(*ptr,"h2Err");
+      TMatrixD *corr= corrFromCov(*ptr);
+      TMatrixD *newCov= covFromCorr(*corr,h2Err);
+      TMatrixD *newCorr= corrFromCov(*newCov);
+
+      TCanvas *cx=new TCanvas("cx","loaded cov",600,600);
+      ptr->Draw("COLZ");
+      TCanvas *cy=new TCanvas("cy","h2err",600,600);
+      h2Err->Draw("COLZ");
+      TCanvas *cz=new TCanvas("cz","corr",600,600);
+      corr->Draw("COLZ");
+      TCanvas *ct=new TCanvas("ct","new cov",600,600);
+      newCov->Draw("COLZ");
+      TCanvas *cw=new TCanvas("cw","new corr",600,600);
+      newCorr->Draw("COLZ");
+      cy->Update();
+      cx->Update();
+      ct->Update();
+      cz->Update();
+      cw->Update();
+      return 0;
+    }
   }
+
   if (wf.cf().calc_YieldSystDetailed()) {
     ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldSystDetailed"));
     if (ptr) {
       covs.push_back(ptr);
       labels.push_back("signal syst");
     }
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_yield,1)) {
+      std::cout << "failed to apply correction on yield syst cov\n";
+      return 0;
+    }
   }
+
   if (wf.cf().calc_YieldEscale()) {
     ptr=(TMatrixD*)fin.Get(wf.fieldName("YieldEScale"));
     if (ptr) {
@@ -196,6 +242,11 @@ int loadEffCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs,
       covs.push_back(ptr);
       labels.push_back("eff stat");
     }
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_corrEff,0))
+      {
+	std::cout << "failed to apply correction on eff rnd cov\n";
+	return 0;
+    }
   }
 
   fin.Close();
@@ -287,6 +338,12 @@ int loadAccCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs,
     if (ptr) {
       covs.push_back(ptr);
       labels.push_back("acc stat");
+    }
+
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_corrAcc,0))
+      {
+	std::cout << "failed to apply correction on acc rnd cov\n";
+	return 0;
     }
   }
 
@@ -462,6 +519,118 @@ TH2D *loadMainCSResult(int crossSection, TH2D** h2SystErr) {
   }
   printHisto(h2);
   return h2;
+}
+
+// -----------------------------------------------------------
+
+int correctCov2CSPropagatedError(TMatrixD &cov,
+				 TCorrCase_t distr, int systErr) {
+  TString csFileName1D_CS="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1D_errProp.root";
+  TString csFileName2D_CS="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsrDet_2D_errProp.root";
+  TString fname=(DYTools::study2D) ? csFileName2D_CS : csFileName1D_CS;
+
+  TString fieldCorrName, fieldCSName;
+  switch(distr) {
+  case _yield:
+    fieldCorrName=(systErr) ? "signalYieldDDbkgSyst" : "signalYieldDDbkg";
+    fieldCSName  =(systErr) ? "mainCS_yieldErrSyst" : "mainCS_yieldErr";
+    break;
+  case _corrEff:
+    fieldCorrName="hEfficiency";
+    fieldCSName  ="mainCS_effErrSyst";
+    break;
+  case _corrAcc:
+    fieldCorrName="hAcceptance";
+    fieldCSName  ="mainCS_accErrSyst";
+    break;
+  default:
+    std::cout << "loadCSPropagatedErrorCorrection: cannot load error for "
+	      << distr << "\n";
+    return 0;
+  }
+
+  // Get the needed error
+  //TH2D *hCorrErr= LoadHisto2D(fieldCorrName, fname, "", 1);
+  TH2D *hCSErr  = LoadHisto2D(fieldCSName  , fname, "", 1);
+  if (!hCSErr) {
+    std::cout << "failed to load the required field\n";
+    return 0;
+  }
+
+  TString nameTag=corrCaseName(distr);
+
+  // Derive the error from the covariance
+  // The error values will be the central values of the histogram
+  TH2D* h2ErrCov= errorFromCov(cov, Form("h2ErrCov_%s",nameTag.Data()));
+  TMatrixD *corr = corrFromCov(cov);
+
+  // The error in the hCSErr should be moved to central values
+  swapContentAndError(hCSErr);
+
+  printHisto(hCSErr);
+  printHisto(h2ErrCov);
+
+  // make sure we do not make significant error
+  TH2D *hRatio= Clone(hCSErr, Form("hErrRatio_%s",corrCaseName(distr).Data()));
+  hRatio->Reset();
+  double maxR=0;
+  for (int ibin=1; ibin<=hCSErr->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hCSErr->GetNbinsY(); ++jbin) {
+      double csErr =  hCSErr->GetBinContent(ibin,jbin);
+      double covErr=h2ErrCov->GetBinContent(ibin,jbin);
+      double r     =csErr/covErr;
+      hRatio->SetBinContent(ibin,jbin, r);
+      if (r<0) std::cout << dashline << "\tNegative error?\n" << dashline << "\n";
+      r=fabs(r);
+      if (r>maxR) maxR=r;
+    }
+  }
+  std::cout << nameTag << ": the largest ratio of errors is " << maxR << "\n";
+  int plot=0;
+  if (maxR>1.12) {
+    std::cout << "the correction is too large\n";
+    plot=1;
+  }
+  //if (distr==_corrEff) plot=1; // for debug
+
+  TMatrixD* newCov= covFromCorr(*corr, hCSErr);
+
+  if (plot) {
+    std::vector<TH2D*> histosV;
+    std::vector<TString> labelsV;
+
+    histosV.push_back(hCSErr); labelsV.push_back("propagated err");
+    histosV.push_back(h2ErrCov); labelsV.push_back("error from cov");
+
+    TCanvas *cx=plotProfiles("cxTest",histosV,labelsV,NULL,1,"error on cs");
+    cx->Update();
+    TCanvas *ct=new TCanvas("ct","old cov",600,600);
+    cov.Draw("COLZ");
+    TCanvas *cy=new TCanvas("cy","new cov",600,600);
+    newCov->Draw("COLZ");
+    TCanvas *cv=new TCanvas("cv","old corr",600,600);
+    corr->Draw("COLZ");
+    TCanvas *cu=new TCanvas("cu","new corr",600,600);
+    TMatrixD* newCorr= corrFromCov(*newCov);
+    newCorr->Draw("COLZ");
+    ct->Update();
+    cy->Update();
+    cv->Update();
+    cu->Update();
+    cx->Update();
+    delete newCorr;
+    return 0;
+  }
+
+  cov=*newCov;
+  delete corr;
+  delete newCov;
+  if (!plot) {
+    delete hCSErr;
+    delete h2ErrCov;
+  }
+
+  return 1;
 }
 
 // -----------------------------------------------------------

@@ -48,6 +48,12 @@ TString corrCaseName(TCorrCase_t cs) {
 }
 
 // ----------------------------------------------------------------
+
+inline
+std::ostream& operator<<(std::ostream &out, TCorrCase_t cs)
+{ out << corrCaseName(cs); return out; }
+
+// ----------------------------------------------------------------
 // ----------------------------------------------------------------
 
 //=== Functions =================================================================================================
@@ -71,6 +77,12 @@ int loadGlobalCovMatrices(const TString &fnameBase,
 			  const WorkFlags_t &wf);
 
 TH2D *loadMainCSResult(int crossSection=0, TH2D** h2SystErr=NULL);
+
+// Covariance is random, propagated error is fixed by the central values
+// The covariance from a particular source can be corrected to the propagated
+// error values. Applies to _yield (systErr=0,1), _eff, _acc
+int correctCov2CSPropagatedError(TMatrixD &cov,
+				 TCorrCase_t distr, int systErr);
 
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------
@@ -237,6 +249,7 @@ struct WorkFlags_t {
   int fCase;
   int fCSCov;
   int fSaveTotCovDetails;
+  int fApplyCorrection; // scale covariance to the appropriate propagated err.
   TString fExtraTag;
   std::vector<TString> fExtraTagV;
   CSCovCalcFlags_t fCalcFlags;
@@ -244,6 +257,7 @@ public:
   WorkFlags_t(int the_case=0, int set_showCSCov=1, TString set_extra_tag="") :
     fCase(the_case), fCSCov(set_showCSCov),
     fSaveTotCovDetails(0),
+    fApplyCorrection(0),
     fExtraTag(set_extra_tag),
     fExtraTagV(),
     fCalcFlags()
@@ -254,6 +268,7 @@ public:
   WorkFlags_t(const WorkFlags_t &w) :
     fCase(w.fCase), fCSCov(w.fCSCov),
     fSaveTotCovDetails(w.fSaveTotCovDetails),
+    fApplyCorrection(w.fApplyCorrection),
     fExtraTag(w.fExtraTag),
     fExtraTagV(w.fExtraTagV),
     fCalcFlags(w.fCalcFlags)
@@ -265,6 +280,8 @@ public:
   void showCSCov(int show) { fCSCov=show; }
   int saveTotCovDetails() const { return fSaveTotCovDetails; }
   void saveTotCovDetails(int yes) { fSaveTotCovDetails=yes; }
+  int applyCorrection() const { return fApplyCorrection; }
+  void applyCorrection(int yes) { fApplyCorrection=yes; }
   int hasExtraTag() const { return (fExtraTag.Length()>0) ? 1:0; }
   TString extraFileTag() const { return fExtraTag; }
   void extraFileTag(TString setTag) { fExtraTag=setTag; }
