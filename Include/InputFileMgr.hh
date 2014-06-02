@@ -192,7 +192,7 @@ public:
   }
 
   InputFileMgr_t(const InputFileMgr_t &mgr);
-
+  ~InputFileMgr_t();
 
   void Clear();
 

@@ -186,6 +186,12 @@ InputFileMgr_t::InputFileMgr_t (const InputFileMgr_t &mgr) :
 
 // -----------------------------------------------------------
 
+InputFileMgr_t::~InputFileMgr_t() {
+  this->Clear();
+}
+
+// -----------------------------------------------------------
+
 void InputFileMgr_t::Clear() {
   FLoadedFileName.Clear(); 
   FSelectionTag.Clear(); FConstTag.Clear(); FXSecTag.Clear();
