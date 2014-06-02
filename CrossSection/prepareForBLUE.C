@@ -62,6 +62,7 @@ int prepareForBLUE(int analysisIs2D, int normalized=0) {
 
   int test=0;
   TString covFName=(!analysisIs2D) ? "finalCov-1D.root" : "finalCov-2D.root";
+  covFName.ReplaceAll(".root","-20140601.root");
   if (test) covFName.ReplaceAll(".root","-yieldStatOnly.root");
 
   int nBins=DYTools::nUnfoldingBins;
