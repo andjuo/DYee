@@ -18,7 +18,8 @@ int workWithData(TCovData_t &dt, const WorkFlags_t &wf);
 int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
 	      int showCSCov=1,
 	      TString outFileExtraTag_UserInput="",
-	      int saveTotCovDetails_user=0)
+	      int saveTotCovDetails_user=0,
+	      int applyErrorCorrection_user=1)
 {
 
   if (!DYTools::setup(analysisIs2D)) {
@@ -40,6 +41,7 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   TCovData_t dt;
   WorkFlags_t work(the_case,showCSCov,outFileExtraTag_UserInput);
   work.saveTotCovDetails(saveTotCovDetails_user);
+  work.applyCorrection(applyErrorCorrection_user);
 
   CSCovCalcFlags_t *cf= & work.editCalcFlags();
 
@@ -49,8 +51,6 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     cf->calc_YieldSystDetailed(1);
     break;
   case 1:
-    cf->calc_YieldStatDetailed(1);
-    cf->calc_YieldSystDetailed(1);
     cf->calc_YieldEscale(1);
     break;
   case 2:
@@ -119,20 +119,17 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     // global study I
     work.init_ExtraTagV(0);
     work.extraFileTag(_yield, "-yieldOnly_nExps1000");
-    //work.extraFileTag(_yield, "-yieldOnly");
+    //work.extraFileTag(_yield, "-yieldEscaleOnly");
+    //work.extraFileTag(_yield, "-yieldEscaleOnly_nExps1000");
     work.extraFileTag(_corrUnf, "-unfOnly");
     if ((workBranch==2) ||
-	(workBranch==5)) work.extraFileTag(_corrUnf, "-unfRndOnly_nExps1000");
-    //if ((workBranch==6)) work.extraFileTag(_corrUnf,"-unfOnly_nExps1000");
+	(workBranch==5) ||
+	(workBranch==6)) work.extraFileTag(_corrUnf, "-unfRndOnly_nExps1000");
     if (workBranch==4) work.extraFileTag(_corrUnf, "-unfOnly_nExps20");
     work.extraFileTag(_corrEff, "-effRndOnly_nExps1000");
     work.extraFileTag(_corrESF, "-esfOnly");
-    work.extraFileTag(_corrAcc, "-accRndOnly");
-    work.extraFileTag(_corrFSR, "-fsrRndOnly");
-    //if (the_case==3) 
-    //work.extraFileTag(_corrFSR, "-fsrRndOnly_nExps1000");
-    //work.extraFileTag(_corrGlobalFSR, "-globalFSROnly_nExps20");
-    //work.extraFileTag(_corrGlobalPU, "-globalPUOnly_nExps20");
+    work.extraFileTag(_corrAcc, "-accRndOnly_nExps1000");
+    work.extraFileTag(_corrFSR, "-fsrRndOnly_nExps1000");
     work.extraFileTag(_corrGlobalFSR, "-globalFSROnly");
     work.extraFileTag(_corrGlobalPU, "-globalPUOnly");
     /*
@@ -342,6 +339,22 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 	    return;
 	  }
 	  if (iCorr==1) {
+	    if (0) {
+	      // ---------- begin inset
+	      // save error for adjustment
+	      TFile fout(Form("temp_%s.root",DYTools::analysisTag.Data()),
+			      "recreate");
+	      if (!saveHisto(fout,h2,"","totErr") ||
+		  !saveHisto(fout,h2Main,"","mainCS_div100")) {
+		std::cout << "error when saving to <" << fout.GetName()
+			  << ">\n";
+		return;
+	      }
+	      writeBinningArrays(fout,"plotCSCov");
+	      fout.Close();
+	      // ---------- end inset
+	    }
+
 	    if (!scaleHisto(h2,h2Main)) return;
 	  }
 	  errFromCovV.push_back(h2);
