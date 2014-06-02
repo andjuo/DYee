@@ -34,7 +34,7 @@ int calcCSCov(int analysisIs2D,
   int calc_YieldStatDetailed=0; // take only observed stat err
   int calc_YieldSyst=0;  // ignore the way it was calculated
   int calc_YieldSystDetailed=0; // take into account true/fake composition
-  int calc_YieldEScale=0;
+  int calc_YieldEScale=1;
 
   int doCalcYieldCov=(calc_YieldStat + calc_YieldStatDetailed +
 		      calc_YieldSyst + calc_YieldSystDetailed +
@@ -44,9 +44,10 @@ int calcCSCov(int analysisIs2D,
   int calc_UnfFSR=0;
   int calc_UnfRnd=0;
   int calc_UnfEScale=0;
+  int calc_UnfResidual=0;
 
   int doCalcUnfCov=(calc_UnfPU + calc_UnfFSR +
-		    calc_UnfRnd + calc_UnfEScale) ? 1:0;
+		    calc_UnfRnd + calc_UnfEScale + calc_UnfResidual) ? 1:0;
 
   int calc_EffPU=0;
   int calc_EffFSR=0;
@@ -70,7 +71,7 @@ int calcCSCov(int analysisIs2D,
   int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
 
   int calc_globalFSR=0;
-  int calc_globalPU=1;
+  int calc_globalPU=0;
   int calc_globalFEWZ=0;
 
   int doCalcGlobalCov=(calc_globalFSR + calc_globalPU + calc_globalFEWZ) ? 1:0;
@@ -482,7 +483,7 @@ int calcCSCov(int analysisIs2D,
     inpArgs.silentMode(2);
     TMatrixD *covUnfTot=NULL;
 
-    for (int iSyst=0; res && (iSyst<4); ++iSyst) {
+    for (int iSyst=0; res && (iSyst<5); ++iSyst) {
       int run=0;
       DYTools::TSystematicsStudy_t runSystMode=DYTools::NO_SYST;
       TString csCovName;
@@ -517,6 +518,11 @@ int calcCSCov(int analysisIs2D,
 	runSystMode=DYTools::RESOLUTION_STUDY;
 	csCovName="covCS_UnfEScale";
 	break;
+      case 4:
+	run=calc_UnfResidual;
+	runSystMode=DYTools::ESCALE_RESIDUAL;
+	csCovName="covCS_UnfResidual";
+	break;
       default:
 	std::cout << "not ready for unf iSyst=" << iSyst << "\n";
 	return retCodeError;
@@ -550,7 +556,7 @@ int calcCSCov(int analysisIs2D,
       }
 
       std::vector<TH2D*> vecUnfRnd;
-      if (res && (iSyst!=3)) {
+      if (res && (iSyst!=3) && (iSyst!=4)) {
 	UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,"detResponseRnd");
 	HistoPair2D_t hpUnf("hpUnf");
 
@@ -604,7 +610,7 @@ int calcCSCov(int analysisIs2D,
 	  TString name=Form("detResponse_seed%d",iseed);
 	  UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,name);
 	  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(runSystMode,-1);
-	  TString outputDir=inpMgr.constDir(runSystMode,0);
+	  TString outputDir=inpMgrLocal.constDir(runSystMode,0);
 	  res=Urnd.autoLoadFromFile(outputDir,fnameTag);
 	  if (res) res= unfold_reco2true(hpUnfYield,Urnd,hpYield);
 	  if (res) {
@@ -613,9 +619,47 @@ int calcCSCov(int analysisIs2D,
 	    vecUnfRnd.push_back(h2);
 	  }
 	}
+	hpYield.clear();
+	hpUnfYield.clear();
+      }
+      else if (res && (iSyst==4)) {
+	// escale rnd study
+	InputFileMgr_t inpMgrLocal;
+	if (!inpMgrLocal.Load("defaultAdHoc")) return retCodeError;
+	DYTools::TSystematicsStudy_t systModeV=DYTools::ESCALE_RESIDUAL;
+	EventSelector_t evtSelector4(inpMgrLocal,runMode,systModeV,
+				     "","",EventSelector::_selectDefault);
+	inpMgrLocal.rootFileBaseDir("/media/sdb/andriusj/Results-DYee-unfResidual/root_files_reg/");
+	int seedMin=1;
+	int seedMax=100;
+	int dSeed=1;
+	int count=int((seedMax-seedMin)/dSeed);
+	vecUnfRnd.reserve(count);
+
+	HistoPair2D_t hpUnfYield("hpUnfYield");
+
+	for (int iseed=seedMin; res && (iseed<=seedMax); iseed+=dSeed) {
+	  if (iseed-seedMin>=nExps) {
+	    std::cout << "\n\tthere are more seeds than requested "
+		      << "experiments. Stoping consideration\n";
+	    break;
+	  }
+	  TString name=Form("detResponse_%s",niceNumber(iseed,seedMax).Data());
+	  UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,name);
+	  TString fnameTag=UnfoldingMatrix_t::generateFNameTag(runSystMode,-1);
+	  TString outputDir=inpMgrLocal.constDir(runSystMode,0);
+	  res=Urnd.autoLoadFromFile(outputDir,fnameTag);
+	  if (res) res= unfold_reco2true(hpUnfYield,Urnd,hpSignalYield);
+	  if (res) {
+	    TH2D* h2=Clone(hpUnfYield.histo(),Form("h2unfEres_%d",iseed));
+	    if (!h2) res=0;
+	    vecUnfRnd.push_back(h2);
+	  }
+	}
+	hpUnfYield.clear();
       }
 
-      //printHisto(vecUnfRnd,0,5,2);
+      printHisto(vecUnfRnd,0,5,2);
 
       int unbiasedEstimate=1;
       TH2D* avgDistr=createBaseH2(Form("hUnfAvgDistr_%d",iSyst));
@@ -636,6 +680,18 @@ int calcCSCov(int analysisIs2D,
 	res=calcVecOfCSdistributions(iaUnf,vecUnfRnd,csKind,csRndV);
 	csCov= deriveCovMFromRndStudies(csRndV,unbiasedEstimate,csAvgDistr);
 	if (!csCov) res=0;
+
+	// save details of the cross-section randomization
+	if (1 && storeDetails && res) {
+	  outFile.cd();
+	  TString covDetailsDir=csCovName + TString("_details");
+	  res=hpSignalYield.Write(outFile,covDetailsDir,"");
+	  if (res) res=saveHisto(outFile,avgDistr,covDetailsDir,"");
+	  if (res) res=saveHisto(outFile,csAvgDistr,covDetailsDir,"");
+	  if (res) res=saveVec(outFile,vecUnfRnd,covDetailsDir);
+	  if (res) res=saveVec(outFile,csRndV,covDetailsDir);
+	}
+	if (!res) return retCodeError;
 
 	if (csCov) {
 	  if (!covCS_fromUnf) covCS_fromUnf=new TMatrixD(*csCov);
