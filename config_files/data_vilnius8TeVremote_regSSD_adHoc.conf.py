@@ -81,7 +81,9 @@ DDBkg=1
 DDBkgVersion=20140428 # from Manny
 
 #T&P_ESF_extra=_etaMax24
-ScaleFactorTag = DY_j22_19712pb_egamma_Unregressed_energy
+
+# SpecFile_EffSCaleFactor should be defined for 1D case. 2D case is constructed
+SpecFile_EffScaleFactor=../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/covRhoFileSF_nMB41_asymHLT_Unregressed_energy-allSyst_100_v2.root
 
 [TAG_AND_PROBE]
 # Tag and probe options
