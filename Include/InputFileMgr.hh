@@ -253,6 +253,8 @@ public:
   }
 
   unsigned int userKeyCount() const { return FUserKeys.size(); }
+  int userKeyValueExists(const std::string &key) const
+  { return (this->userKeyValue(key).size()>0) ? 1:0; }
   std::string userKeyValue(const std::string &key) const;
   TString userKeyValueAsTString(const std::string &key) const { return TString(this->userKeyValue(key).c_str()); }
   int userKeyValueAsInt(const std::string &key) const { return AsInt(this->userKeyValue(key)); }
@@ -417,6 +419,10 @@ public:
     TString corrSystName=correctionName + TString("Syst");
     return correctionFullFileName(corrSystName,systMode,applyNtupleExtraTag);
   }
+
+  // if the user key exist, return the value adjusted for 1D/2D analysis
+  // and the number of bins
+  int correctionSpecFileName(TString userKey, TString &fileName) const;
 
   TString theoryFullFileName(const TString &fileNameBase, DYTools::TSystematicsStudy_t systMode, int applyNtupleExtraTag) const {
     TString thDir=this->theoryDir(systMode,0);

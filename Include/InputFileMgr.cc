@@ -678,6 +678,30 @@ TString InputFileMgr_t::convertSkim2Ntuple(TString fname) const {
 
 // -----------------------------------------------------------
 
+// if the user key exist, return the value adjusted for 1D/2D analysis
+// and the number of bins
+int InputFileMgr_t::correctionSpecFileName(TString userKey, TString &fileName) const {
+  TString specFile=this->userKeyValueAsTString(userKey.Data());
+  if (specFile.Length()) {
+    std::cout << "user-defined scale factor file <" << specFile << ">\n";
+    fileName=specFile;
+
+    if (DYTools::study2D) {
+      Ssiz_t idx=specFile.Last('/');
+      TString path=specFile(0,idx);
+      TString fname=specFile(idx+1,specFile.Length());
+      fname.ReplaceAll("1D","2D");
+      fname.ReplaceAll("nMB41","nMB7");
+      fileName= path+fname;
+    }
+    return 1;
+  }
+  // not found
+  return 0;
+}
+
+// -----------------------------------------------------------
+
 int InputFileMgr_t::tnpEffCalcMethod(DYTools::TDataKind_t dataKind, DYTools::TEfficiencyKind_t effKind) const {
   int method=0;
   switch(dataKind) {
