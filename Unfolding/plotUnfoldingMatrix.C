@@ -648,7 +648,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
 		  }
 		}
 		double studyWeight= diWeight * w;
-		detRespV[iSt]->fillIni( fiGenPostFsr,    diWeight );
+		detRespV[iSt]->fillIni( fiGenPostFsr, studyWeight );
 		detRespV[iSt]->fillFin( fiReco      , studyWeight );
 		if (bothFIValid) {
 		  detRespV[iSt]->fillMigration( fiGenPostFsr, fiReco,
