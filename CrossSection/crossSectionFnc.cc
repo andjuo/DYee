@@ -231,32 +231,42 @@ int efficiencyScaleCorrection(const InputArgs_t &inpArg, const HistoPair2D_t &in
 			       DYTools::nMassBins,sfTag.Data()));
       std::cout << "special name of scale factor file <" << rhoCorrFName
 		<< ">\n";
+      std::cout << "!! efficiencyScaleCorrection: outdated manipulation. "
+		<< "Do not use SpecialESFTag in the input file. "
+		<< "Please update\n";
+      return 0;
     }
-    else {
-      // default manipulation
-      sfTag=inpArg.inpMgr()->userKeyValueAsTString("ScaleFactorTag");
-      if (sfTag.Length()) {
-	std::cout << "special scale factor tag=<" << sfTag << ">\n";
-	TString constTag=inpArg.inpMgr()->constTag();
-	rhoCorrFName.ReplaceAll(constTag,sfTag);
-      }
-      else {
-	sfTag=inpArg.inpMgr()->userKeyValueAsTString("SpecFile_EffScaleFactor");
-	if (sfTag.Length()) {
-	  std::cout << "user-defined scale factor file <" << sfTag << ">\n";
-	  rhoCorrFName=sfTag;
-	}
-      }
+
+    sfTag=inpArg.inpMgr()->userKeyValueAsTString("ScaleFactorTag");
+    if (sfTag.Length()) {
+      std::cout << "special scale factor tag=<" << sfTag << ">\n";
+      TString constTag=inpArg.inpMgr()->constTag();
+      rhoCorrFName.ReplaceAll(constTag,sfTag);
+      std::cout << "!! efficiencyScaleCorrection: outdated manipulation. "
+		<< "Do not use ScaleFactorTag in the input file. "
+		<< "Please update\n";
+      return 0;
     }
+
+    // permitted setting of the special file
+    if (inpArg.inpMgr()->correctionSpecFileName("SpecFile_EffScaleFactor",
+						rhoCorrFName)) {
+      std::cout << "inpMgr contained spec file definition <" <<
+	rhoCorrFName << ">\n";
+    }
+
     //hRho=LoadHisto2D("hEffScaleFactor",rhoCorrFName,"",1);
     int checkBinning=0;
-    hRho=LoadMatrixFields(rhoCorrFName,checkBinning,"scaleFactor","scaleFactorErr",1);
+    hRho=LoadMatrixFields(rhoCorrFName,checkBinning,
+			  "scaleFactor","scaleFactorErr",1);
   }
   else {
+    // load debug file
     TString constDir=codeDebugFilePath;
     rhoCorrFName=constDir + TString(Form("scale_factors_%dD_Full2012_hltEffOld_PU.root",DYTools::study2D+1));
     hRho=LoadMatrixFields(rhoCorrFName,1,"scaleFactor","scaleFactorErr",1);
   }
+
   int res=(hRho!=NULL) ? 1:0;
   if (res) std::cout << "loaded from rhoCorrFName=<" << rhoCorrFName << ">\n";
   if (res) res=fin.divide(ini,hRho,!inpArg.includeCorrError());
