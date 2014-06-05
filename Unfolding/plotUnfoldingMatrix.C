@@ -739,7 +739,7 @@ int plotUnfoldingMatrix(int analysisIs2D,
     std::cout << "find response matrix" << std::endl;
     detResponse.computeResponseMatrix();
     detResponseExact.computeResponseMatrix();
-    detResponseReversed.finalizeDetMigrationErr();
+    detResponseReversed.computeResponseMatrix();
     fsrGood.computeResponseMatrix();
     fsrExact.computeResponseMatrix();
     fsrDET.computeResponseMatrix();
