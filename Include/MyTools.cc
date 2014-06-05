@@ -1062,6 +1062,7 @@ int convertBaseH2actualVec(const std::vector<TH2D*> &baseV, std::vector<TH2D*> &
 //--------------------------------------------------
 //--------------------------------------------------
 
+// error of denom is ignored
 int scaleHisto(TH1D *histoNom, const TH1D *histoDenom, int mult) {
   if (histoNom->GetNbinsX() != histoDenom->GetNbinsX()) {
     std::cout << "scaleHisto: different number of bins\n";
@@ -1086,6 +1087,7 @@ int scaleHisto(TH1D *histoNom, const TH1D *histoDenom, int mult) {
 
 //--------------------------------------------------
 
+// error of denom is ignored
 int scaleHisto(TH2D *histoNom, const TH2D *histoDenom, int mult) {
   if ((histoNom->GetNbinsX() != histoDenom->GetNbinsX()) ||
       (histoNom->GetNbinsY() != histoDenom->GetNbinsY())) {
@@ -1105,6 +1107,52 @@ int scaleHisto(TH2D *histoNom, const TH2D *histoDenom, int mult) {
 	histoNom->SetBinContent(ibin,jbin, v/x);
 	histoNom->SetBinError(ibin,jbin, e/x);
       }
+    }
+  }
+  return 1;
+}
+
+//--------------------------------------------------
+
+// error of denom is NOT ignored
+int multiplyHisto(TH1D *histoNom, const TH1D *histoDenom, int mult) {
+  if (histoNom->GetNbinsX() != histoDenom->GetNbinsX()) {
+    std::cout << "scaleHisto: different number of bins\n";
+    assert(0);
+    return 0;
+  }
+  for (int ibin=1; ibin<=histoNom->GetNbinsX(); ++ibin) {
+    double v=histoNom->GetBinContent(ibin);
+    double ve=histoNom->GetBinError(ibin);
+    double x=histoDenom->GetBinContent(ibin);
+    double xe=histoDenom->GetBinError(ibin);
+    double relErr=sqrt((ve/v)*(ve/v) + (xe/x)*(xe/x));
+    double result=(mult) ? v*x : v/x;
+    histoNom->SetBinContent(ibin, result);
+    histoNom->SetBinError(ibin, result*relErr);
+  }
+  return 1;
+}
+
+//--------------------------------------------------
+
+// error of denom is NOT ignored
+int multiplyHisto(TH2D *histoNom, const TH2D *histoDenom, int mult) {
+  if ((histoNom->GetNbinsX() != histoDenom->GetNbinsX()) ||
+      (histoNom->GetNbinsY() != histoDenom->GetNbinsY())) {
+    std::cout << "scaleHisto(2D): different number of bins\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=histoNom->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=histoNom->GetNbinsY(); ++jbin) {
+      double v=histoNom->GetBinContent(ibin,jbin);
+      double ve=histoNom->GetBinError(ibin,jbin);
+      double x=histoDenom->GetBinContent(ibin,jbin);
+      double xe=histoDenom->GetBinError(ibin,jbin);
+      double relErr=sqrt((ve/v)*(ve/v) + (xe/x)*(xe/x));
+      double result=(mult) ? v*x : v/x;
+      histoNom->SetBinContent(ibin,jbin, result);
+      histoNom->SetBinError(ibin,jbin, result*relErr);
     }
   }
   return 1;
@@ -1216,6 +1264,80 @@ TH2F* convert_TH2D_to_TH2F(const TH2D *h, TString newName) {
 //--------------------------------------------------
 //--------------------------------------------------
 
+TH1D* convert_absolute2rshape(const TH1D *h, double norm) {
+  if (DYTools::study2D) {
+    std::cout << "convert_absolute2rshape: 1D study is expected\n";
+    return NULL;
+  }
+
+  TString name=h->GetName() + TString("_rshape");
+  TH1D *hR=Clone(h,name,name);
+
+  for (int ibin=1; ibin<=DYTools::nMassBins; ++ibin) {
+    double dM=DYTools::massBinLimits[ibin] - DYTools::massBinLimits[ibin-1];
+    double v= h->GetBinContent(ibin);
+    double e= h->GetBinError  (ibin);
+    hR->SetBinContent(ibin, v/(norm*dM));
+    hR->SetBinError  (ibin, e/(norm*dM));
+  }
+  return hR;
+}
+
+//--------------------------------------------------
+
+TH1D* convert_rshape2absolute(const TH1D *h, double norm) {
+  if (DYTools::study2D) {
+    std::cout << "convert_rshape2absolute: 1D study is expected\n";
+    return NULL;
+  }
+
+  TString name=h->GetName() + TString("_absolute");
+  TH1D *hR=Clone(h,name,name);
+
+  for (int ibin=1; ibin<=DYTools::nMassBins; ++ibin) {
+    double dM=DYTools::massBinLimits[ibin] - DYTools::massBinLimits[ibin-1];
+    double v= h->GetBinContent(ibin);
+    double e= h->GetBinError  (ibin);
+    hR->SetBinContent(ibin, v*dM*norm);
+    hR->SetBinError  (ibin, e*dM*norm);
+  }
+  return hR;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
+TH1D* LoadHisto1D(TString histoName, const TString &fname, TString subDir, int checkBinning) {
+  TString theCall=TString("LoadHisto1D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
+
+  TFile fin(fname,"read");
+  if (!fin.IsOpen()) {
+    std::cout << theCall << ": failed to open the file\n";
+    return NULL;
+  }
+  if (checkBinning && !checkBinningArrays(fin)) {
+    std::cout << theCall << ": binning test failed\n";
+    return NULL;
+  }
+
+  if (histoName.Index("/")!=-1) {
+    Ssiz_t idx=histoName.Index("/");
+    subDir.Append(histoName(0,idx+1));
+    histoName.Remove(0,idx+1);
+  }
+
+  if (subDir.Length()) { fin.cd(subDir); }
+  TH1D *h1=(TH1D*)fin.Get(histoName);
+  if (h1) h1->SetDirectory(0);
+  fin.Close();
+
+  if (!h1) std::cout << "failed to get histo " << histoName
+		     << ", from subDir=<" << subDir << ">\n";
+  return h1;
+}
+
+//--------------------------------------------------
+
 TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int checkBinning) {
   TString theCall=TString("LoadHisto2D(<") + histoName + TString(">,<") + fname + TString(">,<") + subDir + TString(Form(">, checkBinning=%d)",checkBinning));
 
@@ -1229,6 +1351,13 @@ TH2D* LoadHisto2D(TString histoName, const TString &fname, TString subDir, int c
     return NULL;
   }
 
+  if (histoName.Index("/")!=-1) {
+    Ssiz_t idx=histoName.Index("/");
+    subDir.Append(histoName(0,idx+1));
+    histoName.Remove(0,idx+1);
+  }
+
+  //std::cout << "calling LoadHisto2D(fin," << histoName << "," << subDir << ")\n";
   TH2D* h2=LoadHisto2D(fin,histoName,subDir,0);
   if (!h2) std::cout << theCall << ": failed to load the histo\n";
   else {
@@ -1254,7 +1383,7 @@ TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinnin
     loadHistoName=subDir + histoName;
   }
   else loadHistoName=histoName;
-  //std::cout << "loadHistoName=<" << loadHistoName << ">\n";
+  std::cout << "loadHistoName=<" << loadHistoName << ">\n";
 
   TH2D* h2=(TH2D*)fin.Get(loadHistoName);
   if (!h2) std::cout << theCall << ": failed to load the histo\n";

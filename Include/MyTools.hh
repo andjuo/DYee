@@ -112,6 +112,18 @@ void printEff_PT(double p, double dp, double tot, double dtot) {
 	    << eff << " +- " << deff << "\n";
 }
 
+//----------------------------------------------------------------
+// print error on ratio when counts are pass and total
+
+inline
+void printError_ab(double a, double da, double b, double db) {
+  double r=a*b;
+  double relErr=sqrt( (da/a)*(da/a) + (db/b)*(db/b) );
+  std::cout << "(" << a << " +- " << da << ") x ("
+	    << b << " +- " << db << ") = ("
+	    << r << " +- " << r*relErr << "); RelErr=" << relErr << "\n";
+}
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class T>
@@ -1490,10 +1502,17 @@ template<class histo_t>
 inline int divide(histo_t *histoNom, const histo_t *histoDenom)
 { return scaleHisto(histoNom,histoDenom,0); }
 
+// error is NOT ignored
+int multiplyHisto(TH1D *histoNom, const TH1D *histoDenom, int mult=1);
+int multiplyHisto(TH2D *histoNom, const TH2D *histoDenom, int mult=1);
+
 TH1D* convert_TH1F_to_TH1D(const TH1F *h, TString newName);
 TH1F* convert_TH1D_to_TH1F(const TH1D *h, TString newName);
 TH2D* convert_TH2F_to_TH2D(const TH2F *h, TString newName);
 TH2F* convert_TH2D_to_TH2F(const TH2D *h, TString newName);
+
+TH1D* convert_absolute2rshape(const TH1D *h, double norm);
+TH1D* convert_rshape2absolute(const TH1D *h, double norm);
 
 //-----------------------------------------------------------
 
@@ -1596,6 +1615,9 @@ int loadHisto(TFile &file, histo_t **h, TString subDir) {
 }
 
 //--------------------------------------------------
+
+// load from un-opened file
+TH1D* LoadHisto1D(TString fieldName, const TString &fname, TString subDir="", int checkBinning=1);
 
 // load from un-opened file
 TH2D* LoadHisto2D(TString fieldName, const TString &fname, TString subDir="", int checkBinning=1);
