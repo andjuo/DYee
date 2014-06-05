@@ -114,6 +114,8 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
 
 
   // Prepare output directory
+  inpMgr.rootFileBaseDir("root_files_reg_Rho/");
+  std::cout << "\n\trootFileBaseDir=<" << inpMgr.rootFileBaseDir() << ">\n";
   inpMgr.constDir(systMode,1);
 
 
@@ -327,6 +329,8 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
   UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,"detResponse");
   UnfoldingMatrix_t detResponseExact(UnfoldingMatrix::_cDET_Response,"detResponseExact");
   UnfoldingMatrix_t detResponseReversed(UnfoldingMatrix::_cDET_Response,"detResponseReversed");
+  UnfoldingMatrix_t detResponsePostFsrDet(UnfoldingMatrix::_cDET_Response,"detResponsePostFsrDet");
+  UnfoldingMatrix_t detResponsePreFsrDet(UnfoldingMatrix::_cDET_Response,"detResponsePreFsrDet");
 
   UnfoldingMatrix_t fsrGood(UnfoldingMatrix::_cFSR, "fsrGood");
   UnfoldingMatrix_t fsrExact(UnfoldingMatrix::_cFSR, "fsrExact");
@@ -638,6 +642,22 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
 	    detResponseExact.fillMigration(fiGenPostFsr, fiReco, diWeight);
 	  }
 
+	  if (postFsrOk) {
+	    detResponsePostFsrDet.fillIni(fiGenPostFsr, diWeight);
+	    detResponsePostFsrDet.fillFin(fiReco      , diWeight);
+	    if (bothFIValid) {
+	      detResponsePostFsrDet.fillMigration(fiGenPostFsr,fiReco, diWeight);
+	    }
+	  }
+	  if (preFsrOk) {
+	    detResponsePreFsrDet.fillIni(fiGenPreFsr, diWeight);
+	    detResponsePreFsrDet.fillFin(fiReco     , diWeight);
+	    if (preFsrOk && fiReco.isValid()) {
+	      detResponsePreFsrDet.fillMigration(fiGenPreFsr, fiReco, diWeight);
+	    }
+	  }
+
+
 	  detResponseReversed.fillIni(fiReco,       diWeight);
 	  detResponseReversed.fillFin(fiGenPostFsr, diWeight);
 	  if (bothFIValid) {
@@ -751,6 +771,8 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
     detResponse.finalizeDetMigrationErr();
     detResponseExact.finalizeDetMigrationErr();
     detResponseReversed.finalizeDetMigrationErr();
+    detResponsePostFsrDet.finalizeDetMigrationErr();
+    detResponsePreFsrDet.finalizeDetMigrationErr();
     fsrGood.finalizeDetMigrationErr();
     fsrExact.finalizeDetMigrationErr();
     fsrDET.finalizeDetMigrationErr();
@@ -762,7 +784,9 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
     std::cout << "find response matrix" << std::endl;
     detResponse.computeResponseMatrix();
     detResponseExact.computeResponseMatrix();
-    detResponseReversed.finalizeDetMigrationErr();
+    detResponseReversed.computeResponseMatrix();
+    detResponsePostFsrDet.computeResponseMatrix();
+    detResponsePreFsrDet.computeResponseMatrix();
     fsrGood.computeResponseMatrix();
     fsrExact.computeResponseMatrix();
     fsrDET.computeResponseMatrix();
@@ -774,6 +798,8 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
     detResponse.invertResponseMatrix();
     detResponseExact.invertResponseMatrix();
     detResponseReversed.invertResponseMatrix();
+    detResponsePostFsrDet.invertResponseMatrix();
+    detResponsePreFsrDet.invertResponseMatrix();
     fsrGood.invertResponseMatrix();
     fsrExact.invertResponseMatrix();
     fsrDET.invertResponseMatrix();
@@ -792,6 +818,8 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
     detResponse.prepareFIArrays();
     detResponseExact.prepareFIArrays();
     detResponseReversed.prepareFIArrays();
+    detResponsePostFsrDet.prepareFIArrays();
+    detResponsePreFsrDet.prepareFIArrays();
     fsrGood.prepareFIArrays();
     fsrExact.prepareFIArrays();
     fsrDET.prepareFIArrays();
@@ -864,6 +892,8 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
       detResponse.autoSaveToFile(outputDir,fnameTag,callingMacro);  // detResponse, reference mc arrays
       detResponseExact.autoSaveToFile(outputDir,fnameTag,callingMacro);
       detResponseReversed.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      detResponsePostFsrDet.autoSaveToFile(outputDir,fnameTag,callingMacro);
+      detResponsePreFsrDet.autoSaveToFile(outputDir,fnameTag,callingMacro);
       fsrGood.autoSaveToFile(outputDir,fnameTag,callingMacro);
       fsrExact.autoSaveToFile(outputDir,fnameTag,callingMacro);
       fsrDET.autoSaveToFile(outputDir,fnameTag,callingMacro);
@@ -902,6 +932,8 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
       if (!detResponse.autoLoadFromFile(outputDir,fnameTag) ||
 	  !detResponseExact.autoLoadFromFile(outputDir,fnameTag) ||
 	  !detResponseReversed.autoLoadFromFile(outputDir,fnameTag) ||
+	  !detResponsePostFsrDet.autoLoadFromFile(outputDir,fnameTag) ||
+	  !detResponsePreFsrDet.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrGood.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrExact.autoLoadFromFile(outputDir,fnameTag) ||
 	  !fsrDET.autoLoadFromFile(outputDir,fnameTag) ||
