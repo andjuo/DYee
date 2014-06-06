@@ -248,6 +248,9 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
       return retCodeError;
     }
     std::cout << "shapeWeights:\n"; printHisto(h2ShapeWeights);
+    std::cout << "adjusting weights by rho\n";
+    if (!multiplyHisto(h2ShapeWeights,hRho,0)) return retCodeError;
+    std::cout << "adjusted weights:\n"; printHisto(h2ShapeWeights);
 
     int ensembleSize= inpMgr.userKeyValueAsInt("RESIDUAL_STUDY_SIZE");
     if (ensembleSize<=0) ensembleSize=100;
