@@ -2030,6 +2030,23 @@ int loadLatexTableTextFile(TString fileTag,
 //--------------------------------------------------
 //--------------------------------------------------
 
+TCanvas *compareHistos(TH2D* hA, TString labelA,
+		       TH2D* hB, TString labelB,
+		       int removeError, TString yAxisLabel) {
+  std::vector<TH2D*> hV;
+  std::vector<TString> labelV;
+  hV.push_back(hA);
+  hV.push_back(hB);
+  labelV.push_back(labelA);
+  labelV.push_back(labelB);
+  TCanvas *cx= plotProfiles("cx",hV,labelV,NULL,
+			    removeError,yAxisLabel);
+  return cx;
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 TCanvas* plotProfiles(TString canvName,
 		      const std::vector<TH2D*> &histosV,
 		      const std::vector<TString> &labelsV,

@@ -1698,7 +1698,7 @@ TH2D* clipToAnalysisUnfBins(const TH2D *histoSrc, TString newName,
 //--------------------------------------------------
 
 inline
-double ZpeakCount(TH2D* h2, double *err=NULL) {
+double ZpeakCount(const TH2D* h2, double *err=NULL) {
   const int ZpeakIdx1=DYTools::findMassBin(60.) +1;
   const int ZpeakIdx2=DYTools::findMassBin(120.);
   const int yIdx1=1;
@@ -1708,6 +1708,16 @@ double ZpeakCount(TH2D* h2, double *err=NULL) {
   if (!err) { val=h2->Integral(ZpeakIdx1,ZpeakIdx2,yIdx1,yIdx2); }
   else { val=h2->IntegralAndError(ZpeakIdx1,ZpeakIdx2,yIdx1,yIdx2,*err); }
   return val;
+}
+
+//--------------------------------------------------
+
+inline
+void printZpeakCount(const TH2D *h2) {
+  double err=0;
+  std::cout << "ZpeakCount(" << h2->GetName() << ")="
+	    << ZpeakCount(h2,&err);
+  std::cout << " +/- " << err << "\n";
 }
 
 //--------------------------------------------------
@@ -1787,6 +1797,13 @@ int loadLatexTableTextFile(TString fileTag,
 			   int printErrors);
 
 //--------------------------------------------------
+//--------------------------------------------------
+
+TCanvas* compareHistos(TH2D* hA, TString labelA,
+		       TH2D* hB, TString labelB,
+		       int do_removeError=1,
+		       TString yAxisLabel="signal_yield");
+
 //--------------------------------------------------
 
 TCanvas* plotProfiles(TString canvName,
