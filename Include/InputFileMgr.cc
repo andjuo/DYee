@@ -688,7 +688,7 @@ int InputFileMgr_t::correctionSpecFileName(TString userKey, TString &fileName) c
 
     if (DYTools::study2D) {
       Ssiz_t idx=specFile.Last('/');
-      TString path=specFile(0,idx);
+      TString path=specFile(0,idx+1);
       TString fname=specFile(idx+1,specFile.Length());
       fname.ReplaceAll("1D","2D");
       fname.ReplaceAll("nMB41","nMB7");
