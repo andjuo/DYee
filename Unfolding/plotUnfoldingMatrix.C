@@ -237,6 +237,15 @@ int plotUnfoldingMatrix(int analysisIs2D,
       std::cout << "failed to find histo \"ZeeMCShapeReweight\"\n";
       return retCodeError;
     }
+    if ((DYTools::massBinningSet==DYTools::_MassBins_2012) &&
+	(DYTools::study2D==1)) {
+      HERE("set weights for the underflow bin to 1.");
+      int ibin=1;
+      for (int jbin=1; jbin<=24; jbin++) {
+	h2ShapeWeights->SetBinContent(ibin,jbin, 1.);
+	h2ShapeWeights->SetBinError  (ibin,jbin, 0.);
+      }
+    }
     std::cout << "shapeWeights:\n"; printHisto(h2ShapeWeights);
 
     int ensembleSize= inpMgr.userKeyValueAsInt("RESIDUAL_STUDY_SIZE");
