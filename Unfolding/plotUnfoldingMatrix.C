@@ -48,6 +48,8 @@ int plotUnfoldingMatrix(int analysisIs2D,
     return retCodeError;
   }
 
+  int escaleResidual_global=1;
+
   //--------------------------------------------------------------------------------------------------------------
   // Settings
   //==============================================================================================================
@@ -62,6 +64,11 @@ int plotUnfoldingMatrix(int analysisIs2D,
     // create a temporary object to set proper directories
     EventSelector_t tmpEventSelector(*yieldInpMgr,runMode,
 		   DYTools::APPLY_ESCALE,"","",EventSelector::_selectDefault);
+    if (escaleResidual_global) {
+      inpMgr.rootFileBaseDir("root_files_reg_EScaleResidualGlobal");
+      std::cout << "changed rootFileBaseDir to <" << inpMgr.rootFileBaseDir()
+		<< ">\n";
+    }
   }
   else if (systMode!=DYTools::RESOLUTION_STUDY) {
     // no energy correction for this evaluation
@@ -246,24 +253,48 @@ int plotUnfoldingMatrix(int analysisIs2D,
 				    "h2NonRndShapeW","h2NonRndShapeW"));
     tmpLabelV.push_back("NonRndShape");
 
-    // prepare histo for randomization. Assume 10% error on the deviation
-    for (int ibin=1; ibin<=h2ShapeWeights->GetNbinsX(); ++ibin) {
-      for (int jbin=1; jbin<=h2ShapeWeights->GetNbinsY(); ++jbin) {
-	double dev=h2ShapeWeights->GetBinContent(ibin,jbin);
-	h2ShapeWeights->SetBinError(ibin,jbin, 0.1*dev);
+    if (!escaleResidual_global) {
+      TH2D *h2ResApply=Clone(h2ShapeWeights,"h2ResApply");
+      // vary randomly and independently in each bin
+      // prepare histo for randomization. Assume 10% error on the deviation
+      for (int ibin=1; ibin<=h2ResApply->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=h2ResApply->GetNbinsY(); ++jbin) {
+	double dev=h2ResApply->GetBinContent(ibin,jbin);
+	//h2ResApply->SetBinError(ibin,jbin, 0.1*dev);
+	h2ResApply->SetBinError(ibin,jbin, 1.);
+	h2ResApply->SetBinError(ibin,jbin, dev);
+	}
+      }
+
+      HistoPair2D_t hpRnd("hpRnd",h2ResApply);
+
+      for (int i=1; i<ensembleSize; ++i) {
+	TString name=Form("rndShapeWeight_%d",i);
+	TH2D* h2Rnd=hpRnd.randomizedWithinErr(0,name);
+	specTH2DWeightV.push_back(h2Rnd);
+	tmpLabelV.push_back(name);
+      }
+    }
+    else { // global variation
+      for (int i=1; i<ensembleSize; ++i) {
+	double rnd=gRandom->Gaus(0,1.);
+	TString name=Form("rndShapeWeight_%d",i);
+	TH2D *h2Rnd=Clone(h2ShapeWeights,name);
+	for (int ibin=1; ibin<=h2Rnd->GetNbinsX(); ++ibin) {
+	  for (int jbin=1; jbin<=h2Rnd->GetNbinsY(); ++jbin) {
+	    double shW = h2ShapeWeights->GetBinContent(ibin,jbin);
+	    double rndScale= 1 + rnd*(1-shW);
+	    h2Rnd->SetBinContent(ibin,jbin, rndScale);
+	  }
+	}
+	specTH2DWeightV.push_back(h2Rnd);
+	tmpLabelV.push_back(name);
       }
     }
 
-    HistoPair2D_t hpRnd("hpRnd",h2ShapeWeights);
-
-    for (int i=1; i<ensembleSize; ++i) {
-      TString name=Form("rndShapeWeight_%d",i);
-      TH2D* h2Rnd=hpRnd.randomizedWithinErr(0,name);
-      specTH2DWeightV.push_back(h2Rnd);
-      tmpLabelV.push_back(name);
-    }
-
     if (0) {
+      specTH2DWeightV.push_back(h2ShapeWeights);
+      tmpLabelV.push_back("original");
       TCanvas *cx= plotProfiles("cx",specTH2DWeightV,tmpLabelV,NULL,1,
 				"MC/data shape reweight");
       cx->Update();
