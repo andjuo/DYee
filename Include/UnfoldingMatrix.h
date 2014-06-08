@@ -862,12 +862,16 @@ public:
     return fnameTag;
   }
 
-  void autoSaveToFile(const TString &outputDir, const TString &fileTag,
-		      TString callingMacro="UnfoldingMatrix.hh") const {
+  int autoSaveToFile(const TString &outputDir, TString fileTag,
+		      TString callingMacro="UnfoldingMatrix.hh",
+		      TString *storeFName=NULL) const {
     TString matrixFName,yieldsFName;
     this->getFileNames(outputDir,fileTag, matrixFName,yieldsFName);
     std::cout << "saving to files <" << matrixFName << "> and <" << yieldsFName << ">\n";
-    this->saveToFile(matrixFName,yieldsFName,callingMacro);
+    int res=this->saveToFile(matrixFName,yieldsFName,callingMacro);
+    if (storeFName) *storeFName=matrixFName;
+    if (!res) std::cout << "error in UnfoldingMatrix::autoSaveToFile\n";
+    return res;
   }
 
   int autoLoadFromFile(const TString &outputDir, const TString &fileTag) {
@@ -878,11 +882,15 @@ public:
   }
 
 
-  void saveToFile(const TString &fileName, const TString &refFileName,
+  int saveToFile(const TString &fileName, const TString &refFileName,
 		  TString callingMacro="UnfoldingMatrix.hh") const {
     std::cout << "UnfoldingMatrix_t::saveToFile(\n  <" << fileName << ">\n  <" << refFileName << ">) for name=" << this->name << "\n";
     if (kind!=UnfoldingMatrix::_cFSR_DETcorrFactors) {
       TFile fConst(fileName, "recreate" );
+      if (!fConst.IsOpen()) {
+	std::cout << " ... failed to create a file\n";
+	return 0;
+      }
       //name.Write("matrixName");
       (*DetMigration)            .Write("DetMigration");
       (*DetMigrationErr)         .Write("DetMigrationErr");
@@ -906,12 +914,17 @@ public:
 
     // Store reference MC arrays in a file
     TFile fRef(refFileName, "recreate" );
+    if (!fRef.IsOpen()) {
+      std::cout << " .... failed to create a file <" << refFileName << ">\n";
+      return 0;
+    }
     (*yieldsIni).Write(iniYieldsName);
     (*yieldsFin).Write(finYieldsName);
     (*yieldsIniArr).Write(iniYieldsName + TString("FIArray"));
     (*yieldsFinArr).Write(finYieldsName + TString("FIArray"));
     writeBinningArrays(fRef,callingMacro);
     fRef.Close();
+    return 1;
   }
 
   // ------------------------------------------
