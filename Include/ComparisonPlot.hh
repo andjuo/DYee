@@ -64,6 +64,27 @@ public:
   double fRatioYTitleOffset;
   double fRatioXTitleSize;
 
+  ComparisonPlot_t(const TString &name, const TString &title, const TString &xtitle, const TString &ytitle, const TString &ratioYLabel) :
+    CPlot(name,title,xtitle,ytitle),
+    fRefIdx(0), fErrorsOnRatios(1),
+    fRatioType(_ratioPlain),
+    fHRatioIndices(),
+    fExcludeIndices(),
+    canvas(NULL),
+    padMain(NULL), padRatio(NULL),
+    fRatioLabel(ratioYLabel), fHRatioItems(),
+    fXTitleSize(-1.), fXTitleOffset(-1.), fXLabelSize(-1.),
+    fYTitleSize(-1.), fYTitleOffset(-1.), fYLabelSize(-1.),
+    fRatioYMin(0.), fRatioYMax(0.),
+    fRatioNdivisions(805),
+    fPrintValues(0),
+    fPrintRatios(0), fPrintRatioNames(0),
+    fRatioYTitleSize(0.15),
+    fRatioYLabelSize(0.13),
+    fRatioYTitleOffset(0.45),
+    fRatioXTitleSize(0.15)
+  {}
+
   ComparisonPlot_t(TRatioType_t set_ratioType, const TString &name, const TString &title, const TString &xtitle, const TString &ytitle, const TString &ratioYLabel) :
     CPlot(name,title,xtitle,ytitle),
     fRefIdx(0), fErrorsOnRatios(1),
@@ -79,7 +100,7 @@ public:
     fRatioNdivisions(805),
     fPrintValues(0),
     fPrintRatios(0), fPrintRatioNames(0),
-    fRatioYTitleSize(0.15), 
+    fRatioYTitleSize(0.15),
     fRatioYLabelSize(0.13),
     fRatioYTitleOffset(0.45),
     fRatioXTitleSize(0.15)
@@ -386,6 +407,11 @@ public:
     Draw(c,doSave,format,padIdx1,padIdx2);
     if (subpad1) *subpad1=padIdx1;
     if (subpad2) *subpad2=padIdx2;
+  }
+
+
+  void Draw1(TCanvas *c, int ipad=0) {
+    Draw(c,false,"png",ipad,ipad+1);
   }
 
 
