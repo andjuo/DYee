@@ -79,7 +79,7 @@ const int _nYBins2011[_nMassBins2011] = {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 };
 
-// 2011 mass binning
+// 2012 mass binning
 const int _nMassBins2012 = 41;
 const double _massBinLimits2012[_nMassBins2012+1] =
   {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 64, 68, 72, 76,
