@@ -186,6 +186,18 @@ int loadUnfCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs,
       labels.push_back("unf e-scale");
     }
   }
+  if (wf.cf().calc_UnfEScaleResidual()) {
+    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfResidual"));
+    if (ptr) {
+      covs.push_back(ptr);
+      labels.push_back("unf e-scale residual");
+    }
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_corrUnf,0))
+      {
+	std::cout << "failed to apply correction on unf eResidual cov\n";
+	return 0;
+      }
+  }
   fin.Close();
 
   std::cout << "loaded " << covs.size() << " entries from file <"
@@ -535,6 +547,10 @@ int correctCov2CSPropagatedError(TMatrixD &cov,
     fieldCorrName=(systErr) ? "signalYieldDDbkgSyst" : "signalYieldDDbkg";
     fieldCSName  =(systErr) ? "mainCS_yieldErrSyst" : "mainCS_yieldErr";
     break;
+  case _corrUnf:
+    fieldCorrName="";
+    fieldCSName="mainCS_escaleResidualErr";
+    break;
   case _corrEff:
     fieldCorrName="hEfficiency";
     fieldCSName  ="mainCS_effErrSyst";
@@ -590,6 +606,8 @@ int correctCov2CSPropagatedError(TMatrixD &cov,
   if (maxR>1.12) {
     std::cout << "the correction is too large\n";
     plot=1;
+
+    PrintTwoHistos("check their values",hCSErr,h2ErrCov,0,-1);
   }
   //if (distr==_corrEff) plot=1; // for debug
 
@@ -619,7 +637,12 @@ int correctCov2CSPropagatedError(TMatrixD &cov,
     cu->Update();
     cx->Update();
     delete newCorr;
-    return 0;
+    int itsBad=1;
+    if ((distr==_corrUnf)) {
+      HERE("\n\n\tALLOWED DISAGREEMENT\n\n");
+      itsBad=0;
+    }
+    if (itsBad) return 0;
   }
 
   cov=*newCov;

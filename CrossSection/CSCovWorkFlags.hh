@@ -93,7 +93,7 @@ struct CSCovCalcFlags_t {
   int fYieldStatDetailed; // take only observed yield stat error
   int fYieldSystDetailed; // all background error is syst (fake/true)
   int fYieldEScale;
-  int fUnfPU, fUnfFSR, fUnfRnd, fUnfEScale;
+  int fUnfPU, fUnfFSR, fUnfRnd, fUnfEScale, fUnfEScaleResidual;
   int fEffPU, fEffFSR, fEffRnd;
   int fESFtot;
   int fESFtotCheck;
@@ -106,6 +106,7 @@ public:
     fYieldStatDetailed(0), fYieldSystDetailed(0),
     fYieldEScale(0),
     fUnfPU(0), fUnfFSR(0), fUnfRnd(0), fUnfEScale(0),
+    fUnfEScaleResidual(0),
     fEffPU(0), fEffFSR(0), fEffRnd(0),
     fESFtot(0), fESFtotCheck(0),
     fAccPU(0), fAccFSR(0), fAccRnd(0),
@@ -119,6 +120,7 @@ public:
     fYieldStatDetailed(0), fYieldSystDetailed(0),
     fYieldEScale(0),
     fUnfPU(0), fUnfFSR(0), fUnfRnd(0), fUnfEScale(0),
+    fUnfEScaleResidual(0),
     fEffPU(0), fEffFSR(0), fEffRnd(0),
     fESFtot(0), fESFtotCheck(0),
     fAccPU(0), fAccFSR(0), fAccRnd(0),
@@ -146,6 +148,8 @@ public:
   void calc_UnfRnd(int yes) { fUnfRnd=yes; }
   int calc_UnfEScale() const { return fUnfEScale; }
   void calc_UnfEScale(int yes) { fUnfEScale=yes; }
+  int calc_UnfEScaleResidual() const { return fUnfEScaleResidual; }
+  void calc_UnfEScaleResidual(int yes) { fUnfEScaleResidual=yes; }
   int calc_EffPU() const { return fEffPU; }
   void calc_EffPU(int yes) { fEffPU=yes; }
   int calc_EffFSR() const { return fEffFSR; }
@@ -182,7 +186,7 @@ public:
   }
 
   int doCalcUnfCov() const {
-    return (fUnfPU + fUnfFSR + fUnfRnd + fUnfEScale);
+    return (fUnfPU + fUnfFSR + fUnfRnd + fUnfEScale + fUnfEScaleResidual);
   }
 
   int doCalcEffCov() const {
@@ -222,6 +226,7 @@ public:
     fUnfFSR=f.fUnfFSR;
     fUnfRnd=f.fUnfRnd;
     fUnfEScale=f.fUnfEScale;
+    fUnfEScaleResidual=f.fUnfEScaleResidual;
     fEffPU=f.fEffPU;
     fEffFSR=f.fEffFSR;
     fEffRnd=f.fEffRnd;
