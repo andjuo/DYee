@@ -302,6 +302,64 @@ int calcCrossSection(int analysisIs2D,
       printHisto(hpCS_accErr,truncX,truncY);
     }
 
+    // 4. Evaluate residual difference error
+    // Requires that the covariance is calculated
+    TH2D* h2resDiffErr=NULL;
+    TH2D *h2RewUnfYield=NULL;
+    HistoPair2D_t hpRewCS("hpRewCS");
+    if (1 && res) {
+      // load the reweighted detResponse
+      TString rewPath="/media/sdb/andriusj/root_files_reg_EScaleResidualGlobal-20140607/constants/DY_j22_19712pb_EScale_residual/";
+      TString rewFName="detResponse_0_nonRnd_unfolding_constants1D_escaleResidual.root";
+      if (DYTools::study2D) rewFName.ReplaceAll("1D","2D");
+      int dim=DYTools::nUnfoldingBins;
+      TMatrixD *rewU= loadMatrix(rewPath+rewFName,"DetInvertedResponse",
+				 dim,dim,1);
+      if (!rewU) {
+	std::cout << "failed to load the escale-residual unf.matrix\n";
+	return retCodeError;
+      }
+
+      // unfold the signal
+      h2RewUnfYield=Clone(hpSignalYield.histo(),"h2RewUnfYield");
+      if (!h2RewUnfYield) return retCodeError;
+      if (!unfold(h2RewUnfYield,*rewU, hpSignalYield.histo()))
+	return retCodeError;
+      delete rewU;
+
+      // get the cross section
+      HistoPair2D_t hpRewUnfYield("hpRewUnfYield");
+      if (!hpRewUnfYield.assignCentralVals(h2RewUnfYield)) return retCodeError;
+      CSResults_t csRewResult;
+      if (res) res=calculateCS(inpArgs,hpRewUnfYield,csKind,hpRewCS,
+			       csRewResult);
+      if (!res) return retCodeError;
+
+      // calculate the difference
+      h2resDiffErr= Clone(hpRewCS.histo(),"h2resDiffErr");
+      if (!h2resDiffErr) return retCodeError;
+      for (int ibin=1; ibin<=h2resDiffErr->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=h2resDiffErr->GetNbinsY(); ++jbin) {
+	  double vOrig= hpCS.histo()->GetBinContent(ibin,jbin);
+	  double vRew = hpRewCS.histo()->GetBinContent(ibin,jbin);
+	  double err=fabs(vOrig-vRew);
+	  h2resDiffErr->SetBinContent(ibin,jbin, err);
+	  h2resDiffErr->SetBinError  (ibin,jbin, 0.);
+	}
+      }
+
+      // check the size of reweight error
+      if (1) {
+	TH2D* h2RelErr=Clone(h2resDiffErr,"h2resDiffRelErr");
+	if (!h2RelErr ||
+	    !divide(h2RelErr,hpCS.histo())) return retCodeError;
+	printHisto(h2RelErr);
+      }
+
+      // the error should be in the error field
+      swapContentAndError(h2resDiffErr);
+    }
+
     // Get the corrections
     TString effCorrFName= inpMgr.correctionFullFileName("efficiency",systMode,0);
     TH2D *hEff=LoadHisto2D("hEfficiency",effCorrFName,"",1);
@@ -324,6 +382,14 @@ int calcCrossSection(int analysisIs2D,
     if (res) res=hpSignalYield.Write(fout,"","");
     if (res) res=saveHisto(fout,hEff,"","hEfficiency");
     if (res && hAcc) res=saveHisto(fout,hAcc,"","hAcceptance");
+    if (res && h2resDiffErr) {
+      if (res) res=saveHisto(fout,h2resDiffErr,"","mainCS_escaleResidualErr");
+      TString subDir="escaleResidual_details";
+      if (res) res=saveHisto(fout,hpUnfoldedYield.histo(),subDir,
+			     "origUnfYield");
+      if (res) res=saveHisto(fout,h2RewUnfYield,subDir,"rewUnfYield");
+      if (res) res=saveHisto(fout,hpRewCS.histo(),subDir,"rewCS");
+    }
     if (res) writeBinningArrays(fout,"calcCrossSection");
     fout.Close();
     if (!res) std::cout << "failed to save file <" << fout.GetName() << ">\n";
