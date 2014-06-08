@@ -45,6 +45,16 @@ int PrintHisto2Dvec(const char *msg, const std::vector<TH2D*> &vec,
 }
 
 //--------------------------------------------------
+
+int PrintTwoHistos(const char *msg, TH2D *h2a, TH2D *h2b,
+		   int exponent, int maxLines) {
+  std::vector<TH2D*> hV;
+  hV.push_back(h2a);
+  hV.push_back(h2b);
+  return PrintHisto2Dvec(msg,hV,exponent,maxLines);
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 std::vector<TString>* createMassRangeVec(TString prependStr) {
@@ -162,13 +172,15 @@ TH2D* removeUnderflow(TH2D* h2orig, TString newName) {
 
 TMatrixD* deriveCovMFromRndStudies(const std::vector<TH2D*> &rndV,
 				   int unbiasedEstimate,
-				   TH2D *avgDistr) {
+				   TH2D *avgDistr,
+				   TMatrixD *covError) {
   //const int unbiasedEstimate=1;
   if (rndV.size()<(unsigned int)(1+unbiasedEstimate)) {
     HERE("deriveCovMFromRndStudies(vec(TH2D*)) vec is empty or has 1 entry");
     return NULL;
   }
   int dim=DYTools::nUnfoldingBins;
+  //dim=2; std::cout << "deriveCovMFromRndStudies : dimension Hack\n";
   // container for sum(x)
   TVectorD VSumX(dim);
   VSumX.Zero();
@@ -243,6 +255,9 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<TH2D*> &rndV,
   double correctionFactor = nExps/factor;
 
   VSumX    *= (1/nExps);
+
+  //std::cout << "nExps=" << nExps << ", VSumX="; VSumX.Print();
+
   (*MSumXY)*= (1/factor);
   for (int idxFlat1=0; idxFlat1<dim; ++idxFlat1) {
     for (int idxFlat2=0; idxFlat2<dim; ++idxFlat2) {
@@ -279,6 +294,37 @@ TMatrixD* deriveCovMFromRndStudies(const std::vector<TH2D*> &rndV,
       }
     }
   }
+
+  if (covError) {
+    covError->Zero();
+    for (unsigned int i=0; i<rndV.size(); i++) {
+      const TH2D *hi=rndV[i];
+      for (int ibr1=1; ibr1<=rMax; ++ibr1) {
+	for (int ibc1=1; ibc1<=cMax; ++ibc1) {
+	  int idxFlat1=DYTools::findIndexFlat(ibr1-1,ibc1-1);
+	  if (idxFlat1<0) continue; // outside of considered space
+	  double val1=hi->GetBinContent(ibr1,ibc1);
+
+	  for (int ibr2=ibr1; ibr2<=rMax; ++ibr2) {
+	    for (int ibc2=(ibr1==ibr2) ? ibc1 : 1; ibc2<=cMax; ++ibc2) {
+	      int idxFlat2=DYTools::findIndexFlat(ibr2-1,ibc2-1);
+	      if (idxFlat2<0) continue; // outside of considered space
+	      double val2=hi->GetBinContent(ibr2,ibc2);
+	      double covEstimate= (val1-VSumX(idxFlat1))*(val2-VSumX(idxFlat2));
+	      double dev= covEstimate - (*MSumXY)(idxFlat1,idxFlat2);
+	      (*covError)(idxFlat1,idxFlat2) += dev*dev;
+	      if (idxFlat1 != idxFlat2) {
+		(*covError)(idxFlat2,idxFlat1) += dev*dev;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    (*covError) *= (1/nExps);
+    //unsquareElements(*covError);
+  }
+
   return MSumXY;
 }
 
@@ -508,6 +554,25 @@ TMatrixD* createMatrixD(const TH2D* h2, int useErr) {
     }
   }
   return M;
+}
+
+//--------------------------------------------------
+
+int divideMatrix(TMatrixD &nom, const TMatrixD &denom) {
+  if (!sameNumBins(nom,denom)) {
+    std::cout << "divideMatrix: different sizes\n";
+    return 0;
+  }
+  for (int ir=0; ir<nom.GetNrows(); ++ir) {
+    for (int ic=0; ic<nom.GetNcols(); ++ic) {
+      double x= nom(ir,ic);
+      double y= denom(ir,ic);
+      double r= x/y;
+      if ((y==double(0)) && (x==double(0))) r=0.;
+      nom(ir,ic) = r;
+    }
+  }
+  return 1;
 }
 
 //--------------------------------------------------
@@ -1383,10 +1448,13 @@ TH2D* LoadHisto2D(TFile &fin, TString histoName, TString subDir, int checkBinnin
     loadHistoName=subDir + histoName;
   }
   else loadHistoName=histoName;
-  std::cout << "loadHistoName=<" << loadHistoName << ">\n";
+  //std::cout << "loadHistoName=<" << loadHistoName << ">\n";
 
   TH2D* h2=(TH2D*)fin.Get(loadHistoName);
-  if (!h2) std::cout << theCall << ": failed to load the histo\n";
+  if (!h2) {
+    std::cout << theCall << ": failed to load the histo <"
+	      << loadHistoName << ">\n";
+  }
   else {
     h2->SetDirectory(0);
   }
@@ -2045,6 +2113,28 @@ TCanvas *compareHistos(TH2D* hA, TString labelA,
 }
 
 //--------------------------------------------------
+
+TCanvas *plotProfiles(TString canvName, TH2D* histo, TString label,
+		      int do_removeError, TString yAxisLabel) {
+  if (!histo) {
+    std::cout << "plotProfiles: null histo" << std::endl;
+    return NULL;
+  }
+  if (DYTools::study2D==-1) {
+    std::cout << "plotProfiles: setup the analysis. "
+	      << "Call DYTools::setup(DIM-1)\n";
+    return NULL;
+  }
+  std::vector<TH2D*> hV;
+  std::vector<TString> labelV;
+  hV.push_back(histo);
+  labelV.push_back(label);
+  TCanvas *cx= plotProfiles(canvName,hV,labelV,NULL,
+			    do_removeError,yAxisLabel);
+  return cx;
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 TCanvas* plotProfiles(TString canvName,
@@ -2070,8 +2160,10 @@ TCanvas* plotProfiles(TString canvName,
     }
   }
 
-  int canvWidth=(DYTools::study2D==1) ? 1200 : 700;
-  TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,800);
+  int oneHisto=(histosV.size()==1) ? 1 : 0;
+  int canvWidth=(DYTools::study2D==1) ? 1200 : ((oneHisto) ? 800 : 700);
+  int canvHeight=800;
+  TCanvas *c1=new TCanvas(canvName,canvName, canvWidth,canvHeight);
 
   if (DYTools::study2D==1) {
 
@@ -2088,7 +2180,14 @@ TCanvas* plotProfiles(TString canvName,
       TString cpTitle=mStr;
       ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"|y|",yAxisLabel,"ratio");
       if (cpV) cpV->push_back(cp);
-      if (im==1) cp->Prepare6Pads(c1,1);
+      if (oneHisto) {
+	cp->SetRefIdx(-111); // no ratio
+	cp->SetNoLegend(1);
+      }
+      if (im==1) {
+	if (!oneHisto) cp->Prepare6Pads(c1,1);
+	else c1->Divide(3,2);
+      }
 
       for (unsigned int ih=0; ih<(*hProfV)[im]->size(); ++ih) {
 	TH1D* h=(*(*hProfV)[im])[ih];
@@ -2100,9 +2199,12 @@ TCanvas* plotProfiles(TString canvName,
 	  //std::cout << "changing the marker\n";
 	  h->SetMarkerStyle(5);
 	}
-	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],1,0,1);
+	cp->AddHist1D(h,labelsV[ih],"LPE1",(*colorsV)[ih],1,0,1);
       }
-      if (!delayDraw) cp->Draw6(c1,1,im);
+      if (!delayDraw) {
+	if (!oneHisto) cp->Draw6(c1,1,im);
+	else { cp->Draw(c1,false,"png",im); }
+      }
     }
   }
   else {
@@ -2121,11 +2223,19 @@ TCanvas* plotProfiles(TString canvName,
       TString cpTitle; //=yStr;
       ComparisonPlot_t *cp=new ComparisonPlot_t(ComparisonPlot_t::_ratioPlain,cpName,cpTitle,"#it{M}_{ee} [GeV]",yAxisLabel,"ratio");
       if (cpV) cpV->push_back(cp);
+      if (oneHisto) {
+	cp->SetRefIdx(-111); // no ratio
+	cp->SetNoLegend(1);
+      }
       cp->SetLogx(1);
-      if (iy==0) cp->Prepare2Pads(c1);
+      if ((iy==0) && !oneHisto) cp->Prepare2Pads(c1);
 
       for (unsigned int ih=0; ih<(*hProfV)[iy]->size(); ++ih) {
 	TH1D* h=(*(*hProfV)[iy])[ih];
+	if (oneHisto && (ih==0)) {
+	  h->GetXaxis()->SetMoreLogLabels();
+	  h->GetXaxis()->SetNoExponent();
+	}
 	if (do_removeError) removeError1D(h);
 	if (ih==0) {
 	  h->SetMarkerStyle(20);
@@ -2134,9 +2244,13 @@ TCanvas* plotProfiles(TString canvName,
 	  //std::cout << "changing the marker\n";
 	  h->SetMarkerStyle(5);
 	}
-	cp->AddHist1D(h,labelsV[ih],"LP",(*colorsV)[ih],(ih+1)%3,0,1);
+	cp->AddHist1D(h,labelsV[ih],"LPE1",(*colorsV)[ih],(ih+1)%3,0,1);
       }
-      if (!delayDraw) cp->Draw(c1);
+      if (!delayDraw) {
+	if (!oneHisto) cp->Draw(c1);
+	else cp->Draw(c1,false,"png",0);
+      }
+
     }
   }
   c1->Update();

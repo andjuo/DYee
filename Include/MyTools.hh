@@ -141,6 +141,8 @@ void PrintVec(const char *msg, const std::vector<T>& vec, int prneol=0) {
 //------------------------------------------------------------------------------------------------------------------------
 
 int PrintHisto2Dvec(const char *msg, const std::vector<TH2D*> &vec, int exponent=0, int maxLines=-1);
+int PrintTwoHistos(const char *msg, TH2D *h2a, TH2D *h2b, int exponent=0,
+		   int maxLines=-1);
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -873,7 +875,8 @@ int accumulateForRndStudies_finalize(TH2D* hSum, int nexps, int unbiasedEstimate
 
 TMatrixD* deriveCovMFromRndStudies(const std::vector<TH2D*> &rndVinp,
 				   int unbiasedEstimate=1,
-				   TH2D *avgDistr=NULL);
+				   TH2D *avgDistr=NULL,
+				   TMatrixD* covError=NULL);
 
 // Calculate correlation matrix
 TMatrixD* corrFromCov(const TMatrixD &cov);
@@ -899,6 +902,9 @@ TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr,
 		    double maxValUser=0.);
 
 TMatrixD* createMatrixD(const TH2D *h2, int useErr=0);
+
+// nom -> nom(i,j)/denom(i,j)
+int divideMatrix(TMatrixD &nom, const TMatrixD &denom);
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -1470,6 +1476,15 @@ int sameNumBins(const TH2D* h1, const TH2D* h2) {
 }
 
 //-----------------------------------------------------------
+
+inline
+int sameNumBins(const TMatrixD &a, const TMatrixD &b) {
+  return ((a.GetNrows() == b.GetNrows()) &&
+	  (a.GetNcols() == b.GetNcols())) ? 1:0;
+}
+
+
+//-----------------------------------------------------------
 //-----------------------------------------------------------
 
 template<class histo_t>
@@ -1803,6 +1818,13 @@ TCanvas* compareHistos(TH2D* hA, TString labelA,
 		       TH2D* hB, TString labelB,
 		       int do_removeError=1,
 		       TString yAxisLabel="signal_yield");
+
+//--------------------------------------------------
+
+TCanvas* plotProfiles(TString canvName,
+		      TH2D* histo, TString label,
+		      int do_removeError=1,
+		      TString yAxisLabel="signal_yield");
 
 //--------------------------------------------------
 
