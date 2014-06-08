@@ -147,7 +147,7 @@ double findScaleFactorHLTSmeared(int scEtBin1, int scEtaBin1, double scEt1,
 double getHLTefficiencySmeared(DYTools::TDataKind_t dataKind,
 			       int etBin1, int etaBin1, double Et1,
 			       int etBin2, int etaBin2, double Et2,
-			       const EffArray_t &rndWeight);
+			       const EffArray_t &rndWeight, int print=0);
 
 #ifndef calcEventEffLink_H
 void drawEfficiencies(TFile *fRootOutput, 
@@ -1719,9 +1719,13 @@ int createSelectionFile(const InputFileMgr_t &inpMgr,
 
 double findEventScaleFactor(int kind, const esfSelectEvent_t &data) {
 
+  double et1=data.et_1;
+  double et2=data.et_2;
+  if (et1>=etBinLimits[etBinCount-1]) et1=etBinLimits[etBinCount-1]-1.;
+  if (et2>=etBinLimits[etBinCount-1]) et2=etBinLimits[etBinCount-1]-1.;
   return findEventScaleFactor(kind, 
-			      data.et_1, data.eta_1,
-			      data.et_2, data.eta_2);
+			      et1, data.eta_1,
+			      et2, data.eta_2);
 }
 
 // ------------------------------------------------------------
@@ -1734,6 +1738,9 @@ double findEventScaleFactor(int kind,
   const int etaBin1 = DYTools::findEtaBin(eta1, etaBinning);
   const int etBin2 = DYTools::findEtBin(Et2, etBinning);
   const int etaBin2 = DYTools::findEtaBin(eta2, etaBinning);
+
+  //std::cout << "get scale factor for (" << etBin1 << "," << etaBin1 << "), "
+  //	    << "(" << etBin2 << "," << etaBin2 << ")\n";
 
   const int bin1ok= ((etBin1==-1) || (etBin1==-1)) ? 0:1;
   const int bin2ok= ((etBin2==-1) || (etBin2==-1)) ? 0:1;
@@ -1847,7 +1854,6 @@ double findScaleFactorHLT(int etBin1, int etaBin1, double et1,
 				  etBin2,etaBin2, et2);
 
   result = effData/effMC;
-  //std::cout << "nonUniversal scaleFactorHLT[etBin=" << etBin << "][etaBin=" << etaBin << "]=" << result << "\n";
 
   return result;
 }
@@ -1994,9 +2000,13 @@ double getHLTefficiencyErr(DYTools::TDataKind_t dataKind,
 
 double findEventScaleFactorSmeared(int kind, const esfSelectEvent_t &data,
 				   int iexp) {
+  double et1=data.et_1;
+  double et2=data.et_2;
+  if (et1>=etBinLimits[etBinCount-1]) et1=etBinLimits[etBinCount-1]-1.;
+  if (et2>=etBinLimits[etBinCount-1]) et2=etBinLimits[etBinCount-1]-1.;
   return findEventScaleFactorSmeared(kind,
-				     data.et_1, data.eta_1,
-				     data.et_2, data.eta_2,
+				     et1, data.eta_1,
+				     et2, data.eta_2,
 				     iexp);
 }
 
@@ -2182,6 +2192,10 @@ double findScaleFactorHLTSmeared(int etBin1, int etaBin1, double Et1,
 
   if (effMC==double(0.)) {
     std::cout << "err: findScaleFactorHLTSmeared  got effMC=0 !\n";
+    std::cout << getHLTefficiencySmeared(DYTools::MC,
+					 etBin1,etaBin1, Et1,
+					 etBin2,etaBin2, Et2,
+					 mcRndWeight,1) << "\n";
   }
   result = effData/effMC;
   //std::cout << "scaleFactorHLTsmeared[etBin=" << etBin << "][etaBin=" << etaBin << "]=" << result << "\n";
@@ -2195,7 +2209,7 @@ double findScaleFactorHLTSmeared(int etBin1, int etaBin1, double Et1,
 double getHLTefficiencySmeared(DYTools::TDataKind_t dataKind,
 			       int etBin1, int etaBin1, double Et1,
 			       int etBin2, int etaBin2, double Et2,
-			       const EffArray_t &rndWeight) {
+			       const EffArray_t &rndWeight, int print) {
 
   double result = 0;
   if( (etBin1 == -1) || (etaBin1 == -1) ||
@@ -2236,6 +2250,11 @@ double getHLTefficiencySmeared(DYTools::TDataKind_t dataKind,
   }
 
   result= eff11*eff22 + eff12*eff21 - eff11*eff21;
+
+  if (print) {
+    printf("HLEeffSmeared(iEt=%d,iEta=%d)x(%d,%d), Et1=%4.2lf, Et2=%4.2lf: eff11=%6.4lf, eff22=%6.4lf, eff12=%6.4lf, eff21=%6.4lf)=%6.4lf\n",etBin1,etaBin1,etBin2,etaBin2,Et1,Et2,eff11,eff22,eff12,eff21,result);
+  }
+
 
   return result;
 
