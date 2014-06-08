@@ -63,6 +63,9 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   case 4:
     cf->calc_UnfEScale(1);
     break;
+  case 41:
+    cf->calc_UnfEScaleResidual(1);
+    break;
   case 5:
     cf->calc_ESFtot(1);
     break;
@@ -72,6 +75,7 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     cf->calc_YieldEscale(1);  // added on May 27, 2014
     cf->calc_UnfRnd(1);
     //cf->calc_UnfEScale(1); // commented out on May 27, 2014
+    cf->calc_UnfEScaleResidual(1); // added on June 07, 2014
     cf->calc_ESFtot(1);
     cf->calc_EffRnd(1);
     cf->calc_AccRnd(1); // not active in 2D!
@@ -124,8 +128,9 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     work.extraFileTag(_corrUnf, "-unfOnly");
     if ((workBranch==2) ||
 	(workBranch==5) ||
-	(workBranch==6)) work.extraFileTag(_corrUnf, "-unfRndOnly_nExps1000");
+	(workBranch==6)) work.extraFileTag(_corrUnf, "-unfOnly_nExps1000");
     if (workBranch==4) work.extraFileTag(_corrUnf, "-unfOnly_nExps20");
+    if (workBranch==41) work.extraFileTag(_corrUnf, "-unfOnly"); //_nExps1000");
     work.extraFileTag(_corrEff, "-effRndOnly_nExps1000");
     work.extraFileTag(_corrESF, "-esfOnly");
     work.extraFileTag(_corrAcc, "-accRndOnly_nExps1000");
@@ -366,6 +371,7 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
       std::vector<std::vector<TH1D*>*> hProfV;
       std::vector<ComparisonPlot_t*> cpV;
       int delayDraw=1;
+      int oneHist= (errFromCovV.size()==1) ? 1:0;
 
       TCanvas *cx=plotProfiles(canvName,
 			       errFromCovV, errFromCovLabelV,
@@ -376,12 +382,14 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
 	if (DYTools::study2D) {
 	  double dy=(iCorr==0) ? -0.65 : -0.2;
 	  cpV[i]->TransLegend(-0.4,dy);
-	  cpV[i]->Draw6(cx,1,i+1);
+	  if (!oneHist) cpV[i]->Draw6(cx,1,i+1);
+	  else cpV[i]->Draw(cx,false,"png",i+1);
 	}
 	else {
 	  double dx=(iCorr==0) ? -0.1 : -0.4;
 	  cpV[i]->TransLegend(dx,0.);
-	  cpV[i]->Draw(cx);
+	  if (!oneHist) cpV[i]->Draw(cx);
+	  else cpV[i]->Draw(cx,false,"png",0);
 	}
       }
       if (delayDraw) cx->Update();
