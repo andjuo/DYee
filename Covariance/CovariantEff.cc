@@ -265,6 +265,152 @@ int StudyArr_t::Init(int nMassBins, int nExps,
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------
 
+ScaleFactor_t::ScaleFactor_t(int set_kind,
+			     int use_etBinCount, int use_etaBinCount) :
+  BaseClass_t("ScaleFactor_t"),
+  fTmpIdx(use_etBinCount, use_etaBinCount),
+  fKind(set_kind),
+  fSF(fTmpIdx.maxFlatIdx(),fTmpIdx.maxFlatIdx()),
+  fSFrndV()
+{
+  fSF.Zero();
+}
+
+// ----------------------------------------------------------------
+
+double ScaleFactor_t::eventScaleFactor(const esfSelectEvent_t &selData) const {
+  return findEventScaleFactor(fKind,selData);
+}
+
+// ----------------------------------------------------------------
+
+double ScaleFactor_t::rndEventScaleFactor(int iexp,
+				   const esfSelectEvent_t &selData) const {
+  return findEventScaleFactorSmeared(fKind,selData,iexp);
+}
+
+// ----------------------------------------------------------------
+
+int ScaleFactor_t::init (int set_kind,
+			 DYTools::TEtBinSet_t set_etBinning,
+			 DYTools::TEtaBinSet_t set_etaBinning,
+			 int nExps)
+{
+  ClearVec(fSFrndV);
+  fKind=set_kind;
+
+  EtEtaIndexer17_t fi1(fTmpIdx), fi2(fTmpIdx);
+  fSF.Zero();
+
+  int loc_etBinCount=  DYTools::getNEtBins(set_etBinning) + 1;
+  int loc_etaBinCount= DYTools::getNEtaBins(set_etaBinning);
+  double *loc_etBinLimits_tmp = DYTools::getEtBinLimits(set_etBinning);
+  double *loc_etBinLimits = new double[loc_etBinCount+1];
+  double *loc_etaBinLimits= DYTools::getEtaBinLimits(set_etaBinning);
+  double *loc_etBinCenter= new double[loc_etBinCount];
+  double *loc_etaBinCenter=new double[loc_etaBinCount];
+
+  if ((loc_etBinCount*loc_etaBinCount != fSF.GetNrows()) ||
+      (loc_etBinCount*loc_etaBinCount != fSF.GetNcols())) {
+    reportError("init: cannot change dimension after object creation");
+    std::cout << " current dim " << fSF.GetNrows() << " x " << fSF.GetNcols() << "\n";
+    std::cout << " new dim " << loc_etBinCount << " x " << loc_etaBinCount << "\n";
+    return 0;
+  }
+
+  if (!loc_etBinLimits || !loc_etBinLimits_tmp || !loc_etaBinLimits ||
+      !loc_etBinCenter || !loc_etaBinCenter) {
+    this->reportError("init: Failed to allocate temporary arrays");
+    return 0;
+  }
+
+  int shift=0;
+  for (int ibin=0; ibin<loc_etBinCount+1; ++ibin) {
+    if ((loc_etBinLimits_tmp[ibin+shift]  <17.) &&
+	(loc_etBinLimits_tmp[ibin+shift+1]>17.)) {
+      shift=-1;
+      loc_etBinLimits[ibin]=  loc_etBinLimits_tmp[ibin];
+      loc_etBinLimits[ibin+1]=17;
+      ibin++;
+    }
+    else {
+      loc_etBinLimits[ibin] = loc_etBinLimits_tmp[ibin+shift];
+    }
+  }
+
+  for (int i=0; i<loc_etBinCount+1; ++i) {
+    std::cout << " i=" << i << ", val=" << loc_etBinLimits[i] << "\n";
+  }
+
+  for (int ibin=0; ibin<loc_etBinCount; ++ibin) {
+    loc_etBinCenter[ibin] =
+      0.5*(loc_etBinLimits[ibin] + loc_etBinLimits[ibin+1]);
+  }
+
+  for (int i=0; i<loc_etBinCount; ++i) {
+    std::cout << " i=" << i << ", center=" << loc_etBinCenter[i] << "\n";
+  }
+
+  for (int ibin=0; ibin<loc_etaBinCount; ++ibin) {
+    std::cout << "iEtaBin=" << ibin << ", val=" << loc_etaBinLimits[ibin] << "\n";
+    loc_etaBinCenter[ibin] =
+      0.5*(loc_etaBinLimits[ibin] + loc_etaBinLimits[ibin+1]);
+  }
+
+  fSFrndV.reserve(nExps);
+  for (int iexp=0; iexp<nExps; ++iexp) {
+    TMatrixD *m= new TMatrixD(fSF);
+    fSFrndV.push_back(m);
+  }
+
+  //HERE("fill the matrix\n");
+  fi1.Start();
+  do {
+    double et1 = loc_etBinCenter [fi1.getEtBin()];
+    double eta1= loc_etaBinCenter[fi1.getEtaBin()];
+    fi2.Start();
+    do {
+      double et2 = loc_etBinCenter [fi2.getEtBin()];
+      double eta2= loc_etaBinCenter[fi2.getEtaBin()];
+
+      //HERE("zx");
+      //std::cout << "fi1 =" << fi1 << ", fi2=" << fi2 << "\n";
+      //std::cout << "(et,eta)=( " << et1 << "," << eta1 << "), (" << et2
+      //<< "," << eta2 << ")\n";
+      //std::cout << Form("(%4.1lf-%4.1lf,%4.2lf-%4.2lf) ",loc_etBinLimits[fi1.getEtBin()],loc_etBinLimits[fi1.getEtBin()+1],loc_etaBinLimits[fi1.getEtaBin()],loc_etaBinLimits[fi1.getEtaBin()+1]);
+      //std::cout << Form("(%4.1lf-%4.1lf,%4.2lf-%4.2lf) ",loc_etBinLimits[fi2 .getEtBin()],loc_etBinLimits[fi2.getEtBin()+1],loc_etaBinLimits[fi2.getEtaBin()],loc_etaBinLimits[fi2.getEtaBin()+1]);
+      //HERE("get the scale factor\n");
+
+      // call function from calcEventEff.C
+      double value= findEventScaleFactor(fKind,et1,eta1,et2,eta2);
+      if (value!=value) value=1e9;
+      //HERE(" value=%lf",value);
+      fSF(fi1.getIdx(),fi2.getIdx()) = value;
+      //fSF(fi2.getIdx(),fi1.getIdx()) = value;
+
+      for (int iexp=0; iexp<nExps; ++iexp) {
+	value= findEventScaleFactorSmeared(fKind,et1,eta1,et2,eta2,iexp);
+	if (value!=value) value=1e9;
+	(*fSFrndV[iexp])(fi1.getIdx(),fi2.getIdx()) = value;
+	//(*fSFrndV[iexp])(fi2.getIdx(),fi1.getIdx()) = value;
+      }
+
+    } while(fi2.Next()!=-1);
+  } while(fi1.Next()!=-1);
+  //HERE("done");
+
+  delete loc_etBinLimits_tmp;
+  delete loc_etBinLimits;
+  delete loc_etaBinLimits;
+  delete loc_etBinCenter;
+  delete loc_etaBinCenter;
+
+  return 1;
+}
+
+// ----------------------------------------------------------------
+
+
 
 // ----------------------------------------------------------------
 // ----------------------------------------------------------------

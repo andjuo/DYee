@@ -41,67 +41,75 @@ class CovariantEffMgr_t : public BaseClass_t {
 
 // ---------------------------------
 
-class EtEtaIndexer_t //: public BaseClass_t 
+class EtEtaIndexer_t //: public BaseClass_t
 {
  protected:
   int FEtBinCount,FEtaBinCount;
   int FEtIdx,FEtaIdx;
+  int FIdx;
  public:
   EtEtaIndexer_t(int set_etBinCount, int set_etaBinCount) :
     //BaseClass_t("EtEtaIndexer_t"), 
     FEtBinCount(set_etBinCount), FEtaBinCount(set_etaBinCount),
-    FEtIdx(-1), FEtaIdx(-1)
+    FEtIdx(-1), FEtaIdx(-1), FIdx(-1)
     {}
 
   EtEtaIndexer_t(const EtEtaIndexer_t &a) :
     //BaseClass("EtEtaIndexer_t"),
     FEtBinCount(a.FEtBinCount), FEtaBinCount(a.FEtaBinCount),
-    FEtIdx(a.FEtIdx), FEtaIdx(a.FEtaIdx)
+    FEtIdx(a.FEtIdx), FEtaIdx(a.FEtaIdx), FIdx(a.FIdx)
     {}
     
   int maxFlatIdx() const { return flatEtEtaIdx(FEtBinCount,FEtaBinCount-1); }
   int isValid() const { return ((FEtIdx>=0) && (FEtIdx<FEtBinCount) && (FEtaIdx>=0) && (FEtaIdx<FEtaBinCount)); }
 
-    // bin indexing starts from 0
+
+  // Serve as converter
+  // bin indexing starts from 0
   int flatEtEtaIdx(int etBin, int etaBin) const {
     return (etBin+etaBin*FEtBinCount);
   }
-
-  int flatEtEtaIdx() const { return (FEtIdx + FEtaIdx*FEtBinCount); }
-  int getIdx() const { return flatEtEtaIdx(); }
-  int getEtBin() const { return FEtIdx; }
-  int getEtaBin() const { return FEtaIdx; }
-
   int getEtBin(int flatIdx) const { return flatIdx%FEtBinCount; }
   int getEtaBin(int flatIdx) const { return flatIdx/FEtBinCount; }
 
+  // Access to member data
+  int getIdx() const { return FIdx; }
+  int getEtBin() const { return FEtIdx; }
+  int getEtaBin() const { return FEtaIdx; }
+
   void setEtBin(int ibin) { FEtIdx=ibin; }
   void setEtaBin(int ibin) { FEtaIdx=ibin; }
-  void setEtEta(int etBin, int etaBin) { FEtIdx=etBin; FEtaIdx=etaBin; }
-  void setEtEtaBin(int flatIdx) { FEtIdx=getEtBin(flatIdx); FEtaIdx=getEtaBin(flatIdx); }
+
+  void setEtEta(int etBin, int etaBin) {
+    FEtIdx=etBin;
+    FEtaIdx=etaBin;
+    FIdx=flatEtEtaIdx(FEtIdx,FEtaIdx);
+  }
+
+  void setEtEtaBin(int flatIdx) {
+    FEtIdx=getEtBin(flatIdx);
+    FEtaIdx=getEtaBin(flatIdx);
+    FIdx=flatEtEtaIdx(FEtIdx,FEtaIdx);
+  }
 
   int setEtEta(double et, double eta) {
     FEtIdx=DYTools::findEtBin(et, etBinning);
     FEtaIdx=DYTools::findEtaBin(eta, etaBinning);
+    FIdx=flatEtEtaIdx(FEtIdx,FEtaIdx);
     return this->isValid();
   }
 
-  int Start() { FEtIdx=0; FEtaIdx=0; return 0; }
+  int Start() { FEtIdx=0; FEtaIdx=0; FIdx=0; return 0; }
 
   int Next() { 
-    FEtaIdx++;
-    if (FEtaIdx >= FEtaBinCount) {
-      FEtaIdx=0;
-      FEtIdx++;
+    FEtIdx++;
+    FIdx++;
+    if (FEtIdx >= FEtBinCount) {
+      FEtIdx=0;
+      FEtaIdx++;
     }
-    if (FEtIdx >= FEtBinCount) return -1;
-    return this->flatEtEtaIdx();
-  }
-
-  EtEtaIndexer_t& operator=(int flatIdx) {
-    FEtIdx=this->getEtBin(flatIdx);
-    FEtaIdx=this->getEtaBin(flatIdx);
-    return *this;
+    if (FEtaIdx >= FEtaBinCount) return -1;
+    return FIdx;
   }
 
   friend
@@ -109,7 +117,8 @@ class EtEtaIndexer_t //: public BaseClass_t
     return ((a.FEtBinCount==b.FEtBinCount) &&
 	    (a.FEtaBinCount==b.FEtaBinCount) &&
 	    (a.FEtIdx==b.FEtIdx) &&
-	    (a.FEtaIdx==b.FEtaIdx)) ? 1:0;
+	    (a.FEtaIdx==b.FEtaIdx) &&
+	    (a.FIdx==b.FIdx)) ? 1:0;
   }
 
   friend
@@ -119,7 +128,7 @@ class EtEtaIndexer_t //: public BaseClass_t
 
   friend
   inline std::ostream& operator<< (std::ostream &out, const EtEtaIndexer_t &a) {
-    out << "(" << a.FEtIdx << "," << a.FEtaIdx << ")";
+    out << "(" << a.FIdx << " : " << a.FEtIdx << "," << a.FEtaIdx << ")";
     return out;
   }
 
@@ -127,6 +136,122 @@ class EtEtaIndexer_t //: public BaseClass_t
     out << "(" << loc_etBinLimits[FEtIdx] << "," << loc_etaBinLimits[FEtaIdx] << ")";
   }
 
+};
+
+// ---------------------------------
+// split the Et bin containing 17GeV
+
+class EtEtaIndexer17_t //: public BaseClass_t
+{
+ protected:
+  int FEtBinCount,FEtaBinCount;
+  int FEtIdx,FEtaIdx;
+  int FIdx;
+ public:
+  EtEtaIndexer17_t(int set_etBinCount, int set_etaBinCount) :
+    //BaseClass_t("EtEtaIndexer_t"),
+    FEtBinCount(set_etBinCount+1), FEtaBinCount(set_etaBinCount),
+    FEtIdx(-1), FEtaIdx(-1), FIdx(-1)
+    {}
+
+  EtEtaIndexer17_t(const EtEtaIndexer17_t &a) :
+    //BaseClass("EtEtaIndexer_t"),
+    FEtBinCount(a.FEtBinCount), FEtaBinCount(a.FEtaBinCount),
+    FEtIdx(a.FEtIdx), FEtaIdx(a.FEtaIdx), FIdx(a.FIdx)
+    {}
+
+  int maxFlatIdx() const { return flatEtEtaIdx(FEtBinCount,FEtaBinCount-1); }
+  int isValid() const { return ((FEtIdx>=0) && (FEtIdx<FEtBinCount) && (FEtaIdx>=0) && (FEtaIdx<FEtaBinCount)); }
+
+
+  // Serve as converter
+  // bin indexing starts from 0
+  int flatEtEtaIdx(int etBin, int etaBin) const {
+    return (etBin+etaBin*FEtBinCount);
+  }
+  int getEtBin(int flatIdx) const { return flatIdx%FEtBinCount; }
+  int getEtaBin(int flatIdx) const { return flatIdx/FEtBinCount; }
+
+  // Access to member data
+  int getIdx() const { return FIdx; }
+  int getEtBin() const { return FEtIdx; }
+  int getEtaBin() const { return FEtaIdx; }
+
+  void setEtBin(int ibin) { FEtIdx=ibin; }
+  void setEtaBin(int ibin) { FEtaIdx=ibin; }
+
+  void setEtEta(int etBin, int etaBin) {
+    FEtIdx=etBin;
+    FEtaIdx=etaBin;
+    FIdx=flatEtEtaIdx(FEtIdx,FEtaIdx);
+  }
+
+  void setEtEtaBin(int flatIdx) {
+    FEtIdx=getEtBin(flatIdx);
+    FEtaIdx=getEtaBin(flatIdx);
+    FIdx=flatEtEtaIdx(FEtIdx,FEtaIdx);
+  }
+
+  int setEtEta(double et, double eta) {
+    FEtIdx=DYTools::findEtBin(et, etBinning);
+    if (et>17.) { if (et>499.) FEtIdx=FEtBinCount-1; else FEtIdx++; }
+    FEtaIdx=DYTools::findEtaBin(eta, etaBinning);
+    FIdx=flatEtEtaIdx(FEtIdx,FEtaIdx);
+    return this->isValid();
+  }
+
+  int Start() { FEtIdx=0; FEtaIdx=0; FIdx=0; return 0; }
+
+  int Next() {
+    FEtIdx++;
+    FIdx++;
+    if (FEtIdx >= FEtBinCount) {
+      FEtIdx=0;
+      FEtaIdx++;
+    }
+    if (FEtaIdx >= FEtaBinCount) return -1;
+    return FIdx;
+  }
+
+  friend
+    inline int operator==(const EtEtaIndexer17_t &a, const EtEtaIndexer17_t &b) {
+    return ((a.FEtBinCount==b.FEtBinCount) &&
+	    (a.FEtaBinCount==b.FEtaBinCount) &&
+	    (a.FEtIdx==b.FEtIdx) &&
+	    (a.FEtaIdx==b.FEtaIdx) &&
+	    (a.FIdx==b.FIdx)) ? 1:0;
+  }
+
+  friend
+  inline int operator!=(const EtEtaIndexer17_t &a, const EtEtaIndexer17_t &b) {
+    return (a==b) ? 0:1;
+  }
+
+  friend
+  inline std::ostream& operator<< (std::ostream &out, const EtEtaIndexer17_t &a) {
+    out << "(" << a.FIdx << " : " << a.FEtIdx << "," << a.FEtaIdx << ")";
+    return out;
+  }
+
+  void PrintEtEtaVals(const double *loc_etBinLimits, const double *loc_etaBinLimits, std::ostream &out=std::cout) {
+    if ((loc_etBinLimits[FEtIdx+1]<17.) || (loc_etBinLimits[FEtIdx]>17.)) {
+      int useEtIdx=FEtIdx;
+      if (loc_etBinLimits[FEtIdx]>17.) useEtIdx--;
+      out << "(" << loc_etBinLimits[useEtIdx] << "-"
+	  << loc_etBinLimits[useEtIdx+1] << ",";
+    }
+    else {
+      // split bin
+      if (FEtIdx==DYTools::findEtBin(16.99, etBinning)) {
+	out << "(" << loc_etBinLimits[FEtIdx] << "-17,";
+      }
+      else {
+	out << "(17-" << loc_etBinLimits[FEtIdx+1] << ",";
+      }
+    }
+    out << loc_etaBinLimits[FEtaIdx] << "-"
+	<< loc_etaBinLimits[FEtaIdx+1] << ")";
+  }
 };
 
 // ---------------------------------
@@ -163,7 +288,7 @@ class StudyArr_t : public BaseClass_t {
   StudyArr_t(const TString &baseName, int nMassBins, int nExps,
 	     int binCount=0, double minVal=0., double maxVal=0.);
 
-  int Init(int nMassBins, int nExps, 
+  int Init(int nMassBins, int nExps,
 	   int binCount, double minVal, double maxVal);
 
   TH1D* operator()(int i, int j) { return (*FVec[i])[j]; }
@@ -176,6 +301,45 @@ class StudyArr_t : public BaseClass_t {
 
 // ---------------------------------
 // ---------------------------------
+
+class ScaleFactor_t : public BaseClass_t {
+ protected:
+  EtEtaIndexer17_t fTmpIdx;
+  int fKind;
+  TMatrixD fSF;
+  std::vector<TMatrixD*> fSFrndV;
+ public:
+  ScaleFactor_t(int set_kind,
+		int use_etBinCount, int use_etaBinCount);
+  ~ScaleFactor_t() { ClearVec(fSFrndV); }
+
+  int kind() const { return fKind; }
+  const TMatrixD& scaleFactorM() const { return fSF; }
+  const std::vector<TMatrixD*>& rndScaleFactorMvec() const { return fSFrndV; }
+  const TMatrixD* rndScaleFactorM(int i) const { return fSFrndV[i]; }
+
+  // no optimization. Only interface to calcEventEff.C
+  double eventScaleFactor(const esfSelectEvent_t &selData) const;
+  double rndEventScaleFactor(int idx, const esfSelectEvent_t &selData) const;
+
+  // optimization
+  double eventScaleFactor(const EtEtaIndexer17_t &fidx1,
+			  const EtEtaIndexer17_t &fidx2) const {
+    return fSF(fidx1.getIdx(),fidx2.getIdx());
+  }
+
+  double rndEventScaleFactor(int iexp,
+			     const EtEtaIndexer17_t &fidx1,
+			     const EtEtaIndexer17_t &fidx2) const {
+    return (*fSFrndV[iexp])(fidx1.getIdx(),fidx2.getIdx());
+  }
+
+  int init(int set_kind,
+	   DYTools::TEtBinSet_t set_etBinning,
+	   DYTools::TEtaBinSet_t set_etaBinning,
+	   int nExps);
+
+};
 
 // ---------------------------------
 // ---------------------------------
