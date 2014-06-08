@@ -56,8 +56,18 @@ void drawEfficiencies(TFile *fRootOutput,
 
 // access scale factors
 double findEventScaleFactor(int kind, const esfSelectEvent_t &data); // -1 for total
+// kind=-1 for total
+double findEventScaleFactor(int kind,
+			    double Et1, double eta1,
+			    double Et2, double eta2
+			    );
+
 double findEventScaleFactorSmeared(int kind, const esfSelectEvent_t &data,
 				   int iexp); // -1 for total
+double findEventScaleFactorSmeared(int kind,
+				   double Et1, double eta1,
+				   double Et2, double eta2,
+				   int iexp);
 
 //
 // Original functions
