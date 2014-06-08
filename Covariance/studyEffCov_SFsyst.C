@@ -204,13 +204,11 @@ int studyEffCov_SFsyst(int analysisIs2D,
   EtEtaIndexer_t fidx2(etBinCount,etaBinCount);
 
   std::vector<TH1D*> hScaleFIV_150; // flat indexing. 150 bins, like in calcEventEff.C
-  std::vector<TH1D*> hScaleFIV_1500;
 
   std::vector<TString> sample_labels;
   sample_labels.reserve(nTotBins);
   for (int i=0; i<nTotBins; ++i) { sample_labels.push_back(TString(Form("_fib%d",i))); }
-  if (!createAnyH1Vec(hScaleFIV_150,"hScaleFIV_150",sample_labels,150,0.,1.5,"scale factor","counts",1) ||
-      !createAnyH1Vec(hScaleFIV_1500,"hScaleFIV_1500",sample_labels,1500,0,1.5,"scale factor","counts",1)) {
+  if (!createAnyH1Vec(hScaleFIV_150,"hScaleFIV_150",sample_labels,150,0.,1.5,"scale factor","counts",1)) {
     std::cout << "failed to prepare scale factor histo-arrays\n";
     return retCodeError;
   }
@@ -292,7 +290,6 @@ int studyEffCov_SFsyst(int analysisIs2D,
       }
 
       hScaleFIV_150[massBin]->Fill(scaleFactor,weight);
-      hScaleFIV_1500[massBin]->Fill(scaleFactor,weight);
 
       sumWeight(massBin) += weight;
       sumWeightRho(massBin) += weight*scaleFactor;
@@ -322,7 +319,6 @@ int studyEffCov_SFsyst(int analysisIs2D,
       etEtaPairsV[i]->Write(Form("etEtaPairs_mfidx_%u",i));
     }
     saveVec(rhoFile,hScaleFIV_150,"esf_histos_150");
-    saveVec(rhoFile,hScaleFIV_1500,"esf_histos_1500");
 
     writeBinningArrays(rhoFile,"studyEffCov_SFsyst");
     rhoFile.Close();
@@ -339,7 +335,6 @@ int studyEffCov_SFsyst(int analysisIs2D,
       etEtaPairsV.push_back(Mptr);
     }
     loadVec(rhoFile,hScaleFIV_150,"esf_histos_150");
-    loadVec(rhoFile,hScaleFIV_1500,"esf_histos_1500");
 
     rhoFile.Close();
   }
@@ -504,7 +499,7 @@ int studyEffCov_SFsyst(int analysisIs2D,
 	    fidx1.setEtEta(iEt1,iEta1);
 	    for (int iEta2=iEta1; iEta2<etaBinCount; ++iEta2) {
 	      fidx2.setEtEta(iEt2,iEta2);
-	      double cnt=(*Mptr)(fidx1.flatEtEtaIdx(),fidx2.flatEtEtaIdx());
+	      double cnt=(*Mptr)(fidx1.getIdx(),fidx2.getIdx());
 	      if (sum_et_lt_20) sumEt_lt_20 += cnt;
 	      if (sum_et_lt_20_both) sumEt_lt_20both += cnt;
 	      sumPairs += cnt;
@@ -580,21 +575,14 @@ int studyEffCov_SFsyst(int analysisIs2D,
     }
 
     TVectorD esfFromHisto150(nTotBins), esfFromHisto150err(nTotBins);
-    TVectorD esfFromHisto1500(nTotBins), esfFromHisto1500err(nTotBins);
     for (int i=0; i<nTotBins; ++i) {
       esfFromHisto150(i)= hScaleFIV_150[i]->GetMean();
       esfFromHisto150err(i)= hScaleFIV_150[i]->GetRMS();
-      esfFromHisto1500(i)= hScaleFIV_1500[i]->GetMean();
-      esfFromHisto1500err(i)= hScaleFIV_1500[i]->GetRMS();
     }
     TMatrixD esfMFromHisto150(DYTools::nMassBins,DYTools::nYBinsMax);
     TMatrixD esfMFromHisto150err(esfMFromHisto150);
-    TMatrixD esfMFromHisto1500(esfMFromHisto150);
-    TMatrixD esfMFromHisto1500err(esfMFromHisto150);
     if (!deflattenMatrix(esfFromHisto150,esfMFromHisto150) ||
-	!deflattenMatrix(esfFromHisto150err,esfMFromHisto150err) ||
-	!deflattenMatrix(esfFromHisto1500,esfMFromHisto1500) ||
-	!deflattenMatrix(esfFromHisto1500err,esfMFromHisto1500err)) {
+	!deflattenMatrix(esfFromHisto150err,esfMFromHisto150err)) {
       std::cout << "failed to deflatten scale factors from histos\n";
       return retCodeError;
     }
@@ -612,8 +600,6 @@ int studyEffCov_SFsyst(int analysisIs2D,
     esfMpseudoErr.Write("scaleFactorErr");
     esfMFromHisto150.Write("scaleFactor_hb150");
     esfMFromHisto150err.Write("scaleFactor_hb150err");
-    esfMFromHisto1500.Write("scaleFactor_hb1500");
-    esfMFromHisto1500err.Write("scaleFactor_hb1500err");
     writeBinningArrays(fCov,"studyEffCov_SFsyst");
     fCov.Close();
     std::cout << "file <" << covFileName << "> recreated\n";
