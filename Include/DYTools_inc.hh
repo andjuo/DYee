@@ -175,6 +175,7 @@ TString EtBinSetName(DYTools::TEtBinSet_t set) {
   case ETBINS1: name="EtBins1"; break;
   case ETBINS5: name="EtBins5"; break;
   case ETBINS6: name="EtBins6"; break;
+  case ETBINS6x: name="EtBins6x"; break;
   case ETBINS6short: name="EtBins6short"; break;
   case ETBINS6syst: name="EtBins6syst"; break;
   case ETBINS6alt: name="EtBins6alt"; break;
@@ -439,8 +440,9 @@ DYTools::TEtBinSet_t DetermineEtBinSet(const TString& str) {
   else if (str.Contains("ETBINS6altB") || str.Contains("EtBins6altB")) kind=ETBINS6altB;
   else if (str.Contains("ETBINS6alt") || str.Contains("EtBins6alt")) kind=ETBINS6alt;
   else if (str.Contains("ETBINS6syst") || str.Contains("EtBins6syst")) kind=ETBINS6syst;
-  else if (str.Contains("ETBINS6") || str.Contains("EtBins6")) kind=ETBINS6;
   else if (str.Contains("ETBINS6short") || str.Contains("EtBins6short")) kind=ETBINS6short;
+  else if (str.Contains("ETBINS6x") || str.Contains("EtBins6x")) kind=ETBINS6x;
+  else if (str.Contains("ETBINS6") || str.Contains("EtBins6")) kind=ETBINS6;
   else if (str.Contains("ETBINS7altB") || str.Contains("EtBins7altB")) kind=ETBINS7altB;
   else if (str.Contains("ETBINS7alt") || str.Contains("EtBins7alt")) kind=ETBINS7alt;
   else if (str.Contains("ETBINS7") || str.Contains("EtBins7")) kind=ETBINS7;

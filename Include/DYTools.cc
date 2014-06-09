@@ -294,6 +294,7 @@ namespace DYTools {
     case ETBINS5: n = nEtBins5; break;
     case ETBINS6syst: // same as ETBINS6, avoid built-in systematics
     case ETBINS6: n = nEtBins6; break;
+    case ETBINS6x: n = nEtBins6x; break;
     case ETBINS6short: n = nEtBins6; break;
     case ETBINS6alt: n = nEtBins6alt; break;
     case ETBINS6altB: n = nEtBins6altB; break;
@@ -320,6 +321,7 @@ namespace DYTools {
     case ETBINS5: limits=etBinLimits5; break;
     case ETBINS6syst: // same as ETBINS6, avoid built-in systematics
     case ETBINS6: limits=etBinLimits6; break;
+    case ETBINS6x: limits=etBinLimits6x; break;
     case ETBINS6short: limits=etBinLimits6short; break;
     case ETBINS6alt: limits=etBinLimits6alt; break;
     case ETBINS6altB: limits=etBinLimits6altB; break;
