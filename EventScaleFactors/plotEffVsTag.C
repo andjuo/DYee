@@ -19,6 +19,8 @@
 
 int plotEffVsTag(const TString configFile, const TString effTypeString="RECO", int runOnData=0 ) {
 
+  if (!DYTools::setup(0)) return retCodeError;
+
   // -------
   // setup -
   // -------
@@ -30,7 +32,8 @@ int plotEffVsTag(const TString configFile, const TString effTypeString="RECO", i
     return retCodeError;
   }
 
-  const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  //const DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST;
+  const DYTools::TSystematicsStudy_t systMode=DYTools::UNREGRESSED_ENERGY;
   const DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
 
   TDescriptiveInfo_t tnpSection;
@@ -122,12 +125,19 @@ int plotEffVsTag(const TString configFile, const TString effTypeString="RECO", i
   int nEtaProbe                = DYTools::getNEtaBins(etaBinning);
   const double *limitsEtaProbe = DYTools::getEtaBinLimits(etaBinning);
 
+  int applyEtCut=1;
+  TString explainEtCut="etLE500";
+  TString etCutString = " && ( et < 500.0001 )";
+  if (0) {
+    etCutString = " && ( et > 400. )";
+    explainEtCut="etGT400";
+  }
+
   TString etaCutFormat= DYTools::signedEtaBinning(etaBinning) ?
     " ( eta >= %5.3f && eta < %5.3f ) " :
     " ( abs(eta) >= %5.3f && abs(eta) < %5.3f ) ";
+   TString tagEtaCutFormat= " ( abs(tagEta) >= %5.3f && abs(tagEta) < %5.3f ) ";
  
-  TString tagEtaCutFormat= " ( abs(tagEta) >= %5.3f && abs(tagEta) < %5.3f ) ";
-  
   //double tagEtaMin=0.;
   //double tagEtaMax=2.5;
   //int tagEtaCount=25;
@@ -165,6 +175,7 @@ int plotEffVsTag(const TString configFile, const TString effTypeString="RECO", i
     double etaPmin=h2->GetXaxis()->GetBinLowEdge(ibin);
     double etaPmax=etaPmin + h2->GetXaxis()->GetBinWidth(ibin);
     TString etaPcut=TString::Format( etaCutFormat, etaPmin,etaPmax);
+    if (applyEtCut) etaPcut.Append(etCutString);
     TTree *passSubTree= passTree->CopyTree(etaPcut);
     TTree *failSubTree= failTree->CopyTree(etaPcut);
     for (int jbin=1; jbin<=h2->GetNbinsY(); ++jbin) {
@@ -179,30 +190,41 @@ int plotEffVsTag(const TString configFile, const TString effTypeString="RECO", i
       //passTree->Draw("weight >> hwPass", cut);
       passSubTree->Draw("weight >> hwPass", cut);
       canvW->cd(ipad+1);
+      HERE("a");
       //failTree->Draw("weight >> hwFail", cut);
       failSubTree->Draw("weight >> hwFail", cut);
+      HERE("b");
       ipad=(ipad+2)%(nCWrow*nCWcol);
       TH1 *hwPass=(TH1*)gDirectory->Get("hwPass");
       TH1 *hwFail=(TH1*)gDirectory->Get("hwFail");
-      double probesPassWeighted = hwPass->GetMean() * hwPass->GetEntries();
-      double probesFailWeighted = hwFail->GetMean() * hwFail->GetEntries();
-      double effCountWeighted, effErrLowCountWeighted, effErrHighCountWeighted;
+      double probesPassWeighted=0, probesFailWeighted=0;
+      double effCountWeighted=0, effErrLowCountWeighted=0, effErrHighCountWeighted=0;
+      double avgErr=0.;
+      if (!hwPass || !hwFail) {
+	std::cout << "null ptr (hwPass or hwFail)\n";
+      }
+      else {
+	probesPassWeighted = hwPass->GetMean() * hwPass->GetEntries();
+	probesFailWeighted = hwFail->GetMean() * hwFail->GetEntries();
+	HERE("probesPassWeighted=%4.2lf, probesFailWeighted=%4.2lf",
+	     probesPassWeighted,probesFailWeighted);
 
-      DYTools::calcEfficiency( probesPassWeighted, 
-			       probesPassWeighted+probesFailWeighted,
-			       DYTools::EFF_CLOPPER_PEARSON,
-			       effCountWeighted, 
-			       effErrLowCountWeighted,effErrHighCountWeighted);
-      double avgErr=0.5*(effErrLowCountWeighted+effErrHighCountWeighted);
-      h2->SetBinContent(ibin,jbin,effCountWeighted);
-      h2->SetBinError  (ibin,jbin,avgErr);
+	DYTools::calcEfficiency( probesPassWeighted,
+				 probesPassWeighted+probesFailWeighted.
+				 DYTools::EFF_CLOPPER_PEARSON,
+				 effCountWeighted,
+				 effErrLowCountWeighted,effErrHighCountWeighted);
+	avgErr=0.5*(effErrLowCountWeighted+effErrHighCountWeighted);
+	h2->SetBinContent(ibin,jbin,effCountWeighted);
+	h2->SetBinError  (ibin,jbin,avgErr);
 
-      double probesPassErr= hwPass->GetMeanError();
-      double probesFailErr= hwFail->GetMeanError();
-      h2pass->SetBinContent(ibin,jbin, probesPassWeighted);
-      h2pass->SetBinError  (ibin,jbin, probesPassErr);
-      h2fail->SetBinContent(ibin,jbin, probesFailWeighted);
-      h2fail->SetBinError  (ibin,jbin, probesFailErr);
+	double probesPassErr= hwPass->GetMeanError();
+	double probesFailErr= hwFail->GetMeanError();
+	h2pass->SetBinContent(ibin,jbin, probesPassWeighted);
+	h2pass->SetBinError  (ibin,jbin, probesPassErr);
+	h2fail->SetBinContent(ibin,jbin, probesFailWeighted);
+	h2fail->SetBinError  (ibin,jbin, probesFailErr);
+      }
 
       std::cout << "ibin,jbin=" << ibin << "," << jbin << " " << effCountWeighted << " +/- " << avgErr << "\n";
       canvW->Update();
@@ -226,7 +248,9 @@ int plotEffVsTag(const TString configFile, const TString effTypeString="RECO", i
   h2->Draw("COLZ");
   cx->Update();
 
-  SaveCanvas(cx,TString("canvVer4_passFail_") + effTypeString,"plots_tagEta");
+  TString figName=TString("canvVer4_passFail_") + effTypeString;
+  if (applyEtCut) figName.Append(explainEtCut);
+  SaveCanvas(cx,figName,"plots_tagEta");
 
   return retCodeOk;
 }
