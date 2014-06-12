@@ -131,7 +131,7 @@ int CovariantEffMgr_t::SetupSFsyst(const TString &confFileName,
 	FRhoRelSystErrs.push_back(Mhlt);
 	err_ids.push_back(int(DYTools::HLT));
       }
-      else {
+      else if (nonUniversalHLT) {
 	// assume that the field was not found
 	TMatrixD* MhltLeg1mc= loadMatrix(hltSystFName,"hltLeg1_mc_syst_rel_error",loc_etBinCount,loc_etaBinCount,1);
 	if (!MhltLeg1mc) return 0;
@@ -167,6 +167,10 @@ int CovariantEffMgr_t::SetupSFsyst(const TString &confFileName,
 	delete MhltLeg1data;
 	delete MhltLeg2mc;
 	delete MhltLeg1mc;
+      }
+      else {
+	HERE("\nsystematics for universal HLT is not known\n");
+	return 0;
       }
     }
 
