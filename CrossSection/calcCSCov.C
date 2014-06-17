@@ -274,7 +274,7 @@ int calcCSCov(int analysisIs2D,
 	    inpMgrLocal.rootFileBaseDir("../../DYee-20140501/root_files_reg/");
 	    maxExps=1000;
 	    inpMgrLocal.rootFileBaseDir("/media/sdb/andriusj/Results-DYee-escaleRnd/root_files_reg/");
-	    if (0) {
+	    if (1) {
 	      maxExps=100;
 	      inpMgrLocal.rootFileBaseDir("/media/sdb/andriusj/Results-DYee-escaleRndFlat-20140601/root_files_reg/");
 	      inpMgrLocal.editEnergyScaleTag()=TString("Date20140220_2012_j22_peak_position_flat");
@@ -560,10 +560,24 @@ int calcCSCov(int analysisIs2D,
 	UnfoldingMatrix_t Urnd(UnfoldingMatrix::_cDET_Response,"detResponseRnd");
 	HistoPair2D_t hpUnf("hpUnf");
 
+	int trackRndMatrix=0;
+	if (trackRndMatrix) gSystem->mkdir("root_files_rndUnfM/",1);
+
 	for (int iexp=0; res && (iexp<nExps); ++iexp) {
 	  if (DYTools::study2D==1) printProgress(10,"rndExp ",iexp,nExps);
 	  res=Urnd.randomizeMigrationMatrix(*Uref,NULL,2);
 	  if (res) res=unfold_reco2true(hpUnf,Urnd,hpSignalYield);
+	  if (trackRndMatrix) {
+	    TString tmp_fname;
+	    if (!Urnd.autoSaveToFile("root_files_rndUnfM/",Form("_rnd%d",iexp),
+				     "calcCSCov.C",&tmp_fname)) {
+	      return retCodeStop;
+	    }
+	    TFile ftmp(tmp_fname,"append");
+	    hpSignalYield.Write("hpSignalYield");
+	    hpUnf.Write("hpUnf");
+	    ftmp.Close();
+	  }
 	  if (res) {
 	    TString rndVec=Form("h2unfRnd_%d",iexp);
 	    TH2D* h2=Clone(hpUnf.histo(),rndVec);
