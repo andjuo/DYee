@@ -1946,9 +1946,13 @@ int saveLatexTable(TString fileTag,
 
   fout << "%\\documentclass{article}\n";
   fout << "%\\begin{document}\n";
+  fout << "%\\usepackage{rotating}\n";
+  fout << "%\\begin{document}\n";
+  fout << "%\\begin{sidewaystable}[tbhp]\n";
   fout << "\\begin{table}[tbhp]\n";
   fout << "\\caption{\\label{tbl-" << fileTag << "} " << fileTag << "}\n";
 
+  fout << "%\\hspace{-3cm}\n";
   fout << "\\begin{tabular}{|";
   for (int i=0; i<count+1+DYTools::study2D; ++i) fout << "c|";
   fout << "}\n";
@@ -2009,6 +2013,7 @@ int saveLatexTable(TString fileTag,
   fout << "\\hline\n";
   fout << "\\end{tabular}\n";
   fout << "\\end{table}\n";
+  fout << "%\\end{sidewaystable}\n";
   fout << "%\\end{document}\n";
   fout.close();
 
