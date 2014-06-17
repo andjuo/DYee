@@ -4,7 +4,7 @@
 
 void adjustTable1D(int saveLatex=0, int saveStatErr=0) {
   if (!DYTools::setup(0)) return;
-  TString fileTag="frac";
+  TString fileTag="frac-total";
   std::vector<TH2D*> histosV_old,histosV;
   std::vector<TString> labelsV_old,labelsV;
 
@@ -32,15 +32,27 @@ void adjustTable1D(int saveLatex=0, int saveStatErr=0) {
   HERE("calculating the total");
 
   TH2D* h2=Clone(histosV[0],"h2Sum");
+  TH2D* h2Syst=Clone(histosV[0],"h2SumSystOnly");
   h2->Reset();
+  h2Syst->Reset();
   for (int ibin=1; ibin<=h2->GetNbinsX(); ++ibin) {
     for (int jbin=1; jbin<=h2->GetNbinsY(); ++jbin) {
       double sum=0;
+      double sumSyst=0;
       for (unsigned int i=0; i<histosV.size(); ++i) {
-	sum+= pow(histosV[i]->GetBinContent(ibin,jbin),2);
+	double term2=pow(histosV[i]->GetBinContent(ibin,jbin),2);
+	sum+= term2;
+	if (!saveStatErr || (saveStatErr && (i>0))) {
+	  sumSyst += term2;
+	}
       }
       h2->SetBinContent(ibin,jbin, sqrt(sum));
+      h2Syst->SetBinContent(ibin,jbin, sqrt(sumSyst));
     }
+  }
+  if (saveStatErr) {
+    histosV.push_back(h2Syst);
+    labelsV.push_back("total syst error");
   }
   histosV.push_back(h2);
   labelsV.push_back("total error");
@@ -54,12 +66,14 @@ void adjustTable1D(int saveLatex=0, int saveStatErr=0) {
     replaceAll(labelsV,"signal syst","Bkgr.est.//($\\%$)");
     replaceAll(labelsV,"signal EScale uncert.","E-scale//($\\%$)");
     replaceAll(labelsV,"unf stat","Det.resol.//($\\%$)");
+    replaceAll(labelsV,"unf e-scale residual","E-Scale//res.($\\%$)");
     replaceAll(labelsV,"eff stat","Eff.//($\\%$)");
     replaceAll(labelsV,"ESF tot","$\\rho$//($\\%$)");
     replaceAll(labelsV,"acc stat","Acc.stat.//($\\%$)");
-    replaceAll(labelsV,"FSR stat","FSR.unf.//($\\%$)");
-    replaceAll(labelsV,"puRndStudy","Coll.CS//($\\%$)");
+    replaceAll(labelsV,"FSR stat","FSR.//unf.($\\%$)");
+    replaceAll(labelsV,"puRndStudy","Coll.//CS($\\%$)");
     replaceAll(labelsV,"fsrRndStudy","FSR model//($\\%$)");
+    replaceAll(labelsV,"total syst error","Total//syst. ($\\%$)");
     replaceAll(labelsV,"total error","Total//($\\%$)");
 
     for (unsigned int i=0; i<labelsV.size(); ++i) {
@@ -68,7 +82,8 @@ void adjustTable1D(int saveLatex=0, int saveStatErr=0) {
 
     HERE("saving");
 
-    if (!saveLatexTable(fileTag + TString("-noStat"),histosV,labelsV,"%5.2lf",0,0)) return;
+    TString extraTag=(saveStatErr) ? "-wStat" : "-noStat";
+    if (!saveLatexTable(fileTag + extraTag,histosV,labelsV,"%5.2lf",0,0)) return;
 
   }
   else {
@@ -80,12 +95,14 @@ void adjustTable1D(int saveLatex=0, int saveStatErr=0) {
     replaceAll(labelsV,"signal syst","bkgr_est_err");
     replaceAll(labelsV,"signal EScale uncert.","escale_err");
     replaceAll(labelsV,"unf stat","det_resolution_err");
+    replaceAll(labelsV,"unf e-scale residual","unf_escale_res");
     replaceAll(labelsV,"eff stat","eff_rnd_err");
     replaceAll(labelsV,"ESF tot","rho_err");
     replaceAll(labelsV,"acc stat","acc_rnd_err");
     replaceAll(labelsV,"FSR stat","fsr_rnd_err");
     replaceAll(labelsV,"puRndStudy","pileup_err");
     replaceAll(labelsV,"fsrRndStudy","fsr_model_err");
+    replaceAll(labelsV,"total syst error","total_syst_err");
     replaceAll(labelsV,"total error","total_err");
 
     for (unsigned int i=0; i<labelsV.size(); ++i) {
