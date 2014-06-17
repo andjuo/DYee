@@ -134,6 +134,7 @@ int loadYieldCovMatrices(const TString &fnameBase,std::vector<TMatrixD*> &covs,
   if (wf.cf().doCalcYieldCov() != int(covs.size())) {
     std::cout << " .. had to load " << wf.cf().doCalcYieldCov()
 	      << " entries\n";
+    return 0;
   }
   return 1;
 }
@@ -158,6 +159,26 @@ int loadUnfCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs,
     return 0;
   }
   TMatrixD *ptr;
+  if (wf.cf().calc_UnfEScale()) {
+    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfEScale"));
+    if (ptr) {
+      covs.push_back(ptr);
+      labels.push_back("unf e-scale");
+    }
+  }
+  if (wf.cf().calc_UnfEScaleResidual()) {
+    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfResidual"));
+    if (ptr) {
+      covs.push_back(ptr);
+      labels.push_back("unf e-scale residual");
+    }
+    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_corrUnf,0))
+      {
+	std::cout << "failed to apply correction on unf eResidual cov\n";
+	return 0;
+      }
+  }
+
   if (wf.cf().calc_UnfPU()) {
     ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfPU"));
     if (ptr) {
@@ -178,25 +199,6 @@ int loadUnfCovMatrices(const TString &fnameBase, std::vector<TMatrixD*> &covs,
       covs.push_back(ptr);
       labels.push_back("unf stat");
     }
-  }
-  if (wf.cf().calc_UnfEScale()) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfEScale"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("unf e-scale");
-    }
-  }
-  if (wf.cf().calc_UnfEScaleResidual()) {
-    ptr=(TMatrixD*)fin.Get(wf.fieldName("UnfResidual"));
-    if (ptr) {
-      covs.push_back(ptr);
-      labels.push_back("unf e-scale residual");
-    }
-    if (wf.applyCorrection() && !correctCov2CSPropagatedError(*ptr,_corrUnf,0))
-      {
-	std::cout << "failed to apply correction on unf eResidual cov\n";
-	return 0;
-      }
   }
   fin.Close();
 
