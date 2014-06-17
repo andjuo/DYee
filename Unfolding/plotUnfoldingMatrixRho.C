@@ -99,7 +99,7 @@ int plotUnfoldingMatrixRho(int analysisIs2D,
   }
 
   if (inpMgr.userKeyValueExists("SpecFile_EffScaleFactor")) {
-    inpMgr.addUserKey(TString("SpecFile_EffScaleFactor"),"../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/covRhoFileSF_nMB41_asymHLT_Unregressed_energy-allSyst_100_v2.root");
+    inpMgr.addUserKey(TString("SpecFile_EffScaleFactor"),"../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/covRhoFileSF_nMB41_asymHLT_Unregressed_energy-allSyst_1000_v3.root");
   }
   TString rhoCorrFName=inpMgr.correctionFullFileName("scale_factors_asymHLT",systMode,0);
   // permitted setting of the special file
