@@ -55,7 +55,7 @@ int calcCSCov(int analysisIs2D,
 
   int doCalcEffCov=(calc_EffPU + calc_EffFSR + calc_EffRnd) ? 1:0;
 
-  int calc_ESFtot=0;
+  int calc_ESFtot=0;  // use this one
   int calc_ESFtotCheck=0;
 
   int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
@@ -629,9 +629,9 @@ int calcCSCov(int analysisIs2D,
 	DYTools::TSystematicsStudy_t systModeV=DYTools::ESCALE_RESIDUAL;
 	EventSelector_t evtSelector4(inpMgrLocal,runMode,systModeV,
 				     "","",EventSelector::_selectDefault);
-	inpMgrLocal.rootFileBaseDir("/media/sdb/andriusj/Results-DYee-unfResidual/root_files_reg/");
+	inpMgrLocal.rootFileBaseDir("/media/sdb/andriusj/root_files_reg_EScaleResidualGlobal-20140607/");
 	int seedMin=1;
-	int seedMax=100;
+	int seedMax=1000;
 	int dSeed=1;
 	int count=int((seedMax-seedMin)/dSeed);
 	vecUnfRnd.reserve(count);
@@ -1037,9 +1037,9 @@ int calcCSCov(int analysisIs2D,
 	TString rhoPath=rhoCorrFName(0,idx);
 	rhoPath.Append("_egamma_Unregressed_energy/");
 	//std::cout << "rhoPath=<" << rhoPath << ">\n";
-	int expOnFile=100;
+	int expOnFile=1000;
 	rhoCorrFName=rhoPath +
-	  Form("rhoFileSF_nMB%d_asymHLT_Unregressed_energy-allSyst_%d_v2.root",
+	  Form("rhoFileSF_nMB%d_asymHLT_Unregressed_energy-allSyst_%d_v3.root",
 	       DYTools::nMassBins,expOnFile);
 	std::cout << "rhoCorrFName=<" << rhoCorrFName << ">\n";
 
@@ -1639,6 +1639,7 @@ int calcCSCov(int analysisIs2D,
 	csCovName="covCS_fsrRndStudy";
 	if (newFSRstudy) {
 	  oldDirPart="../../Results-DYee";
+	  newDirPart="/media/sdb/andriusj/Results-DYee-fsrRndStudy20140531";
 	  seedMin=1000;
 	  seedMax=1099;
 	}
@@ -1679,7 +1680,7 @@ int calcCSCov(int analysisIs2D,
       inpMgrLocal.addUserKey(std::string("SCALEFACTORTAG"),"");
       // add info on the ESF file
       inpMgrLocal.addUserKey(std::string("SpecFile_EffScaleFactor"),
-	  Form("../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/scale_factors_asymHLT_%dD.root",DYTools::study2D+1));
+	   Form("../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/covRhoFileSF_nMB41_asymHLT_Unregressed_energy-allSyst_1000_v3.root"));
       // no PU-reweight for acceptance
       if (runSystMode==DYTools::PU_RND_STUDY) {
 	inpMgrLocal.addUserKey(std::string("SpecFile_acceptance"),
