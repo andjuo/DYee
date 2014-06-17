@@ -80,7 +80,7 @@ DDBkg=1
 DDBkgVersion=20140428 # from Manny
 
 RESIDUAL_STUDY_SIZE=1000
-SpecFile_EffScaleFactor=../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/covRhoFileSF_nMB41_asymHLT_Unregressed_energy-allSyst_100_v2.root
+SpecFile_EffScaleFactor=../../Results-DYee/root_files_reg/constants/DY_j22_19712pb_egamma_Unregressed_energy/covRhoFileSF_nMB41_asymHLT_Unregressed_energy-allSyst_1000_v3.root
 
 #T&P_ESF_extra=_etaMax24
 ScaleFactorTag = DY_j22_19712pb_egamma_Unregressed_energy
