@@ -482,7 +482,10 @@ public:
 
 
     if (( fHRatioIndices.size() ==0 ) || 
-	(fRefIdx>fHRatioIndices.size())) return;
+	(fRefIdx>fHRatioIndices.size())) {
+      std::cout << " ... ratios are not plotted" << std::endl;
+      return;
+    }
     TH1D *hRef=fItems[fHRatioIndices[fRefIdx]].hist1D;
 
     padRatio->cd();
