@@ -436,13 +436,20 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
   TMatrixD *totalCov=dt.calcTotalCov();
 
   // save total covariance
-  if (1) {
-    TString fname=TString(Form("finalCov-%dD",DYTools::study2D+1));
-    fname.Append(wf.extraFileTag() + TString(".root"));
-    TFile fout(fname,"recreate");
-    totalCov->Write("totalCov");
+  int saveHistos=1;
+  TFile *fout=NULL;
+  TString fname=TString(Form("finalCov-%dD",DYTools::study2D+1));
+  fname.Append(wf.extraFileTag() + TString(".root"));
+  if (1 || saveHistos) {
+    fout= new TFile(fname,"recreate");
+    if (!fout || !fout->IsOpen()) {
+      std::cout << "failed to create a file <" << fname << ">\n";
+      return;
+    }
+    TString extra=(saveHistos && DYTools::study2D) ? "_unclipped" : "";
+    totalCov->Write("totalCov" + extra);
     TMatrixD *corr= corrFromCov(*totalCov);
-    corr->Write("totalCorr");
+    corr->Write("totalCorr" + extra);
     delete corr;
     if (wf.saveTotCovDetails()) {
       if (!dt.Write("details")) {
@@ -451,9 +458,11 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
       }
     }
     else { std::cout << " details not saved, as requested\n"; }
-    writeBinningArrays(fout,"plotCSCov");
-    fout.Close();
-    std::cout << "\n\tfile <" << fout.GetName() << "> created\n\n";
+    if (!saveHistos) {
+      writeBinningArrays(*fout,"plotCSCov");
+      fout->Close();
+      std::cout << "\n\tfile <" << fout->GetName() << "> created\n\n";
+    }
   }
 
   for (int iCorr=0; iCorr<4; ++iCorr) {
@@ -531,6 +540,7 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
 			   _colrange_none,0,1.0001);
 
     TH2D* h2save=clipToAnalysisUnfBins(h2,histoName,histoTitle,1); // reset axis!
+
     /*
     int rangeMin=(DYTools::study2D) ? 25  : 1;
     int rangeMax=(DYTools::study2D) ? 156 : DYTools::nMassBins;
@@ -553,6 +563,19 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
       std::cout << "figName=<" << figName << ">\n";
       SaveCanvas(cx,figName);
     }
+
+    if (saveHistos && fout) {
+      fout->cd();
+      h2save->Write("total" + covStr);
+    }
+  }
+
+  if (fout) {
+    fout->cd();
+    writeBinningArrays(*fout,"plotCSCov",0);
+    fout->Close();
+    std::cout << "\n\tfile <" << fout->GetName() << "> created\n\n";
+    delete fout;
   }
 }
 
