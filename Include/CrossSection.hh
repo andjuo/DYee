@@ -526,7 +526,9 @@ public:
     BaseClass_t("VXSectD_t"),
     xSec(dim), xSecErr(dim), xSecSystErr(dim),
     FName(name), FHasSystErr(0)
-  {}
+  {
+    this->Zero();
+  }
 
  // ----------
 
@@ -697,6 +699,18 @@ public:
     xSec   [idx] += weight;
     xSecErr[idx] += weight*weight;
     return 1;
+  }
+
+ // ----------
+
+  void Accumulate_end(int count) {
+    double factor=1/double(count);
+    for (int idx=0; idx<xSecErr.GetNoElements(); ++idx) {
+      xSec[idx] *= factor;
+      double w2= factor*xSecErr[idx];
+      xSecErr[idx] = sqrt(w2 - pow(xSec[idx],2));
+    }
+    return;
   }
 
  // ----------
