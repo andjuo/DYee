@@ -140,6 +140,8 @@ void PrintVec(const char *msg, const std::vector<T>& vec, int prneol=0) {
 
 //------------------------------------------------------------------------------------------------------------------------
 
+void printMeanAndRMS(TH1D *histo, const char *extra_msg=NULL);
+
 int PrintHisto2Dvec(const char *msg, const std::vector<TH2D*> &vec, int exponent=0, int maxLines=-1);
 int PrintTwoHistos(const char *msg, TH2D *h2a, TH2D *h2b, int exponent=0,
 		   int maxLines=-1);
@@ -597,18 +599,21 @@ void printSanityCheck(const TMatrixD &val, const TMatrixD &err, const TString &n
 }
 
 //------------------------------------------------------------------------------------------------------------------------
+*/
 
 template<class Histo_t>
 inline
-int AppendToHistoName(Histo_t* h, const TString &add) {
+int AppendToHistoName(Histo_t* h, TString add, int setAsTitle=0) {
   if (!h) {
     std::cout << "AppendToHistoName got null histo ptr\n";
     return 0;
   }
-  h->SetName(h->GetName() + add);
+  TString newName=h->GetName() + add;
+  h->SetName(newName);
+  if (setAsTitle) h->SetTitle(newName);
   return 1;
 }
-*/
+
 //------------------------------------------------------------------------------------------------------------------------
 
 template<class histo_t>
@@ -665,6 +670,22 @@ inline int eliminateNaNs2D(histo_t *h, double setValue, double setError) {
 //---------------------------------------------------------------
 
 inline int eliminateNaNs(TH2D* h, double setValue, double setError=0.) { return eliminateNaNs2D(h,setValue,setError); }
+
+//---------------------------------------------------------------
+
+inline
+int correctNegativeValues(TH2D* h) {
+  int count=0;
+  for (int i=1; i<=h->GetNbinsX(); ++i) {
+      for (int j=1; j<=h->GetNbinsY(); ++j) {
+	if (h->GetBinContent(i,j)<0) {
+	  count++;
+	  h->SetBinContent(i,j, 0.);
+	}
+      }
+  }
+  return count;
+}
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -900,6 +921,16 @@ TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr,
 		    TColorRange_t centerRange=_colrange_default,
 		    int massBins=0,
 		    double maxValUser=0.);
+
+inline
+TH2D* createHisto2D(const TMatrixD &M, const TMatrixD *Merr,
+		    const char *histoName, const char *histoTitle,
+		    int centerRange,
+		    int massBins=0,
+		    double maxValUser=0.) {
+  return createHisto2D(M,Merr,histoName,histoTitle,
+		       TColorRange_t(centerRange),massBins,maxValUser);
+}
 
 TMatrixD* createMatrixD(const TH2D *h2, int useErr=0);
 
@@ -1620,7 +1651,10 @@ int loadHisto(TFile &file, histo_t **h, TString subDir) {
   if (subDir.Length()) file.cd(subDir);
   TString name=(*h)->GetName();
   eliminateSeparationSigns(name);
-  if (!(*h)->Read(name)) return 0;
+  if (!(*h)->Read(name)) {
+    std::cout << "failed to load <" << name << ">\n";
+    return 0;
+  }
   if (*h) {
     (*h)->SetDirectory(0);
   }
@@ -1659,6 +1693,13 @@ TH1D* Clone(const TH1D* histo, const TString &newName, const TString &newTitle) 
 //--------------------------------------------------
 
 inline
+TH1D* Clone(const TH1D* histo, const TString &newName, int setNameAsTitle=1) {
+  return Clone(histo,newName,(setNameAsTitle) ? newName : TString(""));
+}
+
+//--------------------------------------------------
+
+inline
 TH2D* Clone(const TH2D* histo, const TString &newName, const TString &newTitle) {
   TH2D *h2=(TH2D*)histo->Clone(newName);
   if (!h2) {
@@ -1681,6 +1722,23 @@ TH2D* Clone(const TH2D* histo, const TString &newName, int setTitle=0) {
   //h2->Sumw2();
   if (setTitle) h2->SetTitle(newName);
   return h2;
+}
+
+//--------------------------------------------------
+
+inline
+int Copy(const TH2D* hSrc, TH2D* hDest) {
+  if (!sameNumBins(hSrc,hDest)) {
+    std::cout << "Copy(TH2D) : different sizes\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=hSrc->GetNbinsX(); ++ibin) {
+    for (int jbin=1; jbin<=hSrc->GetNbinsY(); ++jbin) {
+      hDest->SetBinContent(ibin,jbin, hSrc->GetBinContent(ibin,jbin));
+      hDest->SetBinError  (ibin,jbin, hSrc->GetBinError(ibin,jbin));
+    }
+  }
+  return 1;
 }
 
 //--------------------------------------------------

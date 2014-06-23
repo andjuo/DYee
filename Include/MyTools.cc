@@ -5,6 +5,18 @@
 //--------------------------------------------------
 //--------------------------------------------------
 
+void printMeanAndRMS(TH1D *histo, const char *extra_msg) {
+  if (extra_msg) std::cout << extra_msg;
+  if (!histo) { std::cout << "histo is null\n"; return; }
+  std::cout << histo->GetName()
+	    << " mean=" << histo->GetMean()
+	    << " +- " << histo->GetRMS()
+	    << "\n";
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
 int PrintHisto2Dvec(const char *msg, const std::vector<TH2D*> &vec,
 		     int exponent, int maxLines) {
   const char *format_range= " %5.2f-%5.2f  %5.2f-%5.2f ";
