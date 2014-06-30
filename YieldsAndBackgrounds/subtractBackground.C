@@ -358,6 +358,7 @@ int subtractBackground(int analysisIs2D,
   fileOut.cd("ShapeReweight");
   zeeMCShapeReweight_mcBkg->Write();
   zeeMCShapeReweight_ddBkg->Write();
+  yields.back()->Write();
   // input arrays
   fileOut.mkdir("Input");
   fileOut.cd("Input");
