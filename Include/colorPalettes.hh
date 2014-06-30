@@ -298,16 +298,23 @@ int drawHistoAdjustZ(TCanvas *c, TH2D *h2, TColorRange_t centerRange, int useMas
 
 #ifndef MitStyleRemix_HH
 inline
-void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18) {
+void AdjustFor2DplotWithHeight(TCanvas *c, double rmargin=0.18,
+			       int logx=-1, int logy=-1) {
   int count=0;
   for (int i=0; i<50; i++) {
     TPad *pad=(TPad*)c->GetPad(i);
     if (pad) {
       count++;
       pad->SetRightMargin(rmargin);
+      if (logx!=-1) pad->SetLogx(logx);
+      if (logy!=-1) pad->SetLogy(logy);
     }
   }
-  if (count==1) c->SetRightMargin(rmargin);
+  if (count==1) {
+    c->SetRightMargin(rmargin);
+    if (logx!=-1) c->SetLogx(logx);
+    if (logy!=-1) c->SetLogy(logy);
+  }
 }
 #endif
 
