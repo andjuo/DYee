@@ -1,6 +1,8 @@
 #ifndef UnfoldingMatrix_H
 #define UnfoldingMatrix_H
 
+//#define use_RooUnfold
+
 #include <TFile.h>
 #include <TRandom.h>
 #include "../Include/DYTools.hh"
@@ -14,6 +16,10 @@
 
 //for getting matrix condition number
 #include <TDecompLU.h>
+
+#ifdef use_RooUnfold
+#include "../RooUnfold/src/RooUnfoldBayes.h"
+#endif
 
 
 //=== FUNCTION DECLARATIONS ======================================================================================
@@ -408,6 +414,8 @@ public:
   const TMatrixD* getMigration() const { return DetMigration; }
   const TMatrixD* getMigrationErr() const { return DetMigrationErr; }
   const TMatrixD* getDetResponse() const { return DetResponse; }
+  const TMatrixD* getDetResponseErrPos() const { return DetResponseErrPos; }
+  const TMatrixD* getDetResponseErrNeg() const { return DetResponseErrNeg; }
   const TMatrixD* getDetInvResponse() const { return DetInvertedResponse; }
   const TMatrixD* getIniM() const { return yieldsIni; }
   const TMatrixD* getFinM() const { return yieldsFin; }
@@ -419,6 +427,18 @@ public:
   const TVectorD* getIniVec() const { return yieldsIniArr; }
   const TVectorD* getFinVec() const { return yieldsFinArr; }
   // Read the note above.
+
+  TVectorD* iniVecErr() const {
+    TVectorD *vecErr= new TVectorD(DYTools::nUnfoldingBins);
+    if (flattenMatrix(*yieldsIniErr, *vecErr)!=1) return NULL;
+    return vecErr;
+  }
+
+  TVectorD* finVecErr() const {
+    TVectorD* vecErr= new TVectorD(DYTools::nUnfoldingBins);
+    if (flattenMatrix(*yieldsFinErr, *vecErr)!=1) return NULL;
+    return vecErr;
+  }
 
   int sizesMatch(const UnfoldingMatrix_t &U) const {
     int ok=((yieldsIni->GetNrows() == U.yieldsIni->GetNrows()) &&
@@ -1207,6 +1227,127 @@ public:
 
 };
 
+// ------------------------------------------------------
+// ------------------------------------------------------
+
+#ifdef use_RooUnfold
+struct RooUnfBayes_t {
+  RooUnfoldResponse *fResp;
+  RooUnfoldBayes *fBayes;
+public:
+  // ---------------------
+
+  RooUnfBayes_t(const RooUnfBayes_t &unf) :
+    fResp(new RooUnfoldResponse(*unf.fResp)),
+    fBayes(new RooUnfoldBayes(*unf.fBayes))
+  {}
+
+  // ---------------------
+
+  // to perform unfolding call doUnfold
+
+  RooUnfBayes_t(const UnfoldingMatrix_t &U, const char *baseName="rooUnfBayes",
+		const char *set_name=NULL, const char *set_title=NULL) :
+    fResp(NULL), fBayes(NULL)
+  {
+    if (!this->initResponse(U,baseName,set_name,set_title))
+      std::cout << "failed constructor RooUnfBayes\n";
+  }
+
+  // ---------------------
+
+  ~RooUnfBayes_t() { this->clear(); }
+
+  // ---------------------
+
+  void clear() {
+    if (fResp) { delete fResp; fResp=NULL; }
+    if (fBayes) { delete fBayes; fBayes=NULL; }
+  }
+
+  // ---------------------
+
+  // create the response matrix
+  int initResponse(const UnfoldingMatrix_t &U,
+		   const char *baseName,
+	   const char *set_name, const char* set_title) {
+    clear();
+    //int res=1;
+    TVectorD *iniVecErr=U.iniVecErr();
+    TVectorD *finVecErr=U.finVecErr();
+    if (!iniVecErr || !finVecErr) {
+      std::cout << "in initResponse\n";
+      return 0;
+    }
+    TString nameMeas = baseName + TString("_meas");
+    TString nameTruth= baseName + TString("_truth");
+    TString nameResp = baseName + TString("_response");
+    TH1D* hMeas=createHisto1D(*U.getFinVec(),finVecErr,nameMeas,NULL,
+			      "bin","count");
+    TH1D* hTruth=createHisto1D(*U.getIniVec(),iniVecErr,nameTruth,NULL,
+			       "bin","count");
+    TH2D* h2Resp=NULL;
+    if (0) {
+      // It is not correct to use the migration matrix
+      // use the response matrix instead
+      h2Resp=createHisto2D(*U.getMigration(),U.getMigrationErr(),
+			   nameResp,NULL,0,0,0.);
+    }
+    else {
+      h2Resp=createHisto2D(*U.getDetResponse(),U.getDetResponseErrPos(),
+			   nameResp,NULL,0,0,0.);
+    }
+    delete iniVecErr;
+    delete finVecErr;
+    if (!hMeas || !hTruth || !h2Resp) {
+      std::cout << "in initResponse\n";
+      return 0;
+    }
+    fResp= new RooUnfoldResponse(hMeas,hTruth,h2Resp,set_name,set_title);
+    if (!fResp) {
+      std::cout << "failed to create fResp\n";
+      return 0;
+    }
+    fResp->UseOverflow(true);
+    delete hMeas;
+    delete hTruth;
+    delete h2Resp;
+    return 1;
+  }
+
+  // ---------------------
+
+  // initialize and perform the unfolding
+  int doUnfold(const TH1D *hMeasured, int nIters=4, bool smoothit=false,
+	       const char *set_name=NULL, const char *set_title=NULL) {
+    if (fBayes) delete fBayes;
+    fBayes=NULL;
+    if (!fResp) {
+      std::cout << "initUnf requires initResponse to be called already\n";
+      return 0;
+    }
+    bool useChi2=false;
+    fBayes= new RooUnfoldBayes( fResp, hMeasured, nIters, smoothit,
+				useChi2, set_name, set_title);
+    return (fBayes) ? 1:0;
+  }
+
+  // ---------------------
+
+  TH1D* unfYield() const {
+    if (!fBayes) {
+      std::cout << "unfYield: initUnf was not called. Call it first\n";
+      return NULL;
+    }
+    TH1D* hUnf=(TH1D*)fBayes->Hreco();
+    hUnf->SetDirectory(0);
+    return hUnf;
+  }
+
+  // ---------------------
+
+};
+#endif
 
 // -----------------------------------------------
 //               More functions: unfolding
