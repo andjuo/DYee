@@ -588,6 +588,23 @@ int divideMatrix(TMatrixD &nom, const TMatrixD &denom) {
 }
 
 //--------------------------------------------------
+
+TH1D* createHisto1D(const TVectorD &vec, const TVectorD* vecErr,
+		    const char *histoName, const char* histoTitle,
+		    const TString &xAxisLabel, const TString &yAxisLabel) {
+  TString name= (histoName) ? histoName : "histo1D";
+  TString title=(histoTitle) ? histoTitle : name.Data();
+  TH1D* h= createAnyTH1D(name,title,
+			 vec.GetNoElements(),0.,vec.GetNoElements(),
+			 xAxisLabel,yAxisLabel);
+  for (int i=0; i<vec.GetNoElements(); i++) {
+    h->SetBinContent(i+1, vec[i]);
+    h->SetBinError  (i+1, (vecErr) ? (*vecErr)[i] : 0.);
+  }
+  return h;
+}
+
+//--------------------------------------------------
 //--------------------------------------------------
 /*
 TH2D* getRelDifferenceVA(const TH2D *baseValue, TString newName, int nVariations, TH2D* hVar1, ...) {
@@ -843,6 +860,47 @@ void ShowBenchmarkTime(const char *clock_name) {
   printf("  realTime= %5.2lf sec %s\n",realT,getTimeStrForPrint(realT).Data());
   printf("  cpuTime = %5.2lf sec %s\n",cpuT ,getTimeStrForPrint(cpuT ).Data());
   std::cout.flush();
+}
+
+//--------------------------------------------------
+//--------------------------------------------------
+
+
+//  convert m[nMassBins][ybins] -> v[flat_idx]
+TH1D* flattenHisto(const TH2D *h2, TString newName) {
+  TH1D* h=createAnyTH1D(newName,newName,DYTools::nUnfoldingBins,
+			0.,DYTools::nUnfoldingBins,"bin","count");
+  int fi=0;
+  for (int i=0;
+       (i<DYTools::nMassBins) && (fi<DYTools::nUnfoldingBins);
+       ++i) {
+    for (int yi=0;
+	 (yi<DYTools::nYBins[i]) && (fi<DYTools::nUnfoldingBins);
+	 ++yi, ++fi) {
+      h->SetBinContent(fi+1, h2->GetBinContent(i+1,yi+1));
+      h->SetBinError  (fi+1, h2->GetBinError  (i+1,yi+1));
+    }
+  }
+  return h;
+}
+
+// -------------------------------------------
+
+//  convert v[flat_idx] -> m[nMassBins][ybins]
+TH2D* deflattenHisto(const TH1D *h, TString newName) {
+  TH2D* h2= createBaseH2(newName,newName,1);
+  int fi=0;
+  for (int i=0;
+       (i<DYTools::nMassBins) && (fi<DYTools::nUnfoldingBins);
+       ++i) {
+    for (int yi=0;
+	 (yi<DYTools::nYBins[i]) && (fi<DYTools::nUnfoldingBins);
+	 ++yi, ++fi) {
+      h2->SetBinContent(i+1,yi+1, h->GetBinContent(fi+1));
+      h2->SetBinError  (i+1,yi+1, h->GetBinError  (fi+1));
+    }
+  }
+  return h2;
 }
 
 //--------------------------------------------------

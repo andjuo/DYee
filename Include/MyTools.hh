@@ -830,6 +830,15 @@ inline int setErrorAsContent(TH2D *h) {
 
 //---------------------------------------------------------------
 
+inline int setErrorAsContent(TH1D *h) {
+  if (!h) return 0;
+  swapContentAndError1D(h);
+  removeError(h);
+  return 1;
+}
+
+//---------------------------------------------------------------
+
 inline
 int setErrorAsContent(TH2D* hDest, const TH2D* hSrc) {
   if (!hDest || !hSrc ||
@@ -936,6 +945,12 @@ TMatrixD* createMatrixD(const TH2D *h2, int useErr=0);
 
 // nom -> nom(i,j)/denom(i,j)
 int divideMatrix(TMatrixD &nom, const TMatrixD &denom);
+
+//----------------------------------------------------------------------------
+
+TH1D* createHisto1D(const TVectorD &vec, const TVectorD* vecErr,
+		    const char *histoName, const char* histoTitle=NULL,
+		const TString &xAxisLabel="x", const TString &yAxisLabel="y");
 
 //------------------------------------------------------------------------------------------------------------------------
 
@@ -1173,6 +1188,13 @@ inline
     }
     return 1;
   }
+
+
+// -------------------------------------------
+//  convert m[nMassBins][ybins] -> v[flat_idx]
+TH1D* flattenHisto(const TH2D *h2, TString newName);
+//  convert v[flat_idx] -> m[nMassBins][ybins]
+TH2D* deflattenHisto(const TH1D *h, TString newName);
 
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -1790,6 +1812,29 @@ void printZpeakCount(const TH2D *h2) {
   double err=0;
   std::cout << "ZpeakCount(" << h2->GetName() << ")="
 	    << ZpeakCount(h2,&err);
+  std::cout << " +/- " << err << "\n";
+}
+
+//--------------------------------------------------
+
+inline
+double ZpeakCount(const TH1D* h, double *err=NULL) {
+  const int ZpeakIdx1=DYTools::findMassBin(60.) +1;
+  const int ZpeakIdx2=DYTools::findMassBin(120.);
+
+  double val=0;
+  if (!err) { val=h->Integral(ZpeakIdx1,ZpeakIdx2); }
+  else { val=h->IntegralAndError(ZpeakIdx1,ZpeakIdx2,*err); }
+  return val;
+}
+
+//--------------------------------------------------
+
+inline
+void printZpeakCount(const TH1D *h1) {
+  double err=0;
+  std::cout << "ZpeakCount(" << h1->GetName() << ")="
+	    << ZpeakCount(h1,&err);
   std::cout << " +/- " << err << "\n";
 }
 
