@@ -366,7 +366,6 @@ int plotUnfoldingMatrixRooUnfold(
   RooUnfoldResponse rooUnfDetRes(DYTools::nUnfoldingBins,
 				 -0.5,DYTools::nUnfoldingBins-0.5,
 				 "rooUnfDetRes","rooUnfDetRes");
-  rooUnfDetRes.Reset();
   rooUnfDetRes.UseOverflow(true);
 
   std::vector<UnfoldingMatrix_t*> detRespV;
@@ -909,6 +908,8 @@ int plotUnfoldingMatrixRooUnfold(
     }
 
     TString fname=Form("rooUnfDetRes_%s.root",DYTools::analysisTag.Data());
+    if (DYTools::isDebugMode(runMode))
+      fname.ReplaceAll(".root","_DebugRun.root");
     TFile fout(fname,"recreate");
     if (!fout.IsOpen()) {
       std::cout << "failed to create the file <" << fout.GetName() << ">\n";
@@ -916,6 +917,7 @@ int plotUnfoldingMatrixRooUnfold(
     }
     rooUnfDetRes.Write();
     writeBinningArrays(fout,"plotUnfoldingMatrixRooUnfold");
+    std::cout << "file <" << fout.GetName() << "> created\n";
     fout.Close();
 
     for (unsigned int i=0; i<detRespV.size(); i++)
