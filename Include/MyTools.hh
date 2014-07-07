@@ -285,6 +285,9 @@ int printHisto(std::ostream& out, const TH1D* histo, int exponent=0, int maxLine
 
 inline int printHisto(const TH1D* histo, int exponent=0, int maxLines=-1) { return printHisto(std::cout, histo, exponent, maxLines); }
 
+int printHistoAssumeMassBinning(const TH1D* histo,
+				int exponent=0, int maxLines=-1);
+
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
@@ -1235,6 +1238,7 @@ TH2D* createBaseH2(const TString &histoName, const TString &histoTitle="", int a
 // -------------------------------------------
 
 TH2D* convertBaseH2actual(const TH2D* h2, TString newHistoName, int setTitle=0);
+TH1D* convertBinNo2Mass(const TH1D* hSrc);
 
 TH1D* createProfileY(TH2D *h2, int ixBin, const TString &name, int setTitle=0, const char *title=NULL, int set_nYbins=-1, double set_ymin=0., double set_ymax=1.);
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle=0, const char *title=NULL);
@@ -1523,6 +1527,13 @@ int createAnyH2Vec(std::vector<TH2D*> &histosV, const TString &histoNameBase,
 //------------------------------------------------------------------------------------------------------------------------
 
 inline
+int sameNumBins(const TH1D* h1, const TH1D* h2) {
+  return (h1->GetNbinsX() == h2->GetNbinsX()) ? 1:0;
+}
+
+//-----------------------------------------------------------
+
+inline
 int sameNumBins(const TH2D* h1, const TH2D* h2) {
   return ((h1->GetNbinsX() == h2->GetNbinsX()) &&
 	  (h2->GetNbinsY() == h2->GetNbinsY())) ? 1:0;
@@ -1745,6 +1756,23 @@ TH2D* Clone(const TH2D* histo, const TString &newName, int setTitle=0) {
   if (setTitle) h2->SetTitle(newName);
   return h2;
 }
+
+//--------------------------------------------------
+
+inline
+int Copy(const TH1D* hSrc, TH1D* hDest) {
+  if (!sameNumBins(hSrc,hDest)) {
+    std::cout << "Copy(TH1D) : different sizes\n";
+    return 0;
+  }
+  for (int ibin=1; ibin<=hSrc->GetNbinsX(); ++ibin) {
+    hDest->SetBinContent(ibin, hSrc->GetBinContent(ibin));
+    hDest->SetBinError  (ibin, hSrc->GetBinError(ibin));
+  }
+  return 1;
+}
+
+//--------------------------------------------------
 
 //--------------------------------------------------
 

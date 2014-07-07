@@ -67,6 +67,22 @@ int PrintTwoHistos(const char *msg, TH2D *h2a, TH2D *h2b,
 }
 
 //--------------------------------------------------
+
+int printHistoAssumeMassBinning(const TH1D* histo,
+				int exponent, int maxLines) {
+  TH1D *h1= convertBinNo2Mass(histo);
+  if (!h1 ||
+      !printHisto(h1,exponent,maxLines)) {
+    std::cout << "printHistoAssumeMassBinning (orig histoName="
+	      << histo->GetName() << "): failed to prepare or print\n";
+    return 0;
+  }
+  delete h1;
+  return 1;
+}
+
+
+//--------------------------------------------------
 //--------------------------------------------------
 
 std::vector<TString>* createMassRangeVec(TString prependStr) {
@@ -937,6 +953,26 @@ TH2D* convertBaseH2actual(const TH2D* h2, TString newHistoName, int setTitle) {
     }
   }
   return newH;
+}
+
+//--------------------------------------------------
+
+TH1D* convertBinNo2Mass(const TH1D* histo) {
+  if (histo->GetNbinsX() != DYTools::nMassBins) {
+    std::cout << "convertBinNo2Mass: histo->GetName="
+	      << histo->GetName() << " has " << histo->GetNbinsX()
+	      << " bins instead of "
+	      << DYTools::nMassBins << "\n";
+    return NULL;
+  }
+  TH1D *h1=createBaseH1(TString(histo->GetName()) + TString("_massClone"));
+  if (!h1 ||
+      !Copy(histo,h1)) {
+    std::cout << "convertBinNo2Mass: failed to prepare\n";
+    return NULL;
+  }
+
+  return h1;
 }
 
 //--------------------------------------------------
