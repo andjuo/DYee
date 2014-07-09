@@ -977,6 +977,45 @@ TH1D* convertBinNo2Mass(const TH1D* histo) {
 
 //--------------------------------------------------
 
+TH1D* convertRange2BinNo(const TH1D* histo) {
+  TString name=histo->GetName() + TString("_binNo");
+  int nBins= histo->GetNbinsX();
+  TH1D *h1=new TH1D(name,name, nBins, -0.5, nBins-0.5);
+  if (!h1) {
+    std::cout << "convertRange2BinNo(TH1D): failed to create histo\n";
+    return NULL;
+  }
+  h1->SetDirectory(0);
+  h1->SetStats(0);
+  if (!Copy(histo,h1)) {
+    std::cout << "convertRange2BinNo: failed to copy\n";
+    return NULL;
+  }
+  return h1;
+}
+
+//--------------------------------------------------
+
+TH2D* convertRange2BinNo(const TH2D* histo) {
+  TString name=histo->GetName() + TString("_binNo");
+  int nBinsX= histo->GetNbinsX();
+  int nBinsY= histo->GetNbinsY();
+  TH2D *h2=new TH2D(name,name, nBinsX, -0.5, nBinsX-0.5, nBinsY, -0.5, nBinsY-0.5);
+  if (!h2) {
+    std::cout << "convertRange2BinNo(TH2D): failed to create histo\n";
+    return NULL;
+  }
+  h2->SetDirectory(0);
+  h2->SetStats(0);
+  if (!Copy(histo,h2)) {
+    std::cout << "convertRange2BinNo(TH2D): failed to copy\n";
+    return NULL;
+  }
+  return h2;
+}
+
+//--------------------------------------------------
+
 TH1D* createProfileX(TH2D *h2, int iyBin, const TString &name, int setTitle, const char *title) {
   if ((iyBin<=0) || (iyBin>h2->GetNbinsY())) {
     std::cout << "\n\n\tcreateProfileX(" << h2->GetName() << ", iyBin=" << iyBin << "(bad value!!), name=" << name << ")\n\n";
