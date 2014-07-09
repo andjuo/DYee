@@ -19,6 +19,7 @@
 
 #ifdef use_RooUnfold
 #include "../RooUnfold/src/RooUnfoldBayes.h"
+#include "../RooUnfold/src/RooUnfoldDagostini.h"
 #endif
 
 
@@ -1229,29 +1230,46 @@ public:
 
 // ------------------------------------------------------
 // ------------------------------------------------------
+// Note1: RooUnfold assumes Poisson errors
+// Note2: D'Agostini interface does not seem to work in RooUnfold
 
 #ifdef use_RooUnfold
 struct RooUnfBayes_t {
   RooUnfoldResponse *fResp;
   RooUnfoldBayes *fBayes;
+  RooUnfoldDagostini *fDAgostini;
 public:
   // ---------------------
 
   RooUnfBayes_t(const RooUnfBayes_t &unf) :
     fResp(new RooUnfoldResponse(*unf.fResp)),
-    fBayes(new RooUnfoldBayes(*unf.fBayes))
+    fBayes(new RooUnfoldBayes(*unf.fBayes)),
+    fDAgostini(NULL)
   {}
 
   // ---------------------
 
   // to perform unfolding call doUnfold
 
-  RooUnfBayes_t(const UnfoldingMatrix_t &U, const char *baseName="rooUnfBayes",
+  RooUnfBayes_t(const UnfoldingMatrix_t &U,
+		const char *baseName="rooUnfBayes",
 		const char *set_name=NULL, const char *set_title=NULL) :
-    fResp(NULL), fBayes(NULL)
+    fResp(NULL), fBayes(NULL), fDAgostini(NULL)
   {
     if (!this->initResponse(U,baseName,set_name,set_title))
       std::cout << "failed constructor RooUnfBayes\n";
+  }
+
+  // ---------------------
+
+  RooUnfBayes_t(const RooUnfoldResponse &resp) :
+    fResp(new RooUnfoldResponse(resp)),
+    fBayes(NULL),
+    fDAgostini(NULL)
+  {
+    if (!fResp) {
+      std::cout << "RooUnfBayes_t(RooUnfResponse) : failed to clone fResp\n";
+    }
   }
 
   // ---------------------
@@ -1263,6 +1281,7 @@ public:
   void clear() {
     if (fResp) { delete fResp; fResp=NULL; }
     if (fBayes) { delete fBayes; fBayes=NULL; }
+    if (fDAgostini) { delete fDAgostini; fDAgostini=NULL; }
   }
 
   // ---------------------
@@ -1270,7 +1289,8 @@ public:
   // create the response matrix
   int initResponse(const UnfoldingMatrix_t &U,
 		   const char *baseName,
-	   const char *set_name, const char* set_title) {
+		   const char *set_name, const char* set_title,
+		   int set2PoissonError=0) {
     clear();
     //int res=1;
     TVectorD *iniVecErr=U.iniVecErr();
@@ -1287,28 +1307,51 @@ public:
     TH1D* hTruth=createHisto1D(*U.getIniVec(),iniVecErr,nameTruth,NULL,
 			       "bin","count");
     TH2D* h2Resp=NULL;
-    if (0) {
-      // It is not correct to use the migration matrix
-      // use the response matrix instead
-      h2Resp=createHisto2D(*U.getMigration(),U.getMigrationErr(),
-			   nameResp,NULL,0,0,0.);
-    }
-    else {
-      h2Resp=createHisto2D(*U.getDetResponse(),U.getDetResponseErrPos(),
-			   nameResp,NULL,0,0,0.);
-    }
+    // Use the migration matrix
+    TMatrixD M(TMatrixD::kTransposed,*U.getMigration());
+    TMatrixD Merr(TMatrixD::kTransposed,*U.getMigrationErr());
+    h2Resp=createHisto2D(M,&Merr,
+			 nameResp,NULL,0,0,0.);
     delete iniVecErr;
     delete finVecErr;
     if (!hMeas || !hTruth || !h2Resp) {
       std::cout << "in initResponse\n";
       return 0;
     }
+
+    // this is not needed, since RooUnfold package
+    // converts to Poisson errors by itself
+    if (set2PoissonError) {
+      for (int ibin=1; ibin<=hMeas->GetNbinsX(); ++ibin)
+	hMeas->SetBinError(ibin, sqrt(hMeas->GetBinContent(ibin)));
+      for (int ibin=1; ibin<=hTruth->GetNbinsX(); ++ibin)
+	hTruth->SetBinError(ibin, sqrt(hTruth->GetBinContent(ibin)));
+      for (int ibin=1; ibin<=h2Resp->GetNbinsX(); ++ibin) {
+	for (int jbin=1; jbin<=h2Resp->GetNbinsY(); ++jbin) {
+	  h2Resp->SetBinError(ibin,jbin,
+			      sqrt(h2Resp->GetBinContent(ibin,jbin)));
+	}
+      }
+    }
+
+    if (set2PoissonError==2) {
+      TH1D* hTmp= hMeas;
+      hMeas= convertRange2BinNo(hTmp);
+      delete hTmp;
+      hTmp=hTruth;
+      hTruth= convertRange2BinNo(hTmp);
+      delete hTmp;
+      TH2D* h2Tmp=h2Resp;
+      h2Resp= convertRange2BinNo(h2Tmp);
+      delete h2Tmp;
+    }
+
     fResp= new RooUnfoldResponse(hMeas,hTruth,h2Resp,set_name,set_title);
     if (!fResp) {
       std::cout << "failed to create fResp\n";
       return 0;
     }
-    fResp->UseOverflow(true);
+    //fResp->UseOverflow(true);
     delete hMeas;
     delete hTruth;
     delete h2Resp;
@@ -1318,12 +1361,12 @@ public:
   // ---------------------
 
   // initialize and perform the unfolding
-  int doUnfold(const TH1D *hMeasured, int nIters=4, bool smoothit=false,
-	       const char *set_name=NULL, const char *set_title=NULL) {
+  int doUnfoldBayes(const TH1D *hMeasured, int nIters=4, bool smoothit=false,
+		    const char *set_name=NULL, const char *set_title=NULL) {
     if (fBayes) delete fBayes;
     fBayes=NULL;
     if (!fResp) {
-      std::cout << "initUnf requires initResponse to be called already\n";
+      std::cout << "doUnfoldBayes requires initResponse to be called already\n";
       return 0;
     }
     bool useChi2=false;
@@ -1334,12 +1377,35 @@ public:
 
   // ---------------------
 
+  // initialize and perform the unfolding
+  // It seems, RooUnfold does not properly interface D'Agostini
+  int doUnfoldDAgostini(const TH1D *hMeasured, int nIters=4,
+	       const char *set_name=NULL, const char *set_title=NULL) {
+    if (fDAgostini) delete fDAgostini;
+    fDAgostini=NULL;
+    if (!fResp) {
+      std::cout << "doUnfoldDAgostini requires initResponse "
+		<< "to be called already\n";
+      return 0;
+    }
+    fDAgostini= new RooUnfoldDagostini( fResp, hMeasured, nIters,
+					set_name, set_title);
+    return (fDAgostini) ? 1:0;
+  }
+
+  // ---------------------
+
   TH1D* unfYield() const {
-    if (!fBayes) {
+    if (!fBayes && !fDAgostini) {
       std::cout << "unfYield: initUnf was not called. Call it first\n";
       return NULL;
     }
-    TH1D* hUnf=(TH1D*)fBayes->Hreco();
+    if (fBayes && fDAgostini) {
+      std::cout << "unfYield: you cannot unfolding with both Bayes "
+		<< "and D'Agostini methods\n";
+      return NULL;
+    }
+    TH1D* hUnf=(TH1D*)((fBayes) ? fBayes->Hreco() : fDAgostini->Hreco());
     hUnf->SetDirectory(0);
     return hUnf;
   }
