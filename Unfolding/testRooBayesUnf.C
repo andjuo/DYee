@@ -45,8 +45,6 @@ int testRooBayesUnf(int analysisIs2D) {
   // ---------------------------------------------------------------------
 
   RooUnfBayes_t rooUnf(*detResponse);
-  //if (!rooUnf.doUnfold(hMCReco_flat)) return retCodeError;
-
 
   // Closure test
   if (0) {
@@ -78,8 +76,9 @@ int testRooBayesUnf(int analysisIs2D) {
     if (1)
     for (int iStep=1; iStep<=4; ++iStep) {
       //if (iStep>1) break;
-      if (!rooUnf.doUnfold(hMCReco_flat,iStep)) return retCodeError;
+      if (!rooUnf.doUnfoldBayes(hMCReco_flat,iStep)) return retCodeError;
       TH1D* h1= rooUnf.unfYield();
+      printZpeakCount(h1);
       cp->AddHist1D(h1, Form("rooUnf. (%d steps)",iStep),
 		    "LP",markerV[iStep%markerCount],iStep/markerCount+1,0,1);
     }
@@ -144,7 +143,7 @@ int testRooBayesUnf(int analysisIs2D) {
       //if (iStep!=10) continue;
       //if (iStep%2==0) continue;
       //if (iStep>1) break;
-      if (!rooUnf.doUnfold(hSigYield_flat,iStep)) return retCodeError;
+      if (!rooUnf.doUnfoldBayes(hSigYield_flat,iStep)) return retCodeError;
       TH1D* h1= rooUnf.unfYield();
       printZpeakCount(h1);
       //std::cout << dashline << "iStep=" << iStep << "\n\n"; printHisto(h1);
