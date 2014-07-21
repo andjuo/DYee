@@ -33,6 +33,7 @@ int testRooBayesUnf(int analysisIs2D) {
   TString constDirDef=path + TString("constants/DY_j22_19712pb/");
   TString fnameTagDef=UnfoldingMatrix_t::generateFNameTag(DYTools::NO_SYST,0);
   int res=detResponse->autoLoadFromFile(constDirDef,fnameTagDef);
+  //res=detResponse->autoLoadFromFile_forRooUnfold(constDirDef,fnameTagDef);
   if (!res) return retCodeError;
 
   TH2D* h2Unf= Clone(h2SigYield,"h2Unf");
@@ -108,10 +109,10 @@ int testRooBayesUnf(int analysisIs2D) {
 				   "bin","count error","ratio");
     }
 
-    cp->AddHist1D(hSigYield_flat,"sig.yield","LP",TAttMarker(kRed,5,1),1,0,1);
+    //cp->AddHist1D(hSigYield_flat,"sig.yield","LP",TAttMarker(kRed,5,1),1,0,1);
 
     hMCTrue_flat->Scale(6.8);
-    if (1) {
+    if (0) {
       cp->AddHist1D(hMCTrue_flat,"MC gen distr (scaled)",
 		    "LP",markerV[0],1,0,1);
       if (cpErr) {
