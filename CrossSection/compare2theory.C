@@ -11,7 +11,8 @@ int compare2theory(int analysisIs2D,
 		   TString loadDataField="auto",
 		   int savePlots=0,
 		   DYTools::TSystematicsStudy_t systMode=DYTools::NO_SYST,
-		   DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None
+		   DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None,
+		   int special_case=-1
 		   )
 {
 
@@ -41,6 +42,7 @@ int compare2theory(int analysisIs2D,
   EventSelector_t evtSelector(inpMgr,runMode,systMode,
 			      extraTag,plotExtraTag,
 			      EventSelector::_selectDefault);
+
 
   TString figNameTag= CrossSectionKindName(csKind);
   if (csFNameExtraTag.Length()) {
@@ -77,7 +79,11 @@ int compare2theory(int analysisIs2D,
   TString inpFName=inpMgr.crossSectionFullFileName(systMode,csKind,0,0);
   if (csFNameExtraTag.Length()) {
     inpFName.ReplaceAll(".root",csFNameExtraTag + TString(".root"));
-    
+  }
+  int nBayesIters=-1;
+  if ((special_case>10) && (special_case<20)) {
+    nBayesIters= special_case - 10;
+    inpFName.ReplaceAll("DY_j22_19712pb",Form("DY_j22_19712pb-BayesUnf%d",nBayesIters));
   }
   std::cout << "input fname is <" << inpFName << ">\n";
 
