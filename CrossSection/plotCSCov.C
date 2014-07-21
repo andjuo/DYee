@@ -19,7 +19,8 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
 	      int showCSCov=1,
 	      TString outFileExtraTag_UserInput="",
 	      int saveTotCovDetails_user=0,
-	      int applyErrorCorrection_user=1)
+	      int applyErrorCorrection_user=1,
+	      int nBayesIters=-1)
 {
 
   if (!DYTools::setup(analysisIs2D)) {
@@ -33,6 +34,11 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   // Settings 
   //==============================================================================================================
 
+  if ((applyErrorCorrection_user==1) && (nBayesIters!=-1)) {
+    std::cout << "\n\n\n\t\tWARNING: Propagated errors are for the "
+	      << "matrix inversion result\n\n\n";
+  }
+
   DYTools::TCrossSectionKind_t csKind=(DYTools::study2D) ? DYTools::_cs_preFsrDet : DYTools::_cs_preFsr;
 
   DYTools::TRunMode_t runMode=DYTools::NORMAL_RUN;
@@ -42,6 +48,7 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   WorkFlags_t work(the_case,showCSCov,outFileExtraTag_UserInput);
   work.saveTotCovDetails(saveTotCovDetails_user);
   work.applyCorrection(applyErrorCorrection_user);
+  if (nBayesIters!=-1) work.nBayesIters(nBayesIters);
 
   CSCovCalcFlags_t *cf= & work.editCalcFlags();
 
@@ -75,7 +82,9 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
     cf->calc_YieldEscale(1);  // added on May 27, 2014
     cf->calc_UnfRnd(1);
     //cf->calc_UnfEScale(1); // commented out on May 27, 2014
-    cf->calc_UnfEScaleResidual(1); // added on June 07, 2014
+    if (nBayesIters==-1) {
+      cf->calc_UnfEScaleResidual(1); // added on June 07, 2014
+    }
     cf->calc_ESFtot(1);
     cf->calc_EffRnd(1);
     cf->calc_AccRnd(1); // not active in 2D!
@@ -117,6 +126,12 @@ int plotCSCov(int analysisIs2D, TString conf, int the_case, int workBranch,
   TString fnameBase=inpMgr.crossSectionFullFileName(systMode,
 					       csKind,0,systFileFlag);
   std::cout << "fnameBase=<" << fnameBase << ">\n";
+
+  if (nBayesIters>-1) {
+    CPlot::sOutDir.Append(Form("_nBayes%d",nBayesIters));
+    std::cout << "sOutDir=<" << CPlot::sOutDir << ">\n";
+    gSystem->mkdir(CPlot::sOutDir,true);
+  }
 
   if ((the_case==2) || (the_case==3) || (the_case==4)
       || (the_case==5)) {
@@ -311,7 +326,7 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
       case 0:  covStr="CSCov_"; figTag.Clear(); break;
       case 1:
 	covStr="CSCov_";
-	h2Main=loadMainCSResult(1);  // load CS
+	h2Main=loadMainCSResult(1,NULL,wf.nBayesIters());  // load CS
 	if (!h2Main) return;
 	removeError(h2Main);
 	h2Main->Scale(0.01);
@@ -405,12 +420,15 @@ void plotAllCovs(TCovData_t &dt, const WorkFlags_t &wf) {
       }
 
       // Save table
-      if (0 && (iCorr==1)) {
+      if (1 && (iCorr==1)) {
 	TH2D *totErrorFromCov= errorFromCov( *totalCov, "totalErr" );
 	if (!scaleHisto(totErrorFromCov,h2Main)) return;
 	errFromCovV.push_back(totErrorFromCov);
 	errFromCovLabelV.push_back("total error");
 	TString tableTag=figTag + wf.extraFileTag();
+	if (wf.nBayesIters()!=-1) {
+	  tableTag.Append(Form("_nBayes%d",wf.nBayesIters()));
+	}
 	if (!saveLatexTable(tableTag,errFromCovV,errFromCovLabelV,
 			    "%5.2lf",0,1)) {
 	  std::cout << "failed to save table\n";
@@ -440,6 +458,9 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
   TFile *fout=NULL;
   TString fname=TString(Form("finalCov-%dD",DYTools::study2D+1));
   fname.Append(wf.extraFileTag() + TString(".root"));
+  if (wf.nBayesIters()>0) {
+    fname.ReplaceAll(".root",Form("_nBayes%d.root",wf.nBayesIters()));
+  }
   if (1 || saveHistos) {
     fout= new TFile(fname,"recreate");
     if (!fout || !fout->IsOpen()) {
@@ -503,7 +524,7 @@ void plotTotCov(TCovData_t &dt, const WorkFlags_t &wf) {
       histoTitle=TString("Total correlations");
     }
     else if (iCorr==3) {
-      TH2D *h2=loadMainCSResult(1);
+      TH2D *h2=loadMainCSResult(1,NULL,wf.nBayesIters());
       TMatrixD *csValAsM=createMatrixD(h2,0);
       if (!csValAsM) return;
       TVectorD csV(DYTools::nUnfoldingBins);
