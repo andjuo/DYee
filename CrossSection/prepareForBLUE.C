@@ -16,7 +16,8 @@ int compareError(const TH2D* h2CS, const TMatrixD &cov,
 //    Main macro
 // ------------------------------------------------------------
 
-int prepareForBLUE(int analysisIs2D, int normalized=0) {
+int prepareForBLUE(int analysisIs2D, int normalized=0,
+		   int nBayesIters=-1) {
   if (analysisIs2D) {
     std::cout << "code is not ready of 2D case\n";
   }
@@ -62,12 +63,17 @@ int prepareForBLUE(int analysisIs2D, int normalized=0) {
 
   int test=0;
   TString covFName=(!analysisIs2D) ? "finalCov-1D.root" : "finalCov-2D.root";
-  covFName.ReplaceAll(".root","-total-20140608.root");
+  if (nBayesIters!=-1) {
+    covFName.ReplaceAll(".root",Form("_nBayes%d-20140711.root",nBayesIters));
+  }
+  else covFName.ReplaceAll(".root","-total-20140608.root");
   if (test) covFName.ReplaceAll(".root","-yieldStatOnly.root");
   covFName.Prepend("dir-CovRootFiles/");
 
   int nBins=DYTools::nUnfoldingBins;
-  TMatrixD* covPtr=loadMatrix(covFName,"totalCov",nBins,nBins,1);
+  TString fieldName="totalCov";
+  if (analysisIs2D) fieldName.Append("_unclipped");
+  TMatrixD* covPtr=loadMatrix(covFName,fieldName,nBins,nBins,1);
   if (!covPtr) return retCodeError;
   TMatrixD cov(*covPtr);
   delete covPtr;
@@ -177,6 +183,7 @@ int prepareForBLUE(int analysisIs2D, int normalized=0) {
 
 
   TString outPath="dir-forBlue/";
+  if (nBayesIters!=-1) outPath.ReplaceAll("/",Form("_nBayes%d/",nBayesIters));
   gSystem->mkdir(outPath,1);
 
   // save xsec error
@@ -186,6 +193,7 @@ int prepareForBLUE(int analysisIs2D, int normalized=0) {
     if (test) outFNameBase.Append("-yieldStatOnly");
 
     for (int iSrc=0; iSrc<2; ++iSrc) {
+      if (iSrc==0) continue;
       TH2D *h2err=(iSrc==0) ? h2errFromCS : h2errFromCov;
       TString outFName=outFNameBase;
       outFName.Append((iSrc==0) ? "-fromCS" : "-fromCov");
