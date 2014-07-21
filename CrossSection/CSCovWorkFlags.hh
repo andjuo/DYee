@@ -76,7 +76,8 @@ int loadGlobalCovMatrices(const TString &fnameBase,
 			  std::vector<TString> &labels,
 			  const WorkFlags_t &wf);
 
-TH2D *loadMainCSResult(int crossSection=0, TH2D** h2SystErr=NULL);
+TH2D *loadMainCSResult(int crossSection=0, TH2D** h2SystErr=NULL,
+		       int nBayesIters=-1);
 
 // Covariance is random, propagated error is fixed by the central values
 // The covariance from a particular source can be corrected to the propagated
@@ -258,6 +259,7 @@ struct WorkFlags_t {
   TString fExtraTag;
   std::vector<TString> fExtraTagV;
   CSCovCalcFlags_t fCalcFlags;
+  int fBayesUnf; // whether det.res. unfolding was performed using Bayes algo.
 public:
   WorkFlags_t(int the_case=0, int set_showCSCov=1, TString set_extra_tag="") :
     fCase(the_case), fCSCov(set_showCSCov),
@@ -265,7 +267,8 @@ public:
     fApplyCorrection(0),
     fExtraTag(set_extra_tag),
     fExtraTagV(),
-    fCalcFlags()
+    fCalcFlags(),
+    fBayesUnf(-1)
   {
     init_ExtraTagV(1);
   }
@@ -276,7 +279,8 @@ public:
     fApplyCorrection(w.fApplyCorrection),
     fExtraTag(w.fExtraTag),
     fExtraTagV(w.fExtraTagV),
-    fCalcFlags(w.fCalcFlags)
+    fCalcFlags(w.fCalcFlags),
+    fBayesUnf(w.fBayesUnf)
   {}
 
   int theCase() const { return fCase; }
@@ -290,6 +294,8 @@ public:
   int hasExtraTag() const { return (fExtraTag.Length()>0) ? 1:0; }
   TString extraFileTag() const { return fExtraTag; }
   void extraFileTag(TString setTag) { fExtraTag=setTag; }
+  int nBayesIters() const { return fBayesUnf; }
+  void nBayesIters(int nIters) { fBayesUnf=nIters; }
 
   const CSCovCalcFlags_t & calcFlags() const { return fCalcFlags; }
   const CSCovCalcFlags_t & cf() const { return fCalcFlags; }
@@ -351,9 +357,16 @@ public:
       else {
 	fname.Append(eTag);
       }
-      std::cout << "WorkFlags_t::adjustFName(corrCase="
-		<< corrCaseName(cs) << "): fname=<" << fname << ">\n";
     }
+    if (fBayesUnf!=-1) {
+      std::cout << "nBayesIters=" << fBayesUnf << "\n";
+      fname.ReplaceAll("xsec",Form("xsec_nBayes%d",fBayesUnf));
+
+      //fname.ReplaceAll("_nExps1000","");
+    }
+
+    std::cout << "WorkFlags_t::adjustFName(corrCase="
+	      << corrCaseName(cs) << "): fname=<" << fname << ">\n";
   }
 
 

@@ -499,7 +499,7 @@ int loadGlobalCovMatrices(const TString &fnameBase,
 // -----------------------------------------------------------
 // -----------------------------------------------------------
 
-TH2D *loadMainCSResult(int crossSection, TH2D** h2SystErr) {
+TH2D *loadMainCSResult(int crossSection, TH2D** h2SystErr, int nBayesIters) {
   TString csFileName1D_CS="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1D.root";
   TString csFileName1D_Count="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsr_1DpreFsr.root";
   TString csFileName2D_CS="../../Results-DYee/root_files_reg/xsec/DY_j22_19712pb/xSec_preFsrDet_2D.root";
@@ -518,6 +518,12 @@ TH2D *loadMainCSResult(int crossSection, TH2D** h2SystErr) {
    std::cout << "code error in loadMainCSResult\n";
    return NULL;
  }
+
+  if (crossSection && (nBayesIters>0)) {
+    TString sOld="DY_j22_19712pb";
+    TString sNew=Form("DY_j22_19712pb-BayesUnf%d",nBayesIters);
+    csFileName.ReplaceAll(sOld,sNew);
+  }
 
   TFile fin(csFileName,"read");
   if (!fin.IsOpen()) {
