@@ -18,8 +18,8 @@
 #include <TDecompLU.h>
 
 #ifdef use_RooUnfold
-#include "../RooUnfold/src/RooUnfoldBayes.h"
-#include "../RooUnfold/src/RooUnfoldDagostini.h"
+#include "../RooUnfoldInterface/src/RooUnfoldBayes.h"
+#include "../RooUnfoldInterface/src/RooUnfoldDagostini.h"
 #endif
 
 
@@ -504,7 +504,8 @@ public:
 
   int randomizeMigrationMatrix(const UnfoldingMatrix_t &U,
 			       const UnfoldingMatrix_t *Uexact=NULL,
-			       int NsmearingsForError=1000) {
+			       int NsmearingsForError=1000,
+			       int forBayesUnf=0) {
     if (!this->sizesMatch(U)) {
       std::cout << "UnfoldingMatrix_t::randomizeMigrationMatrix(U) sizes do not match\n";
       return 0;
@@ -532,6 +533,54 @@ public:
       *yieldsIni= (*U.yieldsIni);
       *yieldsFin= (*U.yieldsFin);
       this->modifyDETResponseMatrices(*Uexact);
+    }
+    if (forBayesUnf) {
+      // The yields have to be adjusted to match the
+      // randomized migration matrix
+      //*yieldsIni= (*U.yieldsIni);
+      //*yieldsFin= (*U.yieldsFin);
+      //*yieldsIniErr= (*U.yieldsIniErr);
+      //*yieldsFinErr= (*U.yieldsFinErr);
+      const TMatrixD *Mold= U.DetMigration;
+      const TMatrixD *Mnew= this->DetMigration;
+      int dimR=Mold->GetNrows();
+      int dimC=Mold->GetNcols();
+      std::cout << "dimR=" << dimR << ", dimC=" << dimC << "\n";
+      // Estimate the change in the events by using the projections
+      // projections are based on flat index
+      TVectorD projRold(dimR), projRnew(dimR);
+      TVectorD projCold(dimC), projCnew(dimC);
+      projRold.Zero(); projRnew.Zero();
+      projCold.Zero(); projCnew.Zero();
+      for (int ir=0; ir<dimR; ++ir) {
+	for (int ic=0; ic<dimC; ++ic) {
+	  projRold[ir] += (*Mold)(ir,ic);
+	  projCold[ic] += (*Mold)(ir,ic);
+	  projRnew[ir] += (*Mnew)(ir,ic);
+	  projCnew[ic] += (*Mnew)(ir,ic);
+	}
+      }
+      //std::cout << "U.yieldsIni: "; U.yieldsIni->Print();
+      //std::cout << "U.yieldsFin: "; U.yieldsFin->Print();
+      //std::cout << "projRold: "; projRold.Print();
+      //std::cout << "projRnew: "; projRnew.Print();
+      //std::cout << "projCold: "; projCold.Print();
+      //std::cout << "projCnew: "; projCnew.Print();
+      yieldsIni->Zero(); yieldsIniErr->Zero();
+      yieldsFin->Zero(); yieldsFinErr->Zero();
+      for (int ir=0, iflat=0; ir<yieldsIni->GetNrows(); ++ir) {
+	for (int ic=0; ic<yieldsFin->GetNcols(); ++ic, ++iflat) {
+	  if (iflat>=dimR) break;
+	  double rIni = (projRold[iflat]!=double(0.)) ?
+	    projRnew[iflat]/projRold[iflat] : 0;
+	  double rFin = (projCold[iflat]!=double(0.)) ?
+	    projCnew[iflat]/projCold[iflat] : 0;
+	  (*yieldsIni)(ir,ic) = rIni * (*U.yieldsIni)(ir,ic);
+	  (*yieldsFin)(ir,ic) = rFin * (*U.yieldsFin)(ir,ic);
+	}
+      }
+      //std::cout << "yieldsIni: "; yieldsIni->Print();
+      //std::cout << "yieldsFin: "; yieldsFin->Print();
     }
     this->prepareFIArrays();
     return 1;
@@ -902,6 +951,15 @@ public:
     return this->loadFromFile(matrixFName,yieldsFName);
   }
 
+  int autoLoadFromFile_forRooUnfold(const TString &outputDir,
+				    const TString &fileTag) {
+    TString matrixFName,yieldsFName;
+    this->getFileNames(outputDir,fileTag, matrixFName,yieldsFName);
+    std::cout << "loading for RooUnfold from files <" << matrixFName
+	      << "> and <" << yieldsFName << ">\n";
+    return this->loadFromFile_forRooUnfold(matrixFName,yieldsFName);
+  }
+
 
   int saveToFile(const TString &fileName, const TString &refFileName,
 		  TString callingMacro="UnfoldingMatrix.hh") const {
@@ -997,6 +1055,67 @@ public:
       (*yieldsIniArr).Read(iniYieldsName + TString("FIArray"));
       (*yieldsFinArr).Read(finYieldsName + TString("FIArray"));
       fRef.Close();
+    }
+    return 1;
+  }
+
+  // ------------------------------------------
+  // Load only needed fields
+
+  int loadFromFile_forRooUnfold(const TString &fileName, const TString &refFileName) {
+    std::cout << "UnfoldingMatrix_t::loadFromFile_forRooUnfold(\n  <"
+	      << fileName << ">\n  <" << refFileName << ">) for name="
+	      << this->name << "\n";
+    if (kind!=UnfoldingMatrix::_cFSR_DETcorrFactors) {
+      TFile fConst(fileName);
+      if (!fConst.IsOpen()) {
+	std::cout << "failed to open the file <" << fileName << ">\n";
+	return 0;
+      }
+      if (!checkBinningArrays(fConst)) {
+	fConst.Close();
+	return 0;
+      }
+      (*DetMigration)            .Read("DetMigration");
+      (*DetMigrationErr)         .Read("DetMigrationErr");
+      //(*DetResponse)             .Read("DetResponse");
+      //(*DetResponseErrPos)       .Read("DetResponseErrPos");
+      //(*DetResponseErrNeg)       .Read("DetResponseErrNeg");
+      //(*DetInvertedResponse)     .Read("DetInvertedResponse");
+      //(*DetInvertedResponseErr)  .Read("DetInvertedResponseErr");
+      //(*DetResponseArr)          .Read("DetResponseFIArray");
+      //(*DetInvertedResponseArr)  .Read("DetInvertedResponseFIArray");
+      //(*DetInvertedResponseErrArr).Read("DetInvertedResponseErrFIArray");
+      (*yieldsIni).Read(iniYieldsName);
+      (*yieldsFin).Read(finYieldsName);
+      (*yieldsIniErr).Read(iniYieldsName + TString("Err"));
+      (*yieldsFinErr).Read(finYieldsName + TString("Err"));
+      (*yieldsIniArr).Read(iniYieldsName + TString("FIArray"));
+      (*yieldsFinArr).Read(finYieldsName + TString("FIArray"));
+      fConst.Close();
+    }
+
+    if (kind==UnfoldingMatrix::_cFSR_DETcorrFactors) {
+      std::cout << "it is not correct to call loadFromFile_forRooUnfold "
+		<< "in this situation (the use is not implemented)\n";
+      return 0;
+      /*
+      // Retrieve reference MC arrays in a file
+      TFile fRef(refFileName);
+      if (!fRef.IsOpen()) {
+	std::cout << "failed to open the file <" << refFileName << ">\n";
+	return 0;
+      }
+      if (!checkBinningArrays(fRef)) {
+	fRef.Close();
+	return 0;
+      }
+      (*yieldsIni).Read(iniYieldsName);
+      (*yieldsFin).Read(finYieldsName);
+      (*yieldsIniArr).Read(iniYieldsName + TString("FIArray"));
+      (*yieldsFinArr).Read(finYieldsName + TString("FIArray"));
+      fRef.Close();
+      */
     }
     return 1;
   }
@@ -1764,6 +1883,97 @@ int unfold_reco2true(HistoPair2D_t &hpTrue, const UnfoldingMatrix_t &U, const Hi
 #endif
 
 // -----------------------------------------------
+// -----------------------------------------------
+// -----------------------------------------------
+
+#ifdef use_RooUnfold
+inline
+int doBayesUnfold(TH2D *h2Fin, TH2D *h2FinErrSyst,
+		  const UnfoldingMatrix_t &detResponse,
+		  const TH2D* h2Ini, const TH2D* h2IniErrSyst,
+		  int nIters)
+{
+  RooUnfBayes_t rooUnf(detResponse);
+  TH1D* hIni_flat= flattenHisto(h2Ini,h2Ini->GetName() +TString("_flat"));
+  if (!rooUnf.doUnfoldBayes(hIni_flat, nIters)) return 0;
+  TH1D* hUnf_flat= rooUnf.unfYield();
+  TString tmpName1= hUnf_flat->GetName() + TString("_h2");
+  TH2D *h2Unf = deflattenHisto(hUnf_flat, tmpName1);
+  if (!Copy(h2Unf,h2Fin)) return 0;
+  delete h2Unf;
+  delete hUnf_flat;
+  delete hIni_flat;
+
+  if (( h2FinErrSyst && !h2IniErrSyst) ||
+      (!h2FinErrSyst &&  h2IniErrSyst)) {
+    std::cout << "doBayesUnfold(TH2D*): one Syst ptr is null\n";
+    return 0;
+  }
+
+  if (h2FinErrSyst) {
+    h2FinErrSyst->Reset();
+    TH1D* hIniSyst_flat= flattenHisto(h2IniErrSyst,
+				   h2IniErrSyst->GetName() + TString("_flat"));
+    if (!rooUnf.doUnfoldBayes(hIniSyst_flat, nIters)) return 0;
+    TH1D* hUnfSyst_flat= rooUnf.unfYield();
+    TString tmpName2= hUnfSyst_flat->GetName() + TString("_h2syst");
+    TH2D* h2UnfSyst= deflattenHisto(hUnfSyst_flat, tmpName2);
+    if (!Copy(h2UnfSyst,h2FinErrSyst)) return 0;
+    delete h2UnfSyst;
+    delete hUnfSyst_flat;
+    delete hIniSyst_flat;
+  }
+
+  return 1;
+}
+#endif
+
+// -----------------------------------------------
+
+#ifdef use_RooUnfold
+#ifdef HistoPair_HH
+inline
+int doBayesUnfold(HistoPair2D_t &hpTrue,
+		  const UnfoldingMatrix_t &detResponse,
+		  const HistoPair2D_t &hpReco,
+		  int nIters)
+{
+  RooUnfBayes_t rooUnf(detResponse);
+  const TH2D *h2Ini= hpReco.histo();
+  TH1D* hIni_flat= flattenHisto(h2Ini,h2Ini->GetName() +TString("_flat"));
+  if (!rooUnf.doUnfoldBayes(hIni_flat, nIters)) return 0;
+  TH1D* hUnf_flat= rooUnf.unfYield();
+  TString tmpName1= hUnf_flat->GetName() + TString("_h2");
+  TH2D *h2Unf = deflattenHisto(hUnf_flat, tmpName1);
+  if (!Copy(h2Unf, hpTrue.editHisto())) return 0;
+  delete h2Unf;
+  delete hUnf_flat;
+  delete hIni_flat;
+
+  const TH2D *h2IniErrSyst= hpReco.histoSystErr();
+  if (( h2IniErrSyst && !hpTrue.histoSystErr()) ||
+      (!h2IniErrSyst &&  hpTrue.histoSystErr())) {
+    std::cout << "doBayesUnfold(HistoPair2D) one syst ptr is null\n";
+    return 0;
+  }
+
+  if (h2IniErrSyst) {
+    TH1D* hIniSyst_flat= flattenHisto(h2IniErrSyst,
+				   h2IniErrSyst->GetName() + TString("_flat"));
+    if (!rooUnf.doUnfoldBayes(hIniSyst_flat, nIters)) return 0;
+    TH1D* hUnfSyst_flat= rooUnf.unfYield();
+    TString tmpName2= hUnfSyst_flat->GetName() + TString("_h2syst");
+    TH2D* h2UnfSyst= deflattenHisto(hUnfSyst_flat, tmpName2);
+    if (!Copy(h2UnfSyst,hpTrue.editHistoSystErr())) return 0;
+    delete h2UnfSyst;
+    delete hUnfSyst_flat;
+    delete hIniSyst_flat;
+  }
+  return 1;
+}
+#endif
+#endif
+
 // -----------------------------------------------
 // -----------------------------------------------
 
