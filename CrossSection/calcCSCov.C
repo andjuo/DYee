@@ -7,7 +7,8 @@
 int calcCSCov(int analysisIs2D,
 	      TString conf, int nExps=100,
 	      DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None,
-	      TString outFileExtraTag_UserInput="") {
+	      TString outFileExtraTag_UserInput="",
+	      int masterFlag=-1) {
   gBenchmark->Start("calcCSCov");
 
   if (!DYTools::setup(analysisIs2D)) {
@@ -34,11 +35,7 @@ int calcCSCov(int analysisIs2D,
   int calc_YieldStatDetailed=0; // take only observed stat err
   int calc_YieldSyst=0;  // ignore the way it was calculated
   int calc_YieldSystDetailed=0; // take into account true/fake composition
-  int calc_YieldEScale=1;
-
-  int doCalcYieldCov=(calc_YieldStat + calc_YieldStatDetailed +
-		      calc_YieldSyst + calc_YieldSystDetailed +
-		      calc_YieldEScale) ? 1:0;
+  int calc_YieldEScale=0;
 
   int calc_UnfPU=0;
   int calc_UnfFSR=0;
@@ -46,33 +43,139 @@ int calcCSCov(int analysisIs2D,
   int calc_UnfEScale=0;
   int calc_UnfResidual=0;
 
-  int doCalcUnfCov=(calc_UnfPU + calc_UnfFSR +
-		    calc_UnfRnd + calc_UnfEScale + calc_UnfResidual) ? 1:0;
-
   int calc_EffPU=0;
   int calc_EffFSR=0;
   int calc_EffRnd=0;
 
-  int doCalcEffCov=(calc_EffPU + calc_EffFSR + calc_EffRnd) ? 1:0;
-
   int calc_ESFtot=0;  // use this one
   int calc_ESFtotCheck=0;
-
-  int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
 
   int calc_AccFSR=0;
   int calc_AccRnd=0;
 
-  int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
-
   int calc_FsrFSR=0; // not ready
   int calc_FsrRnd=0;
-
-  int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
 
   int calc_globalFSR=0;
   int calc_globalPU=0;
   int calc_globalFEWZ=0;
+
+  // take into account the master flag
+  if (1 && (masterFlag!=-1)) {
+    std::vector<int*> calcV;
+    calcV.reserve(25);
+    calcV.push_back(&calc_YieldStat);
+    calcV.push_back(&calc_YieldStatDetailed);
+    calcV.push_back(&calc_YieldSyst);
+    calcV.push_back(&calc_YieldEScale);
+    calcV.push_back(&calc_UnfPU);
+    calcV.push_back(&calc_UnfFSR);
+    calcV.push_back(&calc_UnfRnd);
+    calcV.push_back(&calc_UnfEScale);
+    calcV.push_back(&calc_UnfResidual);
+    calcV.push_back(&calc_EffPU);
+    calcV.push_back(&calc_EffFSR);
+    calcV.push_back(&calc_EffRnd);
+    calcV.push_back(&calc_ESFtot);
+    calcV.push_back(&calc_ESFtotCheck);
+    calcV.push_back(&calc_AccFSR);
+    calcV.push_back(&calc_AccRnd);
+    calcV.push_back(&calc_FsrFSR);
+    calcV.push_back(&calc_FsrRnd);
+    calcV.push_back(&calc_globalFSR);
+    calcV.push_back(&calc_globalPU);
+    calcV.push_back(&calc_globalFEWZ);
+
+    for (unsigned int i=0; i<calcV.size(); ++i) {
+      (*calcV[i])=0;
+    }
+
+    int master_nExps=0;
+    switch(masterFlag) {
+    case 0:
+      std::cout << "\tmasterFlag: yield systematics\n";
+      calc_YieldStatDetailed=1;
+      calc_YieldSystDetailed=1;
+      calc_YieldEScale=1;
+      master_nExps=1000;
+      outFileExtraTag_UserInput.Append("-yieldOnly");
+      break;
+    case 1:
+      std::cout << "\tmasterFlag: unf systematics\n";
+      calc_UnfRnd=1;
+      calc_UnfResidual=1;
+      master_nExps=1000;
+      master_nExps=100;
+      outFileExtraTag_UserInput.Append("-unfOnly");
+      break;
+    case 2:
+      std::cout << "\tmasterFlag: eff systematics\n";
+      calc_EffRnd=1;
+      master_nExps=1000;
+      outFileExtraTag_UserInput.Append("-effRndOnly");
+      break;
+    case 3:
+      std::cout << "\tmasterFlag: ESF systematics\n";
+      calc_ESFtot=1;
+      master_nExps=100;
+      outFileExtraTag_UserInput.Append("-esfOnly");
+      break;
+    case 4:
+      std::cout << "\tmasterFlag: Acc systematics\n";
+      calc_AccRnd=1;
+      master_nExps=1000;
+      outFileExtraTag_UserInput.Append("-accRndOnly");
+      break;
+    case 5:
+      std::cout << "\tmasterFlag: FSR systematics\n";
+      calc_FsrRnd=1;
+      master_nExps=1000;
+      outFileExtraTag_UserInput.Append("-fsrRndOnly");
+      break;
+    case 6:
+      std::cout << "\tmasterFlag: global FSR\n";
+      calc_globalFSR=1;
+      master_nExps=100;
+      outFileExtraTag_UserInput.Append("-globalFSROnly");
+      break;
+    case 7:
+      std::cout << "\tmasterFlag: global PU\n";
+      calc_globalPU=1;
+      master_nExps=100;
+      outFileExtraTag_UserInput.Append("-globalPUOnly");
+      break;
+    default:
+      std::cout << "not ready for masterFlag=" << masterFlag << "\n";
+      return retCodeError;
+    }
+
+    std::cout << " * masterFlag settings:\n";
+    std::cout << " master_nExps=" << master_nExps << "\n";
+    if (1 && (nExps!=master_nExps)) {
+      std::cout << "  - changed input nExps\n";
+      nExps= master_nExps;
+    }
+    std::cout << " outFileExtraTag_UserInput=<" << outFileExtraTag_UserInput
+	      << ">\n";
+  }
+
+
+  // determine what is calculated
+
+  int doCalcYieldCov=(calc_YieldStat + calc_YieldStatDetailed +
+		      calc_YieldSyst + calc_YieldSystDetailed +
+		      calc_YieldEScale) ? 1:0;
+
+  int doCalcUnfCov=(calc_UnfPU + calc_UnfFSR +
+		    calc_UnfRnd + calc_UnfEScale + calc_UnfResidual) ? 1:0;
+
+  int doCalcEffCov=(calc_EffPU + calc_EffFSR + calc_EffRnd) ? 1:0;
+
+  int doCalcESFCov=(calc_ESFtot+calc_ESFtotCheck) ? 1:0;
+
+  int doCalcAccCov=(calc_AccFSR + calc_AccRnd) ? 1:0;
+
+  int doCalcFSRCov=(calc_FsrFSR + calc_FsrRnd) ? 1:0;
 
   int doCalcGlobalCov=(calc_globalFSR + calc_globalPU + calc_globalFEWZ) ? 1:0;
 
@@ -115,13 +218,23 @@ int calcCSCov(int analysisIs2D,
 			      EventSelector::_selectDefault);
 
   // Prepare output directory
-  inpMgr.crossSectionDir(systMode,1);
+  int createDir=1;
+  if (masterFlag!=-1) createDir=0;
+  TString outputCSDir=inpMgr.crossSectionDir(systMode,createDir);
+  TString outputCSDir_orig=outputCSDir;
+  if (masterFlag!=-1) {
+    outputCSDir.ReplaceAll("../Results-DYee/","");
+    CreateDir(outputCSDir,1);
+  }
 
   InputArgs_t inpArgs("default",&inpMgr,systMode,csKind);
 
   int systFileFlag=1;
   TString outFileName=inpMgr.crossSectionFullFileName(systMode,
 					       csKind,0,systFileFlag);
+  if (outputCSDir!=outputCSDir_orig) {
+    outFileName.ReplaceAll(outputCSDir_orig,outputCSDir);
+  }
   if (nExps!=100) outFileExtraTag_UserInput.Append(Form("_nExps%d",nExps));
   if (outFileExtraTag_UserInput.Length()) {
     std::cout << "applying extra tag from input= " << outFileExtraTag_UserInput << "\n";
