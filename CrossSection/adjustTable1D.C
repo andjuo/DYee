@@ -2,9 +2,11 @@
 #include "../Include/MyTools.hh"
 #include "CSCovWorkFlags.hh"
 
-void adjustTable1D(int saveLatex=0, int saveStatErr=0) {
+void adjustTable1D(int saveLatex=0, int saveStatErr=0,
+		   int nBayesIters=-1) {
   if (!DYTools::setup(0)) return;
   TString fileTag="frac-total";
+  if (nBayesIters!=-1) fileTag=Form("frac_nBayes%d",nBayesIters);
   std::vector<TH2D*> histosV_old,histosV;
   std::vector<TString> labelsV_old,labelsV;
 
@@ -109,12 +111,15 @@ void adjustTable1D(int saveLatex=0, int saveStatErr=0) {
       std::cout << " - " << i << "  " << labelsV[i] << "\n";
     }
 
-    TH2D* hCS=loadMainCSResult(1);
+    TH2D* hCS=loadMainCSResult(1,NULL,nBayesIters);
     if (!hCS) return;
     TH1D* h1CS=createProfileAuto(hCS,1,"xsec");
     if (!h1CS) return;
 
     TString fname="table_1D_frac.root";
+    if (nBayesIters!=-1) {
+      fname.ReplaceAll("_frac",Form("_frac_nBayes%d",nBayesIters));
+    }
     TFile fout(fname,"recreate");
     if (!saveHisto(fout,h1CS,"","xsec")) return;
     for (unsigned int i=0; i<histosV.size(); ++i) {
