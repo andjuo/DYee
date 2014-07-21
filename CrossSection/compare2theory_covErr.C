@@ -8,7 +8,8 @@
 int compare2theory_covErr(int analysisIs2D,
 			  TString csFNameExtraTag="",
 			  int savePlots=0,
-		 DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None
+		       DYTools::TCrossSectionKind_t csKind=DYTools::_cs_None,
+			  int nBayesIters=-1
 		   )
 {
   if (analysisIs2D) {
@@ -35,6 +36,9 @@ int compare2theory_covErr(int analysisIs2D,
 
   if (csFNameExtraTag.Length()) {
     inpFName.ReplaceAll(".root",csFNameExtraTag + TString(".root"));
+  }
+  if (nBayesIters>0) {
+    inpFName.ReplaceAll(".root",Form("_nBayes%d.root",nBayesIters));
   }
   std::cout << "input fname is <" << inpFName << ">\n";
 
