@@ -5,9 +5,11 @@
 #include "CSCovWorkFlags.hh"
 
 
-void adjustTable2D(int saveLatex=0, int saveStatErr=0) {
+void adjustTable2D(int saveLatex=0, int saveStatErr=0,
+		   int nBayesIters=-1) {
   if (!DYTools::setup(1)) return;
   TString fileTag="frac-total";
+  if (nBayesIters!=-1) fileTag=Form("frac_nBayes%d",nBayesIters);
   std::vector<TH2D*> histosV_old,histosV;
   std::vector<TString> labelsV_old,labelsV;
 
@@ -89,10 +91,13 @@ void adjustTable2D(int saveLatex=0, int saveStatErr=0) {
       std::cout << " - " << i << "  " << labelsV[i] << "\n";
     }
 
-    TH2D* hCS=loadMainCSResult(1);
+    TH2D* hCS=loadMainCSResult(1,NULL,nBayesIters);
     if (!hCS) return;
 
     TString fname="table_2D_frac.root";
+    if (nBayesIters!=-1) {
+      fname.ReplaceAll("_frac",Form("_frac_nBayes%d",nBayesIters));
+    }
     TFile fout(fname,"recreate");
 
     TH2D* hCSok=removeUnderflow(hCS,"hCSok");
