@@ -90,6 +90,11 @@ int calcCrossSection(int analysisIs2D,
       std::cout << "event efficiency scale factor tag=<" << tag << ">\n";
       inpMgr.addUserKey("SpecialESFTag",tag);
     }
+    else if ((special_case>10) && (special_case<20)) {
+      int nIters=special_case - 10;
+      inpArgs.bayesUnf(nIters);
+      inpArgs.resNameBaseAppend(Form("-BayesUnf%d",nIters));
+    }
   }
 
   //--------------------------------------------------------------------------------------------------------------
