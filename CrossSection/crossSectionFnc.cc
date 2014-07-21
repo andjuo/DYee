@@ -83,12 +83,28 @@ int unfoldDetResolution(const InputArgs_t &inpArg, const HistoPair2D_t &ini, His
       std::cout << "\nusing user-defined file for detResolution. constDir=" << constDir << ">, fnameTag=<" << specFNameTag << ">\n";
     }
   }
-  UnfM=UnfoldingMatrix_t::LoadUnfM("detResponse", constDir, fnameTag, inverse);
-  if (!UnfM) return 0;
-  // unfolding does not include additional error of the unfolding matrix
-  int res= fin.unfold(*UnfM, ini);
+  int res=1;
+  if (inpArg.bayesUnf()==0) {
+    UnfM=UnfoldingMatrix_t::LoadUnfM("detResponse", constDir, fnameTag,
+				     inverse);
+    if (!UnfM) return 0;
+    // unfolding does not include additional error of the unfolding matrix
+    res= fin.unfold(*UnfM, ini);
+    delete UnfM;
+  }
+  else {
+    std::cout << "Bayes unfolding (nIters=" << inpArg.bayesUnf() << ")\n";
+#ifndef use_RooUnfold
+    std::cout << "  ... use_RooUnfold is not defined\n";
+    return 0;
+#endif
+    TString detRespName="detResponse";
+    UnfoldingMatrix_t detResponse(UnfoldingMatrix::_cDET_Response,detRespName);
+    // we do not need the entire object
+    res= detResponse.autoLoadFromFile_forRooUnfold(constDir,fnameTag);
+    if (res==1) res=doBayesUnfold(fin,detResponse,ini,inpArg.bayesUnf());
+  }
   if (!res) return 0;
-  delete UnfM;
   return 1;
 }
 

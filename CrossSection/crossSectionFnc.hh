@@ -33,6 +33,7 @@ struct InputArgs_t {
   int fSilentMode;
   int fNoSave;
   int fExternalSeed; // a value needed for the unfolding matrices
+  int fBayesUnf; // whether detResolution unfolding should call RooUnfoldBayes
 public:
   InputArgs_t(TString set_name,
 	      InputFileMgr_t *set_InpMgr,
@@ -56,7 +57,8 @@ public:
     fIncludeCorrError(set_includeCorrErr),
     fSilentMode(0),
     fNoSave(0),
-    fExternalSeed(-1)
+    fExternalSeed(-1),
+    fBayesUnf(0)
   {}
 
   InputArgs_t(TString set_name,
@@ -78,7 +80,8 @@ public:
     fIncludeCorrError(ia.fIncludeCorrError),
     fSilentMode(ia.fSilentMode),
     fNoSave(ia.fNoSave),
-    fExternalSeed(ia.fExternalSeed)
+    fExternalSeed(ia.fExternalSeed),
+    fBayesUnf(ia.fBayesUnf)
   {
     if (set_needsDetUnfolding!=-1) fNeedsDETUnfolding=set_needsDetUnfolding;
     if (set_allNormErrorIsSyst!=-1) fAllNormErrorIsSyst=set_allNormErrorIsSyst;
@@ -124,6 +127,8 @@ public:
   int  noSave() const { return fNoSave; }
   void externalSeed(int seed) { fExternalSeed=seed; }
   int externalSeed() const { return fExternalSeed; }
+  void bayesUnf(int yes) { fBayesUnf=yes; }
+  int bayesUnf() const { return fBayesUnf; }
 
   friend std::ostream& operator<<(std::ostream &out, const InputArgs_t &ia) {
     out << "InputArgs(name=" << ia.fName << "):\n";
@@ -141,6 +146,7 @@ public:
     out << "  silentMode   =" << ia.fSilentMode << "\n";
     out << "  noSave       =" << ia.fNoSave << "\n";
     out << "  externalSeed =" << ia.fExternalSeed << "\n";
+    out << "  BayesUnf     =" << ia.fBayesUnf << "\n";
     return out;
   }
 
