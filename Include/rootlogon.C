@@ -15,6 +15,7 @@
   gROOT->ProcessLine(".L ../Include/TEventInfo.hh+");
   gROOT->ProcessLine(".L ../Include/TGenInfo.hh+");
   gROOT->ProcessLine(".L ../Include/TPhoton.hh+");
+  gROOT->ProcessLine(".L ../Include/TGenPhoton.hh+");
   gROOT->ProcessLine(".L ../Include/TJet.hh+");
   gROOT->ProcessLine(".L ../Include/TVertex.hh+");
   gROOT->ProcessLine(".L ../Include/EleIDCuts.hh+");
