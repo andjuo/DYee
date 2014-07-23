@@ -34,6 +34,9 @@ TString getDefaultFileName(TString index) {
   else if (index=="defaultOld") {
     fname="../config_files/old-data_vilnius8TeV_regSSD.conf.py";
   }
+  else if (index=="dressed") {
+    fname="../config_files/data_vilnius8TeV_dressed.conf.py";
+  }
   else { fname=index; replaced=0; }
   if (replaced) std::cout << "getDefaultFileName: "
 			  << "converted to inputFileName=<" << fname << ">\n";
