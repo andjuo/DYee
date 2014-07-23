@@ -390,7 +390,11 @@ int plotUnfoldingMatrixDressed(int analysisIs2D,
 
   //int saveIdxMin=-1;
   TString fnameTag=UnfoldingMatrix_t::generateFNameTag(systMode,globalSeed);
-  fnameTag.Prepend("dressed");
+  TString dRstr=Form("dressed_dR_%3.1lf-",dR_thr);
+  eliminateSeparationSigns(dRstr);
+  std::cout << "dRstr=" << dRstr << "\n";
+  fnameTag.Prepend(dRstr);
+
 
   if (DYTools::isDebugMode(runMode)) fnameTag.Prepend("_DebugRun_");
   std::cout << "fnameTag=<" << fnameTag << ">\n";
