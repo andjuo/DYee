@@ -317,6 +317,7 @@ $ zee 426  798 798 803  @Z#rightarrowee
 #
 #PATH_SSD/s12-zeem1020-v7a_tight-loose_skim.root 3708.0  800 @Powheg 10-20
 PATH_4/s12-zeem1020-v7a_genpho_ntuple.root 3708.0 800 @Powheg(genPho) 10-20
+PATH_3/s12-zeem20-v7a_genpho_ntuple.root   1871.0 632 @Powheg(genPho) 20+
 #
 # new n-tuples with finer binning
 #
