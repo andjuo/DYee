@@ -25,6 +25,7 @@
 
 #include "../Include/TEventInfo.hh"
 #include "../Include/TGenInfo.hh"
+#include "../Include/TGenPhoton.hh"
 #include "../Include/TDielectron.hh"
 #include "../Include/TVertex.hh"
 #include "../Include/TPhoton.hh"
@@ -46,16 +47,19 @@ protected:
   TClonesArray *dielectronArr;
   TClonesArray *pvArr;
   TClonesArray *scArr;  // photons == SCs
+  TClonesArray *genPhArr;
 
   TBranch *infoBr;
   TBranch *genBr;
   TBranch *dielectronBr;
   TBranch *pvBr;
   TBranch *scBr;
+  TBranch *genPhBr;
   int genBrIsActive;
   int scBrIsActive;
+  int genPhBrIsActive;
 public:
-  AccessOrigNtuples_t(int set_scBrIsActive=0) : 
+  AccessOrigNtuples_t(int set_scBrIsActive=0) :
     BaseClass_t("AccessOrigNtuples_t"),
     hasJson(0),
     json(),
@@ -65,13 +69,16 @@ public:
     dielectronArr(new TClonesArray("mithep::TDielectron")),
     pvArr(new TClonesArray("mithep::TVertex")),
     scArr(NULL),
+    genPhArr(NULL),
     infoBr(NULL),
     genBr(NULL),
     dielectronBr(NULL),
     pvBr(NULL),
     scBr(NULL),
+    genPhBr(NULL),
     genBrIsActive(0),
-    scBrIsActive(set_scBrIsActive)
+    scBrIsActive(set_scBrIsActive),
+    genPhBrIsActive(0)
   {}
 
   /* this dealoccation causes ROOT crash
@@ -97,6 +104,7 @@ public:
   const TClonesArray* getPVArr() const { return pvArr; }
   const TClonesArray* getSCArr() const { return (scBrIsActive) ? scArr : NULL; }
   const mithep::TPhoton* photonPtr(int i) const { return (const mithep::TPhoton*)((*scArr)[i]); }
+  const mithep::TGenPhoton* genPhotonPtr(int i) const { return (const mithep::TGenPhoton*)((*genPhArr)[i]); }
 
   int locateSCID(UInt_t scID) const {
     if (!scBrIsActive) return -1;
@@ -170,6 +178,23 @@ public:
 
   // ------------------
 
+  int setTree_withGenPhoton(TFile &infile, const TString &treeName) {
+    int res=setTree(infile,treeName,1);
+    if (res) {
+      genPhArr=new TClonesArray("mithep::TGenPhoton");
+      if (!genPhArr) res=0;
+      if (res) {
+	tree->SetBranchAddress("GenPhoton",&genPhArr);
+	genPhBr=tree->GetBranch("GenPhoton");
+	if (!genPhBr) res=0;
+      }
+      genPhBrIsActive=res;
+    }
+    return res;
+  }
+
+  // ------------------
+
 protected:
   int activateSCBranch() {
     scBrIsActive=1;
@@ -184,7 +209,7 @@ protected:
   }
 
 public:
-  ULong_t getEntries() { 
+  ULong_t getEntries() {
     if (!tree) { reportError("getEntries: tree is null\n"); return 0; }
     return tree->GetEntries();
   }
@@ -195,39 +220,48 @@ public:
   }
 
   template<class UInt_type>
-  void GetInfoEntry(UInt_type ientry) { 
+  void GetInfoEntry(UInt_type ientry) {
     dielectronArr->Clear();
     pvArr->Clear();
-    infoBr->GetEntry(ientry); 
+    infoBr->GetEntry(ientry);
   }
 
   template<class UInt_type>
-  void GetGen(UInt_type ientry) { 
+  void GetGen(UInt_type ientry) {
     genBr->GetEntry(ientry);
   }
 
   template<class UInt_type>
-  ULong_t GetDielectrons(UInt_type ientry) { 
+  ULong_t GetDielectrons(UInt_type ientry) {
     dielectronArr->Clear();
-    dielectronBr->GetEntry(ientry); 
+    dielectronBr->GetEntry(ientry);
     ULong_t count=dielectronArr->GetEntries();
     return count;
   }
 
   template<class UInt_type>
-  Int_t GetPVs(UInt_type ientry) { 
+  Int_t GetPVs(UInt_type ientry) {
     pvArr->Clear();
-    pvBr->GetEntry(ientry); 
+    pvBr->GetEntry(ientry);
     Int_t count=pvArr->GetEntries();
     return count;
   }
 
   template<class UInt_type>
-  Int_t GetPhotons(UInt_type ientry) { 
+  Int_t GetPhotons(UInt_type ientry) {
     if (!scBrIsActive) return -1;
     scArr->Clear();
-    scBr->GetEntry(ientry); 
+    scBr->GetEntry(ientry);
     Int_t count=scArr->GetEntries();
+    return count;
+  }
+
+  template<class UInt_type>
+  Int_t GetGenPhotons(UInt_type ientry) {
+    if (!genPhBrIsActive) return -1;
+    genPhArr->Clear();
+    genPhBr->GetEntry(ientry);
+    Int_t count=genPhArr->GetEntries();
     return count;
   }
 
@@ -251,13 +285,13 @@ public:
   }
 
   // ---------------------
-  
+
   int dielectronMatchedToGenLevel(int idx) const {
     int res=1;
     if (!gen) { res=0; std::cout << "dielectronMatchedToGenLevel: gen is NULL\n"; }
     if (!dielectronArr) { res=0; std::cout << "dielectronMatchedToGenLevel: dielectronArray is null\n"; }
     if (!res) return 0;
-    
+
     const mithep::TDielectron *dielectron=(const mithep::TDielectron*)((*dielectronArr)[idx]);
 
     // In the generator branch of this ntuple, first particle is always
@@ -265,9 +299,9 @@ public:
     // of the ntuple, the first particle is always the one with larger Pt.
     double dR1=999, dR2=999;
     TLorentzVector v1reco, v2reco, v1gen, v2gen;
-    v1reco.SetPtEtaPhiM(dielectron->pt_1, dielectron->eta_1, 
+    v1reco.SetPtEtaPhiM(dielectron->pt_1, dielectron->eta_1,
 			dielectron->phi_1, 0.000511);
-    v2reco.SetPtEtaPhiM(dielectron->pt_2, dielectron->eta_2, 
+    v2reco.SetPtEtaPhiM(dielectron->pt_2, dielectron->eta_2,
 			dielectron->phi_2, 0.000511);
     v1gen .SetPtEtaPhiM(gen->pt_1, gen->eta_1, gen->phi_1, 0.000511);
     v2gen .SetPtEtaPhiM(gen->pt_2, gen->eta_2, gen->phi_2, 0.000511);
@@ -280,14 +314,24 @@ public:
     }
     // Require that both are within loose dR of 0.4, otherwise bail out
     res=1;
-    if( fabs(dR1) > 0.4 || fabs(dR2) > 0.4 ) res=0; 
-  
+    if( fabs(dR1) > 0.4 || fabs(dR2) > 0.4 ) res=0;
+
     return res;
   }
 
   //int eventTriggerOk(const TriggerSelection_t &trigger) const {
   //  return (trigger.matchEventTriggerBit(info->triggerBits,info->runNum)) ? 1:0;
   //}
+
+  // ---------------------
+
+  TLorentzVector* getDressedGenDielectron(double dR=0.1,
+				     TLorentzVector *dressedE1=NULL,
+				     TLorentzVector *dressedE2=NULL) const;
+
+  // ---------------------
+
+
 
 };
 
