@@ -278,8 +278,8 @@ int plotUnfoldingMatrixDressed(int analysisIs2D,
 	// (and possibly PU) weight
 	//ec.setScale(evWeight.totalWeight());
 
-	FlatIndex_t fiGenPreFsr, fiGenDressed;
-	fiGenPreFsr.setGenPreFsrIdx(accessInfo);
+	FlatIndex_t fiGenDressed, fiGenPostFsr;
+	fiGenPostFsr.setGenPostFsrIdx(accessInfo);
 
 	TLorentzVector dressedE1,dressedE2;
 	TLorentzVector *dressedEE = accessInfo.getDressedGenDielectron(dR_thr,
@@ -291,37 +291,37 @@ int plotUnfoldingMatrixDressed(int analysisIs2D,
 	fiGenDressed.setIdx(dressedEE->M(),dressedEE->Rapidity());
 
 	// begin FSR unfolding block
-	fsrGood.fillIni(fiGenPreFsr , evWeight.totalWeight());
-	fsrGood.fillFin(fiGenDressed, evWeight.totalWeight());
-	if (fiGenPreFsr.isValid() && fiGenDressed.isValid()) {
-	  fsrGood.fillMigration(fiGenPreFsr, fiGenDressed, evWeight.totalWeight());
-	  fsrExact.fillIni(fiGenPreFsr , evWeight.totalWeight());
-	  fsrExact.fillFin(fiGenDressed, evWeight.totalWeight());
-	  fsrExact.fillMigration(fiGenPreFsr, fiGenDressed, evWeight.totalWeight());
+	fsrGood.fillIni(fiGenDressed, evWeight.totalWeight());
+	fsrGood.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	if (fiGenPostFsr.isValid() && fiGenDressed.isValid()) {
+	  fsrGood.fillMigration(fiGenDressed, fiGenPostFsr, evWeight.totalWeight());
+	  fsrExact.fillIni(fiGenDressed, evWeight.totalWeight());
+	  fsrExact.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	  fsrExact.fillMigration(fiGenDressed, fiGenPostFsr, evWeight.totalWeight());
 	}
 
-	int preFsrOk=0, dressedOk=0;
-	if (evtSelector.inAcceptancePreFsr(accessInfo) &&
-	    fiGenPreFsr.isValid()) {
-	  preFsrOk=1;
-	  fsrDET     .fillIni(fiGenPreFsr, evWeight.totalWeight());
-	  fsrDET_good.fillIni(fiGenPreFsr, evWeight.totalWeight());
-	}
-
+	int postFsrOk=0, dressedOk=0;
 	if (fiGenDressed.isValid() &&
 	    DYTools::goodEtEtaPair(dressedE1.Pt(),dressedE1.Eta(),
 				   dressedE2.Pt(),dressedE2.Eta())) {
 	  dressedOk=1;
-	  fsrDET     .fillFin(fiGenDressed, evWeight.totalWeight());
-	  fsrDET_good.fillFin(fiGenDressed, evWeight.totalWeight());
+	  fsrDET     .fillIni(fiGenDressed, evWeight.totalWeight());
+	  fsrDET_good.fillIni(fiGenDressed, evWeight.totalWeight());
 	}
 
-	if (preFsrOk && dressedOk) {
-	  fsrDET.fillMigration(fiGenPreFsr, fiGenDressed, evWeight.totalWeight());
-	  fsrDET_good.fillMigration(fiGenPreFsr, fiGenDressed, evWeight.totalWeight());
-	  fsrDETexact.fillIni(fiGenPreFsr , evWeight.totalWeight());
-	  fsrDETexact.fillFin(fiGenDressed, evWeight.totalWeight());
-	  fsrDETexact.fillMigration(fiGenPreFsr, fiGenDressed, evWeight.totalWeight());
+	if (evtSelector.inAcceptance(accessInfo) &&
+	    fiGenPostFsr.isValid()) {
+	  postFsrOk=1;
+	  fsrDET     .fillFin(fiGenPostFsr, evWeight.totalWeight());
+	  fsrDET_good.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	}
+
+	if (postFsrOk && dressedOk) {
+	  fsrDET.fillMigration(fiGenDressed, fiGenPostFsr, evWeight.totalWeight());
+	  fsrDET_good.fillMigration(fiGenDressed, fiGenPostFsr, evWeight.totalWeight());
+	  fsrDETexact.fillIni(fiGenDressed , evWeight.totalWeight());
+	  fsrDETexact.fillFin(fiGenPostFsr, evWeight.totalWeight());
+	  fsrDETexact.fillMigration(fiGenDressed, fiGenPostFsr, evWeight.totalWeight());
 	}
 
 	delete dressedEE;
